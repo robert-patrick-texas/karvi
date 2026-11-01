@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
 
 func fakeKey(seed byte) string {
@@ -78,6 +80,67 @@ func TestEnrollAppendsAndRejectsChange(t *testing.T) {
 	}
 }
 
+// TestEnrollAfterALastLineWithoutNewline: a store whose last line lacks
+// its newline gets one before the enrolled line, so that both lines stay
+// whole and both devices are found.
+func TestEnrollAfterALastLineWithoutNewline(t *testing.T) {
+	known := filepath.Join(t.TempDir(), "known_hosts")
+	first := "router1 ssh-ed25519 " + fakeKey(1)
+	if err := os.WriteFile(known, []byte(first), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if wrote, err := Enroll(known, "router2", 22, []keyRecord{{Type: "ssh-ed25519", Blob: fakeKey(2)}}); err != nil || !wrote {
+		t.Fatalf("enroll: wrote=%t %v", wrote, err)
+	}
+	data, err := os.ReadFile(known)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := first + "\nrouter2 ssh-ed25519 " + fakeKey(2) + " karvi-auto-enrolled\n"; string(data) != want {
+		t.Fatalf("store:\n%q\nwant:\n%q", data, want)
+	}
+	if !HasEnrolledHost(known, "router1", 22) || !HasEnrolledHost(known, "router2", 22) {
+		t.Fatalf("a device not found in:\n%s", data)
+	}
+}
+
+// TestEnrollRefusesARevokedKey: a key the store marks @revoked for the
+// device, read under the lock, is host_key_revoked and nothing is written.
+func TestEnrollRefusesARevokedKey(t *testing.T) {
+	known := filepath.Join(t.TempDir(), "known_hosts")
+	content := "@revoked * ssh-ed25519 " + fakeKey(1) + "\n"
+	if err := os.WriteFile(known, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	wrote, err := Enroll(known, "router1", 22, []keyRecord{{Type: "ssh-ed25519", Blob: fakeKey(1)}})
+	if wrote || errorcodes.Of(err) != "host_key_revoked" {
+		t.Fatalf("wrote=%t %v", wrote, err)
+	}
+	if data, _ := os.ReadFile(known); string(data) != content {
+		t.Fatalf("store changed:\n%s", data)
+	}
+}
+
+// TestScannedRevokedKeyIsRefused: a key ssh-keyscan reads from the device
+// that the store marks @revoked for it is host_key_revoked, with or without
+// a plain line for the device.
+func TestScannedRevokedKeyIsRefused(t *testing.T) {
+	revoked := fakeKey(8)
+	for _, content := range []string{
+		"@revoked router1 ssh-ed25519 " + revoked + "\n",
+		"router1 ssh-ed25519 " + revoked + "\n@revoked * ssh-ed25519 " + revoked + "\n",
+	} {
+		known := filepath.Join(t.TempDir(), "known_hosts")
+		if err := os.WriteFile(known, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		got, err := inspectRemoteWithBinary(context.Background(), fakeScanner(t, revoked), known, "router1", "192.0.2.10", 22, time.Second)
+		if errorcodes.Of(err) != "host_key_revoked" {
+			t.Errorf("%q: %+v %v", content, got, err)
+		}
+	}
+}
+
 // TestIdentityPerPort: the canonical name on port 22, [canonical]:PORT elsewhere, and no address in either.
 func TestIdentityPerPort(t *testing.T) {
 	for _, tc := range []struct {
@@ -120,7 +183,9 @@ func installKeyscanOnPath(t *testing.T, blob string) {
 // insecure comparison: the enrolled key is looked up under the device's
 // identity on its port, a differing key is a KeyMismatch with both
 // fingerprints, a device the store does not hold is not compared, a
-// failed ssh-keyscan is the reason, and another policy compares nothing.
+// failed ssh-keyscan is the reason, another policy compares nothing, and a
+// presented key the store marks @revoked for the device, with no plain line
+// for it, is host_key_revoked.
 func TestCompareInsecureComparesTheIdentity(t *testing.T) {
 	known := filepath.Join(t.TempDir(), "known_hosts")
 	if err := os.WriteFile(known, []byte("[router1]:2222 ssh-ed25519 "+fakeKey(1)+"\n"), 0o600); err != nil {
@@ -132,20 +197,27 @@ func TestCompareInsecureComparesTheIdentity(t *testing.T) {
 		port     int
 		mismatch bool
 	}{{2222, true}, {22, false}, {2223, false}} {
-		m, nc := CompareInsecure(context.Background(), policy, "router1", "192.0.2.10", tc.port)
-		if (m != nil) != tc.mismatch || nc != nil {
-			t.Fatalf("port %d: %+v %+v", tc.port, m, nc)
+		m, nc, err := CompareInsecure(context.Background(), policy, "router1", "192.0.2.10", tc.port)
+		if (m != nil) != tc.mismatch || nc != nil || err != nil {
+			t.Fatalf("port %d: %+v %+v %v", tc.port, m, nc, err)
 		}
 		if m != nil && (len(m.Enrolled) != 1 || len(m.Presented) == 0 || !strings.HasPrefix(m.Enrolled[0], "ssh-ed25519 SHA256:")) {
 			t.Fatalf("port %d: fingerprints %+v", tc.port, m)
 		}
 	}
-	if m, nc := CompareInsecure(context.Background(), Policy{Mode: AcceptNew, KnownHostsFile: known}, "router1", "192.0.2.10", 2222); m != nil || nc != nil {
-		t.Fatalf("accept-new compared: %+v %+v", m, nc)
+	if m, nc, err := CompareInsecure(context.Background(), Policy{Mode: AcceptNew, KnownHostsFile: known}, "router1", "192.0.2.10", 2222); m != nil || nc != nil || err != nil {
+		t.Fatalf("accept-new compared: %+v %+v %v", m, nc, err)
+	}
+	revoked := filepath.Join(t.TempDir(), "known_hosts")
+	if err := os.WriteFile(revoked, []byte("@revoked [router1]:2222 ssh-ed25519 "+fakeKey(8)+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if m, nc, err := CompareInsecure(context.Background(), Policy{Mode: Insecure, KnownHostsFile: revoked}, "router1", "192.0.2.10", 2222); m != nil || nc != nil || errorcodes.Of(err) != "host_key_revoked" {
+		t.Fatalf("revoked: %+v %+v %v", m, nc, err)
 	}
 	t.Setenv("PATH", t.TempDir())
-	if m, nc := CompareInsecure(context.Background(), policy, "router1", "192.0.2.10", 2222); m != nil || nc == nil || nc.Cause != NotComparedNoScanner || !strings.Contains(nc.Reason, "dependency_ssh_keyscan_unavailable") {
-		t.Fatalf("no ssh-keyscan: %+v %+v", m, nc)
+	if m, nc, err := CompareInsecure(context.Background(), policy, "router1", "192.0.2.10", 2222); m != nil || nc == nil || err != nil || nc.Cause != NotComparedNoScanner || !strings.Contains(nc.Reason, "dependency_ssh_keyscan_unavailable") {
+		t.Fatalf("no ssh-keyscan: %+v %+v %v", m, nc, err)
 	}
 }
 

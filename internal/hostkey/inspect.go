@@ -70,26 +70,31 @@ const (
 )
 
 // CompareInsecure compares, under insecure, the keys a device presents with
-// the one the store holds for it, by an ssh-keyscan beside the system
+// the ones the store holds for it, by an ssh-keyscan beside the system
 // transport's connection (OpenSSH itself is given /dev/null as its store
-// under insecure): a KeyMismatch when they differ; a NotCompared when the
-// comparison could not complete; neither under another policy, when the
-// store does not hold the device, or when a presented key matches.
-func CompareInsecure(ctx context.Context, p Policy, host, address string, port int) (*KeyMismatch, *NotCompared) {
+// under insecure): host_key_revoked, which refuses the connection, when a
+// presented key is one the store marks @revoked for the device; a
+// KeyMismatch when they differ; a NotCompared when the comparison could not
+// complete; none of them under another policy, when the store holds no line
+// for the device, or when a presented key matches.
+func CompareInsecure(ctx context.Context, p Policy, host, address string, port int) (*KeyMismatch, *NotCompared, error) {
 	if p.Mode != Insecure {
-		return nil, nil
+		return nil, nil, nil
 	}
-	if _, err := os.Stat(p.KnownHostsFile); err != nil || !HasEnrolledHost(p.KnownHostsFile, host, port) {
-		return nil, nil
+	if enrolled, revoked, err := storeKeys(p.KnownHostsFile, []string{Identity(host, port)}); err != nil || len(enrolled)+len(revoked) == 0 {
+		return nil, nil, nil
 	}
 	inspection, err := InspectRemote(ctx, p.KnownHostsFile, host, address, port, 5*time.Second)
+	if errorcodes.Of(err) == "host_key_revoked" {
+		return nil, nil, err
+	}
 	if err != nil {
-		return nil, &NotCompared{Cause: notComparedCause(err), Reason: err.Error()}
+		return nil, &NotCompared{Cause: notComparedCause(err), Reason: err.Error()}, nil
 	}
 	if inspection.Comparison == Mismatch {
-		return &KeyMismatch{Enrolled: inspection.EnrolledFingerprints, Presented: inspection.PresentedFingerprints}, nil
+		return &KeyMismatch{Enrolled: inspection.EnrolledFingerprints, Presented: inspection.PresentedFingerprints}, nil, nil
 	}
-	return nil, nil
+	return nil, nil, nil
 }
 
 // notComparedCause is the short cause of an InspectRemote failure.
@@ -134,7 +139,8 @@ func mismatchDescription(host string, i Inspection) string {
 }
 
 // InspectRemote obtains public host keys with ssh-keyscan and compares them
-// numerically/by key blob against matching OpenSSH known_hosts entries.
+// numerically/by key blob against matching OpenSSH known_hosts entries; a
+// scanned key the store marks @revoked for the device is host_key_revoked.
 func InspectRemote(ctx context.Context, knownHostsFile, host, address string, port int, timeout time.Duration) (Inspection, error) {
 	scanner, err := exec.LookPath("ssh-keyscan")
 	if err != nil {
@@ -175,9 +181,12 @@ func inspectRemoteWithBinary(ctx context.Context, scanner, knownHostsFile, host,
 		return Inspection{}, errorcodes.Errorf("host_key_scan_empty", "ssh-keyscan returned no usable host keys")
 	}
 
-	enrolled, readErr := matchingKeys(knownHostsFile, []string{Identity(host, port)})
+	enrolled, revoked, readErr := storeKeys(knownHostsFile, []string{Identity(host, port)})
 	if readErr != nil && !errors.Is(readErr, os.ErrNotExist) {
 		return Inspection{}, errorcodes.Ensure(readErr, "host_key_trust_store_unavailable")
+	}
+	if revokedErr := revokedError(host, knownHostsFile, presented, revoked); revokedErr != nil {
+		return Inspection{}, revokedErr
 	}
 	result := Inspection{Presented: presented, PresentedFingerprints: fingerprints(presented), EnrolledFingerprints: fingerprints(enrolled)}
 	if len(enrolled) == 0 {
@@ -196,8 +205,8 @@ func inspectRemoteWithBinary(ctx context.Context, scanner, knownHostsFile, host,
 	return result, nil
 }
 
-// HasEnrolledHost reports whether the store holds a key for the device's
-// identity on port.
+// HasEnrolledHost reports whether the store enrolls a key for the device's
+// identity on port: a plain line, never one with a marker (storeKeys).
 func HasEnrolledHost(file, host string, port int) bool {
 	keys, err := matchingKeys(file, []string{Identity(host, port)})
 	return err == nil && len(keys) > 0
@@ -238,15 +247,27 @@ func parseScannedKeys(data []byte) ([]keyRecord, error) {
 	return out, nil
 }
 
+// matchingKeys is the keys the store enrolls under a candidate: those of
+// its plain lines (storeKeys).
 func matchingKeys(file string, candidates []string) ([]keyRecord, error) {
+	enrolled, _, err := storeKeys(file, candidates)
+	return enrolled, err
+}
+
+// storeKeys reads the store's lines whose host field matches a candidate:
+// enrolled the keys of plain lines, revoked those of lines marked @revoked.
+// A line marked @cert-authority holds neither (the native transport takes
+// no certificates, and OpenSSH reads such lines itself), nor does a line
+// with any other marker, which OpenSSH reads as invalid.
+func storeKeys(file string, candidates []string) (enrolled, revoked []keyRecord, err error) {
 	f, err := os.Open(file)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
 	scanner.Buffer(make([]byte, 64*1024), 4<<20)
-	out := []keyRecord{}
+	enrolled, revoked = []keyRecord{}, []keyRecord{}
 	seen := map[string]bool{}
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -254,24 +275,47 @@ func matchingKeys(file string, candidates []string) ([]keyRecord, error) {
 			continue
 		}
 		fields := strings.Fields(line)
-		offset := 0
+		marker := ""
 		if strings.HasPrefix(fields[0], "@") {
-			offset = 1
+			marker, fields = fields[0], fields[1:]
 		}
-		if len(fields) < offset+3 || !hostFieldMatches(fields[offset], candidates) {
+		if marker != "" && marker != "@revoked" {
 			continue
 		}
-		rec := keyRecord{Type: fields[offset+1], Blob: fields[offset+2]}
-		if _, decodeErr := base64.StdEncoding.DecodeString(rec.Blob); decodeErr != nil {
-			return nil, errorcodes.Errorf("host_key_trust_store_entry_invalid", "matching known_hosts entry contains invalid key data: %w", decodeErr)
+		if len(fields) < 3 || !hostFieldMatches(fields[0], candidates) {
+			continue
 		}
-		key := rec.Type + " " + rec.Blob
-		if !seen[key] {
-			seen[key] = true
-			out = append(out, rec)
+		rec := keyRecord{Type: fields[1], Blob: fields[2]}
+		if _, decodeErr := base64.StdEncoding.DecodeString(rec.Blob); decodeErr != nil {
+			return nil, nil, errorcodes.Errorf("host_key_trust_store_entry_invalid", "matching known_hosts entry contains invalid key data: %w", decodeErr)
+		}
+		key := marker + " " + rec.Type + " " + rec.Blob
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		if marker == "@revoked" {
+			revoked = append(revoked, rec)
+		} else {
+			enrolled = append(enrolled, rec)
 		}
 	}
-	return out, scanner.Err()
+	return enrolled, revoked, scanner.Err()
+}
+
+// revokedError is host_key_revoked for host when any of the presented keys
+// is among revoked, naming those keys' fingerprints; nil when none is.
+func revokedError(host, file string, presented, revoked []keyRecord) error {
+	var hit []keyRecord
+	for _, key := range presented {
+		if sameKey(revoked, key) {
+			hit = append(hit, key)
+		}
+	}
+	if len(hit) == 0 {
+		return nil
+	}
+	return &Error{Code: "host_key_revoked", Host: host, Path: file, Err: fmt.Errorf("presented=%s", strings.Join(fingerprints(hit), ","))}
 }
 
 func hostFieldMatches(field string, candidates []string) bool {
@@ -349,7 +393,9 @@ func fingerprints(keys []keyRecord) []string {
 
 // Enroll safely appends presented keys under the device's identity if it
 // remains unknown. It rereads the file while holding an exclusive advisory
-// lock and never replaces or rewrites unrelated lines. wrote is false when
+// lock, refuses a key the store marks @revoked for the device
+// (host_key_revoked), never replaces or rewrites unrelated lines, and ends a
+// last line that lacks its newline before appending. wrote is false when
 // another process enrolled the same key meanwhile: this call stored nothing.
 func Enroll(file, host string, port int, presented []keyRecord) (wrote bool, err error) {
 	if len(presented) == 0 {
@@ -365,9 +411,12 @@ func Enroll(file, host string, port int, presented []keyRecord) (wrote bool, err
 	}
 	defer syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 
-	enrolled, err := matchingKeys(file, []string{Identity(host, port)})
+	enrolled, revoked, err := storeKeys(file, []string{Identity(host, port)})
 	if err != nil {
 		return false, &Error{Code: "host_key_enrollment_read_failed", Host: host, Path: file, Err: err}
+	}
+	if err := revokedError(host, file, presented, revoked); err != nil {
+		return false, err
 	}
 	if len(enrolled) > 0 {
 		for _, live := range presented {
@@ -379,8 +428,15 @@ func Enroll(file, host string, port int, presented []keyRecord) (wrote bool, err
 		}
 		return false, &Error{Code: "host_key_changed_during_enrollment", Host: host, Path: file, Err: errors.New("enrolled key changed during acceptance")}
 	}
+	ended, err := endsInNewline(f)
+	if err != nil {
+		return false, &Error{Code: "host_key_enrollment_read_failed", Host: host, Path: file, Err: err}
+	}
 	hostField := Identity(host, port)
 	var b strings.Builder
+	if !ended {
+		b.WriteByte('\n')
+	}
 	for _, key := range presented {
 		fmt.Fprintf(&b, "%s %s %s karvi-auto-enrolled\n", hostField, key.Type, key.Blob)
 	}
@@ -391,4 +447,18 @@ func Enroll(file, host string, port int, presented []keyRecord) (wrote bool, err
 		return false, &Error{Code: "host_key_enrollment_sync_failed", Host: host, Path: file, Err: err}
 	}
 	return true, nil
+}
+
+// endsInNewline says whether f is empty or its last byte is a newline, so
+// that a line appended to it starts a line of its own.
+func endsInNewline(f *os.File) (bool, error) {
+	info, err := f.Stat()
+	if err != nil || info.Size() == 0 {
+		return err == nil, err
+	}
+	last := make([]byte, 1)
+	if _, err := f.ReadAt(last, info.Size()-1); err != nil {
+		return false, err
+	}
+	return last[0] == '\n', nil
 }

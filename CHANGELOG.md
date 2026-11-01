@@ -25,6 +25,17 @@
   fails, and the device keeps its previous collection, as a device not reached
   does; a line that cannot be cut back fails every later record of the job
   `output_write_failed` ([`docs/COLLECTION.md`](docs/COLLECTION.md)).
+- **Breaking: a revoked host key is refused, and a marked line is no enrolled
+  key.** The trust store's `@revoked` and `@cert-authority` lines were read as
+  enrolled keys: a revoked key matched, and a certificate authority's key made
+  the device's own key a change. A presented key the store marks `@revoked`
+  for the device is now `host_key_revoked` under every policy, `secure`,
+  `accept-new`, and `insecure`, on both transports (the system transport's
+  OpenSSH refusal included, and under `insecure` the comparison beside the
+  connection); a `@cert-authority` line, or one with another marker, is passed
+  by as OpenSSH passes it, so a device it names alone is not enrolled. An
+  enrolled key is appended on a line of its own when the store's last line
+  lacks its newline ([`docs/SSH-HOST-KEY-POLICY.md`](docs/SSH-HOST-KEY-POLICY.md)).
 
 ## 0.38.0 - 2026-10-28
 

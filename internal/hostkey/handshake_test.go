@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
 
 func wire(t *testing.T, blob string) []byte {
@@ -134,6 +136,69 @@ func TestVerifyModes(t *testing.T) {
 	missing := Policy{Mode: Insecure, KnownHostsFile: filepath.Join(t.TempDir(), "absent")}
 	if v, err := Verify(missing, "router1", 22, "ssh-ed25519", wire(t, fakeKey(6))); err != nil || v != (Verdict{}) {
 		t.Fatalf("insecure without a store: %+v %v", v, err)
+	}
+}
+
+// TestRevokedKeyRefusedUnderEveryPolicy: a presented key the store marks
+// @revoked for the device is host_key_revoked under accept-new, secure, and
+// insecure, whether the line names the device or every host and whether a
+// plain line holds the same key; nothing is stored.
+func TestRevokedKeyRefusedUnderEveryPolicy(t *testing.T) {
+	revoked := fakeKey(1)
+	for _, content := range []string{
+		"@revoked router1 ssh-ed25519 " + revoked + "\n",
+		"@revoked * ssh-ed25519 " + revoked + "\n",
+		"router1 ssh-ed25519 " + revoked + "\n@revoked * ssh-ed25519 " + revoked + "\n",
+	} {
+		for _, mode := range []Mode{AcceptNew, Secure, Insecure} {
+			file := store(t, content)
+			v, err := Verify(Policy{Mode: mode, KnownHostsFile: file}, "router1", 22, "ssh-ed25519", wire(t, revoked))
+			if errorcodes.Of(err) != "host_key_revoked" || v != (Verdict{}) || !strings.Contains(err.Error(), "presented=ssh-ed25519 SHA256:") {
+				t.Errorf("%s, %q: %+v %v", mode, content, v, err)
+			}
+			if after, _ := os.ReadFile(file); string(after) != content {
+				t.Errorf("%s, %q: the store changed:\n%s", mode, content, after)
+			}
+		}
+	}
+}
+
+// TestMarkerLinesAreNotEnrolledKeys: a line marked @cert-authority, one
+// marked @revoked for another key, and one with a marker OpenSSH does not
+// define hold no enrolled key for the device: accept-new enrols its plain
+// key, secure refuses it as host_key_not_enrolled, insecure reports no
+// mismatch, the whole host-key list is offered, and HasEnrolledHost is
+// false.
+func TestMarkerLinesAreNotEnrolledKeys(t *testing.T) {
+	host := "core-nyc-01.example.net"
+	presented := fakeKey(5)
+	whole := []string{"ssh-ed25519", "ecdsa-sha2-nistp256", "rsa-sha2-512"}
+	for _, content := range []string{
+		"@cert-authority *.example.net ssh-ed25519 " + fakeKey(1) + "\n",
+		"@cert-authority core-nyc-01.example.net ecdsa-sha2-nistp256 " + fakeKey(2) + "\n",
+		"@revoked core-nyc-01.example.net ssh-ed25519 " + fakeKey(3) + "\n",
+		"@trusted core-nyc-01.example.net ssh-ed25519 " + fakeKey(4) + "\n",
+	} {
+		if HasEnrolledHost(store(t, content), host, 22) {
+			t.Errorf("%q: HasEnrolledHost true", content)
+		}
+		if got, err := (Policy{Mode: Secure, KnownHostsFile: store(t, content)}).HostKeyAlgorithms(whole, Identity(host, 22)); err != nil || !reflect.DeepEqual(got, whole) {
+			t.Errorf("%q: offered %q %v", content, got, err)
+		}
+		if _, err := Verify(Policy{Mode: Secure, KnownHostsFile: store(t, content)}, host, 22, "ssh-ed25519", wire(t, presented)); errorcodes.Of(err) != "host_key_not_enrolled" {
+			t.Errorf("%q: secure %v", content, err)
+		}
+		if v, err := Verify(Policy{Mode: Insecure, KnownHostsFile: store(t, content)}, host, 22, "ssh-ed25519", wire(t, presented)); err != nil || v != (Verdict{}) {
+			t.Errorf("%q: insecure %+v %v", content, v, err)
+		}
+		file := store(t, content)
+		v, err := Verify(Policy{Mode: AcceptNew, KnownHostsFile: file}, host, 22, "ssh-ed25519", wire(t, presented))
+		if err != nil || !v.Stored {
+			t.Errorf("%q: accept-new %+v %v", content, v, err)
+		}
+		if after, _ := os.ReadFile(file); string(after) != content+host+" ssh-ed25519 "+presented+" karvi-auto-enrolled\n" {
+			t.Errorf("%q: the store after accept-new:\n%s", content, after)
+		}
 	}
 }
 

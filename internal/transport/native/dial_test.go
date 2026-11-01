@@ -254,6 +254,36 @@ func TestDialHostKeyPolicies(t *testing.T) {
 	}
 }
 
+// TestDialRefusesARevokedHostKey: a key the store marks @revoked for the
+// device is host_key_revoked under accept-new, secure, and insecure, the
+// connection closed before a shell and the store unchanged, with or without
+// a plain line for the same key.
+func TestDialRefusesARevokedHostKey(t *testing.T) {
+	srv := startFake(t, fakedevice.Options{})
+	key := srv.HostKeys()[0]
+	for _, content := range []string{"@revoked " + entry(srv, key), entry(srv, key) + "@revoked * " + key + "\n"} {
+		for _, mode := range []hostkey.Mode{hostkey.AcceptNew, hostkey.Secure, hostkey.Insecure} {
+			store := trustStore(t, content)
+			var notices []platform.HostKeyNotice
+			req := dialRequest(srv, mode, store)
+			req.HostKeyNotice = func(n platform.HostKeyNotice) { notices = append(notices, n) }
+			s, err := Dial(context.Background(), req)
+			if err == nil {
+				s.(*connection).Abort()
+			}
+			if errorcodes.Of(err) != "host_key_revoked" || len(notices) != 0 {
+				t.Errorf("%s, %q: %v %+v", mode, content, err, notices)
+			}
+			if after, _ := os.ReadFile(store); string(after) != content {
+				t.Errorf("%s: store changed: %q", mode, after)
+			}
+		}
+	}
+	if srv.Sessions() != 0 {
+		t.Fatalf("a shell started after a revoked key")
+	}
+}
+
 func TestDialHostKeyAlgorithmChoice(t *testing.T) {
 	srv := startFake(t, fakedevice.Options{ExtraHostKeys: []string{"ecdsa256", "rsa"}})
 	keys := srv.HostKeys() // ed25519, ecdsa256, rsa

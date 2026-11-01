@@ -74,11 +74,11 @@ connection.
 
 ### `insecure`
 
-Unknown and changed keys are accepted, and nothing is stored. A job under
-`insecure` says so once, at its admission, in two lines on standard error in
-the warning colour, `--quiet` included; through the daemon they ride the
-job's receipt (a daemon's job runs under its client's policy). A login
-says them before its contact.
+Unknown and changed keys are accepted, and nothing is stored; a revoked key is
+refused ([Marked lines](#marked-lines)). A job under `insecure` says so once, at
+its admission, in two lines on standard error in the warning colour, `--quiet`
+included; through the daemon they ride the job's receipt (a daemon's job runs
+under its client's policy). A login says them before its contact.
 
 ```text
 ! ssh host-key policy insecure: unknown and changed keys accepted;
@@ -92,16 +92,16 @@ risk` in the error colour, and the audit event's `details` name both keys. A
 new key is not announced.
 
 System OpenSSH receives `StrictHostKeyChecking no` and isolated known-hosts
-inputs; when the store holds the device, karvi runs a bounded `ssh-keyscan`
-comparison beside the connection (the one `ssh-keyscan` left). When it cannot
-complete (not installed, past its five seconds, the device refusing the extra
-connection, no usable key) the session goes on uncompared, and the first
-record carries `host_key_not_compared` with a short cause and the whole
-reason, shown as `! ssh host-key DEVICE not compared: CAUSE`, one of
-`ssh-keyscan not installed`, `ssh-keyscan timed out`, `ssh-keyscan failed`,
-`no usable key`, `trust store unreadable`. On `native`
-the handshake callback accepts the key and compares it to the enrolled one
-itself.
+inputs; when the store holds a line for the device, plain or `@revoked`, karvi
+runs a bounded `ssh-keyscan` comparison beside the connection (the one
+`ssh-keyscan` left). When it cannot complete (not installed, past its five
+seconds, the device refusing the extra connection, no usable key) the session
+goes on uncompared, and the first record carries `host_key_not_compared` with a
+short cause and the whole reason, shown as
+`! ssh host-key DEVICE not compared: CAUSE`, one of `ssh-keyscan not installed`,
+`ssh-keyscan timed out`, `ssh-keyscan failed`, `no usable key`,
+`trust store unreadable`. On `native` the handshake callback accepts the key and
+compares it to the enrolled one itself.
 
 This mode permits machine-in-the-middle impersonation and should be locked out
 in governed production environments.
@@ -131,6 +131,28 @@ name by system OpenSSH or as `[name]:port,[address]:port` by the earlier
 native adapter, no longer match: `accept-new` enrols the device again and
 `secure` refuses it until it is enrolled under the identity. Port 22
 entries are unchanged.
+
+## Marked lines
+
+A line marked `@revoked` names a key refused wherever a device presents it:
+`host_key_revoked` under every policy, `insecure` included, before
+authentication, with nothing stored. On `native` the handshake callback
+refuses it. Over `system` OpenSSH reads the store itself under `accept-new`
+and `secure` and refuses the key, and karvi reports its refusal as
+`host_key_revoked`; under `insecure`, where OpenSSH reads no store, the
+`ssh-keyscan` comparison refuses it before the connection, and a comparison
+that cannot complete goes on uncompared (`host_key_not_compared`).
+
+```text
+@revoked * ssh-ed25519 AAAA...
+```
+
+A revoked line is never an enrolled key: a device whose only line is one is
+unknown, so `accept-new` enrols another key it presents and `secure` refuses
+it as `host_key_not_enrolled`. A line marked `@cert-authority` is not an
+enrolled key either: `native` takes no host certificates, and over `system`
+OpenSSH reads the line itself. A line with any other marker is not read, as
+OpenSSH reads none.
 
 ## Which key types are offered
 

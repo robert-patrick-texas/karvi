@@ -19,8 +19,9 @@ func keyTypeOf(algorithm string) string {
 	return algorithm
 }
 
-// EnrolledTypes are the key types the store holds under identity, in file
-// order without repeats. A missing store holds none.
+// EnrolledTypes are the key types the store enrolls under identity (its
+// plain lines, matchingKeys), in file order without repeats. A missing
+// store holds none.
 func EnrolledTypes(file, identity string) ([]string, error) {
 	keys, err := matchingKeys(file, []string{identity})
 	if errors.Is(err, os.ErrNotExist) {
@@ -79,20 +80,25 @@ type Verdict struct {
 
 // Verify applies the policy to the one host key a handshake presents:
 // keyType is its SSH name (ssh-ed25519, ecdsa-sha2-nistp256, ssh-rsa) and
-// wire its wire encoding. accept-new enrolls an unknown host under the file
-// lock and rejects a changed key; secure rejects both; insecure accepts
-// both, a key differing from the stored one reported in the Verdict.
+// wire its wire encoding. A key the store marks @revoked for the device is
+// host_key_revoked under every policy. accept-new enrolls an unknown host
+// under the file lock and rejects a changed key; secure rejects both;
+// insecure accepts both, a key differing from the stored one reported in
+// the Verdict.
 func Verify(p Policy, host string, port int, keyType string, wire []byte) (Verdict, error) {
 	presented := []keyRecord{{Type: keyType, Blob: base64.StdEncoding.EncodeToString(wire)}}
-	enrolled, err := matchingKeys(p.KnownHostsFile, []string{Identity(host, port)})
+	enrolled, revoked, err := storeKeys(p.KnownHostsFile, []string{Identity(host, port)})
 	if errors.Is(err, os.ErrNotExist) {
-		enrolled, err = nil, nil
+		enrolled, revoked, err = nil, nil, nil
 	}
 	if err != nil {
 		if p.Mode != Insecure {
 			return Verdict{}, errorCode(err, "host_key_trust_store_unavailable", host, p.KnownHostsFile)
 		}
-		enrolled = nil
+		enrolled, revoked = nil, nil
+	}
+	if err := revokedError(host, p.KnownHostsFile, presented, revoked); err != nil {
+		return Verdict{}, err
 	}
 	inspection := Inspection{Presented: presented, PresentedFingerprints: fingerprints(presented), EnrolledFingerprints: fingerprints(enrolled)}
 	switch {

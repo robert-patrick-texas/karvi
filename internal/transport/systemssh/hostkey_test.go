@@ -1,12 +1,14 @@
 package systemssh
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
+	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/hostkey"
 	"github.com/robert-patrick-texas/karvi/platform"
 )
@@ -79,6 +81,18 @@ func TestInsecurePolicyUsesNoTrustFileForConnection(t *testing.T) {
 	}
 }
 
+// openSSHRevokedKey is OpenSSH 10.2's standard error, verbatim, refusing a
+// key its UserKnownHostsFile marks @revoked under StrictHostKeyChecking yes
+// and accept-new alike (HostKeyAlias router1).
+const openSSHRevokedKey = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\r\n" +
+	"@       WARNING: REVOKED HOST KEY DETECTED!               @\r\n" +
+	"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\r\n" +
+	"The ED25519 host key for router1 is marked as revoked.\r\n" +
+	"This could mean that a stolen key is being used to\r\n" +
+	"impersonate this host.\r\n" +
+	"ED25519 host key for router1 was revoked and you have requested strict checking.\r\n" +
+	"Host key verification failed.\r\n"
+
 func TestHostKeyFailureClassification(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -87,6 +101,7 @@ func TestHostKeyFailureClassification(t *testing.T) {
 	}{
 		{name: "changed", stderr: "WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!", code: "host_key_changed"},
 		{name: "secure unknown", stderr: "No ED25519 host key is known for switch.example and you have requested strict checking. Host key verification failed.", code: "host_key_not_enrolled"},
+		{name: "revoked", stderr: openSSHRevokedKey, code: "host_key_revoked"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -95,6 +110,42 @@ func TestHostKeyFailureClassification(t *testing.T) {
 				t.Fatalf("classify() = %q %q %v %v", code, category, external, retryable)
 			}
 		})
+	}
+}
+
+// TestInsecureRefusesARevokedScannedKey: under insecure, a key the
+// ssh-keyscan beside the connection reads that the store marks @revoked for
+// the device is host_key_revoked before OpenSSH starts, with or without a
+// notice callback, and no notice is said.
+func TestInsecureRefusesARevokedScannedKey(t *testing.T) {
+	home := t.TempDir()
+	base := filepath.Join(t.TempDir(), "karvi")
+	if err := os.MkdirAll(base, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	blob := "AAAAC3NzaC1lZDI1NTE5AAAAIAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8g"
+	if err := os.WriteFile(filepath.Join(base, "known_hosts"), []byte("@revoked * ssh-ed25519 "+blob+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	scanners := t.TempDir()
+	if err := os.WriteFile(filepath.Join(scanners, "ssh-keyscan"), []byte("#!/bin/sh\nprintf '%s\\n' \"192.0.2.10 ssh-ed25519 "+blob+"\"\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", scanners+string(os.PathListSeparator)+os.Getenv("PATH"))
+	cfg := loadPolicyConfig(t, home, "ssh.include-user-config=false", "ssh.host-key-policy=insecure")
+	var said []platform.HostKeyNotice
+	for _, notice := range []func(platform.HostKeyNotice){nil, func(n platform.HostKeyNotice) { said = append(said, n) }} {
+		f := Factory{Binary: fakeQueryBinary(t), Config: cfg, Home: home, BaseDir: base, ScratchDir: t.TempDir()}
+		driver, err := f.Open(context.Background(), platform.OpenRequest{Address: "192.0.2.10", Port: 22, Username: "jsmith", Metadata: map[string]string{"canonical_name": "router1"}, HostKeyNotice: notice})
+		if driver != nil {
+			driver.Close()
+		}
+		if errorcodes.Of(err) != "host_key_revoked" || !strings.Contains(err.Error(), "host=router1") {
+			t.Fatalf("notice %t: %v", notice != nil, err)
+		}
+	}
+	if len(said) != 0 {
+		t.Fatalf("said %+v", said)
 	}
 }
 

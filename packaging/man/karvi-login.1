@@ -228,8 +228,17 @@ refuses a key not enrolled
 a changed key is
 .B host_key_changed
 under both, exit 109.
+A key the store marks
+.B @revoked
+is
+.B host_key_revoked
+under every policy, exit 109, and a line marked
+.B @revoked
+or
+.B @cert\-authority
+is no enrolled key.
 .B insecure
-accepts every key, says so in two lines before the session, and says
+accepts every other key, says so in two lines before the session, and says
 .I ! ssh host\-key mismatch DEVICE proceeding at risk
 of a key differing from the stored one.
 To enrol by hand, scan the device and write its name in the host field,

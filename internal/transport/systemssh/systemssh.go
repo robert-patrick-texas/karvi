@@ -82,10 +82,15 @@ func (f Factory) Open(ctx context.Context, req platform.OpenRequest) (platform.D
 		host = req.Address
 	}
 	// Under insecure OpenSSH's store is /dev/null: the key is compared with
-	// the stored one beside the connection, and a difference, or a
-	// comparison that could not complete, is the device's notice.
+	// the stored one beside the connection; a key the store marks revoked
+	// refuses the device, and a difference, or a comparison that could not
+	// complete, is the device's notice.
+	m, nc, err := hostkey.CompareInsecure(ctx, policy, host, req.Address, int(req.Port))
+	if err != nil {
+		return nil, err
+	}
 	if req.HostKeyNotice != nil {
-		if m, nc := hostkey.CompareInsecure(ctx, policy, host, req.Address, int(req.Port)); m != nil {
+		if m != nil {
 			req.HostKeyNotice(platform.HostKeyNotice{Code: platform.HostKeyMismatchAccepted, Enrolled: m.Enrolled, Presented: m.Presented})
 		} else if nc != nil {
 			req.HostKeyNotice(platform.HostKeyNotice{Code: platform.HostKeyNotCompared, Cause: nc.Cause, Reason: nc.Reason})
@@ -544,6 +549,9 @@ func classify(stderr string, err error) (string, string, bool, bool) {
 	case strings.Contains(s, "master refused session request"),
 		strings.Contains(s, "administratively prohibited") && strings.Contains(s, "channel"):
 		return "ssh_session_channel_refused", "connection", true, false
+	case strings.Contains(s, "revoked host key detected"),
+		strings.Contains(s, "is marked as revoked"):
+		return "host_key_revoked", "connection", true, false
 	case strings.Contains(s, "remote host identification has changed"),
 		strings.Contains(s, "offending ") && strings.Contains(s, "host key"):
 		return "host_key_changed", "connection", true, false
