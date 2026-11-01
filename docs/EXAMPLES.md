@@ -19309,3 +19309,289 @@ The evidence is kept beside the tree
 passing runs, every merged patch, each section's checks, the batteries, and in
 `chapter-89/` this chapter's lab scripts with their logs and the blocks cut from
 them).
+
+## 90. The review's later fixes: waves 8 to 10 (2026-11-01)
+
+Opened as [chapter 89](#89-the-reviews-later-fixes-waves-5-to-7-2026-11-01)
+closed, on the operator's word for each wave: waves 8 to 10 fix eleven more of
+the defects the fixes found, #80, #82, #84 to #91, and #93, in five sections;
+five commits on `dev`, `acfb40d` to `7a988bf`, carry them, each message naming
+its findings ("review 2026-10-31 (new findings), #N"). Nothing is pushed. The
+findings and the plan are kept in the operator's private archive.
+
+**What it gains.** A `.cloginrc` word and line mean in karvi what they mean to
+clogin: a backslash sequence, a double-quoted word, a `#` after the values, a
+carriage return, and a command's case are read as clogin's Tcl reads them, so
+karvi sends the password clogin sends and refuses a line clogin would fail on;
+`config show --explain` names the capacity root a run takes; a refusal names its
+cause once, its remedy fitting it. It waits on nothing. The cost: the
+CHANGELOG's `Unreleased` block holds 33 entries, 14 of them Breaking, three more
+than at chapter 89's end, and its `.cloginrc` entry widened, as a file that
+relied on the old reading is now refused or read otherwise.
+
+**The sections**, in the plan's waves (the CHANGELOG's `Unreleased` block says
+what each changed):
+
+| Wave | Section | Findings | Commit |
+|---|---|---|---|
+| 8 | S25 the .cloginrc word reader | #82 #84 #85 | `acfb40d` |
+| 8 | S26 messages | #80 #86 #87 #88 | `8b0c336` |
+| 9 | S27 exercise and Place | #89 #90 | `b44c576` |
+| 9 | S28 .cloginrc lines | #91 | `16c7f3b` |
+| 10 | S29 Place and the capacity root | #93 | `7a988bf` |
+
+**How the fixes ran.** As in chapter 89: per finding, the defect confirmed, a
+test that fails on the tree as it was (its output kept), the fix, the test
+again; one worktree and one agent per section; the orchestrator read each diff
+against its finding, merged it, wrote the CHANGELOG, ran `go vet`,
+`make generated-clean`, and the whole tree's `go test`, and committed it. The
+`.cloginrc` rules were checked against `tclsh8.6` and clogin's own `add`,
+`find`, and line loop on the host: the words on 200,000 random lines (S25),
+whole files through Tcl's `gets` on 40,000 random files (S28), with no
+disagreement. The full battery passed after each wave: at `8b0c336`, `16c7f3b`,
+and `7a988bf`, `go test` over 73 packages and every suite in 232 to 238 seconds,
+the host clean after. No counter moved, and no error code is new.
+
+**The operator's decisions**, in simple terms:
+
+-  #82: a `.cloginrc` word is read as Tcl reads a word: backslash sequences
+  substituted in a bare or double-quoted word (inside braces, as before, not); a
+  double-quoted word is one word; text right after a closing brace or quote is
+  `cloginrc_malformed`, naming the file and line; `$ [ ] ;` refused wherever Tcl
+  would substitute.
+-  #91: a `.cloginrc` line is what clogin's `gets` reads, with no continuation
+  lines (a lone carriage return ends a line; a trailing backslash is part of the
+  last word, as Tcl reads it); `add`, `include`, and the directive are matched
+  as clogin's Tcl matches them, case-sensitively; a line clogin would fail on is
+  refused.
+-  #93: `config show --explain` follows a link at the capacity root as a run
+  does and reads the server ledger to judge it as a run would; the scoreboards'
+  judgement checked against their own run, and left, as both refuse a link.
+-  #80: an uncoded capacity read failure under `karvi exercise` is
+  `capacity_root_unusable`. #87: `; ` before a credential refusal's
+  `policy=… backend=…`. #88: the refusal names the link at a ledger's lock, its
+  remedy fitting it.
+-  #84, #85, #86, #89, #90 fixed as found, #86 by one function,
+  `errorcodes.Text`, the error's text after its code; #81 waits for #69's design
+  session; #83 and #92 no change.
+
+**Settled under the existing rules**, each reported to the operator: `#` begins
+a comment only as a line's first word, so a comment after a line's values is
+read as values, as clogin reads it; in a quoted word `$` and `[` are refused,
+and `;` and `]` are characters, as to Tcl; an escaped `\$` is a `$`; words split
+on Tcl's six white-space bytes alone; a `;` right after a closing brace or quote
+is `cloginrc_tcl_substitution_forbidden`, where Tcl ends the command. A
+credential refusal with no message reads `code: policy=P backend=B`; a link at
+the ledger's `devices` takes the lock's remedy. An exercise finding whose
+message showed its code, or dropped a host-key error's `known_hosts=PATH`, now
+shows its whole text without the code. `\r\r\n` and `\n\r` are three lines, as
+`gets` counts them; `add METHOD`, an ignored directive in another case, is an
+unknown directive. `--explain` passes by a root whose `server.lock` is a folder,
+a socket, or closed to the operator, or whose `server.json` is a link, not
+regular, too large, or unreadable; a link to nothing at the root is passed by,
+or a named root refused; the ledger is read without its lock, since a write
+replaces it by a rename.
+
+**The lab.** The examples ran on a lab build of `7a988bf` (`karvi`,
+`karvi-fake-device`) in a folder under `/var/tmp`, mode 0700, that each script
+made and removed, laid out as chapter 89's (every place karvi writes under it,
+`display.color = "never"`, `NETUSER=jsmith`). The lab's `--config`, and `run`'s
+`--no-daemon`, are left out of the `$` labels, and the lab's path is written
+`LAB`. The `$`, `exit=`, and `==` lines are the scripts'; the rest is karvi's,
+its standard output then its standard error, unless the paragraph says
+otherwise. None of `/tmp/karvi-1000`, `/var/tmp/karvi-1000`, `/dev/shm/karvi`,
+and the home's `.local/share/karvi` existed after any script.
+
+**A word as Tcl reads it.** `router1` is the fake device on 127.0.0.1, taking
+the user `jsmith`, the password `pass`, and the enable secret `en1`; the
+credential policy holds the lab's `.cloginrc` alone. Each case shows the file,
+then clogin's reading of it, then karvi's run. clogin's reading is printed by
+`clogin-read.tcl`, a script under `tclsh8.6` holding clogin's own `add`, `find`,
+and line loop (`gets`, then `eval`), with the password and enable joined as
+clogin joins them, in brackets; its lines are the script's, not karvi's:
+
+```text
+$ cat cloginrc
+add user router1 jsmith
+add password router1 pa\tss en1
+$ tclsh8.6 clogin-read.tcl cloginrc router1
+password [pass] enable [en1]
+$ karvi run --target router1 'show clock'
+exit=0
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=clogin transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=689ms artifacts=LAB/jobs/261101/261101-131753-00
+! ssh accepted new host-key router1 (ED25519)
+$ cat cloginrc
+add user router1 jsmith
+add password router1 "pa ss" en1
+$ tclsh8.6 clogin-read.tcl cloginrc router1
+password [pass] enable [en1]
+$ karvi run --target router1 'show clock'
+exit=0
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=clogin transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=795ms artifacts=LAB/jobs/261101/261101-131754-00
+$ cat cloginrc
+add user router1 jsmith
+add password router1 pa\x73s en1
+$ tclsh8.6 clogin-read.tcl cloginrc router1
+password [pass] enable [en1]
+$ karvi run --target router1 'show clock'
+exit=0
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=clogin transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=681ms artifacts=LAB/jobs/261101/261101-131755-00
+$ cat cloginrc
+add user router1 jsmith
+add password router1 {pa}ss en1
+$ tclsh8.6 clogin-read.tcl cloginrc router1
+clogin stops: extra characters after close-brace
+$ karvi run --target router1 'show clock'
+exit=6
+cloginrc_malformed: 1 of 1 targets failed credential resolution: name:router1 (LAB/cloginrc:2: text after a closing brace; policy=default backend=clogin)
+$ cat cloginrc
+add user router1 jsmith
+add password router1 pass #note
+$ tclsh8.6 clogin-read.tcl cloginrc router1
+password [pass] enable [#note]
+$ karvi run --target router1 'show clock'
+exit=101
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=clogin transport=native
+karvi: target=router1 status=privilege_error error=privilege_failed: the device stayed at the "exec" prompt "Router>" after one "enable" attempt
+! exit=101 elapsed=364ms artifacts=LAB/jobs/261101/261101-131756-01
+```
+
+`pa\tss` is `pa`, a tab, and `ss` to Tcl, a list of two words that clogin joins
+`pass`; `"pa ss"` is one word, joined `pass`; `\x73` is `s`. Before `acfb40d`
+karvi read `patss` and `pax73s`, and `"pa ss"` as two words, refusing `"pa` as
+an unmatched quote. `{pa}ss` stops clogin, and karvi refuses it, where it had
+read two words; `#note` after the values is clogin's enable secret, which the
+device refuses, where karvi had dropped it as a comment. The refusals end
+`; policy=default backend=clogin`, where the message had run on into the fields
+(#87). Not taken: a `;` after a closing brace as `cloginrc_malformed`, where Tcl
+ends the command there; a comment kept after the values, which drops a value
+clogin sends ([`docs/OPERATIONS.md`, "Credential
+files"](OPERATIONS.md#credential-files)).
+
+**A line as clogin's `gets` reads it.** The same lab; the last file is shown by
+`cat -v`, its carriage return as `^M`:
+
+```text
+$ cat cloginrc
+add user router1 jsmith
+ADD password router1 pass en1
+$ tclsh8.6 clogin-read.tcl cloginrc router1
+clogin stops: invalid command name "ADD"
+$ karvi run --target router1 'show clock'
+exit=6
+cloginrc_malformed: 1 of 1 targets failed credential resolution: name:router1 (LAB/cloginrc:2: unsupported statement; policy=default backend=clogin)
+$ cat cloginrc
+add user router1 jsmith
+add PASSWORD router1 pass en1
+$ tclsh8.6 clogin-read.tcl cloginrc router1
+password [] enable []
+$ karvi run --target router1 'show clock'
+exit=6
+cloginrc_unknown_directive: 1 of 1 targets failed credential resolution: name:router1 (LAB/cloginrc:2: PASSWORD; policy=default backend=clogin)
+$ cat -v cloginrc
+add user router1 jsmith
+add password router1 pass en1^Madd password router1 other x
+$ tclsh8.6 clogin-read.tcl cloginrc router1
+password [pass] enable [en1]
+$ karvi run --target router1 'show clock'
+exit=0
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=clogin transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=668ms artifacts=LAB/jobs/261101/261101-131756-04
+```
+
+`ADD` stops clogin, and karvi refuses it; `add PASSWORD` gives clogin's `find`
+no password for `router1`, and karvi refuses the directive, naming it. A lone
+carriage return ends a line for `gets`, so the second `add password` is a line
+of its own, and the first match is taken, as `find` takes it. Before `16c7f3b`
+karvi read `ADD` and `add PASSWORD` as `add password`, a credential clogin never
+uses, and the carriage return as white space within one line. Not taken:
+continuation lines kept, which clogin does not have; the case folded, as karvi
+had folded it.
+
+**`--explain` and a linked capacity root.** `sessions.shared-capacity-root`
+names `LAB/cap`, a link to `LAB/shared-cap`, so no fallback is taken; `router1`
+is the fake device, asking no enable secret. `--explain`'s lines other than
+`key`, `value`, and `resolved` are cut; the `$` lines other than karvi's are the
+script's steps:
+
+```text
+== a link at the root
+$ ls -l cap
+cap -> shared-cap
+$ karvi config show --explain sessions.shared-capacity-root
+exit=0
+key:        sessions.shared-capacity-root
+value:      "LAB/cap"
+resolved:   LAB/cap
+$ karvi run --target router1 'show clock'
+exit=0
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=589ms artifacts=LAB/jobs/261101/261101-131836-00
+! ssh accepted new host-key router1 (ED25519)
+$ ls shared-cap
+devices
+server.json
+server.lock
+== a server ledger that does not decode
+$ printf '{router1\n' >shared-cap/server.json
+$ karvi config show --explain sessions.shared-capacity-root
+exit=0
+key:        sessions.shared-capacity-root
+value:      "LAB/cap"
+resolved:   error: capacity_root_unusable: LAB/cap: LAB/cap/server.json: invalid character 'r' looking for beginning of object key string
+$ karvi run --target router1 'show clock'
+exit=9
+capacity_root_unusable: capacity_ledger_malformed: LAB/cap/server.json: invalid character 'r' looking for beginning of object key string; a shared capacity root needs mode 2770 in the operators' group (group write and search, setgid, no sticky bit), as sudo karvi setup shared makes it
+== a link at the server lock
+$ rm shared-cap/server.json shared-cap/server.lock
+$ ln -s ../private shared-cap/server.lock
+$ karvi config show --explain sessions.shared-capacity-root
+exit=0
+key:        sessions.shared-capacity-root
+value:      "LAB/cap"
+resolved:   error: capacity_root_unusable: LAB/cap: LAB/cap/server.lock is a link, not a file
+$ karvi run --target router1 'show clock'
+exit=9
+capacity_root_unusable: LAB/cap/server.lock is a link, not a file; remove it
+```
+
+On a build of `16c7f3b`, the same script's three `--explain` runs each printed
+`resolved: error: capacity_root_unusable: LAB/cap: not a real directory`, while
+the first run leased in the root and the other two refused as here (the log is
+kept beside the chapter): `--explain` refused a root the run used, and, reading
+no ledger, took a real root whose ledger the run refused (S29's test, kept with
+its evidence). The run's refusal of the ledger carries two codes and the root's
+mode remedy, which does not fit (#97, below). The link at the lock is refused
+naming the link and its removal (#88), where before `8b0c336` the open's own
+text named no link and the remedy was the root's mode. Not taken: a link at the
+root passed by in the run too, where the root is the site's ([`docs/FILES.md`,
+section
+4.5](FILES.md#45-the-shared-scratch-scoreboards-and-the-session-ledger)); the
+ledger read under its lock, which `--explain` never takes.
+
+**Left open.** For the operator's word, or a review of their own: #63, Go's
+resolver and the host's domain (a design session); #64 and #65, two suites'
+fragilities (the shell-script review); #69 and #81, #60's and #76's checks going
+by path, not by a held descriptor (a design item); #71, internal/app's login
+tests writing to the host's journal (the test review); #83 and #92, an empty
+joined password and a relative `include`, read and left; and #94 to #97, found
+by S29's check of each scratch-folder chain's `--explain` against its run: an
+explicit path whose parent is absent, which `--explain` takes and a run refuses;
+a folder on a filesystem with no free inodes, which `--explain` passes by and a
+run takes; a shared folder that cannot be made, which a run warns of and
+`--explain` does not list; and the run's refusal of a ledger that does not
+decode. The push, the release, and its number are the operator's.
+
+The evidence is kept beside the tree
+(`release-design-evidence/review-fixes-2026-11-01`: each agent's failing and
+passing runs, every merged patch, each section's checks, the batteries, and in
+`chapter-90/` this chapter's lab scripts with their logs and the blocks cut from
+them).
