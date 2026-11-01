@@ -19595,3 +19595,295 @@ The evidence is kept beside the tree
 passing runs, every merged patch, each section's checks, the batteries, and in
 `chapter-90/` this chapter's lab scripts with their logs and the blocks cut from
 them).
+
+## 91. The review's later fixes: wave 11 (2026-11-01)
+
+Opened as [chapter 90](#90-the-reviews-later-fixes-waves-8-to-10-2026-11-01)
+closed, on the operator's word: wave 11 fixes the four defects that S29's check
+of each scratch-folder chain's `--explain` against its run found, #94 to #97, in
+one section, and one commit after it makes `config show`'s help name every kind
+of `passed:` line (#98). `6d5622c` and `f327004` on `dev` carry them, each
+message naming its findings ("review 2026-10-31 (new findings), #N"). Nothing is
+pushed. The findings and the plan are kept in the operator's private archive.
+
+**What it gains.** `config show --explain` and a run take the same scoreboards
+folder and capacity root, or refuse them alike, in four cases where they
+differed: a named folder whose parent is absent, a folder on a filesystem with
+no free inodes, a shared folder the operator cannot make, and a server ledger
+that does not decode, whose refusal carries one code and no remedy that does not
+fit; the help says what the `passed:` lines list. It waits on nothing. The cost:
+the CHANGELOG's `Unreleased` block holds 35 entries, 14 of them Breaking, two
+more than at chapter 90's end, and its `--explain` entry widened.
+
+**The sections:**
+
+| Wave | Section | Findings | Commit |
+|---|---|---|---|
+| 11 | S30 the scratch folders' Place and run | #94 #95 #96 #97 | `6d5622c` |
+| after 11 | the help's `passed:` lines | #98 | `f327004` |
+
+**How the fixes ran.** S30 ran as chapter 89's sections did: per finding, the
+defect confirmed, a test that fails on the tree as it was (its output kept), the
+fix, the test again, in one worktree by one agent; the orchestrator read the
+diff against its findings, merged it, rewrote two codes' causes, wrote the
+CHANGELOG, ran `go vet`, `make generated-clean`, and the whole tree's `go test`,
+and committed it. S29's harness, which compares each scratch-folder chain's
+`--explain` judgement with its run, ran again over 60 cases, all agreeing at
+`6d5622c`. The full battery passed at `6d5622c`: `go test` over 73 packages and
+every suite in 244 seconds, the host clean after. #98 is the orchestrator's edit
+of the help, the man page regenerated, the `cli` tests and
+`make generated-clean` run. No counter moved, and no error code is new;
+`capacity_root_unusable`'s and `scoreboard_root_invalid`'s causes name what each
+refuses.
+
+**The operator's decisions**, in simple terms:
+
+- #94: a named scoreboards folder or capacity root that is absent is judged by
+  its parent alone, as the run makes only the last folder; a missing parent
+  stays refused by both.
+- #95: a run passes by a scratch folder on a filesystem with no free inodes with
+  the warning it gives any other (under `auto`), or refuses it (named), as
+  `--explain` judges it.
+- #96: `--explain` lists an absent shared folder that the operator cannot make,
+  with its reason, as the run warns of it.
+- #97: a server ledger that does not decode is refused under
+  `capacity_root_unusable` alone, without the root's mode remedy, the code's
+  cause naming it.
+- #98: the help and the man page name, among the `passed:` lines, a scratch
+  candidate too long for the askpass socket and a scratch root's folder that
+  cannot be made.
+- This chapter's #95 example ran once in a container, never again for each
+  build.
+
+**Settled under the existing rules**, each reported to the operator: osutil
+exports its free-inodes test and the `statfs` seam behind it, so the capacity
+and scoreboard tests set it as they set the scratch root; the private fallback's
+inodes are judged by neither `--explain` nor the run; the new reason is
+`parent absent`, the folder named and its parent not, and an absent folder whose
+parent the operator cannot write in takes the parent's reason, the folder named
+(below); on a filesystem really full, an absent folder's `mkdir` fails
+`no space left on device` where `--explain` says `no free inodes`, the outcome
+the same.
+
+**The lab.** The host's examples ran on lab builds of `f327004` and of
+`b753db8`, `dev` just before S30 (`karvi`, `karvi-fake-device`), in a folder
+under `/var/tmp`, mode 0700, that each run made and removed, laid out as chapter
+90's, with `scoreboards` and `sessions.shared-capacity-root` set for each case
+in the lab's file. The lab's `--config`, and `run`'s `--no-daemon`, are left out
+of the `$` labels, and the lab's path is written `LAB`; `--explain`'s lines
+other than `key`, `value`, `resolved`, and `passed` are cut. The `$`, `#`,
+`exit=`, `==`, and `===` lines are the scripts'; the rest is karvi's, its
+standard output then its standard error, unless the paragraph says otherwise.
+`router1` is the fake device on 127.0.0.1, asking no enable secret. None of
+`/tmp/karvi-1000`, `/var/tmp/karvi-1000`, `/dev/shm/karvi`, and the home's
+`.local/share/karvi` existed after either host run.
+
+**A named folder whose parent is absent (#94).** `scoreboards` and
+`sessions.shared-capacity-root` name folders under `LAB/missing`, which does not
+exist; the `ls` line is the system's:
+
+```text
+== named folders whose parent is absent
+$ ls -d missing
+ls: cannot access 'missing': No such file or directory
+$ karvi config show --explain scoreboards sessions.shared-capacity-root
+exit=0
+key:        scoreboards
+value:      "LAB/missing/scoreboards"
+resolved:   error: scoreboard_root_invalid: LAB/missing/scoreboards: parent absent
+
+key:        sessions.shared-capacity-root
+value:      "LAB/missing/capacity"
+resolved:   error: capacity_root_unusable: LAB/missing/capacity: parent absent
+$ karvi run --target router1 'show clock'
+exit=9
+scoreboard_root_invalid: the scoreboards LAB/missing/scoreboards cannot be used (make LAB/missing/scoreboards: stat LAB/missing: no such file or directory); set scoreboards to a folder the operator can write
+== scoreboards = "LAB/sb", the capacity root as before
+$ karvi run --target router1 'show clock'
+exit=9
+capacity_root_unusable: make LAB/missing/capacity: stat LAB/missing: no such file or directory
+```
+
+Both judge each folder by its parent: `--explain` names the folder and the
+reason, `parent absent`, and the run's refusal is the maker's, naming the `stat`
+that failed. The run stops at the scoreboards, the first place it prepares, so
+the second run names them in the lab and meets the capacity root. On the build
+of `b753db8`, `--explain` printed `resolved: LAB/missing/scoreboards` and
+`resolved: LAB/missing/capacity`, taking both, while the runs refused as here:
+the judgement walked up to the nearest folder present, where the maker makes
+only the last. Not taken: the run making the missing parents, as `mkdir -p`
+would, which would make folders the site never named.
+
+**A shared folder the operator cannot make (#96).** `scoreboards` and
+`sessions.shared-capacity-root` are `auto`. The scratch root is a stand-in:
+`/dev/shm/karvi` made by the operator at 0555, which the operator cannot write
+in, where a site's is root's at 3770 and closed to an operator outside its
+group; the script removed it:
+
+```text
+== auto, a scratch root the operator cannot write in
+$ mkdir -m 555 /dev/shm/karvi
+$ karvi config show --explain scoreboards sessions.shared-capacity-root
+exit=0
+key:        scoreboards
+value:      "auto"
+resolved:   LAB/base/state/scoreboards
+passed:     /dev/shm/karvi/scoreboards: not writable by the operator
+
+key:        sessions.shared-capacity-root
+value:      "auto"
+resolved:   LAB/base/state/capacity
+passed:     /dev/shm/karvi/capacity: not writable by the operator
+$ karvi run --target router1 'show clock'
+exit=0
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=577ms artifacts=LAB/jobs/261101/261101-143557-01
+warning: shared capacity root unavailable (mkdir /dev/shm/karvi/capacity: permission denied); using private fallback LAB/base/state/capacity
+warning: shared scoreboard directory unavailable (/dev/shm/karvi/scoreboards: mkdir /dev/shm/karvi/scoreboards: permission denied); using private fallback LAB/base/state/scoreboards
+! ssh accepted new host-key router1 (ED25519)
+$ ls -A /dev/shm/karvi
+$ rmdir /dev/shm/karvi
+```
+
+Both take the private folders, `--explain` listing the shared ones passed by as
+the run warns of them, and nothing is made in the scratch root. The reason given
+for the folder that would be made is its parent's,
+`not writable by the operator`. On the build of `b753db8`, `--explain` printed
+the same two `resolved:` lines and no `passed:` line, an absent candidate never
+being listed, while the run warned as here. The capacity warning carries no
+`capacity_root_unusable`, which [`docs/OPERATIONS.md`](OPERATIONS.md) gives
+every such warning, and the scoreboards' names its folder twice (#99, below).
+
+**A server ledger that does not decode (#97).** `sessions.shared-capacity-root`
+names `LAB/cap`, a real folder, and the scoreboards are the lab's:
+
+```text
+== a server ledger that does not decode
+$ printf '{router1\n' >cap/server.json
+$ karvi config show --explain sessions.shared-capacity-root
+exit=0
+key:        sessions.shared-capacity-root
+value:      "LAB/cap"
+resolved:   error: capacity_root_unusable: LAB/cap: LAB/cap/server.json: invalid character 'r' looking for beginning of object key string
+$ karvi run --target router1 'show clock'
+exit=9
+capacity_root_unusable: LAB/cap/server.json: invalid character 'r' looking for beginning of object key string
+```
+
+The run's refusal carries one code and the ledger's text alone. On the build of
+`b753db8` the same run gave two codes and the root's mode remedy, which no mode
+fixes:
+
+```text
+$ karvi run --target router1 'show clock'
+exit=9
+capacity_root_unusable: capacity_ledger_malformed: LAB/cap/server.json: invalid character 'r' looking for beginning of object key string; a shared capacity root needs mode 2770 in the operators' group (group write and search, setgid, no sticky bit), as sudo karvi setup shared makes it
+```
+
+`--explain`'s line was the same there.
+
+**A folder on a filesystem with no free inodes (#95), in a container.** No
+filesystem on this host can be filled without root, so the case ran once in a
+container of `ubuntu:26.04`, `karvi-ch91`, with no network, removed when it
+ended, and a tmpfs of 16 inodes at `/dev/shm/karvi` (`docker run --tmpfs`). As
+root (the `#` lines) the script ran `karvi setup shared` for the group
+`operators` and filled the free inodes with empty files (`made 12 files` is its
+count; the `df` and `ls` lines are the system's); then, as the operator `jsmith`
+in `operators`, the lab as on the host, each case ran under `auto` and then
+named. The container has no journald, so the lab's audit went to its file alone
+(`audit.journald-required = false`); a first run, before that line, stopped at
+`audit_journald_unavailable`, and the one shown is the second. The lab build of
+`f327004`:
+
+```text
+# karvi setup shared --group operators
+created  /opt/karvi/shared  group operators  mode 2770
+created  /opt/karvi/shared/jobs  group operators  mode 2770
+created  /opt/karvi/shared/crun  group operators  mode 2770
+created  /opt/karvi/shared/transcripts  group operators  mode 2770
+created  /opt/karvi/users  group operators  mode 1770
+repaired /dev/shm/karvi  group operators  mode 3770  (was group root mode 3770)
+created  /dev/shm/karvi/scoreboards  group operators  mode 3770
+created  /dev/shm/karvi/capacity  group operators  mode 2770
+created  /dev/shm/karvi/capacity/devices  group operators  mode 2770
+created  /etc/tmpfiles.d/karvi.conf  mode 0644
+exit=0
+# for i in 0 1 2 ...; do touch /dev/shm/karvi/fill.$i; done (until one fails)
+made 12 files
+$ df -i /dev/shm/karvi
+Filesystem     Inodes IUsed IFree IUse% Mounted on
+tmpfs              16    16     0  100% /dev/shm/karvi
+$ ls -l /dev/shm/karvi | grep -v fill
+total 0
+drwxrws--- 3 root operators 60 Nov  1 19:36 capacity
+drwxrws--T 2 root operators 40 Nov  1 19:36 scoreboards
+=== build: /opt/new
+== auto
+$ karvi config show --explain scoreboards sessions.shared-capacity-root
+exit=0
+key:        scoreboards
+value:      "auto"
+resolved:   LAB/base/state/scoreboards
+passed:     /dev/shm/karvi/scoreboards: no free inodes
+
+key:        sessions.shared-capacity-root
+value:      "auto"
+resolved:   LAB/base/state/capacity
+passed:     /dev/shm/karvi/capacity: no free inodes
+$ karvi run --target router1 'show clock'
+exit=0
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=588ms artifacts=LAB/jobs/261101/261101-193645-00
+warning: shared capacity root unavailable (capacity_root_unusable: /dev/shm/karvi/capacity: no free inodes); using private fallback LAB/base/state/capacity
+warning: shared scoreboard directory unavailable (/dev/shm/karvi/scoreboards: no free inodes); using private fallback LAB/base/state/scoreboards
+! ssh accepted new host-key router1 (ED25519)
+== named
+$ karvi config show --explain scoreboards sessions.shared-capacity-root
+exit=0
+key:        scoreboards
+value:      "/dev/shm/karvi/scoreboards"
+resolved:   error: scoreboard_root_invalid: /dev/shm/karvi/scoreboards: no free inodes
+
+key:        sessions.shared-capacity-root
+value:      "/dev/shm/karvi/capacity"
+resolved:   error: capacity_root_unusable: /dev/shm/karvi/capacity: no free inodes
+$ karvi run --target router1 'show clock'
+exit=9
+scoreboard_root_invalid: the scoreboards /dev/shm/karvi/scoreboards cannot be used (no free inodes); set scoreboards to a folder the operator can write
+```
+
+Both judge the folders alike: under `auto` the private folders are taken and the
+run warns of each shared one as `--explain` lists it; named, both refuse, the
+run at the scoreboards, the first it prepares. On the build of `b753db8`, in the
+same container, `--explain` printed the same lines, while both runs took the
+shared scoreboards and failed at the activity's claim of its ID, under `auto` as
+here and named the same:
+
+```text
+$ karvi run --target router1 'show clock'
+exit=1
+activity_id_generation_failed: cannot create the claim /dev/shm/karvi/scoreboards/261101-193646-00.id: open /dev/shm/karvi/scoreboards/261101-193646-00.id: no space left on device
+```
+
+The capacity root's half, each lease's temporary file failing, was read in the
+code, not run. Not taken: `--explain` ceasing to judge inodes, so that both take
+such a folder, where every activity's ID claim, or every lease, then fails.
+
+**Left open.** For the operator's word, or a review of their own: #63, Go's
+resolver and the host's domain (a design session); #64 and #65, two suites'
+fragilities (the shell-script review); #69 and #81, #60's and #76's checks going
+by path, not by a held descriptor (a design item); #71, internal/app's login
+tests writing to the host's journal (the test review); #83 and #92, an empty
+joined password and a relative `include`, read and left; and #99, found in this
+chapter's lab: the capacity root's warning for a shared folder the operator
+cannot make carries no `capacity_root_unusable`, and the scoreboards' warning
+names its folder twice. The push, the release, and its number are the
+operator's.
+
+The evidence is kept beside the tree
+(`release-design-evidence/review-fixes-2026-11-01`: S30's agent's failing and
+passing runs and the harness, the merged patch, the section's check, the wave's
+battery, and in `chapter-91/` this chapter's lab scripts, the container's
+script, their logs, and the blocks cut from them).
