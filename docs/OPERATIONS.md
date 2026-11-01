@@ -1254,12 +1254,18 @@ with Tcl's `string match -nocase`: `*` matches any run of characters, `/`
 included; `?` one character; `\x` the character `x`; and a class one of the
 characters or ranges it lists, a range read either way round (`[a-c]`,
 `[c-a]`). A class has no negation: `[!x]` matches `!` or `x`, `[^x]`
-matches `^` or `x`. A class is written in a bare word with its brackets
+matches `^` or `x`. A class is written inside braces
+(`add password {core-[!x]*} {PASSWORD}`) or in a bare word with its brackets
 escaped (`add password core-\[!x\]* {PASSWORD}`); inside braces an escaped
-bracket stays a literal bracket, and a bracket that is not escaped is
-refused (`cloginrc_tcl_substitution_forbidden`). A pattern no name can match
-fails the load with `cloginrc_malformed`: a backslash that ends it, or a
-class that lists nothing (`[]`, or a `[` or `[a-` that ends the pattern).
+bracket stays a literal bracket. A pattern no name can match fails the load
+with `cloginrc_malformed`: a backslash that ends it, or a class that lists
+nothing (`[]`, or a `[` or `[a-` that ends the pattern).
+
+Inside braces every character of a pattern or a value is taken as written,
+as Tcl takes it: `{pa$$w0rd}`, `{pa;ss}`, and `{core-[!x]*}` are read as
+they stand. In a bare word, where Tcl would substitute or end the command,
+`$`, `[`, `]`, and `;` are refused (`cloginrc_tcl_substitution_forbidden`),
+the message naming the character and the file and line.
 
 The checks are the same for every credential file backend and carry one
 code each, the message naming the backend and the path and never a value:

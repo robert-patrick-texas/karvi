@@ -540,6 +540,97 @@ func TestBracedValueKeepsBackslashes(t *testing.T) {
 	}
 }
 
+// TestBracedWordTakesSubstitutionCharactersLiterally: inside braces Tcl
+// substitutes nothing, so "$", "[", "]", and ";" in a braced pattern or
+// value are characters like any other. The lines and the values are the
+// ones tclsh8.6 (8.6.17) gave through clogin's own add and find.
+func TestBracedWordTakesSubstitutionCharactersLiterally(t *testing.T) {
+	d := t.TempDir()
+	p := filepath.Join(d, "cloginrc")
+	write(t, p, "add user {router$1} {svc$user}\n"+
+		"add password {router$1} {pa$$w0rd} {en$able}\n"+
+		"add password {router;1} {pa;ss} {en;able}\n"+
+		"add password {router]1} {pa]ss} {en]able}\n"+
+		"add password {r[!x]*} {pa[ss} {en[able]}\n"+
+		"add userpassword {switch[12]} {up$[;]}\n"+
+		"add password * {pw-default}\n", 0o600)
+	b := newBackend(t, d, p, credfile.ScopeUser, false)
+	for _, tc := range []struct{ device, user, password, enable string }{
+		{"router$1", "svc$user", "pa$$w0rd", "en$able"},
+		{"router;1", "me", "pa;ss", "en;able"},
+		{"router]1", "me", "pa]ss", "en]able"},
+		{"r!1", "me", "pa[ss", "en[able]"},
+		{"switch2", "me", "up$[;]", ""},
+		{"switch3", "me", "pw-default", ""},
+	} {
+		r := resolve(b, tc.device)
+		if r.Outcome != credentials.Success {
+			t.Fatalf("%s: outcome %s, code %q (%s)", tc.device, r.Outcome, r.ErrorCode, r.Message)
+		}
+		pw, en := secret(t, r)
+		if u := username(t, r); u != tc.user || pw != tc.password || en != tc.enable {
+			t.Errorf("%s: user %q, password %q, enable %q; want %q, %q, %q", tc.device, u, pw, en, tc.user, tc.password, tc.enable)
+		}
+	}
+}
+
+// TestBracedClassMatchesAsClogin: a class written inside braces is a class
+// for the match, as clogin's Tcl reads it: {r[!x]*} matches "r!1" and
+// "rx1", and "ry1" falls to the next line.
+func TestBracedClassMatchesAsClogin(t *testing.T) {
+	d := t.TempDir()
+	p := filepath.Join(d, "cloginrc")
+	write(t, p, "add password {r[!x]*} {pw-braced}\nadd password * {pw-default}\n", 0o600)
+	b := newBackend(t, d, p, credfile.ScopeUser, false)
+	for _, tc := range []struct{ device, want string }{
+		{"r!1", "pw-braced"},
+		{"rx1", "pw-braced"},
+		{"ry1", "pw-default"},
+	} {
+		r := resolve(b, tc.device)
+		if r.Outcome != credentials.Success {
+			t.Fatalf("%s: outcome %s, code %q (%s)", tc.device, r.Outcome, r.ErrorCode, r.Message)
+		}
+		if pw, _ := secret(t, r); pw != tc.want {
+			t.Errorf("%s: password %q, want %q", tc.device, pw, tc.want)
+		}
+	}
+}
+
+// TestBareWordRefusesSubstitutionCharacters: in a bare word Tcl would
+// substitute or end the command at "$", "[", "]", or ";", so the load is
+// refused with cloginrc_tcl_substitution_forbidden. The reader's error
+// holds the code once, leading, then the file and line (an included file's
+// after the include's), the character, and the remedy, never the word.
+func TestBareWordRefusesSubstitutionCharacters(t *testing.T) {
+	const code = "cloginrc_tcl_substitution_forbidden"
+	d := t.TempDir()
+	root := filepath.Join(d, "cloginrc")
+	sub := filepath.Join(d, "sub.rc")
+	for _, tc := range []struct{ name, line, message string }{
+		{"a dollar", "add password router1 pa$$w0rd", `'$' in a bare word; brace the word`},
+		{"a semicolon", "add password router1 {pw-a} en;able", `';' in a bare word; brace the word`},
+		{"an opening bracket", "add password r[!x]* {pw-a}", `'[' in a bare word; brace the word`},
+		{"a closing bracket", "add password router1 pa]ss", `']' in a bare word; brace the word`},
+	} {
+		write(t, sub, tc.line+"\n", 0o600)
+		for _, f := range []struct{ where, body, want string }{
+			{"the file", "# lab\n" + tc.line + "\nadd password * {pw-default}\n", code + ": " + root + ":2: " + tc.message},
+			{"an included file", "include sub.rc\n", code + ": " + root + ":1 include: " + sub + ":1: " + tc.message},
+		} {
+			write(t, root, f.body, 0o600)
+			b := newBackend(t, d, root, credfile.ScopeUser, false)
+			if r := resolve(b, "router1"); r.Outcome != credentials.Malformed || r.ErrorCode != code {
+				t.Errorf("%s in %s: outcome %s, code %q, want %s (%s)", tc.name, f.where, r.Outcome, r.ErrorCode, code, r.Message)
+			}
+			_, err := b.flatten(context.Background(), root, true, nil, map[string]string{})
+			if err == nil || err.Error() != f.want {
+				t.Errorf("%s in %s: the reader's error is\n  %v\nwant\n  %s", tc.name, f.where, err, f.want)
+			}
+		}
+	}
+}
+
 func TestRejectCode(t *testing.T) {
 	if _, err := tokenize("add user * $USER"); err == nil {
 		t.Fatal("expected substitution rejection")

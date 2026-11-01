@@ -342,7 +342,7 @@ func (b *Backend) flatten(ctx context.Context, path string, root bool, active []
 		}
 		tokens, err := tokenize(raw)
 		if err != nil {
-			return nil, fmt.Errorf("%s:%d: %w", canonical, line, err)
+			return nil, located(fmt.Sprintf("%s:%d: ", canonical, line), err)
 		}
 		if len(tokens) == 0 {
 			continue
@@ -374,10 +374,7 @@ func (b *Backend) flatten(ctx context.Context, path string, root bool, active []
 			}
 			nested, err := b.flatten(ctx, inc, false, active, seen)
 			if err != nil {
-				if code := errorcodes.Of(err); code != "" {
-					return nil, errorcodes.Errorf(code, "%s:%d include: %s", canonical, line, errorcodes.Message(err))
-				}
-				return nil, fmt.Errorf("%s:%d include: %w", canonical, line, err)
+				return nil, located(fmt.Sprintf("%s:%d include: ", canonical, line), err)
 			}
 			out = append(out, nested...)
 			continue
@@ -420,6 +417,16 @@ func (b *Backend) flatten(ctx context.Context, path string, root bool, active []
 	}
 	return out, nil
 }
+
+// located is err with where (a file and line) before its message. A coded
+// error keeps its code once, leading the text; any other is wrapped.
+func located(where string, err error) error {
+	if code := errorcodes.Of(err); code != "" {
+		return errorcodes.Errorf(code, "%s%s", where, strings.TrimPrefix(errorcodes.Message(err), code+": "))
+	}
+	return fmt.Errorf("%s%w", where, err)
+}
+
 func endsContinuation(s string) bool {
 	n := 0
 	for i := len(s) - 1; i >= 0 && s[i] == '\\'; i-- {
@@ -460,8 +467,9 @@ func skipSpace(s string, i int) int {
 }
 
 // parseBraced reads a braced word as Tcl does: no substitution inside the
-// braces, so a backslash and the byte after it are kept as they stand, and
-// an escaped brace does not count toward the nesting.
+// braces, so every character is kept as it stands, "$", "[", "]", and ";"
+// among them, and a backslash with the byte after it; an escaped brace does
+// not count toward the nesting.
 func parseBraced(s string, i int) (string, int, error) {
 	i++
 	depth := 1
@@ -493,14 +501,15 @@ func parseBraced(s string, i int) (string, int, error) {
 			b.WriteByte(c)
 			continue
 		}
-		if c == '$' || c == '[' || c == ']' || c == ';' {
-			return "", i, errorcodes.Errorf("cloginrc_tcl_substitution_forbidden", "Tcl substitution/chaining syntax is forbidden")
-		}
 		b.WriteByte(c)
 		i++
 	}
 	return "", i, fmt.Errorf("unterminated brace")
 }
+
+// parseBare reads a bare word as Tcl's substitution leaves it: a backslash
+// gives the byte after it. "$", "[", "]", and ";" are refused, where Tcl
+// would substitute or end the command.
 func parseBare(s string, i int) (string, int, error) {
 	var b strings.Builder
 	for i < len(s) && !unicode.IsSpace(rune(s[i])) {
@@ -514,7 +523,7 @@ func parseBare(s string, i int) (string, int, error) {
 			continue
 		}
 		if c == '$' || c == '[' || c == ']' || c == ';' {
-			return "", i, errorcodes.Errorf("cloginrc_tcl_substitution_forbidden", "Tcl substitution/chaining syntax is forbidden")
+			return "", i, errorcodes.Errorf("cloginrc_tcl_substitution_forbidden", "%q in a bare word; brace the word", rune(c))
 		}
 		b.WriteByte(c)
 		i++

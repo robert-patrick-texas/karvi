@@ -219,20 +219,22 @@
   row leaving it to the mode's default differ, and a key still compares
   folded. The source's digest and its rows come from one read, so the digest
   names the bytes the devices came from.
-- **Breaking: `.cloginrc` reads braces and patterns as clogin's Tcl does.**
-  A braced word dropped each backslash, so `{pa\ss}` read as `pass`; inside
-  braces a backslash and the character after it are now kept, as clogin's
-  Tcl reads them, so a password holding `\` in braces reads as clogin reads
-  it, and in a braced pattern a backslash escapes the glob character after
-  it. A pattern was matched by Go's rules, `[!x]` and `[^x]` read as
-  negation and `*` stopping at `/`, so a line written for clogin matched
-  other devices in karvi, or none; a pattern now matches as clogin's `string
-  match -nocase` does: a class has no negation (`[!x]` matches `!` or `x`),
-  `*` and `?` cross `/`, a range reads either way round, and a class left
-  open runs to the end of the pattern. A pattern no name can match (a
-  trailing `\`, or a class that lists nothing, `[]`) was passed by, so a
-  later `*` line answered; the file is now refused `cloginrc_malformed`
-  naming the line ([`docs/OPERATIONS.md`](docs/OPERATIONS.md)).
+- **Breaking: `.cloginrc` reads braces and patterns as clogin's Tcl does.** A
+  braced word dropped each backslash, so `{pa\ss}` read as `pass`; inside braces
+  a backslash and the character after it are now kept, as Tcl reads a braced
+  word, and in a braced pattern a backslash escapes the glob character after it.
+  `$`, `[`, `]`, and `;` inside braces were refused, though Tcl takes them as
+  written, so a file clogin reads (`{pa$$w0rd}`) was refused whole; they are now
+  taken as written, and refused only in a bare word, the message naming the
+  character. A pattern was matched by Go's rules, `[!x]` and `[^x]` read as
+  negation and `*` stopping at `/`, so a line written for clogin matched other
+  devices in karvi, or none; a pattern now matches as clogin's
+  `string match -nocase` does: a class has no negation (`[!x]` matches `!` or
+  `x`), `*` and `?` cross `/`, a range reads either way round, and a class left
+  open runs to the end of the pattern. A pattern no name can match (a trailing
+  `\`, or a class that lists nothing, `[]`) was passed by, so a later `*` line
+  answered; the file is now refused `cloginrc_malformed` naming the line
+  ([`docs/OPERATIONS.md`](docs/OPERATIONS.md)).
 - **Breaking: a link at a day folder's or a job folder's name is refused.**
   A shared job or transcript tree's day folders are every member's to write,
   with no sticky bit, and karvi followed a link planted at a day folder's
