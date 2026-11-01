@@ -145,7 +145,7 @@ func TestDirectoriesAndReadAll(t *testing.T) {
 // TestAnExplicitFolderWhoseParentIsAbsentIsRefused: Folder makes a folder
 // only in a parent that exists, so Place refuses an explicit one whose
 // parent is absent, as Folder does, scoreboard_root_invalid naming the
-// folder; neither makes the parent.
+// folder once and Folder's cause the parent's; neither makes the parent.
 func TestAnExplicitFolderWhoseParentIsAbsentIsRefused(t *testing.T) {
 	dir := t.TempDir()
 	base := withScratchRoot(t, filepath.Join(dir, "shm"))
@@ -154,8 +154,9 @@ func TestAnExplicitFolderWhoseParentIsAbsentIsRefused(t *testing.T) {
 	if want := "scoreboard_root_invalid: " + folder + ": parent absent"; errorcodes.Message(perr) != want {
 		t.Errorf("Place: %v\nwant %s", perr, want)
 	}
-	if _, _, err := Folder(folder, "", base, nil); errorcodes.Of(err) != "scoreboard_root_invalid" {
-		t.Errorf("Folder: %v", err)
+	_, _, err := Folder(folder, "", base, nil)
+	if want := "scoreboard_root_invalid: the scoreboards " + folder + " cannot be used (stat " + filepath.Dir(folder) + ": no such file or directory); set scoreboards to a folder the operator can write"; errorcodes.Message(err) != want {
+		t.Errorf("Folder: %v\nwant %s", err, want)
 	}
 	if _, err := os.Lstat(filepath.Dir(folder)); !os.IsNotExist(err) {
 		t.Errorf("the parent was made: %v", err)
@@ -201,7 +202,8 @@ func TestAFolderWithNoFreeInodesIsPassedByAsPlaceSays(t *testing.T) {
 // TestASharedFolderThatCannotBeMadeIsListed: with the scratch root present
 // but closed to the operator, the shared folder is absent and cannot be
 // made: Place lists it passed by with the reason, as Folder warns once,
-// and both take the private folder; nothing is made in the scratch root.
+// naming the folder once and then the cause, and both take the private
+// folder; nothing is made in the scratch root.
 func TestASharedFolderThatCannotBeMadeIsListed(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("root writes every directory")
@@ -223,8 +225,11 @@ func TestASharedFolderThatCannotBeMadeIsListed(t *testing.T) {
 	}
 	var warned []string
 	dir, _, err := Folder("auto", "", base, func(s string) { warned = append(warned, s) })
-	if err != nil || dir != private || len(warned) != 1 || !strings.Contains(warned[0], shared) {
-		t.Errorf("Folder took %s %v (warnings %q), want %s", dir, err, warned, private)
+	if err != nil || dir != private {
+		t.Errorf("Folder took %s %v, want %s", dir, err, private)
+	}
+	if want := []string{"shared scoreboard directory unavailable (" + shared + ": permission denied); using private fallback " + private}; !slices.Equal(warned, want) {
+		t.Errorf("warnings %q\nwant %q", warned, want)
 	}
 	if _, err := os.Lstat(shared); !os.IsNotExist(err) {
 		t.Errorf("the shared folder was made: %v", err)

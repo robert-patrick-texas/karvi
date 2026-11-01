@@ -3,6 +3,7 @@ package scoreboard
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -68,7 +69,7 @@ func Folder(raw, home, base string, warn func(string)) (string, os.FileMode, err
 	if f.Path != "" {
 		why := ""
 		if err := osutil.MakeSharedDirectory(f.Path, 0770); err != nil {
-			why = err.Error()
+			why = causeAfter(f.Path, err)
 		} else if err := osutil.UsableDirectory(f.Path); err != nil {
 			why = err.Error()
 		} else if osutil.NoFreeInodes(f.Path) {
@@ -90,6 +91,22 @@ func Folder(raw, home, base string, warn func(string)) (string, os.FileMode, err
 		return "", 0, errorcodes.Errorf("scoreboard_root_invalid", "the private scoreboards %s cannot be used: %v", f.Fallback, err)
 	}
 	return f.Fallback, 0600, nil
+}
+
+// causeAfter is err's text for a message that names path already: the
+// file-system error's cause alone where that error names path (mkdir's
+// "permission denied"), and the file-system error whole where it names
+// another path (MakeSharedDirectory's "stat PARENT: no such file or
+// directory"), without what wraps it.
+func causeAfter(path string, err error) string {
+	var pe *os.PathError
+	if !errors.As(err, &pe) {
+		return err.Error()
+	}
+	if pe.Path == path {
+		return pe.Err.Error()
+	}
+	return pe.Error()
 }
 
 // Choice is the scoreboards' chain (osutil.ScratchFolderChoice): the

@@ -47,7 +47,8 @@ type entry struct {
 // by with one warning when this operator cannot lease in it, its
 // filesystem's free inodes among the tests; else, or then, the private
 // <basedir>/state/capacity, as Place takes it. An explicit path is used or
-// refused.
+// refused. The warning, and an explicit path's refusal, carry
+// capacity_root_unusable.
 func New(raw, home, base, jobID string, limit int, warn func(string)) (*Manager, error) {
 	if limit < 1 {
 		limit = 32
@@ -62,8 +63,9 @@ func New(raw, home, base, jobID string, limit int, warn func(string)) (*Manager,
 		if err == nil {
 			return m, nil
 		}
+		err = errorcodes.Ensure(err, "capacity_root_unusable")
 		if f.Fallback == "" {
-			return nil, errorcodes.Ensure(err, "capacity_root_unusable")
+			return nil, err
 		}
 		if warn != nil {
 			warn(fmt.Sprintf("shared capacity root unavailable (%v); using private fallback %s", err, f.Fallback))

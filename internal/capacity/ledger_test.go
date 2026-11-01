@@ -987,8 +987,10 @@ func TestARootWithNoFreeInodesIsPassedByAsPlaceSays(t *testing.T) {
 
 // TestASharedRootThatCannotBeMadeIsListed: with the scratch root present
 // but closed to the operator, the shared root is absent and cannot be
-// made: Place lists it passed by with the reason, as New warns once, and
-// both take the private fallback; nothing is made in the scratch root.
+// made: Place lists it passed by with the reason, as New warns once, the
+// failed mkdir under capacity_root_unusable as an explicit root's refusal
+// carries it, and both take the private fallback; nothing is made in the
+// scratch root.
 func TestASharedRootThatCannotBeMadeIsListed(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("root writes every folder")
@@ -1010,8 +1012,15 @@ func TestASharedRootThatCannotBeMadeIsListed(t *testing.T) {
 	}
 	var warned []string
 	m, err := New("auto", "", base, "job", 4, func(s string) { warned = append(warned, s) })
-	if err != nil || m.Root != fallback || len(warned) != 1 || !strings.Contains(warned[0], root) {
-		t.Errorf("New took %v %v (warnings %q), want %s", m, err, warned, fallback)
+	if err != nil || m.Root != fallback {
+		t.Errorf("New took %v %v, want %s", m, err, fallback)
+	}
+	refusal := "capacity_root_unusable: mkdir " + root + ": permission denied"
+	if want := []string{"shared capacity root unavailable (" + refusal + "); using private fallback " + fallback}; !slices.Equal(warned, want) {
+		t.Errorf("warnings %q\nwant %q", warned, want)
+	}
+	if _, err := New(root, "", base, "job", 4, nil); errorcodes.Message(err) != refusal {
+		t.Errorf("explicit: New %v\nwant %s", err, refusal)
 	}
 	if _, err := os.Lstat(root); !os.IsNotExist(err) {
 		t.Errorf("the shared root was made: %v", err)

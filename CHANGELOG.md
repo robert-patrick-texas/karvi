@@ -357,6 +357,15 @@
   code.** The refusal read `capacity_root_unusable: capacity_ledger_malformed:
   …/server.json: …; a shared capacity root needs mode 2770 …`, two codes and a
   remedy no mode fits; it is now `capacity_root_unusable: …/server.json: …`.
+- **A scratch folder's fallback warning names the folder once, and the capacity
+  root's carries its code.** Under `auto`, a shared folder the operator could
+  not make in the scratch root was warned of as `shared capacity root
+  unavailable (mkdir …/capacity: permission denied)`, without the
+  `capacity_root_unusable` every other such warning carries, and as `shared
+  scoreboard directory unavailable (…/scoreboards: mkdir …/scoreboards:
+  permission denied)`, the folder twice. The first now carries the code; the
+  second, and a named scoreboards folder's refusal, name the folder once and
+  then the cause, `(…/scoreboards: permission denied)`.
 - **A login whose `login.start` cannot be written ends its scoreboard.** The
   snapshot written just before `login.start` stayed `running` when that
   audit write failed; the login now writes its final snapshot, at `error`
