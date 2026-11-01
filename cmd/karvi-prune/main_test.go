@@ -56,9 +56,10 @@ func invoke(t *testing.T, base string, args ...string) (int, string, string) {
 }
 
 // placeArgs are the flags that keep a run to base: its private root, no
-// shared root, and the scoreboards under it.
+// shared root, the scoreboards under it, and no free-space floor, so the
+// host's disk never decides what a test's run removes.
 func placeArgs(base string) []string {
-	return []string{"--basedir", base, "--sharedroot", "none", "--scoreboards", filepath.Join(base, "score")}
+	return []string{"--basedir", base, "--sharedroot", "none", "--scoreboards", filepath.Join(base, "score"), "--minfree", "0"}
 }
 
 // finishedJob writes a job folder under jobs whose summary says complete,
