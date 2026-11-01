@@ -407,6 +407,13 @@
 - **Breaking: a `[platform.NAME]` table takes no `legacy-class`; registry
   33.** The field took any word and nothing read it; it is now
   `config_unknown_key`.
+- **The newest goldmark.** `github.com/yuin/goldmark` v1.8.7 (from v1.8.6);
+  x/crypto, x/sys, x/term, and Go 1.27.3 were the newest already. goldmark is
+  vendored for `tools/md-to-html` alone, and no executable contains it. Its
+  changes bound the parser's work where it searched the same text again (an
+  unclosed HTML comment, a long footnote label, many headings of one name)
+  and rework how an autolink's trailing punctuation and an indented code block
+  are read; `make html` builds the same 40 pages, byte for byte.
 
 ## 0.38.0 - 2026-10-28
 
