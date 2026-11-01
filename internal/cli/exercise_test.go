@@ -204,11 +204,12 @@ func TestRunExerciseConflictsAndStages(t *testing.T) {
 	}
 	// A prepare refused on daemon DNS aborts under executor_dns_failed with
 	// the daemon DNS preparation stage named, before any
-	// package exists.
+	// package exists. The name is rooted, so no search domain of the host's
+	// (whose zone may answer every name) is tried after it.
 	stdout.Reset()
 	stderr.Reset()
-	args = append(append([]string{}, sets...), "run", "--exercise", "--target", "nxdomain.invalid", "--address-authority", "nxdomain.invalid=daemon", "--transport", "system", "show", "clock")
-	if got := Main(args, strings.NewReader(""), &stdout, &stderr); got != exitcode.ExitNameResolutionError || !strings.Contains(stderr.String(), "executor_dns_failed: daemon DNS preparation: 1 finding(s): name:nxdomain.invalid: ") {
+	args = append(append([]string{}, sets...), "run", "--exercise", "--target", "nxdomain.invalid.", "--address-authority", "nxdomain.invalid.=daemon", "--transport", "system", "show", "clock")
+	if got := Main(args, strings.NewReader(""), &stdout, &stderr); got != exitcode.ExitNameResolutionError || !strings.Contains(stderr.String(), "executor_dns_failed: daemon DNS preparation: 1 finding(s): name:nxdomain.invalid.: ") {
 		t.Fatalf("daemon DNS: exit=%d stderr=%q", got, stderr.String())
 	}
 	inv := mustParse(t, "run", "--exercise", "--target", "r1", "show", "clock")
