@@ -36,6 +36,18 @@
   by as OpenSSH passes it, so a device it names alone is not enrolled. An
   enrolled key is appended on a line of its own when the store's last line
   lacks its newline ([`docs/SSH-HOST-KEY-POLICY.md`](docs/SSH-HOST-KEY-POLICY.md)).
+- **Breaking: `karvi-prune --days` takes one to 999, and a tree it cannot read
+  fails the run.** A retention age of 106,752 days or more overflowed and put
+  the cutoff in the future, so every job went, running ones included; `--days`
+  above 999 is now a usage error (exit 2), the cutoff counted in calendar
+  days, and `--minfree NaN` is refused too. A root that cannot be read is a
+  `failed kind=tree` line and exit 1, where it was a skipped line and exit 0;
+  a folder below it that cannot be read is a `skipped` line and the walk goes
+  on, where one such folder dropped the whole tree; and a shared scoreboards
+  folder the operator cannot use is passed by, as the shared jobs and
+  transcripts trees are. Day folders are read in the local zone they are named
+  in, not as UTC, and an empty one goes only when its whole day ended before
+  the cutoff ([`docs/PRUNE.md`](docs/PRUNE.md)).
 
 ## 0.38.0 - 2026-10-28
 

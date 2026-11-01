@@ -36,7 +36,7 @@ decisions.
 It never removes a running job, a transcript still being recorded, a
 folder whose name is not a
 .I YYMMDD
-day folder, a symbolic link, a file it cannot read, the collection
+day folder, a symbolic link, a file or folder it cannot read, the collection
 directory of
 .BR "karvi crun" ,
 the audit log, or anything in journald.
@@ -59,6 +59,13 @@ A removal that fails is reported as a
 .B failed
 line with its reason and the run goes on to the next item; the summary
 counts it and the exit is 1.
+A tree whose root cannot be read is reported the same way, a
+.B failed
+line of
+.BR kind=tree .
+A folder below a root that cannot be read is a
+.B skipped
+line with its reason, and the walk goes on past it.
 .SH OPTIONS
 .\" BEGIN GENERATED OPTIONS: tools/mangen from internal/prune; edit there
 .TP
@@ -75,7 +82,7 @@ The shared scoreboards, pruned beside each private root's state/scoreboards.
 Default: \fB/dev/shm/karvi/scoreboards\fP.
 .TP
 .BI \-\-days " N"
-The retention age in days, one or more.
+The retention age in days, from one to 999.
 Default: \fB31\fP.
 .TP
 .BI \-\-minfree " PERCENT"
@@ -95,7 +102,7 @@ Default: \fBtext\fP.
 .SH WHAT GOES
 Each kind is judged against the retention age,
 .BR \-\-days ;
-the cutoff is now less that many days.
+the cutoff is that many calendar days before now.
 .TP
 .B activity
 A job folder whose
@@ -145,11 +152,27 @@ is before the cutoff; pressure never takes it.
 A
 .I YYMMDD
 day folder that holds nothing.
-Goes when its date is before the cutoff, after the run's other removals,
-with a plain
+Goes when the whole day it names ended before the cutoff, after the run's
+other removals, with a plain
 .BR rmdir ,
 so a folder that gained a job in the meantime stays; pressure never
 takes it.
+With
+.B \-\-days
+at one or more, today's and yesterday's folders stay.
+.PP
+.B "The day folders' zone."
+A day folder's name is a date, read in the helper's own local zone
+.RB ( TZ ,
+else the host's): the zone karvi names it in under
+.BR timezone 's
+default,
+.BR auto .
+A site whose
+.B timezone
+names another zone sets
+.B TZ
+to the same zone on the helper's line.
 .PP
 .B Pressure.
 .B \-\-minfree
@@ -197,7 +220,9 @@ then its
 A shared tree the operator cannot write to is reported as skipped.
 .IP 3. 4
 The shared scoreboards,
-.BR \-\-scoreboards .
+.BR \-\-scoreboards ,
+judged as the shared trees are: a folder the operator cannot write to, or
+a link, is reported as skipped.
 .PP
 As root, a run walks instead every private root under
 .I /opt/karvi/users
@@ -242,7 +267,8 @@ and
 .B walk
 for every place looked at;
 .B skipped
-names a tree not walked.
+names a shared tree passed by or a folder that cannot be read, with the
+error.
 The age is whole days, hours under a day, minutes under an hour; a job's
 age counts from its end, an orphan's from the newest thing in it, a day
 folder's from its date.
@@ -252,12 +278,12 @@ the items
 .B removed
 (or that would be), the entries
 .B skipped
-(a name that is not a day folder, a live record, a tree not walked),
-the items another user owns
+(a name that is not a day folder, a live record, a folder that cannot be
+read), the items another user owns
 .RB ( not_owned ),
 the removals that
-.BR failed ,
-and the
+.B failed
+and the trees that could not be walked, and the
 .B bytes
 removed.
 .PP
@@ -279,14 +305,15 @@ Everything eligible went, or would have under
 .BR \-\-dry\-run .
 .TP
 .B 1
-A removal failed or a tree could not be walked; the report says which.
+A removal failed or a tree could not be walked (its root unreadable); the
+report says which.
 .TP
 .B 2
 A usage error: an unknown flag, a positional argument,
 .B \-\-days
-below one,
+outside 1 to 999,
 .B \-\-minfree
-outside 0 to 100, or a
+outside 0 to 100 or not a number, or a
 .B \-\-format
 that is neither
 .B text

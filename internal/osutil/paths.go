@@ -467,22 +467,37 @@ func SharedTreeChoice(shared, sub, key, code string) (path string, ok bool, err 
 	}
 	for _, root := range roots {
 		p := filepath.Join(root, sub)
-		fi, err := os.Lstat(p)
+		ok, err := SharedTreeAt(p, sub, key, code)
 		if err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			return "", false, errorcodes.Errorf(code, "the shared %s tree %s: %w", sub, p, err)
+			return "", false, err
 		}
-		if fi.Mode()&os.ModeSymlink != 0 || !fi.IsDir() {
-			return "", false, errorcodes.Errorf(code, "the shared %s tree %s exists and is not a real directory; set %s to a private path to pass it by", sub, p, key)
+		if ok {
+			return p, true, nil
 		}
-		if _, reason := judgeDirectory(p); reason != "" {
-			return "", false, sharedTreeClosed(sub, p, key, code, reason)
-		}
-		return p, true, nil
 	}
 	return "", false, nil
+}
+
+// SharedTreeAt is SharedTreeChoice's judgement of one candidate p, the
+// shared sub tree: absent, false and no error; a real directory the
+// operator can use (judgeDirectory), true; anything else refused with code,
+// naming key as the setting that passes it by. karvi-prune judges the
+// shared scoreboards by it as well.
+func SharedTreeAt(p, sub, key, code string) (bool, error) {
+	fi, err := os.Lstat(p)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, errorcodes.Errorf(code, "the shared %s tree %s: %w", sub, p, err)
+	}
+	if fi.Mode()&os.ModeSymlink != 0 || !fi.IsDir() {
+		return false, errorcodes.Errorf(code, "the shared %s tree %s exists and is not a real directory; set %s to a private path to pass it by", sub, p, key)
+	}
+	if _, reason := judgeDirectory(p); reason != "" {
+		return false, sharedTreeClosed(sub, p, key, code, reason)
+	}
+	return true, nil
 }
 
 func sharedTreeClosed(sub, p, key, code, why string) error {
@@ -602,19 +617,23 @@ func DayFolder(accepted time.Time, loc *time.Location) string {
 // folder from the time. Any other name, the earlier `YYYY-MM-DD` layout
 // included, is not a day folder.
 func IsDayFolder(name string) bool {
-	_, ok := DayFolderDate(name)
+	_, ok := DayFolderDate(name, time.UTC)
 	return ok
 }
 
 // DayFolderDate parses a day folder's name as the day it belongs to, at
-// midnight UTC, false when name is not a day folder. A walker compares this
-// date against a retention cutoff where a folder holds no record of its own
-// time (an empty day folder, a job folder without a summary; 19.4, 19.5).
-func DayFolderDate(name string) (time.Time, bool) {
+// midnight in loc, the zone DayFolder named it in (time.Local when nil),
+// false when name is not a day folder. A walker compares this date against
+// a retention cutoff where a folder holds no record of its own time (an
+// empty day folder, a job folder without a summary; 19.4, 19.5).
+func DayFolderDate(name string, loc *time.Location) (time.Time, bool) {
 	if len(name) != len(DayFolderLayout) {
 		return time.Time{}, false
 	}
-	t, err := time.Parse(DayFolderLayout, name)
+	if loc == nil {
+		loc = time.Local
+	}
+	t, err := time.ParseInLocation(DayFolderLayout, name, loc)
 	if err != nil {
 		return time.Time{}, false
 	}

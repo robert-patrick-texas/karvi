@@ -535,12 +535,32 @@ func TestIsDayFolder(t *testing.T) {
 			t.Fatalf("%q must not be a day folder", name)
 		}
 	}
-	d, ok := DayFolderDate("260817")
+	d, ok := DayFolderDate("260817", time.UTC)
 	if !ok || !d.Equal(time.Date(2026, 8, 17, 0, 0, 0, 0, time.UTC)) {
 		t.Fatalf("DayFolderDate(260817) = %v %v", d, ok)
 	}
 	if DayFolder(time.Date(2026, 8, 17, 23, 0, 0, 0, time.UTC), time.UTC) != "260817" {
 		t.Fatal("DayFolder and DayFolderDate disagree on the layout")
+	}
+}
+
+// TestDayFolderDateInItsZone: a day folder's name is read as midnight in
+// the zone it was named in, so the folder DayFolder names for an instant
+// holds that instant within its day, here on either side of UTC's midnight.
+func TestDayFolderDateInItsZone(t *testing.T) {
+	chicago, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		t.Fatal(err)
+	}
+	d, ok := DayFolderDate("261031", chicago)
+	if !ok || !d.Equal(time.Date(2026, 10, 31, 5, 0, 0, 0, time.UTC)) {
+		t.Fatalf("DayFolderDate(261031, Chicago) = %v %v", d, ok)
+	}
+	for _, at := range []time.Time{time.Date(2026, 11, 1, 0, 30, 0, 0, time.UTC), time.Date(2026, 10, 31, 5, 0, 0, 0, time.UTC)} {
+		d, ok := DayFolderDate(DayFolder(at, chicago), chicago)
+		if !ok || at.Before(d) || !at.Before(d.AddDate(0, 0, 1)) {
+			t.Fatalf("%v: its day folder's day starts %v", at, d)
+		}
 	}
 }
 

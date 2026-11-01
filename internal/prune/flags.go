@@ -2,6 +2,7 @@ package prune
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/robert-patrick-texas/karvi/internal/flagspec"
 )
@@ -34,6 +35,9 @@ var Spec = flagspec.Spec{
 	Define: func(fs *flag.FlagSet) { DefineFlags(fs) },
 }
 
+// MaxDays is the longest retention age --days takes.
+const MaxDays = 999
+
 // Flags holds the values of the helper's flags after the flag set parsed.
 type Flags struct {
 	Basedir     *string
@@ -53,7 +57,7 @@ func DefineFlags(fs *flag.FlagSet) *Flags {
 		Basedir:     fs.String("basedir", "auto", "The private roots whose jobs, transcripts, and scoreboards are pruned: auto (every root of the operator's that exists; as root, every site user root) or a path, that one alone"),
 		Sharedroot:  fs.String("sharedroot", "auto", "The site's shared root whose jobs and transcripts trees are pruned too: auto, none, or a path"),
 		Scoreboards: fs.String("scoreboards", "/dev/shm/karvi/scoreboards", "The shared scoreboards, pruned beside each private root's state/scoreboards"),
-		Days:        fs.Int("days", 31, "The retention age in days, one or more"),
+		Days:        fs.Int("days", 31, fmt.Sprintf("The retention age in days, from one to %d", MaxDays)),
 		MinFree:     fs.Float64("minfree", 5, "The free-space floor in percent, under which the oldest eligible items go before their age; 0 turns pressure off"),
 		DryRun:      fs.Bool("dry-run", false, "Report what would go and remove nothing"),
 		Verbose:     fs.Bool("verbose", false, "Add one kept line per examined item that stays, with the reason"),

@@ -68,7 +68,7 @@ Options:
   --scoreboards PATH             The shared scoreboards, pruned beside each
                                  private root's state/scoreboards (default
                                  /dev/shm/karvi/scoreboards)
-  --days N                       The retention age in days, one or more
+  --days N                       The retention age in days, from one to 999
                                  (default 31)
   --minfree PERCENT              The free-space floor in percent, under which
                                  the oldest eligible items go before their age;

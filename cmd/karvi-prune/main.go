@@ -13,6 +13,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math"
 	"os"
 
 	"github.com/robert-patrick-texas/karvi/internal/completion"
@@ -60,10 +61,10 @@ func run(args []string, stdout, stderr *os.File) int {
 	if len(fs.Args()) != 0 {
 		return usageError("no positional argument is taken")
 	}
-	if *f.Days < 1 {
-		return usageError("--days takes one or more, not %d", *f.Days)
+	if *f.Days < 1 || *f.Days > prune.MaxDays {
+		return usageError("--days takes one to %d, not %d", prune.MaxDays, *f.Days)
 	}
-	if *f.MinFree < 0 || *f.MinFree > 100 {
+	if math.IsNaN(*f.MinFree) || *f.MinFree < 0 || *f.MinFree > 100 {
 		return usageError("--minfree takes a percentage from 0 to 100, not %g", *f.MinFree)
 	}
 	if *f.Format != prune.FormatText && *f.Format != prune.FormatJSONL {
@@ -100,8 +101,9 @@ func run(args []string, stdout, stderr *os.File) int {
 		return 1
 	}
 	prune.Summary(stdout, opts, result)
-	// A removal that failed is in its line and here; the run went on past
-	// it, and the exit says the tree is not as the policy wants it.
+	// A removal that failed, or a tree whose root could not be read, is in
+	// its line and here; the run went on past it, and the exit says the tree
+	// is not as the policy wants it.
 	if result.Failed > 0 {
 		return 1
 	}

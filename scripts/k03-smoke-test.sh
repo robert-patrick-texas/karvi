@@ -244,7 +244,7 @@ grep -q "^walk kind=activity path=$R/jobs$" "$TMP/out" || fail "p7: the jobs tre
 grep -q "^kept kind=activity path=$R/jobs/[0-9]*/[0-9a-z-]* reason=young$" "$TMP/out" || fail "p7: p1's job is not kept as young: $(grep '^kept' "$TMP/out" | head -1)"
 [ "$(tail -1 "$TMP/out")" = "examined=1 removed=0 skipped=0 not_owned=0 failed=0 bytes=0 dry_run=true" ] || fail "p7: the summary line is $(tail -1 "$TMP/out")"
 rc=0; "$PRUNE" --basedir "$R" --sharedroot none --days 0 --dry-run >"$TMP/out" 2>"$TMP/err" || rc=$?
-[ "$rc" -eq 2 ] && grep -q -- '--days takes one or more' "$TMP/err" || fail "p7: --days 0 exit $rc $(head -1 "$TMP/err")"
+[ "$rc" -eq 2 ] && grep -q -- '--days takes one to 999' "$TMP/err" || fail "p7: --days 0 exit $rc $(head -1 "$TMP/err")"
 # p8: the same run as JSON documents: every line one
 # document, the kept line and the walk line with their fields, the summary
 # the last document with the counts of p7's text line; a format word that is

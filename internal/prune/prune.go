@@ -50,13 +50,18 @@ type Options struct {
 	Format string
 	UID    int
 	Now    time.Time
+	// Location is the zone the day folders' names are dates in, the local
+	// zone when nil: the helper reads no configuration, and karvi names its
+	// day folders in the local zone under timezone's default, auto.
+	Location *time.Location
 }
 
 // Result counts one run: Examined the records read, Removed the candidates
 // removed (or that would be, under --dry-run), Skipped the entries passed
-// by (a name that is not a day folder, a non-terminal record, a tree that
-// could not be walked), NotOwned the eligible candidates another user owns,
-// Failed the removals that returned an error.
+// by (a name that is not a day folder, a non-terminal record, an entry below
+// a root that could not be read), NotOwned the eligible candidates another
+// user owns, Failed the removals that returned an error and the trees whose
+// root could not be read.
 type Result struct {
 	Examined, Removed, Skipped, NotOwned, Failed int
 	BytesEstimated                               int64
@@ -101,8 +106,9 @@ var walkers = []struct {
 // and transcripts, the shared root's jobs and transcripts where the shared
 // root holds them (the choice karvi's own writers make, judged without
 // writing), and the scoreboards, each private root's and the shared
-// folder. A shared tree the operator cannot use is reported through out
-// and passed by, as karvi itself would refuse it. Nothing is made.
+// folder where it exists, judged as the shared trees are. A shared tree
+// the operator cannot use is reported through out and passed by, as karvi
+// itself would refuse it. Nothing is made.
 func trees(opts Options, out io.Writer) []tree {
 	var list []tree
 	shared := opts.SharedRoot
@@ -122,8 +128,17 @@ func trees(opts Options, out io.Writer) []tree {
 			list = append(list, tree{p, w.kind, w.walk})
 		}
 	}
-	for _, r := range scoreboardRoots(opts) {
+	scoreboards := scoreboardRoots(opts)
+	for _, r := range scoreboards[:len(opts.PrivateRoots)] {
 		list = append(list, tree{r, "scoreboard", scoreboardCandidates})
+	}
+	if r := opts.ScoreboardRoot; r != "" {
+		ok, err := osutil.SharedTreeAt(r, "scoreboards", "scoreboards", "scoreboard_root_invalid")
+		if err != nil {
+			report(out, opts, "skipped", f("kind", "tree"), f("path", r), f("error", err))
+		} else if ok {
+			list = append(list, tree{r, "scoreboard", scoreboardCandidates})
+		}
 	}
 	return list
 }
@@ -152,7 +167,11 @@ func Run(opts Options, out io.Writer) (Result, error) {
 	if opts.Now.IsZero() {
 		opts.Now = time.Now()
 	}
-	cutoff := opts.Now.Add(-time.Duration(opts.Days) * 24 * time.Hour)
+	if opts.Location == nil {
+		opts.Location = time.Local
+	}
+	// That many calendar days back in the day folders' zone.
+	cutoff := opts.Now.In(opts.Location).AddDate(0, 0, -opts.Days)
 	candidates := []candidate{}
 	result := Result{}
 	// pressure is judged per tree, on its own filesystem.
@@ -167,9 +186,11 @@ func Run(opts Options, out io.Writer) (Result, error) {
 		result.Examined += examined
 		result.Skipped += skipped
 		if err != nil {
+			// A root that cannot be read fails the tree, as a removal
+			// fails; an absent one is not walked, without a line.
 			if !os.IsNotExist(err) {
-				report(out, opts, "skipped", f("kind", "tree"), f("path", t.root), f("error", err))
-				result.Skipped++
+				report(out, opts, "failed", f("kind", "tree"), f("path", t.root), f("error", err))
+				result.Failed++
 			}
 			continue
 		}
@@ -224,10 +245,11 @@ func Run(opts Options, out io.Writer) (Result, error) {
 }
 
 // sweepDayFolders removes the day folders of one tree that are empty and
-// older than the retention age by the date in their name: a folder
-// made by the first activity of its day and left standing after its jobs
-// or transcripts went. The day's own folder and any younger one are never
-// touched, so a claim that has just made today's folder keeps it; the
+// whose whole day, by the date in their name read in opts.Location, ended
+// before the cutoff: a folder made by the first activity of its day and
+// left standing after its jobs or transcripts went. With the retention age
+// at one day or more, today's and yesterday's folders are never touched,
+// so a claim that has just made today's folder keeps it; the
 // removal is the plain rmdir ReleaseJobID uses, which refuses a folder
 // that gained an entry in the meantime, so there is no check-then-remove
 // race; the ownership rule applies as for a job. An empty folder
@@ -238,8 +260,9 @@ func sweepDayFolders(root string, cutoff time.Time, opts Options, out io.Writer,
 		return
 	}
 	for _, e := range entries {
-		day, ok := osutil.DayFolderDate(e.Name())
-		if !ok || !e.IsDir() || !day.Before(cutoff) {
+		day, ok := osutil.DayFolderDate(e.Name(), opts.Location)
+		// The day ends at the next midnight in its zone.
+		if !ok || !e.IsDir() || !day.AddDate(0, 0, 1).Before(cutoff) {
 			continue
 		}
 		path := filepath.Join(root, e.Name())
@@ -326,6 +349,18 @@ func ageString(d time.Duration) string {
 	return fmt.Sprintf("%dm", int(d.Minutes()))
 }
 
+// passBy counts an entry below a tree's root that cannot be read and
+// reports it as a skipped line with its error; the walk goes on past it. An
+// entry gone in the meantime (another run removed it) is passed by without
+// a line.
+func passBy(opts Options, out io.Writer, kind, path string, err error, skipped *int) {
+	if os.IsNotExist(err) {
+		return
+	}
+	*skipped++
+	report(out, opts, "skipped", f("kind", kind), f("path", path), f("error", err))
+}
+
 // owner is the uid of a file's owner, -1 when the platform does not say.
 func owner(fi os.FileInfo) int {
 	if st, ok := fi.Sys().(*syscall.Stat_t); ok {
@@ -339,13 +374,18 @@ func owner(fi os.FileInfo) int {
 // no final status or that has none (a job the daemon's death cut short),
 // when its day is older than the retention age, nothing in it is newer
 // than the cutoff, and its snapshot, if any, is not live. An orphan goes
-// under the age rule only.
+// under the age rule only. The error is the root's alone; a folder below it
+// that cannot be read is passed by.
 func activityCandidates(root string, cutoff time.Time, opts Options, out io.Writer) ([]candidate, int, int, error) {
 	found := []candidate{}
 	examined, skipped := 0, 0
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			return err
+			if path == root {
+				return err
+			}
+			passBy(opts, out, "activity", path, err, &skipped)
+			return filepath.SkipDir
 		}
 		if !d.IsDir() || path == root {
 			return nil
@@ -390,7 +430,7 @@ func activityCandidates(root string, cutoff time.Time, opts Options, out io.Writ
 			// An orphan: a job folder directly under a day folder whose
 			// summary names no final status, or with none. Its day is the
 			// folder's name; its time the newest thing in it.
-			day, _ := osutil.DayFolderDate(filepath.Base(filepath.Dir(path)))
+			day, _ := osutil.DayFolderDate(filepath.Base(filepath.Dir(path)), opts.Location)
 			newest := newestTime(path)
 			switch {
 			case !day.Before(cutoff) || !newest.Before(cutoff):
@@ -404,7 +444,8 @@ func activityCandidates(root string, cutoff time.Time, opts Options, out io.Writ
 			}
 			fi, e := os.Stat(path)
 			if e != nil {
-				return e
+				passBy(opts, out, "orphan", path, e, &skipped)
+				return filepath.SkipDir
 			}
 			found = append(found, candidate{path: path, mod: newest, size: dirSize(path), kind: "orphan", old: true, uid: owner(fi), ageOnly: true})
 			return filepath.SkipDir
@@ -414,7 +455,8 @@ func activityCandidates(root string, cutoff time.Time, opts Options, out io.Writ
 		}
 		fi, e := os.Stat(path)
 		if e != nil {
-			return e
+			passBy(opts, out, "activity", path, e, &skipped)
+			return filepath.SkipDir
 		}
 		if when.IsZero() {
 			when = fi.ModTime()
@@ -429,7 +471,8 @@ func activityCandidates(root string, cutoff time.Time, opts Options, out io.Writ
 // transcriptCandidates finds ended login sessions below the YYMMDD day
 // folders of the transcript tree: a metadata file with
 // its end record and the transcript sharing its name, the candidate's path
-// and pair.
+// and pair. The error is the root's alone; a day folder or an entry that
+// cannot be read is passed by.
 func transcriptCandidates(root string, cutoff time.Time, opts Options, out io.Writer) ([]candidate, int, int, error) {
 	days, err := os.ReadDir(root)
 	if err != nil {
@@ -445,7 +488,8 @@ func transcriptCandidates(root string, cutoff time.Time, opts Options, out io.Wr
 		}
 		entries, err := os.ReadDir(filepath.Join(root, day.Name()))
 		if err != nil {
-			return nil, examined, skipped, err
+			passBy(opts, out, "transcript", filepath.Join(root, day.Name()), err, &skipped)
+			continue
 		}
 		for _, e := range entries {
 			if e.IsDir() || !strings.Contains(e.Name(), ".meta.") {
@@ -461,7 +505,8 @@ func transcriptCandidates(root string, cutoff time.Time, opts Options, out io.Wr
 			when, ok := transcript.EndedAt(meta)
 			fi, err := e.Info()
 			if err != nil {
-				return nil, examined, skipped, err
+				passBy(opts, out, "transcript", meta, err, &skipped)
+				continue
 			}
 			if !ok {
 				when = fi.ModTime()
@@ -484,7 +529,8 @@ func transcriptCandidates(root string, cutoff time.Time, opts Options, out io.Wr
 // scoreboard directory, and the non-terminal ones last updated
 // before the cutoff, which no live job holds:
 // the file of a job the daemon's death cut short says running until the
-// directory clears at a reboot. Those go under the age rule only.
+// directory clears at a reboot. Those go under the age rule only. The error
+// is the root's alone.
 func scoreboardCandidates(root string, cutoff time.Time, opts Options, out io.Writer) ([]candidate, int, int, error) {
 	entries, err := os.ReadDir(root)
 	if err != nil {
@@ -512,7 +558,8 @@ func scoreboardCandidates(root string, cutoff time.Time, opts Options, out io.Wr
 		}
 		fi, er := e.Info()
 		if er != nil {
-			return nil, examined, skipped, er
+			passBy(opts, out, "scoreboard", path, er, &skipped)
+			continue
 		}
 		when := s.LastUpdatedAt
 		if when.IsZero() {

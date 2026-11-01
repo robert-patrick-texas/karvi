@@ -82,10 +82,14 @@ func run(t *testing.T, opts Options) ([]string, Result) {
 	return runAs(t, opts, os.Getuid(), true)
 }
 
-// runAs prunes as uid (0 is root's run), dry or for real.
+// runAs prunes as uid (0 is root's run), dry or for real; the day folders
+// are read in UTC, the test clock's zone, unless opts names another.
 func runAs(t *testing.T, opts Options, uid int, dry bool) ([]string, Result) {
 	t.Helper()
 	opts.Now = now
+	if opts.Location == nil {
+		opts.Location = time.UTC
+	}
 	opts.UID = uid
 	opts.DryRun = dry
 	var out bytes.Buffer
@@ -618,5 +622,206 @@ func TestSiteRoots(t *testing.T) {
 	}
 	if strings.Join(walks, "\n") != strings.Join(want, "\n") {
 		t.Fatalf("walks:\n%s\nwant:\n%s", strings.Join(walks, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+// unreadable makes path mode 000 until the test ends; a root's run reads it
+// all the same, so the test is skipped as root.
+func unreadable(t *testing.T, path string) {
+	t.Helper()
+	if os.Geteuid() == 0 {
+		t.Skip("root reads a folder of mode 000")
+	}
+	if err := os.Chmod(path, 0); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(path, 0o750) })
+}
+
+// TestLongRetentionKeepsYoungWork covers the cutoff at the longest
+// retention ages: it lies that many calendar days back, never wrapping into
+// the future, so a job that ended an hour ago, a running job's folder, and
+// its live snapshot stay.
+func TestLongRetentionKeepsYoungWork(t *testing.T) {
+	base := t.TempDir()
+	score := filepath.Join(base, "score")
+	jobs := filepath.Join(base, "jobs")
+	young := writeJob(t, jobs, "260926", "260926-150000-00", "complete", now.Add(-time.Hour))
+	running := filepath.Join(jobs, "260926", "260926-150001-00")
+	if err := os.MkdirAll(running, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	snapshot := writeScoreboard(t, score, "260926-150001-00", "running", now.Add(-time.Minute))
+	for _, days := range []int{999, 106752, 999999} {
+		lines, res := run(t, Options{PrivateRoots: []string{base}, ScoreboardRoot: score, Days: days})
+		for _, p := range []string{young, running, snapshot} {
+			if has(lines, p) {
+				t.Errorf("--days %d: %s is a candidate:\n%s", days, p, strings.Join(lines, "\n"))
+			}
+		}
+		if res.Removed != 0 {
+			t.Errorf("--days %d: %+v", days, res)
+		}
+	}
+}
+
+// TestUnreadableRootFailsTheTree covers a tree that cannot be walked: a
+// root that cannot be read is a failed line and a count, so the exit says
+// the tree is not as the policy wants it; a root that is absent is passed by
+// without a line.
+func TestUnreadableRootFailsTheTree(t *testing.T) {
+	base := t.TempDir()
+	old := time.Date(2026, 8, 17, 15, 38, 59, 0, time.UTC)
+	jobs := filepath.Join(base, "jobs")
+	if err := os.MkdirAll(jobs, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	meta := writeTranscript(t, filepath.Join(base, "transcripts"), "260817", "fake-iosxe-153900", old)
+	unreadable(t, jobs)
+	lines, res := run(t, Options{PrivateRoots: []string{base}})
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "failed kind=tree path="+jobs+" error=") || res.Failed != 1 || res.Skipped != 0 {
+		t.Fatalf("the unreadable root: %+v\n%s", res, joined)
+	}
+	// The other tree is walked all the same.
+	if !has(lines, meta) {
+		t.Fatalf("the transcript tree was not walked:\n%s", joined)
+	}
+}
+
+// TestUnreadableFolderIsPassedBy covers a folder below a root that cannot
+// be read: a day folder or a job folder of the job tree, a day folder of
+// the transcript tree. Each is a skipped line with its error and a count,
+// and the walk goes on, so the tree's other old items go, and the day
+// folders they leave empty (two here).
+func TestUnreadableFolderIsPassedBy(t *testing.T) {
+	base := t.TempDir()
+	old := time.Date(2026, 8, 17, 15, 38, 59, 0, time.UTC)
+	jobs := filepath.Join(base, "jobs")
+	transcripts := filepath.Join(base, "transcripts")
+	closedDay := filepath.Join(jobs, "260816")
+	closedJob := writeJob(t, jobs, "260817", "260817-153858-00", "complete", old)
+	oldJob := writeJob(t, jobs, "260817", "260817-153859-00", "complete", old)
+	laterJob := writeJob(t, jobs, "260818", "260818-153859-00", "complete", old.Add(24*time.Hour))
+	closedTDay := filepath.Join(transcripts, "260816")
+	oldMeta := writeTranscript(t, transcripts, "260817", "fake-iosxe-153900", old)
+	for _, p := range []string{closedDay, closedTDay} {
+		if err := os.MkdirAll(p, 0o750); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, p := range []string{closedDay, closedJob, closedTDay} {
+		unreadable(t, p)
+	}
+	lines, res := runAs(t, Options{PrivateRoots: []string{base}}, os.Getuid(), false)
+	joined := strings.Join(lines, "\n")
+	for _, want := range []string{
+		"skipped kind=activity path=" + closedDay + " error=",
+		"skipped kind=activity path=" + closedJob + " error=",
+		"skipped kind=transcript path=" + closedTDay + " error=",
+	} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("no line %q in:\n%s", want, joined)
+		}
+	}
+	for _, p := range []string{oldJob, laterJob, oldMeta} {
+		if _, err := os.Stat(p); !os.IsNotExist(err) {
+			t.Errorf("%s stayed:\n%s", p, joined)
+		}
+	}
+	if res.Failed != 0 || res.Skipped != 3 || res.Removed != 5 {
+		t.Errorf("result %+v\n%s", res, joined)
+	}
+}
+
+// TestDayFoldersInTheirZone covers the day folders' zone: a folder's name
+// is a date in opts.Location, and an empty one goes only when the whole day
+// it names ended before the cutoff. At 19:30 in Chicago on 2026-10-31
+// (00:30 UTC the next day) with one day's retention, today's and
+// yesterday's empty folders stay and the one of two days back goes; an
+// orphan in today's folder whose files are older than the cutoff stays,
+// young by its day in the zone.
+func TestDayFoldersInTheirZone(t *testing.T) {
+	chicago, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := t.TempDir()
+	jobs := filepath.Join(base, "jobs")
+	mk := func(p string) string {
+		if err := os.MkdirAll(p, 0o750); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	before := mk(filepath.Join(jobs, "261029"))
+	yesterday := mk(filepath.Join(jobs, "261030"))
+	today := mk(filepath.Join(base, "transcripts", "261031"))
+	orphan := mk(filepath.Join(jobs, "261031", "261031-120000-00"))
+	stale := time.Date(2026, 10, 1, 12, 0, 0, 0, chicago)
+	if err := os.Chtimes(orphan, stale, stale); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	res, err := Run(Options{PrivateRoots: []string{base}, Days: 1, DryRun: true, UID: os.Getuid(), Now: time.Date(2026, 10, 31, 19, 30, 0, 0, chicago), Location: chicago}, &out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	if !has(lines, before) {
+		t.Errorf("the folder of two days back is not a candidate:\n%s", out.String())
+	}
+	for _, p := range []string{yesterday, today, orphan} {
+		if has(lines, p) {
+			t.Errorf("%s is a candidate:\n%s", p, out.String())
+		}
+	}
+	if res.Removed != 1 {
+		t.Errorf("result %+v\n%s", res, out.String())
+	}
+}
+
+// TestSharedScoreboardsJudgedAsSharedTrees covers the shared scoreboards:
+// judged as the shared jobs and transcripts trees are, a folder the
+// operator cannot use or a link is a skipped line with its reason and is
+// passed by, not a failure; the private root's scoreboards are walked, and
+// a private one that cannot be read fails its tree.
+func TestSharedScoreboardsJudgedAsSharedTrees(t *testing.T) {
+	base := t.TempDir()
+	old := time.Date(2026, 8, 17, 15, 38, 59, 0, time.UTC)
+	private := filepath.Join(base, "state", "scoreboards")
+	privateOld := writeScoreboard(t, private, "260817-153859-00", "complete", old)
+	shared := filepath.Join(base, "shared-scoreboards")
+	writeScoreboard(t, shared, "260817-153900-00", "complete", old)
+	unreadable(t, shared)
+	lines, res := run(t, Options{PrivateRoots: []string{base}, ScoreboardRoot: shared, Verbose: true})
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "skipped kind=tree path="+shared+" error=scoreboard_root_invalid: the shared scoreboards tree "+shared+" exists and the operator cannot create files in it") || res.Failed != 0 {
+		t.Fatalf("the shared scoreboards the operator cannot use: %+v\n%s", res, joined)
+	}
+	if strings.Contains(joined, "walk kind=scoreboard path="+shared+"\n") || !has(lines, privateOld) {
+		t.Fatalf("the shared folder was walked, or the private one not:\n%s", joined)
+	}
+
+	link := filepath.Join(base, "linked-scoreboards")
+	if err := os.Symlink(private, link); err != nil {
+		t.Fatal(err)
+	}
+	lines, res = run(t, Options{PrivateRoots: []string{t.TempDir()}, ScoreboardRoot: link})
+	joined = strings.Join(lines, "\n")
+	if !strings.Contains(joined, "skipped kind=tree path="+link+" error=scoreboard_root_invalid: the shared scoreboards tree "+link+" exists and is not a real directory") || has(lines, privateOld) || res.Failed != 0 {
+		t.Fatalf("the shared scoreboards a link: %+v\n%s", res, joined)
+	}
+
+	// An absent shared folder: not walked, no line.
+	lines, res = run(t, Options{PrivateRoots: []string{t.TempDir()}, ScoreboardRoot: filepath.Join(base, "absent")})
+	if len(lines) != 1 || lines[0] != "" || res.Failed != 0 {
+		t.Fatalf("the shared scoreboards absent: %+v\n%s", res, strings.Join(lines, "\n"))
+	}
+
+	unreadable(t, private)
+	lines, res = run(t, Options{PrivateRoots: []string{base}})
+	if !strings.Contains(strings.Join(lines, "\n"), "failed kind=tree path="+private+" error=") || res.Failed != 1 {
+		t.Fatalf("the private scoreboards unreadable: %+v\n%s", res, strings.Join(lines, "\n"))
 	}
 }

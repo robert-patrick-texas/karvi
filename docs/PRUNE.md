@@ -40,7 +40,8 @@ flags, so they make the same decisions.
 ## What goes, and when
 
 Everything below is judged against the retention age, `--days` (31 by
-default), the cutoff being now less that many days.
+default, from one to 999), the cutoff being that many calendar days before
+now.
 
 | Kind | What it is | Goes when | Under pressure |
 |---|---|---|---|
@@ -49,16 +50,25 @@ default), the cutoff being now less that many days.
 | `scoreboard` | a scoreboard file at a final status | `last_updated_at` is before the cutoff | yes |
 | `orphan` | a job folder whose `summary.json` names no final status, or without one: a running job, or one the daemon's death cut short | its day folder's date is before the cutoff, nothing in it is newer, and its scoreboard file, if any, is final or older than the age | never |
 | `stale-scoreboard` | a scoreboard file at a running status that nothing has touched for the age (the file a crashed daemon's job leaves) | `last_updated_at` is before the cutoff | never |
-| `day` | a `YYMMDD` day folder that holds nothing | its date is before the cutoff; removed after the run's other removals, with a plain `rmdir`, so a folder that gained a job in the meantime stays | never |
+| `day` | a `YYMMDD` day folder that holds nothing | the whole day it names ended before the cutoff; removed after the run's other removals, with a plain `rmdir`, so a folder that gained a job in the meantime stays | never |
 
 What never goes: a running job (its folder is younger than the age, or
 its scoreboard file is live), a transcript still being recorded (no end
 record), a folder under a name that is not a `YYMMDD` day folder, a
-symbolic link, a file the helper cannot read, the collection directory
-(`crun`; the latest file per device is not retention), the audit log,
-and anything in journald. Long-term audit retention is journald's and the
-central forwarder's, never this helper's; `karvi-audit` reads it
+symbolic link, a file or folder the helper cannot read, the collection
+directory (`crun`; the latest file per device is not retention), the audit
+log, and anything in journald. Long-term audit retention is journald's and
+the central forwarder's, never this helper's; `karvi-audit` reads it
 ([`docs/OPERATIONS.md` "The audit trail"](OPERATIONS.md#the-audit-trail)).
+
+**The day folders' zone.** A day folder's name is a date in the zone karvi
+named it in. The helper reads no configuration, so it reads the names in
+its own local zone (`TZ`, else the host's), the zone karvi names them in
+under `timezone`'s default, `auto`; a site whose `timezone` names another
+zone sets `TZ` to the same zone on the helper's line. An empty day folder
+goes once the whole day it names, to the next midnight in that zone, ended
+before the cutoff, so with `--days` at one or more today's and yesterday's
+folders stay; an orphan's day folder is read in the same zone.
 
 **Pressure.** `--minfree` (5 by default) is a free-space floor in
 percent. A tree whose filesystem is under the floor gives up its oldest
@@ -80,7 +90,10 @@ timer.
 **Failure is a line, not the end.** A removal that fails (a folder made
 unwritable, a file system gone read-only) is reported as `failed` with
 its reason and the run goes on to the next item; the summary counts it
-and the exit is 1. A tree that cannot be walked is reported the same way.
+and the exit is 1. A tree that cannot be walked, its root unreadable, is
+reported the same way, a `failed` line of `kind=tree`. A folder below a
+root that cannot be read (a colleague's job folder of mode 0700) is a
+`skipped` line with its reason, and the walk goes on past it.
 
 ## Where it looks, in sequence
 
@@ -109,7 +122,9 @@ walked. The defaults, with nothing given:
 
    A shared tree the operator cannot write to is reported as skipped and
    the run goes on. `crun` is never walked.
-3. The shared scoreboards, `--scoreboards`: `/dev/shm/karvi/scoreboards`.
+3. The shared scoreboards, `--scoreboards`: `/dev/shm/karvi/scoreboards`,
+   judged as the shared trees are: a folder the operator cannot write to,
+   or a link, is reported as skipped and the run goes on.
 
 The walk is by kind: the job trees (private, then shared), the transcript
 trees (private, then shared), then the scoreboards (private, then shared).
@@ -158,12 +173,15 @@ its date. Under `--verbose` every examined item that stays has a `kept`
 line with one reason: `young` (within the age), `live` (a running job's
 snapshot, a transcript without its end record, an orphan whose snapshot is
 live), `not-owned`, `not-a-day-folder`, `symlink`,
-`unreadable`; and every place looked at has a `walk` line.
+`unreadable`; and every place looked at has a `walk` line. A `skipped`
+line, with or without `--verbose`, names a shared tree passed by or a
+folder that cannot be read, with the error.
 
 The summary: `examined` records read, `removed` items removed (or that
 would be), `skipped` entries passed by (a name that is not a day folder,
-a live record, a tree not walked), `not_owned` items another user owns,
-`failed` removals that returned an error, `bytes` the size removed.
+a live record, a folder that cannot be read), `not_owned` items another
+user owns, `failed` removals that returned an error and trees that could
+not be walked, `bytes` the size removed.
 
 **`--format jsonl`** writes the same report as one JSON document per line
 for a site's log pipeline: the event word under
@@ -184,8 +202,8 @@ line per item, the summary last, standard error for a usage error alone.
 | Exit | Meaning |
 |---|---|
 | 0 | everything eligible went (or would, under `--dry-run`) |
-| 1 | a removal failed or a tree could not be walked; the report says which |
-| 2 | a usage error: an unknown flag, a positional argument, `--days` below one, `--minfree` outside 0 to 100, `--format` neither `text` nor `jsonl` |
+| 1 | a removal failed or a tree could not be walked (its root unreadable); the report says which |
+| 2 | a usage error: an unknown flag, a positional argument, `--days` outside 1 to 999, `--minfree` outside 0 to 100 or not a number, `--format` neither `text` nor `jsonl` |
 
 ## The flags
 
@@ -199,7 +217,7 @@ karvi-prune [--basedir auto|PATH] [--sharedroot auto|none|PATH] [--scoreboards P
 | `--basedir` | `auto` | the private roots; `auto` is every root of the operator's that exists, or the site's provisioned roots for a root run; a path is that root alone |
 | `--sharedroot` | `auto` | the site's shared root; `auto` consults the two system roots, `none` consults nothing, a path consults that root |
 | `--scoreboards` | `/dev/shm/karvi/scoreboards` | the shared scoreboards, walked beside each private root's `state/scoreboards` (the `scoreboards` key's shared place) |
-| `--days` | `31` | the retention age in days, one or more |
+| `--days` | `31` | the retention age in days, from one to 999 |
 | `--minfree` | `5` | the free-space floor in percent; 0 turns pressure off |
 | `--dry-run` | off | report what would go and remove nothing |
 | `--verbose` | off | add the `walk` and `kept` lines |
