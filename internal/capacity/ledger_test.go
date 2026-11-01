@@ -87,9 +87,9 @@ func TestLedgerModes(t *testing.T) {
 	}
 }
 
-// TestOwnPrivateFilesWidened: a lock file this operator made at 0600 under
-// the shared root (an earlier release, or the umask) is set to the group's
-// mode at its next use.
+// TestOwnPrivateFilesWidened: a lock file this operator owns at 0600 under
+// the shared root (made by hand, say) is set to the group's mode at its next
+// use.
 func TestOwnPrivateFilesWidened(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "cap")
 	if err := os.Mkdir(root, 0o700); err != nil {
@@ -382,19 +382,9 @@ func oddLedger(t *testing.T, path, kind string, data []byte) func() {
 // they were; a FIFO at the server ledger's name makes an explicit root
 // capacity_root_unusable.
 func TestLedgerNotARegularFileIsAnError(t *testing.T) {
-	shared := func(t *testing.T) string {
-		root := filepath.Join(t.TempDir(), "cap")
-		if err := os.Mkdir(root, 0o700); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.Chmod(root, os.ModeSetgid|0o770); err != nil {
-			t.Fatal(err)
-		}
-		return root
-	}
 	for _, kind := range []string{"fifo", "link", "big"} {
 		t.Run(kind, func(t *testing.T) {
-			m, err := New(shared(t), "", "", "job", 4, nil)
+			m, err := New(sharedRoot(t), "", "", "job", 4, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -423,7 +413,7 @@ func TestLedgerNotARegularFileIsAnError(t *testing.T) {
 		})
 	}
 	t.Run("server", func(t *testing.T) {
-		root := shared(t)
+		root := sharedRoot(t)
 		stands := oddLedger(t, filepath.Join(root, "server.json"), "fifo", nil)
 		var err error
 		within(t, "New", func() { _, err = New(root, "", "", "job", 4, nil) })
@@ -432,4 +422,224 @@ func TestLedgerNotARegularFileIsAnError(t *testing.T) {
 		}
 		stands()
 	})
+}
+
+// sharedRoot makes a capacity root as setup shared makes one: setgid,
+// group-writable, no sticky bit, so every member writes in its folders.
+func sharedRoot(t *testing.T) string {
+	t.Helper()
+	root := filepath.Join(t.TempDir(), "cap")
+	if err := os.Mkdir(root, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(root, os.ModeSetgid|0o770); err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
+// plantLink puts at a name a link to a file this operator owns at 0600
+// ("file") or to nothing ("dangling"), as a member could in a shared root,
+// and returns a check that the link stands and its target is as it was:
+// the file at 0600, holding what it held, or still absent.
+func plantLink(t *testing.T, at, kind string) func() {
+	t.Helper()
+	target := filepath.Join(t.TempDir(), "id_ed25519")
+	if kind == "file" {
+		if err := os.WriteFile(target, []byte("secret\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(target, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Symlink(target, at); err != nil {
+		t.Fatal(err)
+	}
+	return func() {
+		t.Helper()
+		if fi, err := os.Lstat(at); err != nil || fi.Mode()&os.ModeSymlink == 0 {
+			t.Errorf("the link: %v %v", fi, err)
+		}
+		fi, err := os.Lstat(target)
+		if kind == "dangling" {
+			if err == nil {
+				t.Errorf("the link's target was made, %v", fi.Mode())
+			} else if !os.IsNotExist(err) {
+				t.Errorf("the link's target: %v", err)
+			}
+			return
+		}
+		if err != nil || fi.Mode() != 0o600 {
+			t.Errorf("the link's target is %v (%v), want -rw-------", fi.Mode(), err)
+		}
+		if b, err := os.ReadFile(target); err != nil || string(b) != "secret\n" {
+			t.Errorf("the link's target holds %q (%v)", b, err)
+		}
+	}
+}
+
+// TestLedgerLockLinkIsRefused: a link at a lock's name in a shared root,
+// to a file this operator owns at 0600 or to nothing, is refused, never
+// opened through: at the server lock an explicit root is
+// capacity_root_unusable, at a device lock the lease and the assessment
+// fail naming the lock, and the link's target keeps its mode, or is not
+// made.
+func TestLedgerLockLinkIsRefused(t *testing.T) {
+	for _, kind := range []string{"file", "dangling"} {
+		t.Run(kind+"/server", func(t *testing.T) {
+			root := sharedRoot(t)
+			lock := filepath.Join(root, "server.lock")
+			stands := plantLink(t, lock, kind)
+			_, err := New(root, "", "", "job", 4, nil)
+			if errorcodes.Of(err) != "capacity_root_unusable" || !strings.Contains(err.Error(), lock) {
+				t.Errorf("New: %v", err)
+			}
+			stands()
+		})
+		t.Run(kind+"/device", func(t *testing.T) {
+			m, err := New(sharedRoot(t), "", "", "job", 4, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			l, err := m.Acquire(context.Background(), "router1", 2)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := l.Release(); err != nil {
+				t.Fatal(err)
+			}
+			lock := l.devicePath + ".lock"
+			if err := os.Remove(lock); err != nil {
+				t.Fatal(err)
+			}
+			stands := plantLink(t, lock, kind)
+			if _, err := m.Acquire(context.Background(), "router1", 2); err == nil || !strings.Contains(err.Error(), lock) {
+				t.Errorf("Acquire: %v", err)
+			}
+			if _, err := m.Assess(map[string]int{"router1": 2}); err == nil || !strings.Contains(err.Error(), lock) {
+				t.Errorf("Assess: %v", err)
+			}
+			stands()
+		})
+	}
+}
+
+// TestLedgerDevicesLinkIsRefused: below a shared root, devices must be a
+// real folder. A link there, to a folder this operator owns or to nothing,
+// and a file there make an explicit root capacity_root_unusable, in New
+// and in Place alike, naming devices; a link put there after New fails the
+// lease. Nothing is made, or set to another mode, where a link points.
+func TestLedgerDevicesLinkIsRefused(t *testing.T) {
+	// elsewhere is a folder of this operator's at 0700, holding nothing,
+	// and a check that it stays so.
+	elsewhere := func(t *testing.T) (string, func()) {
+		t.Helper()
+		dir := filepath.Join(t.TempDir(), "elsewhere")
+		if err := os.Mkdir(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		return dir, func() {
+			t.Helper()
+			fi, err := os.Stat(dir)
+			if err != nil || fi.Mode() != os.ModeDir|0o700 {
+				t.Errorf("the folder the link points to is %v (%v), want drwx------", fi.Mode(), err)
+			}
+			if names, err := os.ReadDir(dir); err != nil || len(names) != 0 {
+				t.Errorf("made where the link points: %v %v", names, err)
+			}
+		}
+	}
+	for _, kind := range []string{"folder", "dangling", "file"} {
+		t.Run(kind, func(t *testing.T) {
+			root := sharedRoot(t)
+			devices := filepath.Join(root, "devices")
+			var stands func()
+			switch kind {
+			case "folder":
+				var dir string
+				dir, stands = elsewhere(t)
+				if err := os.Symlink(dir, devices); err != nil {
+					t.Fatal(err)
+				}
+			case "dangling":
+				absent := filepath.Join(t.TempDir(), "absent")
+				if err := os.Symlink(absent, devices); err != nil {
+					t.Fatal(err)
+				}
+				stands = func() {
+					if _, err := os.Lstat(absent); !os.IsNotExist(err) {
+						t.Errorf("made where the link points: %v", err)
+					}
+				}
+			case "file":
+				if err := os.WriteFile(devices, nil, 0o600); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Chmod(devices, 0o600); err != nil {
+					t.Fatal(err)
+				}
+				stands = func() {
+					if fi, err := os.Lstat(devices); err != nil || fi.Mode() != 0o600 {
+						t.Errorf("the file at devices is %v (%v), want -rw-------", fi.Mode(), err)
+					}
+				}
+			}
+			_, err := New(root, "", "", "job", 4, nil)
+			if errorcodes.Of(err) != "capacity_root_unusable" || !strings.Contains(err.Error(), devices) {
+				t.Errorf("New: %v", err)
+			}
+			if _, err := Place(root, "", ""); errorcodes.Of(err) != "capacity_root_unusable" || !strings.Contains(err.Error(), devices) {
+				t.Errorf("Place: %v", err)
+			}
+			stands()
+		})
+	}
+	t.Run("after New", func(t *testing.T) {
+		root := sharedRoot(t)
+		m, err := New(root, "", "", "job", 4, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		devices := filepath.Join(root, "devices")
+		if err := os.Remove(devices); err != nil {
+			t.Fatal(err)
+		}
+		dir, stands := elsewhere(t)
+		if err := os.Symlink(dir, devices); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := m.Acquire(context.Background(), "router1", 2); err == nil || !strings.Contains(err.Error(), devices) {
+			t.Errorf("Acquire: %v", err)
+		}
+		stands()
+	})
+}
+
+// TestMalformedLedgerNamesItsFile: a ledger that is not JSON fails the
+// lease capacity_ledger_malformed, the message naming the file as it is
+// and leaving the reason to the code's description.
+func TestMalformedLedgerNamesItsFile(t *testing.T) {
+	m, err := New(sharedRoot(t), "", "", "job", 4, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	l, err := m.Acquire(context.Background(), "router1", 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Release(); err != nil {
+		t.Fatal(err)
+	}
+	ledger := l.devicePath + ".json"
+	if err := os.WriteFile(ledger, []byte("{router1\n"), 0o660); err != nil {
+		t.Fatal(err)
+	}
+	_, err = m.Acquire(context.Background(), "router1", 2)
+	if errorcodes.Of(err) != "capacity_ledger_malformed" || !strings.HasPrefix(err.Error(), "capacity_ledger_malformed: "+ledger+": ") {
+		t.Fatalf("Acquire: %v", err)
+	}
 }

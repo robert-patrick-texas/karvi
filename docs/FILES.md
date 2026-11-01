@@ -312,17 +312,20 @@ and renamed over it, so its owner becomes the operator who last wrote it and a
 reader never sees half a file; its group is the directory's. It is read only
 from a regular file, never through a link or from a FIFO, and at most 16 MiB of
 it; anything else under its name is a ledger that cannot be read, an error,
-never an empty ledger. A lease names its job, process, start time, and boot,
-and an entry whose process is gone is dropped at the next change, so a stopped
-job or a reboot leaves no lease. Between runs, with no session active, the
-ledger holds no lasting state; it is never removed while jobs run, since a lock
-file removed mid-run would let two writers race.
+never an empty ledger. A lock is never opened or made through a link, and
+`devices` must be a real folder: a link at either's name is refused, nothing
+made or changed where it points; a link at the ledger's root is the site's and
+is followed. A lease names its job, process, start time, and boot, and an entry
+whose process is gone is dropped at the next change, so a stopped job or a
+reboot leaves no lease. Between runs, with no session active, the ledger holds
+no lasting state; it is never removed while jobs run, since a lock file removed
+mid-run would let two writers race.
 
 The shared modes come from the folder: under a folder with the setgid bit, the
 ledger's files take the folder's permission bits without search (`2770` gives
 `0660`) and its folders the folder's bits with setgid, so every member takes
-and releases leases in files another member made. A file at `0600`, or outside
-the operators' group, in a shared ledger is one an earlier release left: other
+and releases leases in files another member made. A file in a shared ledger
+at `0600`, or outside the operators' group, is not one karvi makes: other
 operators meet `capacity_admission_failed … permission denied` until its
 owner's next run sets it right, or the site resets it.
 

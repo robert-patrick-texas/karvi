@@ -103,7 +103,10 @@ func rootReason(root string) string {
 		return fmt.Sprintf("the sticky bit, owned by uid %d: a ledger another operator wrote could not be replaced", st.Uid)
 	}
 	devices := filepath.Join(root, "devices")
-	if fi, err := os.Stat(devices); err == nil {
+	if fi, err := os.Lstat(devices); err == nil {
+		if fault := notFolder(fi); fault != "" {
+			return devices + " " + fault
+		}
 		// ensureDir sets the operator's own devices folder right.
 		if st, ok := fi.Sys().(*syscall.Stat_t); ok && int(st.Uid) != os.Geteuid() && syscall.Access(devices, 0o3) != nil { // W_OK|X_OK
 			return devices + " not writable by the operator"
@@ -138,7 +141,7 @@ func (m *Manager) ensureRoot() error {
 	}
 	devices := filepath.Join(m.Root, "devices")
 	if err := m.ensureDir(devices); err != nil {
-		return errorcodes.Errorf("capacity_root_unusable", "create %s: %v; %s", devices, err, sharedRootShape)
+		return errorcodes.Errorf("capacity_root_unusable", "%v; %s", err, sharedRootShape)
 	}
 	if err := syscall.Access(devices, 0o3); err != nil { // W_OK|X_OK
 		return errorcodes.Errorf("capacity_root_unusable", "%s: %v; %s", devices, err, sharedRootShape)
@@ -165,34 +168,70 @@ func ledgerModes(root string) (dir, file os.FileMode) {
 	return 0o700, 0o600
 }
 
-// ensureDir makes a directory of the ledger at dirMode, explicitly so the
+// ensureDir makes a folder of the ledger at dirMode, explicitly so the
 // umask cannot narrow it. One that exists is set to dirMode when this
 // operator owns it at other permission bits, as openLock sets a lock file;
-// another member's is left as it is.
+// another member's is left as it is. Every member writes in a shared root,
+// so a folder below it (devices) must be a real one: a link at its name,
+// dangling or not, is refused, as is anything else that is not a folder,
+// and its mode is set through a descriptor opened without following a
+// link. The root is the site's, a link there followed, and its mode set by
+// name.
 func (m *Manager) ensureDir(dir string) error {
 	err := os.Mkdir(dir, m.dirMode.Perm())
-	if err == nil {
-		return os.Chmod(dir, m.dirMode)
-	}
-	if !os.IsExist(err) {
+	if err != nil && !os.IsExist(err) {
 		return err
 	}
-	fi, err := os.Stat(dir)
+	made := err == nil
+	root := filepath.Clean(dir) == filepath.Clean(m.Root)
+	stat := os.Lstat
+	if root {
+		stat = os.Stat
+	}
+	fi, err := stat(dir)
 	if err != nil {
 		return err
 	}
-	if st, ok := fi.Sys().(*syscall.Stat_t); ok && int(st.Uid) == os.Geteuid() && fi.Mode().Perm() != m.dirMode.Perm() {
+	if fault := notFolder(fi); fault != "" {
+		return fmt.Errorf("%s %s", dir, fault)
+	}
+	if !made && !ownedAtOtherMode(fi, m.dirMode) {
+		return nil
+	}
+	if root {
 		return os.Chmod(dir, m.dirMode)
 	}
-	return nil
+	d, err := os.OpenFile(dir, os.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+	if made {
+		return d.Chmod(m.dirMode)
+	}
+	return ownMode(d, m.dirMode)
 }
 
-// openLock opens a ledger's lock file, created at fileMode when missing. A
-// file this operator owns at another mode (made under the umask, or by an
-// earlier release at 0600) is set to fileMode; another member's is
-// left as it is.
+// notFolder is why fi, read without following a link, is not a folder of
+// the ledger, "" when it is one.
+func notFolder(fi os.FileInfo) string {
+	switch {
+	case fi.Mode()&os.ModeSymlink != 0:
+		return "is a link, not a folder"
+	case !fi.IsDir():
+		return "exists and is not a folder"
+	}
+	return ""
+}
+
+// openLock opens a ledger's lock file, created at fileMode when missing,
+// never through a link: every member writes in a shared ledger's folders,
+// so a link at the name, dangling or not, is refused (the open's ELOOP)
+// and nothing is opened or made where it points. A file this operator owns
+// at another mode (made under the umask) is set to fileMode through the
+// descriptor; another member's is left as it is.
 func (m *Manager) openLock(path string) (*os.File, error) {
-	f, err := os.OpenFile(path+".lock", os.O_CREATE|os.O_RDWR, m.fileMode)
+	f, err := os.OpenFile(path+".lock", os.O_CREATE|os.O_RDWR|syscall.O_NOFOLLOW, m.fileMode)
 	if err != nil {
 		return nil, err
 	}
@@ -203,18 +242,26 @@ func (m *Manager) openLock(path string) (*os.File, error) {
 	return f, nil
 }
 
-// ownMode sets mode on f when this process owns it and its permission bits
-// differ.
+// ownMode sets mode on f, through its descriptor, when this process owns
+// it at other permission bits.
 func ownMode(f *os.File, mode os.FileMode) error {
 	fi, err := f.Stat()
 	if err != nil {
 		return err
 	}
-	if st, ok := fi.Sys().(*syscall.Stat_t); ok && int(st.Uid) == os.Geteuid() && fi.Mode().Perm() != mode.Perm() {
+	if ownedAtOtherMode(fi, mode) {
 		return f.Chmod(mode)
 	}
 	return nil
 }
+
+// ownedAtOtherMode is whether this process owns fi and its permission bits
+// differ from mode's.
+func ownedAtOtherMode(fi os.FileInfo, mode os.FileMode) bool {
+	st, ok := fi.Sys().(*syscall.Stat_t)
+	return ok && int(st.Uid) == os.Geteuid() && fi.Mode().Perm() != mode.Perm()
+}
+
 func (m *Manager) Acquire(ctx context.Context, device string, cap int) (*Lease, error) {
 	if cap < 1 {
 		cap = 1
@@ -400,7 +447,9 @@ func (m *Manager) Assess(caps map[string]int) (Assessment, error) {
 	return a, nil
 }
 
-// readLedger counts a ledger's live entries without writing it.
+// readLedger counts a ledger's live entries without writing it; a ledger
+// whose folder is absent has none. A link at the lock's name is openLock's
+// error, never an absent ledger.
 func (m *Manager) readLedger(path string) (int, error) {
 	lock, err := m.openLock(path)
 	if err != nil {
@@ -450,7 +499,7 @@ func loadEntries(path string) ([]entry, error) {
 	}
 	if len(b) > 0 {
 		if err := json.Unmarshal(b, &entries); err != nil {
-			return nil, errorcodes.Errorf("capacity_ledger_malformed", "malformed capacity ledger %s: %w", path, err)
+			return nil, errorcodes.Errorf("capacity_ledger_malformed", "%s: %w", name, err)
 		}
 	}
 	return entries, nil

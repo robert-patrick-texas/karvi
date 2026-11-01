@@ -267,6 +267,19 @@
   as no summary; under a ledger's name it is an error, never an empty
   ledger ([`docs/OPERATIONS.md`](docs/OPERATIONS.md),
   [`docs/FILES.md`](docs/FILES.md)).
+- **Breaking: a link at a capacity ledger's lock or its `devices` folder is
+  refused.** A shared capacity root is every member's to write, with no
+  sticky bit, and karvi opened a ledger's lock and made or set its `devices`
+  folder by name, following a link a member put there: a link to a
+  colleague's private file widened its mode at the colleague's next lease, a
+  dangling one made its target, and a link at `devices` took every lease's
+  files where it pointed. The lock is now opened without following a link,
+  its mode set through the open file, and `devices` must be a real folder: a
+  link at either is refused (`capacity_root_unusable` when the root is
+  prepared, `capacity_admission_failed` at a lease), and nothing is made or
+  changed where it points. A link at the capacity root, or above it, is the
+  site's and is followed. A ledger that does not decode is named with its
+  `.json` (`capacity_ledger_malformed`) ([`docs/FILES.md`](docs/FILES.md)).
 - **A login whose `login.start` cannot be written ends its scoreboard.** The
   snapshot written just before `login.start` stayed `running` when that
   audit write failed; the login now writes its final snapshot, at `error`
