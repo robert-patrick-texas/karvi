@@ -2,8 +2,11 @@ package capacity
 
 import (
 	"context"
+	"fmt"
+	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"testing"
@@ -11,6 +14,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
+	"github.com/robert-patrick-texas/karvi/internal/testdir"
 )
 
 func TestAcquireRelease(t *testing.T) {
@@ -651,5 +655,128 @@ func TestMalformedLedgerNamesItsFile(t *testing.T) {
 	_, err = m.Acquire(context.Background(), "router1", 2)
 	if errorcodes.Of(err) != "capacity_ledger_malformed" || !strings.HasPrefix(err.Error(), "capacity_ledger_malformed: "+ledger+": ") {
 		t.Fatalf("Acquire: %v", err)
+	}
+}
+
+// TestPlaceJudgesTheServerLedgerAsNewDoes: Place and New agree on a root
+// whose server lock or server ledger New cannot open or read: a link at
+// the lock, to a file or to nothing; a lock that is a folder, a socket, or
+// closed to the operator; a ledger that is a link, a FIFO, larger than a
+// ledger may be, or closed to the operator. Under auto Place passes the
+// shared root by, its reason naming what stands there, and takes the
+// private folder New takes; an explicit root is refused
+// capacity_root_unusable, naming it. A FIFO at the lock opens and locks,
+// so both take that root. Place makes nothing in the root.
+func TestPlaceJudgesTheServerLedgerAsNewDoes(t *testing.T) {
+	for _, tc := range []struct {
+		name, file, reason string
+		put                func(t *testing.T, path string) func()
+		closed             bool
+	}{
+		{"lock link to a file", "server.lock", " is a link, not a file", func(t *testing.T, p string) func() { return plantLink(t, p, "file") }, false},
+		{"lock link to nothing", "server.lock", " is a link, not a file", func(t *testing.T, p string) func() { return plantLink(t, p, "dangling") }, false},
+		{"lock a folder", "server.lock", " exists and is not a file", func(t *testing.T, p string) func() {
+			if err := os.Mkdir(p, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			return func() {}
+		}, false},
+		{"lock a socket", "server.lock", " exists and is not a file", func(t *testing.T, p string) func() {
+			l, err := net.Listen("unix", p)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { l.Close() })
+			return func() {}
+		}, false},
+		{"lock closed", "server.lock", " closed to the operator", func(t *testing.T, p string) func() {
+			if err := os.WriteFile(p, nil, 0o400); err != nil {
+				t.Fatal(err)
+			}
+			return func() {}
+		}, true},
+		{"lock a FIFO", "server.lock", "", func(t *testing.T, p string) func() {
+			if err := syscall.Mkfifo(p, 0o660); err != nil {
+				t.Fatal(err)
+			}
+			return func() {}
+		}, false},
+		{"ledger link", "server.json", " is a link, not a file", func(t *testing.T, p string) func() { return oddLedger(t, p, "link", []byte("[]\n")) }, false},
+		{"ledger a FIFO", "server.json", " exists and is not a file", func(t *testing.T, p string) func() { return oddLedger(t, p, "fifo", nil) }, false},
+		{"ledger too large", "server.json", fmt.Sprintf(" is %d bytes, more than the %d allowed", maxLedgerBytes+1, maxLedgerBytes), func(t *testing.T, p string) func() { return oddLedger(t, p, "big", nil) }, false},
+		{"ledger closed", "server.json", " not readable by the operator", func(t *testing.T, p string) func() {
+			if err := os.WriteFile(p, []byte("[]\n"), 0o000); err != nil {
+				t.Fatal(err)
+			}
+			return func() {}
+		}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.closed && os.Geteuid() == 0 {
+				t.Skip("root opens every file")
+			}
+			// A short folder: the socket's path is bounded at 107 bytes.
+			scratch := filepath.Join(testdir.Short(t), "shm")
+			if err := os.Mkdir(scratch, 0o770); err != nil {
+				t.Fatal(err)
+			}
+			base := withScratchRoot(t, scratch)
+			fallback := filepath.Join(base, "state", "capacity")
+			root := filepath.Join(scratch, "capacity")
+			if err := os.Mkdir(root, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Chmod(root, os.ModeSetgid|0o770); err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(root, tc.file)
+			stands := tc.put(t, path)
+			names := func() []string {
+				t.Helper()
+				entries, err := os.ReadDir(root)
+				if err != nil {
+					t.Fatal(err)
+				}
+				out := []string{}
+				for _, e := range entries {
+					out = append(out, e.Name())
+				}
+				return out
+			}
+			before := names()
+			pl, err := Place("auto", "", base)
+			if err != nil {
+				t.Fatalf("Place: %v", err)
+			}
+			if after := names(); !slices.Equal(after, before) {
+				t.Errorf("Place made in the root: %v, was %v", after, before)
+			}
+			var warned []string
+			m, err := New("auto", "", base, "job", 4, func(s string) { warned = append(warned, s) })
+			if err != nil {
+				t.Fatalf("New: %v", err)
+			}
+			explicit, xerr := Place(root, "", base)
+			if tc.reason == "" {
+				if pl.Path != root || len(pl.Passed) != 0 || m.Root != root || len(warned) != 0 || xerr != nil || explicit.Path != root {
+					t.Fatalf("auto: place %+v, New took %s (warnings %q); explicit: place %+v %v", pl, m.Root, warned, explicit, xerr)
+				}
+				return
+			}
+			want := []osutil.Passed{{Path: root, Reason: path + tc.reason}}
+			if pl.Path != fallback || !slices.Equal(pl.Passed, want) {
+				t.Errorf("auto: place %+v\nwant %s passed %+v", pl, fallback, want)
+			}
+			if m.Root != fallback || len(warned) != 1 {
+				t.Errorf("auto: New took %s (warnings %q), want %s", m.Root, warned, fallback)
+			}
+			if refusal := "capacity_root_unusable: " + root + ": " + path + tc.reason; errorcodes.Of(xerr) != "capacity_root_unusable" || errorcodes.Message(xerr) != refusal {
+				t.Errorf("explicit: Place %v\nwant %s", xerr, refusal)
+			}
+			if _, err := New(root, "", base, "job", 4, nil); errorcodes.Of(err) != "capacity_root_unusable" {
+				t.Errorf("explicit: New %v", err)
+			}
+			stands()
+		})
 	}
 }

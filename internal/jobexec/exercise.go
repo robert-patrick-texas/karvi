@@ -2,7 +2,6 @@ package jobexec
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -420,17 +419,15 @@ func NoticeFinding(targetID string, n executionplan.TargetNotice) executionplan.
 }
 
 // exerciseFinding builds a finding from a coded error so the registry's
-// source scan sees the code emitted; the message is the bare text.
+// source scan sees the code emitted; the message is the error's text
+// without its code (errorcodes.Text), which the finding's code field
+// carries.
 func exerciseFinding(stage, severity, targetID string, err error, details map[string]string) executionplan.Finding {
-	message := err.Error()
-	if inner := errors.Unwrap(err); inner != nil {
-		message = inner.Error()
-	}
 	code := errorcodes.Of(err)
 	if code == "" {
 		code = "transport_unavailable"
 	}
-	return executionplan.Finding{Code: code, Severity: severity, Stage: stage, TargetID: targetID, Message: message, Details: details}
+	return executionplan.Finding{Code: code, Severity: severity, Stage: stage, TargetID: targetID, Message: errorcodes.Text(err), Details: details}
 }
 
 func exercisePort(t executionplan.ExecutionTarget) uint16 {

@@ -83,7 +83,8 @@ func Choice(raw, home, base string) (osutil.ScratchFolder, error) {
 
 // Place is New's twin, creating nothing: a present root is judged by the
 // file system's rule and by the ledger's own, the sticky bit on another
-// operator's root and a devices folder closed to the operator.
+// operator's root, a devices folder closed to the operator, and a server
+// lock or server ledger New could not open or read.
 func Place(raw, home, base string) (osutil.Place, error) {
 	f, err := Choice(raw, home, base)
 	if err != nil {
@@ -93,7 +94,10 @@ func Place(raw, home, base string) (osutil.Place, error) {
 }
 
 // rootReason is the ledger's own judgement of a present root, the reason
-// it is passed by in ensureRoot's terms, "" when it passes.
+// it is passed by in ensureRoot's terms, "" when it passes. The server
+// lock and ledger are judged as ensureRoot's read of them would find them
+// (openLock, loadEntries), by Lstat and access(2) alone: nothing is
+// opened or made. A ledger that is not JSON is found only by that read.
 func rootReason(root string) string {
 	fi, err := os.Stat(root)
 	if err != nil {
@@ -110,6 +114,34 @@ func rootReason(root string) string {
 		// ensureDir sets the operator's own devices folder right.
 		if st, ok := fi.Sys().(*syscall.Stat_t); ok && int(st.Uid) != os.Geteuid() && syscall.Access(devices, 0o3) != nil { // W_OK|X_OK
 			return devices + " not writable by the operator"
+		}
+	}
+	// openLock opens the lock for reading and writing, never through a
+	// link; the open fails on a folder (EISDIR) and a socket (ENXIO), and
+	// a FIFO opens and locks.
+	lock := filepath.Join(root, "server.lock")
+	if fi, err := os.Lstat(lock); err == nil {
+		switch {
+		case fi.Mode()&os.ModeSymlink != 0:
+			return lock + " is a link, not a file"
+		case fi.IsDir() || fi.Mode()&os.ModeSocket != 0:
+			return lock + " exists and is not a file"
+		case syscall.Access(lock, 0o6) != nil: // R_OK|W_OK
+			return lock + " closed to the operator"
+		}
+	}
+	// loadEntries reads the ledger by osutil.ReadRegularFile.
+	ledger := filepath.Join(root, "server.json")
+	if fi, err := os.Lstat(ledger); err == nil {
+		switch {
+		case fi.Mode()&os.ModeSymlink != 0:
+			return ledger + " is a link, not a file"
+		case !fi.Mode().IsRegular():
+			return ledger + " exists and is not a file"
+		case fi.Size() > maxLedgerBytes:
+			return fmt.Sprintf("%s is %d bytes, more than the %d allowed", ledger, fi.Size(), maxLedgerBytes)
+		case syscall.Access(ledger, 0o4) != nil: // R_OK
+			return ledger + " not readable by the operator"
 		}
 	}
 	return ""

@@ -317,6 +317,19 @@
   open, lock, or read was reported `capacity_ledger_malformed`, whose cause is a
   ledger that does not decode; it is now `capacity_root_unusable`, and a ledger
   that does not decode keeps its own code.
+- **A `karvi exercise` finding's message is its error's whole text, without its
+  code.** The message was the error's first inner text: a host-key finding
+  dropped the trust store it names (`known_hosts=PATH: …`), and a dispatch or
+  transport-selection finding repeated its code
+  (`transport_mapping_missing: selector "lab" has no …`), as did the job's
+  `exercise_not_ready` line that quotes it. It is now the text after the code,
+  which the finding's `code` field carries.
+- **`config show --explain` judges a capacity root's server ledger as a run
+  does.** A root whose `server.lock` was a link, a folder, or closed to the
+  operator, or whose `server.json` was a link, not a regular file, too large, or
+  unreadable, was shown as the place taken, while a run passed it by for the
+  private fallback (or refused a named root); `--explain` now passes it by, or
+  refuses it, naming the file.
 - **A login whose `login.start` cannot be written ends its scoreboard.** The
   snapshot written just before `login.start` stayed `running` when that
   audit write failed; the login now writes its final snapshot, at `error`
