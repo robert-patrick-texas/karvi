@@ -474,6 +474,7 @@ func encode(p CredentialPackage) (credentials.SecretBytes, []byte, error) {
 				continue
 			}
 			if err := f.src.WithBytes(func(b []byte) error { *f.dst = append([]byte{}, b...); return nil }); err != nil {
+				wg.wipe()
 				return credentials.SecretBytes{}, nil, err
 			}
 		}
@@ -488,22 +489,24 @@ func encode(p CredentialPackage) (credentials.SecretBytes, []byte, error) {
 	return out, data, nil
 }
 
-// decode reverses encode and wipes the decoded shadow.
-func decode(b credentials.SecretBytes) (CredentialPackage, error) {
+// decode reverses encode and wipes the decoded shadow, a malformed body's
+// too: Decode fills the grants it reads before it reports the error. The
+// wiped shadow's grants are returned for the test that proves it.
+func decode(b credentials.SecretBytes) (CredentialPackage, []wireGrant, error) {
 	var w wirePackage
+	defer func() {
+		for i := range w.Grants {
+			w.Grants[i].wipe()
+		}
+	}()
 	err := b.WithBytes(func(data []byte) error {
 		dec := json.NewDecoder(bytes.NewReader(data))
 		dec.DisallowUnknownFields()
 		return dec.Decode(&w)
 	})
 	if err != nil {
-		return CredentialPackage{}, invalid("package_malformed", "%v", err)
+		return CredentialPackage{}, w.Grants, invalid("package_malformed", "%v", err)
 	}
-	defer func() {
-		for i := range w.Grants {
-			w.Grants[i].wipe()
-		}
-	}()
 	p := CredentialPackage{
 		SchemaVersion: w.SchemaVersion, PackageID: w.PackageID, JobID: w.JobID, PlanDigest: w.PlanDigest, Issuer: w.Issuer,
 		Audience: append([]string{}, w.Audience...), Protection: w.Protection, IssuedAt: w.IssuedAt, ExpiresAt: w.ExpiresAt,
@@ -525,5 +528,5 @@ func decode(b credentials.SecretBytes) (CredentialPackage, error) {
 		}
 		p.Grants = append(p.Grants, g)
 	}
-	return p, nil
+	return p, w.Grants, nil
 }

@@ -198,6 +198,9 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	// nor truncates it; -T with -m advanced logs the output's byte counts and
 	// each resize between them.
 	cmd := exec.Command(scriptPath, "-q", "-e", "-f", "-a", "-T", timing.Name(), "-m", "advanced", "-c", strings.Join(commandParts, " "), pair.Transcript)
+	// script(1) and the login it runs inherit the environment whole, not
+	// filtered as ssh's is: the login resolves its credential from it, as an
+	// unrecorded login does.
 	cmd.Env = append(os.Environ(), loginTranscriptChildEnv+"=1", "KARVI_LOGIN_TRANSCRIPT_PATH="+pair.Transcript, app.RecorderSessionIDEnv+"="+sessionID)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = stdin, stdout, stderr
 	if f, ok := stderr.(*os.File); ok {

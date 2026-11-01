@@ -62,6 +62,9 @@ func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) c
 	if err != nil {
 		return unavailable(err)
 	}
+	// connect-timeout bounds the TLS handshake as it bounds the dial, and
+	// then the exchange, from the handshake's end.
+	_ = conn.SetDeadline(time.Now().Add(b.Timeout))
 	if b.TLS {
 		tlsCfg, err := storetls.Config(b.CAFile, b.ClientCertFile, b.ClientKeyFile, b.TLSVerify)
 		if err != nil {
@@ -85,8 +88,18 @@ func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) c
 	_ = conn.SetDeadline(time.Now().Add(b.Timeout))
 	rw := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 	if auth != nil {
+		// Only the server's error reply is a rejection of the login; a
+		// reply that breaks RESP is its own code, a failed connection the
+		// store unavailable.
 		if _, err := command(rw, auth...); err != nil {
-			return credentials.BackendResult{Outcome: credentials.PermissionDenied, ErrorCode: "redis_auth_failed", Message: "Redis authentication failed"}
+			switch code := errorcodes.Of(err); code {
+			case "redis_command_rejected":
+				return credentials.BackendResult{Outcome: credentials.PermissionDenied, ErrorCode: "redis_auth_failed", Message: "Redis authentication failed"}
+			case "":
+				return unavailable(err)
+			default:
+				return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: code, Message: err.Error()}
+			}
 		}
 	}
 	if b.Database != 0 {

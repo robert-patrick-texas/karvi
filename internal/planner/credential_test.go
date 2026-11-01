@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -566,5 +567,63 @@ func TestOperatorKeysBindAndNotify(t *testing.T) {
 	}
 	if _, grant, ok := p.Binding(final.Targets[0].TargetID); !ok || !reflect.DeepEqual(grant.Keys, want) || grant.DeviceUsername != "netops" {
 		t.Fatalf("binding: %+v", grant)
+	}
+}
+
+// heldMaterial is a password whose bytes the test holds, so that its wipe is
+// seen as zeroed bytes.
+type heldMaterial struct{ password []byte }
+
+func (m *heldMaterial) UsernameSet() bool                              { return false }
+func (m *heldMaterial) PasswordSet() bool                              { return true }
+func (m *heldMaterial) EnablePasswordSet() bool                        { return false }
+func (m *heldMaterial) WithUsername(fn func([]byte) error) error       { return fn(nil) }
+func (m *heldMaterial) WithPassword(fn func([]byte) error) error       { return fn(m.password) }
+func (m *heldMaterial) WithEnablePassword(fn func([]byte) error) error { return fn(nil) }
+func (m *heldMaterial) Destroy()                                       { clear(m.password) }
+
+// resolverFunc is a credentialResolver answered by a function.
+type resolverFunc func(context.Context, credentials.Operator, inventory.Device) (credentials.Resolved, error)
+
+func (f resolverFunc) Resolve(ctx context.Context, op credentials.Operator, d inventory.Device) (credentials.Resolved, error) {
+	return f(ctx, op, d)
+}
+
+// TestBindFailureWipesTheLaterTargets: when the first target's credential
+// cannot be bound, the secrets resolved for the targets after it are wiped
+// before Resolve returns.
+func TestBindFailureWipesTheLaterTargets(t *testing.T) {
+	cfg := testConfig(t, `creds.backend-sequence=["fake"]`)
+	devices := []inventory.Device{direct("10.0.0.1"), direct("10.0.0.2"), direct("10.0.0.3")}
+	plan := planFor(t, cfg, devices, nil)
+	p, err := NewCredentialPlanner(cfg, operator, devices, plantest.DraftedAt, CredentialOptions{Resolver: newResolver(t, cfg, &fakeBackend{password: "p"})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer p.Destroy()
+	var mu sync.Mutex
+	held := map[string]*heldMaterial{}
+	p.resolver = resolverFunc(func(_ context.Context, _ credentials.Operator, d inventory.Device) (credentials.Resolved, error) {
+		cred := credentials.Credential{Backend: "fake", Policy: "default", MatchedOn: credentials.Match{Category: "device", Pattern: d.ID}}
+		if d.ID == plan.Targets[0].TargetID {
+			return credentials.Resolved{Credential: cred}, nil
+		}
+		m := &heldMaterial{password: []byte("S3cret-" + d.ID)}
+		mu.Lock()
+		held[d.ID] = m
+		mu.Unlock()
+		cred.Material = m
+		return credentials.Resolved{Credential: cred}, nil
+	})
+	if err := p.Resolve(context.Background(), plan); errorcodes.Of(err) != "credential_material_missing" {
+		t.Fatalf("a credential without material: %v", err)
+	}
+	if len(held) != len(plan.Targets)-1 {
+		t.Fatalf("resolved %d later targets, want %d", len(held), len(plan.Targets)-1)
+	}
+	for id, m := range held {
+		if len(m.password) == 0 || strings.Trim(string(m.password), "\x00") != "" {
+			t.Errorf("%s: the resolved password is not wiped: %q", id, m.password)
+		}
 	}
 }

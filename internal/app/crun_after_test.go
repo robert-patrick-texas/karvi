@@ -113,3 +113,45 @@ func TestCollectionHookEndsItsGroup(t *testing.T) {
 		t.Fatalf("run returned after %s, want the bound and killGrace", wall)
 	}
 }
+
+// TestCollectionHookHoldsNoDeviceCredentials: the hook has the operator's
+// shell environment and the job's variables, without NETUSER, NETPASS, and
+// NETENABLE.
+func TestCollectionHookHoldsNoDeviceCredentials(t *testing.T) {
+	dir := t.TempDir()
+	out := filepath.Join(dir, "hook.env")
+	t.Setenv("HOOK_OUT", out)
+	t.Setenv("GIT_AUTHOR_NAME", "alice")
+	t.Setenv("NETUSER", "jsmith")
+	t.Setenv("NETPASS", "S3cret")
+	t.Setenv("NETENABLE", "en-S3cret")
+	script := filepath.Join(dir, "hook.sh")
+	if err := os.WriteFile(script, []byte("#!/bin/sh\nenv >\"$HOOK_OUT\"\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	h := collectionHook{Path: script, Timeout: 5 * time.Second, JobID: "260926-101515-00", Summary: &records.CollectionSummary{Directory: dir}}
+	var stderr bytes.Buffer
+	if o := h.run(context.Background(), &stderr); o.err != nil {
+		t.Fatalf("the hook: %+v %s", o, stderr.String())
+	}
+	b, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	env := map[string]bool{}
+	for _, line := range strings.Split(string(b), "\n") {
+		env[line] = true
+	}
+	for _, want := range []string{"GIT_AUTHOR_NAME=alice", "HOOK_OUT=" + out, "KARVI_JOB_ID=260926-101515-00"} {
+		if !env[want] {
+			t.Errorf("the hook's environment lacks %s", want)
+		}
+	}
+	for line := range env {
+		for _, name := range []string{"NETUSER", "NETPASS", "NETENABLE"} {
+			if strings.HasPrefix(line, name+"=") {
+				t.Errorf("the hook's environment holds %s", line)
+			}
+		}
+	}
+}

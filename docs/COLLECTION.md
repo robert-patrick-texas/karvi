@@ -518,6 +518,9 @@ reads the replaced files' names on standard input, one per line, sorted
 | `KARVI_CRUN_REPLACE`, `KARVI_CRUN_KEEP` | the counts of the collection line |
 | `KARVI_EXIT` | the run's exit code |
 
+Beside them it has the operator's environment, without `NETUSER`, `NETPASS`,
+and `NETENABLE`.
+
 Its output, both streams, goes to karvi's stderr after the display, so a
 `--format jsonl` stdout stays records. A hook that cannot start, exits
 non-zero, or runs past `crun.after-timeout` (`5m` by default, `1s` to `1h`)

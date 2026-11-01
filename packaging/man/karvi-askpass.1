@@ -33,13 +33,18 @@ and writes the one answer and a newline to standard output, which
 .B ssh
 reads.
 .PP
-The broker classifies the prompt as a username, a password, an enable
-password, or a host\-key question, and answers with the credential field
-karvi resolved for the session, or with
-.B yes
-to the host\-key question, karvi's host\-key policy having decided it
-already.
-Any other prompt is refused.
+The broker classifies the prompt by its own words, the
+.I user@host
+that
+.B ssh
+puts before them aside, as a username or a password prompt, and answers
+with that field of the credential karvi resolved for the session.
+Any other prompt is refused, the host\-key question among them, which
+karvi's host\-key policy never lets
+.B ssh
+ask.
+It never answers with the enable secret, which a command session sends
+to the device itself and a login leaves to the operator.
 .PP
 Run by hand, without the two variables, the helper prints nothing and
 exits 2.
@@ -80,10 +85,9 @@ The broker refuses with
 (a request it cannot decode),
 .B askpass_prompt_unrecognized
 (a prompt it does not classify), and
-.BR askpass_username_unset ,
-.BR askpass_password_unset ,
+.B askpass_username_unset
 or
-.B askpass_enable_password_unset
+.B askpass_password_unset
 (a field the session did not resolve).
 .SH EXIT STATUS
 .TP

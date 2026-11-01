@@ -19,6 +19,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/app"
 	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
+	"github.com/robert-patrick-texas/karvi/internal/credentialbackend"
 	"github.com/robert-patrick-texas/karvi/internal/daemon"
 	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
@@ -552,7 +553,7 @@ func daemonEnvironment(cfg configload.Snapshot) []string {
 // service-unit paths karvi does not launch. The name only, never the
 // value; the daemon does not read them.
 func secretVariableNotice(logger *slog.Logger) {
-	for _, name := range []string{"NETUSER", "NETPASS", "NETENABLE"} {
+	for _, name := range credentialbackend.NetVariables {
 		if _, ok := os.LookupEnv(name); ok {
 			logger.Warn(fmt.Sprintf("daemon_environment_secret_variable: %s is set in the daemon's environment and is not read; start the daemon from a shell without it", name), slog.String("variable", name))
 		}

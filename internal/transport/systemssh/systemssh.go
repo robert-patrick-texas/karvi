@@ -342,7 +342,7 @@ func (d *Driver) Interactive(ctx context.Context, stdin io.Reader, stdout, stder
 	args := d.baseArgs()
 	args = append(args, "-tt", d.req.Address)
 	cmd := exec.CommandContext(ctx, d.binary, args...)
-	material := callbackMaterial{username: d.req.Username, password: d.req.Password, enable: d.req.EnablePassword}
+	material := callbackMaterial{username: d.req.Username, password: d.req.Password}
 	firstContact := d.firstContact()
 	broker, err := askpass.Start(d.f.ScratchDir, material, firstContact)
 	if err != nil {
@@ -517,14 +517,15 @@ func (d *Driver) debugf(format string, args ...any) {
 	}
 }
 
+// callbackMaterial is the askpass broker's material (askpass.Material): the
+// login's username and password.
 type callbackMaterial struct {
-	username         string
-	password, enable func(func([]byte) error) error
+	username string
+	password func(func([]byte) error) error
 }
 
 func (m callbackMaterial) UsernameSet() bool                        { return m.username != "" }
 func (m callbackMaterial) PasswordSet() bool                        { return m.password != nil }
-func (m callbackMaterial) EnablePasswordSet() bool                  { return m.enable != nil }
 func (m callbackMaterial) WithUsername(fn func([]byte) error) error { return fn([]byte(m.username)) }
 func (m callbackMaterial) WithPassword(fn func([]byte) error) error {
 	if m.password == nil {
@@ -532,13 +533,6 @@ func (m callbackMaterial) WithPassword(fn func([]byte) error) error {
 	}
 	return m.password(fn)
 }
-func (m callbackMaterial) WithEnablePassword(fn func([]byte) error) error {
-	if m.enable == nil {
-		return errorcodes.Errorf("secret_enable_password_unset", "enable password unset")
-	}
-	return m.enable(fn)
-}
-func (m callbackMaterial) Destroy() {}
 
 func failed(start time.Time, code, cat string, external bool, err error) platform.Result {
 	return platform.Result{StartedAt: start, EndedAt: time.Now(), ErrorCode: code, ErrorCategory: cat, External: external, Err: err}

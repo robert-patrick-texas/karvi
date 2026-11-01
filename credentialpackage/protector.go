@@ -122,7 +122,7 @@ func (localPeer) Unprotect(_ context.Context, in Protected, audience string) (Cr
 	if !in.Body.IsSet() || in.Body.Len() == 0 {
 		return CredentialPackage{}, invalid("body", "a local-peer package has no body")
 	}
-	pkg, err := decode(in.Body)
+	pkg, _, err := decode(in.Body)
 	if err != nil {
 		return CredentialPackage{}, err
 	}

@@ -68,23 +68,6 @@ func (v *Value) WithBytes(fn func([]byte) error) error {
 	return fn(copyValue)
 }
 
-func (v *Value) Hint() string {
-	v.mu.RLock()
-	defer v.mu.RUnlock()
-	if v.b.destroyed || len(v.b.data) == 0 {
-		return "<unset>"
-	}
-	stars := make([]byte, len(v.b.data))
-	for i := range stars {
-		stars[i] = '*'
-	}
-	tail := v.b.data
-	if len(tail) > 4 {
-		tail = tail[len(tail)-4:]
-	}
-	return string(stars) + string(tail)
-}
-
 func (v *Value) Destroy() {
 	v.mu.Lock()
 	defer v.mu.Unlock()

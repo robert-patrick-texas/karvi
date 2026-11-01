@@ -48,6 +48,33 @@
   transcripts trees are. Day folders are read in the local zone they are named
   in, not as UTC, and an empty one goes only when its whole day ended before
   the cutoff ([`docs/PRUNE.md`](docs/PRUNE.md)).
+- **Breaking: askpass answers the login's username and password alone, and a
+  login resolves no enable secret.** The askpass broker answered an enable
+  password, and its prompt matching read the user and host in OpenSSH's
+  prompt, so a device or user whose name held `enable` drew the enable secret
+  where a password was asked, and one holding `password` drew the password at
+  a keyboard-interactive question. The broker now answers the username and the
+  password, judging a prompt's own words without its `user@host` part, and
+  refuses every other question, the host-key one included
+  (`askpass_prompt_unrecognized`); `askpass_enable_password_unset` is retired
+  for `privilege_failed`, a command session sending the enable secret in-band
+  as before. `karvi login`, whose operator types `enable` at the device, asks
+  for no enable secret, reads no `NETENABLE`, and refuses no credential
+  without one.
+- **Device credentials stay where they are needed.** The `crun.after` hook has
+  the operator's shell environment without `NETUSER`, `NETPASS`, and
+  `NETENABLE` ([`docs/COLLECTION.md` section
+  5](docs/COLLECTION.md#5-the-commit-and-the-diff-mail-the-hook)); a
+  credential plan that fails to bind a target wipes the secrets of the targets
+  after it; a credential package that fails to decode wipes what it decoded;
+  and `secrets.Value.Hint`, which showed a short secret's last bytes and had no
+  caller, is gone.
+- **The Redis credential backend's handshake is bounded, and its refusals say
+  why.** A TLS handshake to a store that accepts and never answers waited for
+  ever; it now ends at the backend's connect timeout (`redis_unavailable`).
+  Only a reply refusing `AUTH` is `redis_auth_failed`; a closed connection or a
+  timeout is `redis_unavailable`, and a reply that is not Redis's
+  `redis_protocol_error`.
 
 ## 0.38.0 - 2026-10-28
 

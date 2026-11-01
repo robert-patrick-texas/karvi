@@ -750,9 +750,12 @@ where a credential came from.
 requires one; `[platform.NAME] requires-enable = true` requires it for that
 platform, read from the platform the device actually runs as. When optional,
 resolution uses a secret if one is resolved, never prompts for one, and never
-fails for its absence; the session's one attempt then decides. *Why:* many
+fails for its absence; the session's one attempt then decides. A login
+resolves none on any platform: it asks for none, refuses no credential
+without one, reads no `NETENABLE`, and drops one a backend holds. *Why:* many
 organisations deliver privilege 15 at login or configure enable without a
-secret.
+secret; a login's operator types `enable` at the device, so nothing of the
+login would send the secret.
 
 **Prompting once per invocation, and a prompt left unanswered ends the
 run.** The client's input provider caches by field: the first target
@@ -2612,10 +2615,14 @@ the file; tolerating the sticky bit.
 executable run once when the summary is written, in the collection directory,
 with the replaced files' names on stdin and the counts in its environment,
 bounded by `crun.after-timeout`; two example hooks ship (a git commit and a
-diff mail). *Why:* the client has the operator's shell environment (git
-identity, mail transport) while the daemon has the user manager's; git and mail
-are a site's choices. *Not taken:* a built-in `crun.git`; the daemon running the
-hook; mail sent by karvi.
+diff mail). The hook has the operator's shell environment without the device
+credentials `NETUSER`, `NETPASS`, and `NETENABLE`. *Why:* the client has the
+operator's shell environment (git identity, mail transport) while the daemon
+has the user manager's; git and mail are a site's choices; a device password
+the hook has no use for would reach every process it starts. *Not taken:* a
+built-in `crun.git`; the daemon running the hook; mail sent by karvi; the
+allow-list filter of ssh and the daemon, which drops the shell environment the
+client runs the hook for.
 
 **A hook's process group is gone when the client returns.** The hook leads a
 process group of its own. At `crun.after-timeout`, or at the invocation's

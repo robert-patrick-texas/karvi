@@ -2,6 +2,7 @@ package credentialpackage
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -128,7 +129,7 @@ func TestEncodeDecodeRoundTripAndWipe(t *testing.T) {
 	if !encoded.IsSet() || encoded.Len() == 0 {
 		t.Fatal("encoded bytes are unset")
 	}
-	back, err := decode(encoded)
+	back, _, err := decode(encoded)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,10 +162,10 @@ func TestEncodeDecodeRoundTripAndWipe(t *testing.T) {
 		t.Errorf("projections differ:\n%s\n%s", bj, pj)
 	}
 	// Unknown fields and garbage are refused with the package code.
-	if _, err := decode(credentials.NewSecretBytes([]byte(`{"schema_version":1,"extra":true}`))); err == nil || !strings.HasPrefix(err.Error(), "credential_package_invalid: rule=package_malformed") {
+	if _, _, err := decode(credentials.NewSecretBytes([]byte(`{"schema_version":1,"extra":true}`))); err == nil || !strings.HasPrefix(err.Error(), "credential_package_invalid: rule=package_malformed") {
 		t.Errorf("unknown field: %v", err)
 	}
-	if _, err := decode(credentials.NewSecretBytes([]byte("not json"))); err == nil {
+	if _, _, err := decode(credentials.NewSecretBytes([]byte("not json"))); err == nil {
 		t.Error("garbage decoded")
 	}
 	// The encoded bytes refuse every sink like any other secret.
@@ -402,5 +403,40 @@ func TestProvidedStageParity(t *testing.T) {
 	}
 	if err := p.Validate(&final, plantest.Header(final, executionplan.Committed), audienceLocal, now); err == nil || !strings.Contains(err.Error(), "rule=plan_digest") {
 		t.Errorf("committed stage: %v", err)
+	}
+}
+
+// TestDecodeWipesAMalformedPackage: a body refused as malformed after its
+// grants' secrets were decoded, by an unknown field or a password that is
+// not base64 in the second grant, leaves every decoded secret zeroed.
+func TestDecodeWipesAMalformedPackage(t *testing.T) {
+	encoded, _, err := encode(fixturePackage("S3cret-a"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var body string
+	_ = encoded.WithBytes(func(b []byte) error { body = string(b); return nil })
+	second := `{"credential_id":"` + plantest.GrantB + `"`
+	if !strings.Contains(body, second) || !strings.Contains(body, `"enable_password":"ZW4="`) {
+		t.Fatalf("the encoded body's second grant:\n%s", body)
+	}
+	for what, malformed := range map[string]string{
+		"an unknown field":      strings.Replace(body, second, `{"extra":true,`+second[1:], 1),
+		"a password not base64": strings.Replace(body, `"enable_password":"ZW4="`, `"enable_password":"!!"`, 1),
+	} {
+		_, shadow, err := decode(credentials.NewSecretBytes([]byte(malformed)))
+		if !strings.HasPrefix(fmt.Sprint(err), "credential_package_invalid: rule=package_malformed") {
+			t.Fatalf("%s: %v", what, err)
+		}
+		if len(shadow) != 2 {
+			t.Fatalf("%s: %d grants decoded, want 2", what, len(shadow))
+		}
+		for i, g := range shadow {
+			for name, b := range map[string][]byte{"username": g.Username, "password": g.Password} {
+				if len(b) == 0 || strings.Trim(string(b), "\x00") != "" {
+					t.Errorf("%s: grant %d %s %q is not wiped", what, i, name, b)
+				}
+			}
+		}
 	}
 }

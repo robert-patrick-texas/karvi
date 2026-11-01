@@ -12,11 +12,11 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 )
@@ -29,7 +29,6 @@ const (
 type request struct {
 	Token  string `json:"token"`
 	Prompt string `json:"prompt"`
-	Kind   string `json:"kind"`
 }
 type response struct {
 	// Secret is encoded as base64 by encoding/json. Keeping it as bytes lets
@@ -37,10 +36,20 @@ type response struct {
 	Secret []byte `json:"secret,omitempty"`
 	Error  string `json:"error,omitempty"`
 }
+
+// Material is what the broker answers from: the login's username and
+// password, the two fields OpenSSH asks for.
+type Material interface {
+	UsernameSet() bool
+	PasswordSet() bool
+	WithUsername(func([]byte) error) error
+	WithPassword(func([]byte) error) error
+}
+
 type Broker struct {
 	socket, token string
 	listener      net.Listener
-	material      credentials.Material
+	material      Material
 	requested     func() // called as a request bearing the token arrives, or nil
 	done          chan struct{}
 	once          sync.Once
@@ -50,7 +59,7 @@ type Broker struct {
 // dir. requested, when not nil, is called when a request bearing the token
 // arrives, before it is answered: OpenSSH asks only once key exchange is
 // done, so a login reads the trust store then (Driver.Interactive).
-func Start(dir string, material credentials.Material, requested func()) (*Broker, error) {
+func Start(dir string, material Material, requested func()) (*Broker, error) {
 	if material == nil {
 		return nil, errorcodes.Errorf("askpass_material_missing", "credential material is nil")
 	}
@@ -122,9 +131,8 @@ func (b *Broker) serve() {
 	if b.requested != nil {
 		b.requested()
 	}
-	kind := classify(req.Prompt, req.Kind)
 	var secret []byte
-	switch kind {
+	switch classify(req.Prompt) {
 	case "username":
 		if !b.material.UsernameSet() {
 			json.NewEncoder(conn).Encode(response{Error: "askpass_username_unset"})
@@ -137,14 +145,6 @@ func (b *Broker) serve() {
 			return
 		}
 		_ = b.material.WithPassword(func(v []byte) error { secret = append(secret, v...); return nil })
-	case "enable_password":
-		if !b.material.EnablePasswordSet() {
-			json.NewEncoder(conn).Encode(response{Error: "askpass_enable_password_unset"})
-			return
-		}
-		_ = b.material.WithEnablePassword(func(v []byte) error { secret = append(secret, v...); return nil })
-	case "host_key":
-		secret = []byte("yes")
 	default:
 		json.NewEncoder(conn).Encode(response{Error: "askpass_prompt_unrecognized"})
 		return
@@ -153,20 +153,25 @@ func (b *Broker) serve() {
 	wipe(secret)
 	secret = nil
 }
-func classify(prompt, kind string) string {
-	if kind != "" && kind != "unknown" {
-		return kind
-	}
-	p := strings.ToLower(prompt)
+
+// openSSHPrefix is the user@host OpenSSH puts before a prompt's own words,
+// the host being the HostKeyAlias: "user@host's " in its password prompt
+// and "(user@host) " before a keyboard-interactive server's prompt. Neither
+// name holds a space; a user may hold an @, a host none.
+var openSSHPrefix = regexp.MustCompile(`^(?:\S*@[^@\s]*'s |\(\S*@[^@\s()]*\) )`)
+
+// classify names the field a prompt's own words ask for, the username or the
+// password, the user@host before them aside; any other prompt is unknown.
+// The enable secret is never a field: a command session sends it in-band,
+// and a login leaves it to the operator. Nor is the host-key question, which
+// karvi's StrictHostKeyChecking settings never let OpenSSH ask.
+func classify(prompt string) string {
+	p := strings.ToLower(openSSHPrefix.ReplaceAllString(prompt, ""))
 	switch {
-	case strings.Contains(p, "enable") && strings.Contains(p, "password"):
-		return "enable_password"
 	case strings.Contains(p, "password") || strings.Contains(p, "passcode"):
 		return "password"
 	case strings.Contains(p, "username") || strings.Contains(p, "login as"):
 		return "username"
-	case strings.Contains(p, "continue connecting") || strings.Contains(p, "authenticity of host"):
-		return "host_key"
 	default:
 		return "unknown"
 	}
@@ -194,7 +199,7 @@ func HelperMain(args []string) int {
 	}
 	defer conn.Close()
 	_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
-	if err := json.NewEncoder(conn).Encode(request{Token: token, Prompt: prompt, Kind: "unknown"}); err != nil {
+	if err := json.NewEncoder(conn).Encode(request{Token: token, Prompt: prompt}); err != nil {
 		return 4
 	}
 	var resp response

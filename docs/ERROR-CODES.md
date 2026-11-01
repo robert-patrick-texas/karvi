@@ -60,7 +60,6 @@ Active failure causes.
 | `address_family_conflict` | usage | 4 | no | `--ipv4` and `--ipv6`, in any spelling or position, are both given. |
 | `address_family_unavailable` | name_resolution | 7 | no | The management address uses an IP family with no usable sockets, or neither IPv4 nor IPv6 is available. |
 | `askpass_auth_failed` | authentication | — | no | An askpass helper presents the wrong one-use token to the broker. |
-| `askpass_enable_password_unset` | authentication | — | no | OpenSSH asks the broker for an enable password that was not resolved. |
 | `askpass_material_missing` | internal | 1 | no | The askpass broker was started without credential material. |
 | `askpass_password_unset` | authentication | — | no | OpenSSH asks the broker for a password that was not resolved. |
 | `askpass_prompt_unrecognized` | authentication | — | no | OpenSSH shows the askpass helper a prompt karvi does not recognize. |
@@ -714,6 +713,7 @@ No longer emitted. A retired code is never reused for another cause.
 | Code | Retired in | Replaced by | Former cause |
 |---|---|---|---|
 | `artifact_directory_create_failed` | v0.11.0 to v0.17.0 | `output_directory_not_writable` | `cmd --no-persist` could not create its scratch artifact directory; `cmd --nof` replaced the option and creates no directory. The one folder a command creates is its job folder. |
+| `askpass_enable_password_unset` | v0.39.0 | `privilege_failed` | The askpass broker was asked for an enable password that was not resolved; the broker answers the login's username and password alone, and a command session sends the enable secret in-band, `privilege_failed` when the credential has none. |
 | `audit_sink_unavailable` | v0.10.0 (catalog name) | `audit_journald_unavailable`, `audit_file_unavailable` | Audit sink unavailable. |
 | `blind_return_multiple_commands` | v0.11.0 to v0.17.0 | `declaration_before_command` | `--blind-return` was the single-command form, refused with several commands (never released); the positional record attaches it to the `--cmd` it follows, and one given before the first `--cmd` is `declaration_before_command`. |
 | `cli_usage` | v0.10.0 | `cli_command_unknown`, `cli_command_ambiguous`, `cli_subcommand_missing`, `cli_subcommand_unknown`, `cli_subcommand_ambiguous`, `cli_option_unknown`, `cli_option_ambiguous`, `cli_option_value_missing`, `cli_option_value_invalid`, `cli_device_missing`, `cli_device_empty`, `cli_command_text_missing`, `cli_command_text_mixed`, `cli_positional_unexpected` | Command-line usage error; never emitted. Split into one code per parser rule. |

@@ -1,8 +1,11 @@
 package redis
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
+	"io"
+	"net"
 	"strings"
 	"testing"
 	"time"
@@ -181,5 +184,76 @@ func TestTLS(t *testing.T) {
 	}
 	if r := resolve(site.CA, true, true); r.Outcome != credentials.Success || chain != 2 {
 		t.Errorf("a client pair: %s %s, chain %d", r.ErrorCode, r.Message, chain)
+	}
+}
+
+// TestTLSHandshakeEndsByTheTimeout: a store that accepts the connection and
+// never answers the ClientHello ends the handshake at connect-timeout, under
+// a context with no deadline, as redis_unavailable.
+func TestTLSHandshakeEndsByTheTimeout(t *testing.T) {
+	s := redistest.Start(t, &redistest.Server{Silent: true}, nil)
+	b := backend(s.Addr)
+	b.TLS, b.Timeout = true, 200*time.Millisecond
+	done := make(chan credentials.BackendResult, 1)
+	go func() { done <- b.Resolve(context.Background(), request(nil)) }()
+	select {
+	case r := <-done:
+		if r.ErrorCode != "redis_unavailable" || !strings.Contains(r.Message, "timeout") {
+			t.Errorf("an unanswered handshake: %s %s", r.ErrorCode, r.Message)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatalf("the handshake was still waiting 10s after a %s connect-timeout", b.Timeout)
+	}
+}
+
+// authStore listens on 127.0.0.1 and answers each connection's first
+// command, the AUTH, with answer; it returns the address.
+func authStore(t *testing.T, answer func(net.Conn)) string {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { ln.Close() })
+	go func() {
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			go func() {
+				defer c.Close()
+				if _, err := readReply(bufio.NewReader(c)); err == nil {
+					answer(c)
+				}
+			}()
+		}
+	}()
+	return ln.Addr().String()
+}
+
+// TestAuthFailureNamesItsCause: only the server's error reply to AUTH is
+// redis_auth_failed; a connection that ends or goes silent under AUTH is
+// redis_unavailable, retryable; a reply that breaks RESP is
+// redis_protocol_error.
+func TestAuthFailureNamesItsCause(t *testing.T) {
+	for _, c := range []struct {
+		what    string
+		answer  func(net.Conn)
+		code    string
+		outcome credentials.Outcome
+		retry   bool
+	}{
+		{"an error reply", func(c net.Conn) { _, _ = io.WriteString(c, "-WRONGPASS invalid username-password pair\r\n") }, "redis_auth_failed", credentials.PermissionDenied, false},
+		{"a closed connection", func(net.Conn) {}, "redis_unavailable", credentials.Unavailable, true},
+		{"no answer", func(c net.Conn) { _, _ = io.Copy(io.Discard, c) }, "redis_unavailable", credentials.Unavailable, true},
+		{"a malformed reply", func(c net.Conn) { _, _ = io.WriteString(c, "+OK\n") }, "redis_protocol_error", credentials.Malformed, false},
+	} {
+		b := backend(authStore(t, c.answer))
+		b.AuthPasswordEnv, b.Timeout = "REDIS_PASS", 200*time.Millisecond
+		r := b.Resolve(context.Background(), request(map[string]string{"REDIS_PASS": "rpass"}))
+		if r.ErrorCode != c.code || r.Outcome != c.outcome || r.Retryable != c.retry {
+			t.Errorf("%s: %s %s retryable %t (%s), want %s %s retryable %t", c.what, r.Outcome, r.ErrorCode, r.Retryable, r.Message, c.outcome, c.code, c.retry)
+		}
 	}
 }

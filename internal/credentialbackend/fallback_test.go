@@ -138,3 +138,46 @@ func TestPlatformFallback(t *testing.T) {
 		t.Fatalf("router keys: %+v %v", got.Credential, err)
 	}
 }
+
+// TestOmitEnableResolvesNoEnableSecret: under OmitEnable, as for a login, a
+// platform with requires-enable neither asks for the enable secret nor
+// refuses a credential without one, NETENABLE is not read, and an enable
+// secret a backend holds is dropped.
+func TestOmitEnableResolvesNoEnableSecret(t *testing.T) {
+	op := credentials.Operator{Username: "jsmith", UID: os.Getuid(), Home: t.TempDir()}
+	router := inventory.Direct("router1", "cisco_ios", "system", 22)
+	resolve := func(t *testing.T, input *scriptedInput, sets ...string) (credentials.Resolved, error) {
+		t.Helper()
+		cfg, err := configload.Load(configload.Options{HomeDir: op.Home, SkipAuto: true, Environment: []string{}, Sets: append([]string{"platform.cisco_ios.requires-enable=true"}, sets...)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		r, err := New(cfg, op, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.SetInput(input)
+		r.OmitEnable()
+		got, err := r.Resolve(context.Background(), op, router)
+		if err == nil {
+			t.Cleanup(got.Credential.Material.Destroy)
+		}
+		return got, err
+	}
+	prompted := &scriptedInput{answers: map[string]string{FieldUsername: "jsmith", FieldPassword: "S3cret", FieldEnablePassword: "en-S3cret"}}
+	if got, err := resolve(t, prompted); err != nil || got.Credential.Material.EnablePasswordSet() || strings.Join(prompted.asked, ",") != "username,password" {
+		t.Errorf("the prompts: asked %v, err %v", prompted.asked, err)
+	}
+	if _, err := resolve(t, &scriptedInput{env: map[string]string{"NETUSER": "jsmith", "NETPASS": "S3cret"}}, "creds.interactive-prompt=false"); err != nil {
+		t.Errorf("no enable secret: %v", err)
+	}
+	for backend, sets := range map[string][]string{
+		"builtin-env-fallback": nil,
+		"e":                    {`credential-backend.e.type="env"`, `credential-backend.e.username-var-template="NETUSER"`, `credential-backend.e.password-var-template="NETPASS"`, `credential-backend.e.enable-var-template="NETENABLE"`, `creds.backend-sequence=["e"]`},
+	} {
+		got, err := resolve(t, &scriptedInput{env: map[string]string{"NETUSER": "jsmith", "NETPASS": "S3cret", "NETENABLE": "en-S3cret"}}, append(sets, "creds.interactive-prompt=false")...)
+		if err != nil || got.Credential.Backend != backend || got.Credential.Material.EnablePasswordSet() {
+			t.Errorf("NETENABLE set, %s: backend %q, enable resolved %t, err %v", backend, got.Credential.Backend, err == nil && got.Credential.Material.EnablePasswordSet(), err)
+		}
+	}
+}

@@ -41,7 +41,7 @@ type CredentialOptions struct {
 type CredentialPlanner struct {
 	cfg       configload.Snapshot
 	operator  credentials.Operator
-	resolver  *credentialbackend.Resolver
+	resolver  credentialResolver
 	devices   map[string]inventory.Device
 	draftedAt time.Time
 	newID     func(time.Time) (string, error)
@@ -59,6 +59,12 @@ type CredentialPlanner struct {
 	// notices are each target's resolution notices (a skipped operator
 	// key), written on the plan target by Bind.
 	notices map[string][]executionplan.TargetNotice
+}
+
+// credentialResolver resolves one target's credential: the configured
+// backend resolver, credentialbackend.Resolver.
+type credentialResolver interface {
+	Resolve(context.Context, credentials.Operator, inventory.Device) (credentials.Resolved, error)
 }
 
 // NewCredentialPlanner prepares the planner for the set's devices. The
@@ -208,6 +214,13 @@ func (p *CredentialPlanner) Resolve(ctx context.Context, plan executionplan.Exec
 		}
 		t := plan.Targets[i]
 		if err := p.bind(t, slots[i].resolved); err != nil {
+			// bind destroyed slot i's material; the later slots' it has not
+			// reached.
+			for j := i + 1; j < len(slots); j++ {
+				if slots[j].active && slots[j].resolved.Credential.Material != nil {
+					slots[j].resolved.Credential.Material.Destroy()
+				}
+			}
 			return err
 		}
 		p.profiles[t.TargetID] = slots[i].profile

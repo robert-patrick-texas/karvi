@@ -783,7 +783,8 @@ network built-ins), karvi asks at the controlling
 terminal for what is missing and needed (`creds.interactive-prompt`,
 `creds.prompt-for-username`, `creds.prompt-for-password`): `Username for
 router1: `, then `Password for router1: `, and the enable secret only where
-the platform requires one. A run of several targets asks once and names
+the platform requires one and never for `login`, whose operator types
+`enable` at the device. A run of several targets asks once and names
 the count (`Password for 3 targets: `); the daemon never asks. The answer
 is edited as a stream line is: Backspace (DEL or Ctrl-H) and the Delete
 key, the arrows, Ctrl-A and Ctrl-E, Ctrl-K, Ctrl-U, and Ctrl-W; a password

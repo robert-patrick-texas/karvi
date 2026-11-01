@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"slices"
 	"sort"
 	"strings"
 	"syscall"
@@ -16,6 +17,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/audit"
 	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
+	"github.com/robert-patrick-texas/karvi/internal/credentialbackend"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/jobexec"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
@@ -112,7 +114,7 @@ func (h collectionHook) run(ctx context.Context, stderr io.Writer) hookOutcome {
 	defer cancel()
 	cmd := exec.CommandContext(tctx, h.Path)
 	cmd.Dir = h.Summary.Directory
-	cmd.Env = append(os.Environ(),
+	cmd.Env = append(hookEnvironment(os.Environ()),
 		"KARVI_JOB_ID="+h.JobID,
 		"KARVI_JOB_DIR="+h.JobDir,
 		"KARVI_CRUN_DIRECTORY="+h.Summary.Directory,
@@ -151,6 +153,20 @@ func (h collectionHook) run(ctx context.Context, stderr io.Writer) hookOutcome {
 		o.err = errorcodes.Errorf("crun_after_failed", "%s could not be started: %v", h.Path, err)
 	}
 	return o
+}
+
+// hookEnvironment is the operator's shell environment, which the hook's git
+// and mail read, without the device credentials NETUSER, NETPASS, and
+// NETENABLE (credentialbackend.NetVariables): the client resolved them, and
+// the hook has no use for them.
+func hookEnvironment(environ []string) []string {
+	out := make([]string, 0, len(environ))
+	for _, entry := range environ {
+		if name, _, _ := strings.Cut(entry, "="); !slices.Contains(credentialbackend.NetVariables[:], name) {
+			out = append(out, entry)
+		}
+	}
+	return out
 }
 
 // endGroup waits for the signalled process group pgid to be gone, sending

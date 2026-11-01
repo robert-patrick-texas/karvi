@@ -87,6 +87,84 @@ func TestBrokerReportsARequest(t *testing.T) {
 	}
 }
 
+// TestBrokerNeverServesTheEnableSecret: OpenSSH's password prompt carries
+// the user and the HostKeyAlias, so "enable" in either is the login's
+// password prompt still; a device's keyboard-interactive prompt naming an
+// enable password never gets the enable secret, which a command session
+// sends in-band.
+func TestBrokerNeverServesTheEnableSecret(t *testing.T) {
+	material := secrets.NewMaterial("jsmith", "login-secret", "enable-secret")
+	defer material.Destroy()
+	for _, prompt := range []string{
+		"jsmith@enable-gw1.example.net's password: ",
+		"svc-enable@router1's password: ",
+		"(jsmith@router1) Enable password: ",
+	} {
+		b, err := Start(testsocket.Dir(t), material, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := ask(t, b, "", prompt)
+		b.Close()
+		if string(got.Secret) != "login-secret" || got.Error != "" {
+			t.Errorf("%q: secret %q error %q, want the login password", prompt, got.Secret, got.Error)
+		}
+	}
+}
+
+// TestBrokerRefusesTheHostKeyQuestion: the broker answers the login's
+// username and password alone; OpenSSH's host-key question, which karvi's
+// StrictHostKeyChecking settings never let it ask, is refused.
+func TestBrokerRefusesTheHostKeyQuestion(t *testing.T) {
+	material := secrets.NewMaterial("jsmith", "login-secret", "")
+	defer material.Destroy()
+	for _, prompt := range []string{
+		"The authenticity of host 'router1 (192.0.2.1)' can't be established.",
+		"Are you sure you want to continue connecting (yes/no/[fingerprint])? ",
+	} {
+		b, err := Start(testsocket.Dir(t), material, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := ask(t, b, "", prompt)
+		b.Close()
+		if len(got.Secret) != 0 || got.Error != "askpass_prompt_unrecognized" {
+			t.Errorf("%q: secret %q error %q, want askpass_prompt_unrecognized", prompt, got.Secret, got.Error)
+		}
+	}
+}
+
+// TestBrokerJudgesThePromptsOwnWords: the user@host OpenSSH puts before a
+// prompt, "user@host's " in its password prompt and "(user@host) " before a
+// keyboard-interactive server's, never decides the field, whatever words the
+// user or the host name holds.
+func TestBrokerJudgesThePromptsOwnWords(t *testing.T) {
+	material := secrets.NewMaterial("jsmith", "login-secret", "")
+	defer material.Destroy()
+	for _, c := range []struct {
+		prompt      string
+		secret, err string
+	}{
+		{"password@router1's password: ", "login-secret", ""},
+		{"jsmith@username-gw1's password: ", "login-secret", ""},
+		{"jsmith@corp@router1's password: ", "login-secret", ""},
+		{"(password@router1) Username: ", "jsmith", ""},
+		{"(jsmith@password-gw1) Token: ", "", "askpass_prompt_unrecognized"},
+		{"(jsmith@username-gw1) Token: ", "", "askpass_prompt_unrecognized"},
+		{"(jsmith@router1) Password: ", "login-secret", ""},
+	} {
+		b, err := Start(testsocket.Dir(t), material, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := ask(t, b, "", c.prompt)
+		b.Close()
+		if string(got.Secret) != c.secret || got.Error != c.err {
+			t.Errorf("%q: secret %q error %q, want %q %q", c.prompt, got.Secret, got.Error, c.secret, c.err)
+		}
+	}
+}
+
 // ask sends one request to b, with b's own token when token is empty, and
 // returns the answer.
 func ask(t *testing.T, b *Broker, token, prompt string) response {

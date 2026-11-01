@@ -62,6 +62,7 @@ const (
 	retiredV0300        = "v0.30.0"
 	retiredV0360        = "v0.36.0"
 	retiredV0370        = "v0.37.0"
+	retiredV0390        = "v0.39.0"
 )
 
 var entries = []Entry{
@@ -267,7 +268,6 @@ var entries = []Entry{
 
 	// Authentication and the askpass broker.
 	failure("askpass_auth_failed", "authentication", none, false, "An askpass helper presents the wrong one-use token to the broker."),
-	failure("askpass_enable_password_unset", "authentication", none, false, "OpenSSH asks the broker for an enable password that was not resolved."),
 	failure("askpass_password_unset", "authentication", none, false, "OpenSSH asks the broker for a password that was not resolved."),
 	failure("askpass_prompt_unrecognized", "authentication", none, false, "OpenSSH shows the askpass helper a prompt karvi does not recognize."),
 	failure("askpass_request_invalid", "authentication", none, false, "An askpass helper sends a request the broker cannot decode."),
@@ -858,4 +858,5 @@ var entries = []Entry{
 	retired("commands_file_repeated", retiredV0360, "`--cf` was given more than once; it now repeats, each file's lines in its place on the line, and a second `--cf -` is `stdin_source_repeated`.", "stdin_source_repeated"),
 	retired("native_transport_unavailable", retiredV0370, "The selected native implementation was not compiled into this executable; the native transport is in every executable, and a slot no longer names an implementation.", "transport_mapping_invalid"),
 	retired("transport_implementation_invalid", retiredV0370, "A transport mapping named an implementation identifier that was not valid; a custom slot now maps only to `exec:PATH`.", "transport_mapping_invalid"),
+	retired("askpass_enable_password_unset", retiredV0390, "The askpass broker was asked for an enable password that was not resolved; the broker answers the login's username and password alone, and a command session sends the enable secret in-band, `privilege_failed` when the credential has none.", "privilege_failed"),
 }

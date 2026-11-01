@@ -74,6 +74,11 @@ func (TTYInput) Prompt(ctx context.Context, req PromptRequest) (string, error) {
 // every prompt, which is the daemon's configuration.
 func (r *Resolver) SetInput(p InputProvider) { r.input = p }
 
+// OmitEnable makes the resolver resolve no enable secret, for a login, whose
+// operator types enable at the device: no platform requires one, NETENABLE
+// is not read, no prompt asks for one, and one a backend holds is dropped.
+func (r *Resolver) OmitEnable() { r.omitEnable = true }
+
 // RegisterBackend adds or replaces a backend adapter under name, for adapters
 // built outside the configuration table and for tests.
 func (r *Resolver) RegisterBackend(name string, b credentialsBackend) { r.backends[name] = b }

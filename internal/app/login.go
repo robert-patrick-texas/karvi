@@ -165,7 +165,10 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 		return failedResult("credential_resolution_failed", err)
 	}
 	credResolver.SetInput(input)
-	d.PlatformUsed = platformUsed // the enable rule reads the platform used
+	// The login sends no enable secret: its operator types enable at the
+	// device.
+	credResolver.OmitEnable()
+	d.PlatformUsed = platformUsed // the fallback reads the platform used
 	resolved, err := credResolver.Resolve(ctx, operator, d)
 	if err != nil {
 		return failedResult("credential_resolution_failed", err)
@@ -229,7 +232,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	}
 	keyStyle := jobexec.DisplayLineStyle(cfg, jobexec.DisplayDestination(streams.Stderr))
 	debug(fmt.Sprintf("login transport opening target=%q address=%s port=%d platform=%q", d.CanonicalName, resolution.SelectedAddress.String(), port, definition.Name))
-	openReq := platform.OpenRequest{Address: resolution.SelectedAddress.String(), Port: port, Username: resolved.DeviceUsername, EnablePassword: func(fn func([]byte) error) error { return resolved.Credential.Material.WithEnablePassword(fn) }, Definition: definition, Timeout: cfg.Duration("ssh.connect-timeout"), Metadata: map[string]string{"canonical_name": d.CanonicalName}}
+	openReq := platform.OpenRequest{Address: resolution.SelectedAddress.String(), Port: port, Username: resolved.DeviceUsername, Definition: definition, Timeout: cfg.Duration("ssh.connect-timeout"), Metadata: map[string]string{"canonical_name": d.CanonicalName}}
 	// The notices are kept for the login's end event; the transport reports
 	// them from its own goroutines (the askpass broker's among them).
 	var keyNotices struct {

@@ -63,7 +63,7 @@ func (b *synchronizedBuffer) String() string {
 // serves its authentication; the caller closes the broker once the first
 // prompt has arrived.
 func (d *Driver) startShell(ctx context.Context) (*processStream, *askpass.Broker, error) {
-	material := callbackMaterial{username: d.req.Username, password: d.req.Password, enable: d.req.EnablePassword}
+	material := callbackMaterial{username: d.req.Username, password: d.req.Password}
 	broker, err := askpass.Start(d.f.ScratchDir, material, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("askpass_start_failed: %w", err)

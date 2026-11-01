@@ -76,6 +76,8 @@ type Resolver struct {
 	// operator name (ask).
 	heldMu sync.Mutex
 	held   map[heldKey]*heldAnswer
+	// omitEnable is OmitEnable's.
+	omitEnable bool
 }
 
 // heldKey names one operator-keyed answer: the backend asked and the
@@ -168,7 +170,7 @@ func (r *Resolver) Resolve(ctx context.Context, operator credentials.Operator, d
 	if err != nil {
 		return credentials.Resolved{}, err
 	}
-	requiredEnable := requiresEnable(device, r.cfg)
+	requiredEnable := !r.omitEnable && requiresEnable(device, r.cfg)
 	// A backend's credential has no key yet (the credential CSV's keyfile
 	// is later work), so it needs a password.
 	requirePassword := true
@@ -220,6 +222,11 @@ func (r *Resolver) Resolve(ctx context.Context, operator credentials.Operator, d
 	return r.fallback(ctx, operator, device, p.Name, requiredEnable)
 }
 
+// NetVariables are the netvars fallback's variables: the username's, the
+// password's, and the enable secret's. The daemon warns of them in its own
+// environment, and the crun.after hook does not get them.
+var NetVariables = [3]string{"NETUSER", "NETPASS", "NETENABLE"}
+
 // fallback walks the platform's fallback in order once the policy's
 // backends have not answered: netvars reads NETUSER, NETPASS, and
 // NETENABLE into the fields it finds empty, and ends the walk when they
@@ -249,14 +256,14 @@ func (r *Resolver) fallback(ctx context.Context, operator credentials.Operator, 
 				continue
 			}
 			found := false
-			for _, v := range []struct {
-				name  string
-				field *string
-			}{{"NETUSER", &username}, {"NETPASS", &password}, {"NETENABLE", &enable}} {
-				if value, ok := r.lookupEnv(v.name); ok {
+			for i, field := range []*string{&username, &password, &enable} {
+				if field == &enable && r.omitEnable {
+					continue
+				}
+				if value, ok := r.lookupEnv(NetVariables[i]); ok {
 					found = true
-					if *v.field == "" {
-						*v.field = value
+					if *field == "" {
+						*field = value
 					}
 				}
 			}
@@ -566,6 +573,9 @@ func (r *Resolver) finalize(c credentials.Credential, backend, policyName string
 	username, password, enable, err := materialStrings(c.Material)
 	if err != nil {
 		return credentials.Resolved{}, err
+	}
+	if r.omitEnable {
+		enable = ""
 	}
 	profile := r.transforms[r.backendProfile[backend]]
 	if backend == "builtin-env-fallback" || backend == "interactive-tty" || backend == operatorkeys.Backend {

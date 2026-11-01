@@ -231,7 +231,7 @@ func (d *Driver) startMaster() (*execMaster, *askpass.Broker, error) {
 	if err != nil {
 		return nil, nil, errorcodes.Errorf("command_session_start_failed", "name the control socket: %v", err)
 	}
-	material := callbackMaterial{username: d.req.Username, password: d.req.Password, enable: d.req.EnablePassword}
+	material := callbackMaterial{username: d.req.Username, password: d.req.Password}
 	broker, err := askpass.Start(d.f.ScratchDir, material, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("askpass_start_failed: %w", err)
