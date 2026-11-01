@@ -1790,8 +1790,9 @@ operator cannot use (closed, or on a filesystem with no free inodes), or one
 missing that the operator cannot make there, is passed by with one warning
 naming it and the private place taken, as `config show --explain` lists it:
 `shared scoreboard directory unavailable`, or `capacity_root_unusable` in
-`shared capacity root unavailable`, whose message names the shape it needs,
-a link in it to remove, or a server ledger that does not decode. A scratch
+`shared capacity root unavailable`, whose message names its cause: the
+shape it needs, a link in it to remove, a server ledger that does not
+decode, no free inodes, or the folder it could not make. A scratch
 root an earlier release left behind (0700, the first operator's) is set
 right by `sudo karvi setup shared`, which reports it `repaired`.
 
