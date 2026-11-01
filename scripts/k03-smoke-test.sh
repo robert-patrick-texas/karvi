@@ -234,10 +234,12 @@ fi
 # the suite's scoreboards are not counted) and names p1's young job as kept,
 # the summary line last on standard output and nothing on standard error,
 # exit 0; a retention age below one is a usage error, exit 2. The helper is
-# the one beside KARVI (a lab's bin, or the release's symlink).
+# the one beside KARVI (a lab's bin, or the release's symlink). Its runs set
+# no free-space floor (--minfree 0), so the host's disk never decides what
+# a dry run names.
 PRUNE=${KARVI_PRUNE:-$(dirname "$KARVI")/karvi-prune}
 R=$TMP/root-a
-rc=0; "$PRUNE" --basedir "$R" --sharedroot none --scoreboards "$TMP/scoreboards" --dry-run --verbose >"$TMP/out" 2>"$TMP/err" || rc=$?
+rc=0; "$PRUNE" --basedir "$R" --sharedroot none --scoreboards "$TMP/scoreboards" --minfree 0 --dry-run --verbose >"$TMP/out" 2>"$TMP/err" || rc=$?
 [ "$rc" -eq 0 ] || fail "p7: exit $rc $(head -1 "$TMP/err")"
 [ ! -s "$TMP/err" ] || fail "p7: standard error holds $(head -1 "$TMP/err")"
 grep -q "^walk kind=activity path=$R/jobs$" "$TMP/out" || fail "p7: the jobs tree is not walked"
@@ -249,7 +251,7 @@ rc=0; "$PRUNE" --basedir "$R" --sharedroot none --days 0 --dry-run >"$TMP/out" 2
 # document, the kept line and the walk line with their fields, the summary
 # the last document with the counts of p7's text line; a format word that is
 # neither text nor jsonl is a usage error, exit 2.
-rc=0; "$PRUNE" --basedir "$R" --sharedroot none --scoreboards "$TMP/scoreboards" --dry-run --verbose --format jsonl >"$TMP/out" 2>"$TMP/err" || rc=$?
+rc=0; "$PRUNE" --basedir "$R" --sharedroot none --scoreboards "$TMP/scoreboards" --minfree 0 --dry-run --verbose --format jsonl >"$TMP/out" 2>"$TMP/err" || rc=$?
 [ "$rc" -eq 0 ] && [ ! -s "$TMP/err" ] || fail "p8: exit $rc $(head -1 "$TMP/err")"
 while IFS= read -r p8_line; do printf '%s\n' "$p8_line" >"$TMP/p8.json"; json_get "$TMP/p8.json" event >/dev/null || fail "p8: not a document: $p8_line"; done <"$TMP/out"
 grep '"event":"kept"' "$TMP/out" | head -1 >"$TMP/p8.json"
