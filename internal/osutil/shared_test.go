@@ -2,6 +2,7 @@ package osutil
 
 import (
 	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"os/user"
@@ -272,5 +273,59 @@ func TestOnlyARegularFileWithinTheLimitIsRead(t *testing.T) {
 	}
 	if _, err := read(filepath.Join(dir, "absent.json")); !errors.Is(err, fs.ErrNotExist) {
 		t.Errorf("an absent file: %v, want fs.ErrNotExist", err)
+	}
+}
+
+// TestOpenRegularFileReadsWhatIsAppendedAfterTheOpen: the descriptor
+// OpenRegularFile gives reads a regular file to its end (io.EOF), then the
+// bytes appended after the open; a FIFO with no writer is ErrNotRegular at
+// once, never waited on.
+func TestOpenRegularFileReadsWhatIsAppendedAfterTheOpen(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "commands.jsonl")
+	if err := os.WriteFile(path, []byte("router1\n"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	f, fi, err := OpenRegularFile(path)
+	if err != nil || fi.Size() != 8 {
+		t.Fatalf("open: %v %v", fi, err)
+	}
+	defer f.Close()
+	if got, err := io.ReadAll(f); err != nil || string(got) != "router1\n" {
+		t.Fatalf("first read: %q %v", got, err)
+	}
+	w, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.WriteString("switch1\n"); err != nil {
+		t.Fatal(err)
+	}
+	w.Close()
+	if got, err := io.ReadAll(f); err != nil || string(got) != "switch1\n" {
+		t.Fatalf("read after the append: %q %v", got, err)
+	}
+	fifo := filepath.Join(dir, "austin-rtr1.jsonl")
+	if err := syscall.Mkfifo(fifo, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		f, _, err := OpenRegularFile(fifo)
+		if f != nil {
+			f.Close()
+		}
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if !errors.Is(err, ErrNotRegular) {
+			t.Fatalf("a FIFO: %v, want ErrNotRegular", err)
+		}
+	case <-time.After(10 * time.Second):
+		if w, err := os.OpenFile(fifo, os.O_WRONLY|syscall.O_NONBLOCK, 0); err == nil {
+			w.Close()
+		}
+		t.Fatal("opening a FIFO still waits after 10s")
 	}
 }

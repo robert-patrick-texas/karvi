@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -222,6 +223,11 @@ func TestFollowLaggedSubscriberResumes(t *testing.T) {
 	if err := os.WriteFile(path, file.Bytes(), 0o640); err != nil {
 		t.Fatal(err)
 	}
+	commands, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer commands.Close()
 	if _, ok := <-s.ch; ok {
 		// Drain: the channel was closed when the queue overflowed.
 		for range s.ch {
@@ -232,12 +238,12 @@ func TestFollowLaggedSubscriberResumes(t *testing.T) {
 		j.mu.Unlock()
 		t.Fatal("the lagged subscriber was not dropped")
 	}
-	j.commands = path
+	j.commands = commands
 	j.mu.Unlock()
 	// The resume from the record before the overflow is served from the
 	// file: sequence 2 onward, each line without its LF.
 	var got []int64
-	err := catchUp(path, 1, int64(total), func(sequence int64, line []byte) bool {
+	err = catchUp(commands, 1, int64(total), func(sequence int64, line []byte) bool {
 		if bytes.HasSuffix(line, []byte("\n")) || !bytes.Contains(line, []byte(`"sequence":`+itoa(int(sequence))+`,`)) {
 			t.Fatalf("sequence %d: line %q", sequence, line)
 		}
@@ -259,7 +265,7 @@ func TestFollowLaggedSubscriberResumes(t *testing.T) {
 func itoa(i int) string { return strconv.Itoa(i) }
 
 // TestFollowJobWithoutFileStartsAtTheEdge:
-// a job that writes no commands.jsonl (open finds none and keeps no path)
+// a job that writes no commands.jsonl (the store hands over no file)
 // gives the follower that started with it every record live; a follower
 // after the edge gets a start whose first_sequence is the edge plus one,
 // no record, and the terminal; a resume from a mid-stream cursor the
@@ -268,15 +274,9 @@ func itoa(i int) string { return strconv.Itoa(i) }
 // daemon writes the file.
 func TestFollowJobWithoutFileStartsAtTheEdge(t *testing.T) {
 	f := newV5Fixture(t)
-	dir := t.TempDir()
 	jobID := mustID(t)
 	j := newJob()
-	if err := j.open(dir, ipc.JobReceipt{JobID: jobID, ArtifactDir: dir}); err != nil || j.commands != "" {
-		t.Fatalf("open on a folder without the file: path %q err %v", j.commands, err)
-	}
-	if err := j.open("", ipc.JobReceipt{JobID: jobID}); err != nil || j.commands != "" {
-		t.Fatalf("open with no folder: path %q err %v", j.commands, err)
-	}
+	j.open(ipc.JobReceipt{JobID: jobID}, nil)
 	f.s.jobTable.add(jobID, j)
 	// A follower subscribed before any record, as the run's own client is.
 	var live followed
@@ -436,9 +436,7 @@ func TestFollowNotKeptSpooledRecord(t *testing.T) {
 	f := newV5Fixture(t)
 	jobID := mustID(t)
 	j := newJob()
-	if err := j.open("", ipc.JobReceipt{JobID: jobID}); err != nil {
-		t.Fatal(err)
-	}
+	j.open(ipc.JobReceipt{JobID: jobID}, nil)
 	f.s.jobTable.add(jobID, j)
 	var live followed
 	var wg sync.WaitGroup
@@ -475,5 +473,182 @@ func TestFollowNotKeptSpooledRecord(t *testing.T) {
 	}
 	if spooled.Notices == nil || len(spooled.Notices) != 0 {
 		t.Fatalf("the executor's record was changed: %+v", spooled.Notices)
+	}
+}
+
+// swapName renames the job's commands.jsonl away, to the returned path,
+// and puts at its name another file, or with fifo a FIFO, which a read
+// still waiting on it is released from at the test's end.
+func swapName(t *testing.T, path string, fifo bool) string {
+	t.Helper()
+	moved := path + ".moved"
+	if err := os.Rename(path, moved); err != nil {
+		t.Fatal(err)
+	}
+	if fifo {
+		if err := syscall.Mkfifo(path, 0o640); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			if w, err := os.OpenFile(path, os.O_WRONLY|syscall.O_NONBLOCK, 0); err == nil {
+				w.Close()
+			}
+		})
+		return moved
+	}
+	if err := os.WriteFile(path, []byte(`{"sequence":1,"record_id":"forged"}`+"\n"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	return moved
+}
+
+// followWithin is one follow from cursor, failing the test when it has not
+// ended within 15 seconds.
+func (f *v5Fixture) followWithin(jobID string, cursor int64) followed {
+	f.t.Helper()
+	done := make(chan followed, 1)
+	go func() { done <- f.follow(jobID, cursor, 1<<20) }()
+	select {
+	case out := <-done:
+		return out
+	case <-time.After(15 * time.Second):
+		f.t.Fatalf("the follow of %s still waits after 15s", jobID)
+	}
+	return followed{}
+}
+
+// TestFollowCatchUpReadsTheFileTheJobWrote: a follower after the job's
+// end is caught up from the commands.jsonl the job wrote, byte for byte,
+// when that file has been renamed away and another file or a FIFO stands
+// at its name: the daemon reads through the descriptor it holds, never
+// opening the name again, and never waits on the FIFO.
+func TestFollowCatchUpReadsTheFileTheJobWrote(t *testing.T) {
+	for _, fifo := range []bool{false, true} {
+		name := map[bool]string{false: "another file", true: "a FIFO"}[fifo]
+		t.Run(name, func(t *testing.T) {
+			f := newV5FixtureWith(t, v5Options{GoFakeDevice: true})
+			jobID := mustID(t)
+			sub := f.prepareAndPackageWith(jobID, []string{"show a", "show b"}, []inventory.Device{direct("127.0.0.1")}, fixedInput{user: "u", pass: "p"})
+			if receipt, err := f.provide(sub); err != nil || !receipt.Accepted {
+				t.Fatalf("frame: %+v %v", receipt, err)
+			}
+			result, err := CommitJob(f.ctx(), f.socket, 1<<20, sub.request)
+			if err != nil {
+				t.Fatal(err)
+			}
+			f.followToEnd(jobID)
+			moved := swapName(t, filepath.Join(result.Receipt.ArtifactDir, "commands.jsonl"), fifo)
+			out := f.followWithin(jobID, 0)
+			if out.err != nil || len(out.records) != 2 {
+				t.Fatalf("follow with %s at the name: err=%v records=%d", name, out.err, len(out.records))
+			}
+			verifyRecords(t, moved, 1, out.records)
+		})
+	}
+}
+
+// TestFollowLiveFeedReadsTheFileTheJobWrites: a follower attached while the
+// job runs is fed each record from the commands.jsonl the job writes when,
+// before the record is written, that file is renamed away and another
+// file stands at its name: the daemon reads the record's line at its
+// offset through the descriptor it holds.
+func TestFollowLiveFeedReadsTheFileTheJobWrites(t *testing.T) {
+	fakeDir := t.TempDir()
+	t.Setenv("KARVI_TEST_FAKE_DIR", fakeDir)
+	t.Setenv("KARVI_TEST_FAKE_HOLD", "2s")
+	for _, m := range []string{"ready-a", "ready-b"} {
+		if err := os.WriteFile(filepath.Join(fakeDir, m), nil, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f := newV5FixtureWith(t, v5Options{GoFakeDevice: true, Sets: []string{
+		`security.child-environment-allowlist=["KARVI_TEST_FAKE_DIR","KARVI_TEST_FAKE_HOLD"]`,
+	}})
+	jobID := mustID(t)
+	sub := f.prepareAndPackageWith(jobID, []string{"show a"}, []inventory.Device{direct("127.0.0.1")}, fixedInput{user: "alice", pass: "pw"})
+	if receipt, err := f.provide(sub); err != nil || !receipt.Accepted {
+		t.Fatalf("frame: %+v %v", receipt, err)
+	}
+	result, err := CommitJob(f.ctx(), f.socket, 1<<20, sub.request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	live := make(chan followed, 1)
+	go func() { live <- f.follow(jobID, 0, 1<<20) }()
+	// The follower is subscribed and the command is held at the device, so
+	// its record is not yet written.
+	j := f.s.jobTable.get(jobID)
+	for deadline := time.Now().Add(10 * time.Second); ; time.Sleep(10 * time.Millisecond) {
+		j.mu.Lock()
+		subscribed := len(j.subscribers) == 1
+		j.mu.Unlock()
+		log, _ := os.ReadFile(filepath.Join(fakeDir, "log"))
+		if subscribed && len(log) > 0 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the follower did not subscribe, or the command never reached the fake device")
+		}
+	}
+	moved := swapName(t, filepath.Join(result.Receipt.ArtifactDir, "commands.jsonl"), false)
+	var out followed
+	select {
+	case out = <-live:
+	case <-time.After(15 * time.Second):
+		t.Fatal("the live follow still waits after 15s")
+	}
+	if out.err != nil || len(out.records) != 1 {
+		t.Fatalf("live follow: err=%v records=%d", out.err, len(out.records))
+	}
+	verifyRecords(t, moved, 1, out.records)
+}
+
+// TestJobFileClosedOnceRetiredAndUnread: a job's file stays open while the
+// job is in the table, and while a follower still reads it after the job
+// has left; it is closed when the job leaves with no follower, or when the
+// last follower ends after the job left. The table retires its oldest job
+// past MaxReceipts.
+func TestJobFileClosedOnceRetiredAndUnread(t *testing.T) {
+	file := func() *os.File {
+		path := filepath.Join(t.TempDir(), "commands.jsonl")
+		if err := os.WriteFile(path, []byte(`{"sequence":1}`+"\n"), 0o640); err != nil {
+			t.Fatal(err)
+		}
+		f, err := os.Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { f.Close() })
+		return f
+	}
+	open := func(f *os.File) bool {
+		_, err := f.ReadAt(make([]byte, 1), 0)
+		return err == nil
+	}
+	var table jobTable
+	table.init()
+	unfollowed, unfollowedFile := newJob(), file()
+	unfollowed.open(ipc.JobReceipt{JobID: "unfollowed"}, unfollowedFile)
+	table.add("unfollowed", unfollowed)
+	followed, followedFile := newJob(), file()
+	followed.open(ipc.JobReceipt{JobID: "followed"}, followedFile)
+	table.add("followed", followed)
+	sub, _ := followed.subscribe()
+	for i := 0; i < MaxReceipts-1; i++ {
+		table.add("other-"+itoa(i), newJob())
+	}
+	if table.get("unfollowed") != nil || open(unfollowedFile) {
+		t.Fatal("the job that left the table with no follower keeps its file open")
+	}
+	if table.get("followed") == nil || !open(followedFile) {
+		t.Fatal("the followed job left the table, or its file closed, before MaxReceipts newer jobs")
+	}
+	table.add("newest", newJob())
+	if table.get("followed") != nil || !open(followedFile) {
+		t.Fatal("the followed job's file closed under its follower")
+	}
+	followed.unsubscribe(sub)
+	if open(followedFile) {
+		t.Fatal("the followed job's file is open after its last follower ended")
 	}
 }

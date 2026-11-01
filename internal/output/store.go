@@ -117,6 +117,10 @@ type Store struct {
 	textBytes      int64 // every output.TARGET.txt; counted with bytes against maxBytes
 	maxBytes       int64
 	stamp          Timestamp // the text files' header time
+	// reader is commands.jsonl opened read-only beside the writer
+	// (CommandsReader); nil when the file is not written, or once handed
+	// over.
+	reader *os.File
 	// err is the first record that could not be appended (Err).
 	err error
 	// broken is the failure of a line that could not be cut back out of its
@@ -257,7 +261,13 @@ func Create(opts Options) (*Store, error) {
 	// A skipped .jsonl file is nil, which appendLine passes by.
 	var err error
 	if !opts.Skip.CommandsJSONL {
-		if s.commands, err = osutil.CreateExclusive(p.CommandsJSONL, os.O_APPEND); err != nil {
+		var w *os.File
+		if w, err = osutil.CreateExclusive(p.CommandsJSONL, os.O_APPEND); err != nil {
+			return nil, err
+		}
+		s.commands = w
+		if s.reader, err = readerOf(p.CommandsJSONL, w); err != nil {
+			w.Close()
 			return nil, err
 		}
 	}
@@ -265,11 +275,50 @@ func Create(opts Options) (*Store, error) {
 		if s.errs, err = osutil.CreateExclusive(p.ErrorsJSONL, os.O_APPEND); err != nil {
 			if s.commands != nil {
 				s.commands.Close()
+				s.reader.Close()
 			}
 			return nil, err
 		}
 	}
 	return s, nil
+}
+
+// openRegular is osutil.OpenRegularFile, which readerOf opens with; a test
+// replaces it.
+var openRegular = osutil.OpenRegularFile
+
+// readerOf opens read-only the file w has just created at path, and
+// requires it to be w's file: the job folder may be the group's to write
+// (output.directory-mode 0770), so another member may have put an entry at
+// the name since. The daemon's followers read commands.jsonl through it
+// (CommandsReader), never looking the name up again.
+func readerOf(path string, w *os.File) (*os.File, error) {
+	r, rfi, err := openRegular(path)
+	if err != nil {
+		return nil, err
+	}
+	wfi, err := w.Stat()
+	if err != nil {
+		r.Close()
+		return nil, err
+	}
+	if !os.SameFile(rfi, wfi) {
+		r.Close()
+		return nil, fmt.Errorf("%s is not the file the store created", path)
+	}
+	return r, nil
+}
+
+// CommandsReader hands over commands.jsonl opened read-only beside the
+// writer at Create, for the daemon's followers: the caller keeps it and
+// closes it, and Close no longer does. Nil when the file is not written,
+// or once handed over.
+func (s *Store) CommandsReader() *os.File {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	r := s.reader
+	s.reader = nil
+	return r
 }
 func (s *Store) Paths() Paths { return s.paths }
 
@@ -696,6 +745,12 @@ func (s *Store) Close() error {
 		if err := f.Close(); err != nil && first == nil {
 			first = err
 		}
+	}
+	if s.reader != nil {
+		if err := s.reader.Close(); err != nil && first == nil {
+			first = err
+		}
+		s.reader = nil
 	}
 	return first
 }

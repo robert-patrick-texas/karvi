@@ -182,26 +182,23 @@ func readSummary(dir string) (records.Summary, error) {
 	return summary, nil
 }
 
-// openChecked opens a job's commands.jsonl without following links and
-// requires a regular file, mode 0640 or stricter, owned by this process's
-// UID or, in the shared jobs tree, standing in its group (group, -1 outside
-// that tree), as a member's job files stand (FILES section 4.3): the
-// directory path's checks before a job is rendered from its folder. A job
-// the caller's daemon holds comes over the socket, and the client opens no
-// file for it.
+// openChecked opens a job's commands.jsonl by osutil.OpenRegularFile,
+// never following a link or waiting on a FIFO, and requires a regular
+// file, mode 0640 or stricter, owned by this process's UID or, in the
+// shared jobs tree, standing in its group (group, -1 outside that tree),
+// as a member's job files stand (FILES section 4.3): the directory path's
+// checks before a job is rendered from its folder. A job the caller's
+// daemon holds comes over the socket, and the client opens no file for it.
 func openChecked(path string, group int) (*os.File, error) {
-	fd, err := syscall.Open(path, syscall.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_CLOEXEC, 0)
-	if err != nil {
+	f, fi, err := osutil.OpenRegularFile(path)
+	switch {
+	case errors.Is(err, osutil.ErrNotRegular):
+		return nil, errorcodes.Errorf("run_output_records_unreadable", "%s is not a regular file", path)
+	case err != nil:
 		return nil, errorcodes.Errorf("run_output_records_unreadable", "open %s: %w", path, err)
 	}
-	f := os.NewFile(uintptr(fd), path)
-	fi, err := f.Stat()
-	if err != nil {
-		f.Close()
-		return nil, errorcodes.Errorf("run_output_records_unreadable", "stat %s: %w", path, err)
-	}
 	st, ok := fi.Sys().(*syscall.Stat_t)
-	if !ok || !fi.Mode().IsRegular() {
+	if !ok {
 		f.Close()
 		return nil, errorcodes.Errorf("run_output_records_unreadable", "%s is not a regular file", path)
 	}

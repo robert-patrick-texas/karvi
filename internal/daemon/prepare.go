@@ -488,7 +488,7 @@ func (s *Server) commitJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 		Plan: cr.Plan, Header: cr.Header, Package: projection, Grants: pkg, Protection: string(projection.Protection), Mode: cr.Mode,
 		Config: cfg, Operator: operator, Quiet: true, Daemon: true, Logger: s.Logger,
 		ActivityType: "run", ActivityID: jobID,
-		OnAccepted: func(dir string, warnings []string) { accepted <- acceptance{dir, warnings} }, OnDurable: j.durable,
+		OnAccepted: func(dir string, f *os.File, w []string) { accepted <- acceptance{dir, f, w} }, OnDurable: j.durable,
 		Preparations: []executionplan.PreparationReport{prepReport},
 		Timing:       exerciseTiming(prepareNS, dnsNS, frameNS, time.Since(commitStart).Nanoseconds()),
 	}
@@ -548,16 +548,7 @@ func (s *Server) commitJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 	if cr.Mode == executionplan.ModeExercise {
 		receipt.ReportPath = filepath.Join(dir, jobexec.ExerciseReportName)
 	}
-	if err := j.open(dir, receipt); err != nil {
-		// The job runs already and would go on where no follow or cancel
-		// reaches it: it is cancelled with the cause, its records
-		// accounting the units it began, and the commit refused.
-		err = errorcodes.Ensure(err, "output_store_create_failed")
-		cancelJob(err)
-		forget()
-		fail("output_store_create_failed", err)
-		return
-	}
+	j.open(receipt, acc.commands)
 	s.jobTable.add(jobID, j)
 	entry.result = ipc.CommitResult{Receipt: receipt}
 	close(entry.done)
@@ -566,9 +557,11 @@ func (s *Server) commitJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 }
 
 // acceptance is what the activity hands over when the job is accepted:
-// its folder and its admission warnings.
+// its folder, its commands.jsonl opened read-only (nil when it writes
+// none), and its admission warnings.
 type acceptance struct {
 	dir      string
+	commands *os.File
 	warnings []string
 }
 

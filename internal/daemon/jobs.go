@@ -4,13 +4,11 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"io/fs"
+	"math"
 	"net"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -27,19 +25,25 @@ import (
 const followWriteTimeout = 30 * time.Second
 
 // job is one accepted job the daemon can be asked to follow: the
-// receipt, the canonical file's path, the durable
+// receipt, the canonical file, the durable
 // edge, the outcome when done, and the live subscribers. It holds no
 // record history; a follower behind the edge is served from the file,
 // which the daemon reads and sends as record frames, so the client never
-// opens it.
+// opens it. The file (commands) is the descriptor the store opened
+// read-only when it created commands.jsonl, nil for a job that writes
+// none: the daemon never opens the file by its name, which another member
+// may reach in a job folder the group can write. It is closed once the job
+// has left the table and no follower reads it.
 type job struct {
 	mu          sync.Mutex
 	receipt     ipc.JobReceipt
-	commands    string
+	commands    *os.File
 	highest     int64 // highest durable sequence
 	outcome     *ipc.ActivityOutcome
 	done        chan struct{}
 	subscribers map[*subscriber]struct{}
+	readers     int  // followers between subscribe and unsubscribe
+	retired     bool // the job has left the table
 
 	// The cancel_job side: the job's own
 	// cancel function and the first request's time, reason, request ID,
@@ -98,30 +102,31 @@ func newJob() *job {
 	return &job{done: make(chan struct{}), subscribers: map[*subscriber]struct{}{}}
 }
 
-// lstat is os.Lstat, which job.open asks of the canonical file; a test
-// replaces it.
-var lstat = os.Lstat
-
-// open records the canonical file the job writes, which the store created
-// before acceptance; a job that writes none (no folder, or
-// output.files.commands-jsonl false for the invocation) has no path, and
-// its followers are served from the edge.
-// Any other failure to see the file is the store's error.
-func (j *job) open(artifactDir string, receipt ipc.JobReceipt) error {
-	path := ""
-	if artifactDir != "" {
-		path = filepath.Join(artifactDir, "commands.jsonl")
-		if _, err := lstat(path); err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				return err
-			}
-			path = ""
-		}
-	}
+// open records the receipt and the canonical file the store handed over
+// at acceptance; a job that writes none (no folder, or
+// output.files.commands-jsonl false for the invocation) has none, and its
+// followers are served from the edge.
+func (j *job) open(receipt ipc.JobReceipt, commands *os.File) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	j.receipt, j.commands = receipt, path
-	return nil
+	j.receipt, j.commands = receipt, commands
+}
+
+// retire is the job leaving the table: its file is closed now, or by the
+// last follower still reading it.
+func (j *job) retire() {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	j.retired = true
+	j.closeUnread()
+}
+
+// closeUnread closes the job's file once the job is retired and no
+// follower reads it; the caller holds j.mu.
+func (j *job) closeUnread() {
+	if j.retired && j.readers == 0 && j.commands != nil {
+		_ = j.commands.Close()
+	}
 }
 
 // durable is the OnDurable hook: advance the edge and hand the record to
@@ -133,7 +138,7 @@ func (j *job) durable(r *records.CommandRecord, n output.Notice) {
 	item := durableRecord{sequence: n.Sequence, offset: n.LineOffset, length: n.LineLength, record: r}
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	if j.commands != "" {
+	if j.commands != nil {
 		// The file has the line: the queue carries the record without its
 		// output, for the copy the frame bound may need.
 		light := *r
@@ -161,12 +166,14 @@ func (j *job) finish(o ipc.ActivityOutcome) {
 
 // subscribe registers a live subscriber and returns the durable edge at
 // that moment, so the catch-up from the file and the live feed meet
-// without a gap or a duplicate.
+// without a gap or a duplicate. The subscriber reads the job's file until
+// it unsubscribes.
 func (j *job) subscribe() (*subscriber, int64) {
 	s := &subscriber{ch: make(chan durableRecord, ipc.FollowQueue)}
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	j.subscribers[s] = struct{}{}
+	j.readers++
 	return s, j.highest
 }
 
@@ -176,6 +183,8 @@ func (j *job) unsubscribe(s *subscriber) {
 	if _, ok := j.subscribers[s]; ok {
 		delete(j.subscribers, s)
 	}
+	j.readers--
+	j.closeUnread()
 }
 
 // validateCursor checks a resume cursor against the edge:
@@ -192,7 +201,8 @@ func (j *job) validateCursor(c int64) error {
 	return nil
 }
 
-// catchUp reads the daemon's own canonical file from its start and gives
+// catchUp reads the daemon's own canonical file, through the job's
+// descriptor, from its start and gives
 // fn each line after sequence after and up to sequence upto, without its
 // LF: the record frames of a follower behind the edge, or
 // resuming. A line's sequence is read from the line's head; the file is
@@ -200,17 +210,13 @@ func (j *job) validateCursor(c int64) error {
 // resume is rare. The lines are those the store wrote, so
 // the frames equal the file and the follower's jsonl equals it too.
 // fn reports whether to go on; false ends the catch-up without error,
-// for a follower that stopped reading.
-func catchUp(path string, after, upto int64, fn func(sequence int64, line []byte) bool) error {
-	if upto <= after || path == "" {
+// for a follower that stopped reading. The file is read at offsets, never
+// moving the descriptor's own, so several followers read it together.
+func catchUp(file *os.File, after, upto int64, fn func(sequence int64, line []byte) bool) error {
+	if upto <= after || file == nil {
 		return nil
 	}
-	f, err := os.Open(path)
-	if err != nil {
-		return errorcodes.Errorf("follow_cursor_stale", "the canonical file cannot be read for sequence %d: %v", after+1, err)
-	}
-	defer f.Close()
-	br := bufio.NewReaderSize(f, 256<<10)
+	br := bufio.NewReaderSize(io.NewSectionReader(file, 0, math.MaxInt64), 256<<10)
 	expect := int64(1)
 	for expect <= upto {
 		line, err := br.ReadBytes('\n')
@@ -292,17 +298,13 @@ func omitted(r *records.CommandRecord, message string, details map[string]any) *
 	return &omitted
 }
 
-// readLineAt reads one record's line from the canonical file at its
+// readLineAt reads one record's line from the canonical file, through the
+// job's descriptor, at its
 // offset: length bytes with the LF, checked to carry the
 // sequence, returned without the LF as the frames want it.
-func readLineAt(path string, sequence, offset, length int64) ([]byte, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, errorcodes.Errorf("follow_cursor_stale", "the canonical file cannot be read for sequence %d: %v", sequence, err)
-	}
-	defer f.Close()
+func readLineAt(file *os.File, sequence, offset, length int64) ([]byte, error) {
 	line := make([]byte, length)
-	if _, err := f.ReadAt(line, offset); err != nil {
+	if _, err := file.ReadAt(line, offset); err != nil {
 		return nil, errorcodes.Errorf("follow_cursor_stale", "the canonical file does not hold sequence %d at offset %d: %v", sequence, offset, err)
 	}
 	var head struct {
@@ -331,15 +333,24 @@ func (t *jobTable) init() {
 	t.entries = map[string]*job{}
 }
 
+// add puts the job in the table; the oldest past MaxReceipts leaves it
+// and is retired, outside the table's lock.
 func (t *jobTable) add(jobID string, j *job) {
+	var gone []*job
 	t.mu.Lock()
-	defer t.mu.Unlock()
 	t.entries[jobID] = j
 	t.order = append(t.order, jobID)
 	for len(t.order) > MaxReceipts {
 		oldest := t.order[0]
 		t.order = t.order[1:]
+		if old := t.entries[oldest]; old != nil {
+			gone = append(gone, old)
+		}
 		delete(t.entries, oldest)
+	}
+	t.mu.Unlock()
+	for _, old := range gone {
+		old.retire()
 	}
 }
 
@@ -378,7 +389,7 @@ func (s *Server) followJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 	defer j.unsubscribe(sub)
 	j.mu.Lock()
 	start := ipc.FollowStart{JobID: fr.JobID, ArtifactDir: j.receipt.ArtifactDir, HighestDurableSequence: highest, ResumeCursor: fr.Cursor, FirstSequence: fr.Cursor + 1, Warnings: j.receipt.Warnings}
-	path := j.commands
+	file := j.commands
 	j.mu.Unlock()
 	// A job without commands.jsonl has no catch-up: the
 	// stream begins after the edge at subscription, and the start says so
@@ -386,7 +397,7 @@ func (s *Server) followJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 	// records before the edge were delivered to the followers that held
 	// them live; a follower dropped for lag or the write timeout resumes
 	// here the same way.
-	if path == "" {
+	if file == nil {
 		start.FirstSequence = highest + 1
 	}
 	write := func(event string, v any) bool {
@@ -411,7 +422,7 @@ func (s *Server) followJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 				s.writeCoded(conn, "follow_cursor_stale", err, req.RequestID)
 				return false
 			}
-			omitted, err := json.Marshal(omitOutput(full, lineLength, s.MaxFrame, path != ""))
+			omitted, err := json.Marshal(omitOutput(full, lineLength, s.MaxFrame, file != nil))
 			if err != nil {
 				s.writeError(conn, "record_encode_failed", err, req.RequestID)
 				return false
@@ -435,7 +446,7 @@ func (s *Server) followJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 		return
 	}
 	sent, gone := start.FirstSequence-1, false
-	err := catchUp(path, fr.Cursor, highest, func(sequence int64, line []byte) bool {
+	err := catchUp(file, fr.Cursor, highest, func(sequence int64, line []byte) bool {
 		// A caught-up line is sent from its bytes; only one over the bound
 		// is decoded, for the copy without its output.
 		load := func() (*records.CommandRecord, error) {
@@ -469,13 +480,13 @@ func (s *Server) followJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 			return true
 		}
 		sent = d.sequence
-		if path != "" {
+		if file != nil {
 			if ipc.RecordFrameSize(req.RequestID, d.sequence, d.length) > s.MaxFrame {
 				// Over the bound: the copy without its output comes from
 				// the queue's record, and the line is not read at all.
 				return writeRecord(d.sequence, d.length, nil, func() (*records.CommandRecord, error) { return d.record, nil })
 			}
-			line, err := readLineAt(path, d.sequence, d.offset, d.length)
+			line, err := readLineAt(file, d.sequence, d.offset, d.length)
 			if err != nil {
 				s.writeCoded(conn, "follow_cursor_stale", err, req.RequestID)
 				return false

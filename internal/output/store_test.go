@@ -7,6 +7,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/ipc"
+	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/platform"
 	"github.com/robert-patrick-texas/karvi/records"
 	"os"
@@ -1022,5 +1023,79 @@ func TestFailedCutRefusesLaterAppends(t *testing.T) {
 		if len(notices) != want {
 			t.Errorf("%s: %d records reached the followers, want %d", name, len(notices), want)
 		}
+	}
+}
+
+// TestCommandsReaderReadsTheFileTheStoreWrote: the store hands over, once,
+// commands.jsonl opened read-only at its creation: it reads the line the
+// store appends after the file was renamed away and another put at its
+// name, and stays open after the store's Close. A store that writes no
+// commands.jsonl hands over none.
+func TestCommandsReaderReadsTheFileTheStoreWrote(t *testing.T) {
+	s, err := Create(Options{Root: t.TempDir(), ID: "id", MaxJobBytes: 1 << 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := s.CommandsReader()
+	if r == nil {
+		t.Fatal("no reader")
+	}
+	defer r.Close()
+	if again := s.CommandsReader(); again != nil {
+		t.Fatal("the reader was handed over twice")
+	}
+	path := s.Paths().CommandsJSONL
+	if err := os.Rename(path, path+".moved"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(`{"sequence":1,"record_id":"forged"}`+"\n"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	rec := appendable("router1", "*10:00\n")
+	n, err := appendRecord(s, &rec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	written, err := os.ReadFile(path + ".moved")
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := make([]byte, n.LineLength)
+	if _, err := r.ReadAt(line, n.LineOffset); err != nil || string(line) != string(written) {
+		t.Fatalf("the reader read %q (%v), want the store's line %q", line, err, written)
+	}
+	skipped, err := Create(Options{Root: t.TempDir(), ID: "id", Skip: FileSet{CommandsJSONL: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := skipped.CommandsReader(); r != nil {
+		t.Fatal("a store without commands.jsonl handed over a reader")
+	}
+	if err := skipped.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestCreateRefusesAnotherFileAtCommandsJSONL: a store whose
+// commands.jsonl is renamed away, and another file put at its name, before
+// the reader is opened beside the writer is refused, the reader never
+// another file than the one the store writes.
+func TestCreateRefusesAnotherFileAtCommandsJSONL(t *testing.T) {
+	openRegular = func(path string) (*os.File, os.FileInfo, error) {
+		if err := os.Rename(path, path+".moved"); err != nil {
+			return nil, nil, err
+		}
+		if err := os.WriteFile(path, nil, 0o640); err != nil {
+			return nil, nil, err
+		}
+		return osutil.OpenRegularFile(path)
+	}
+	t.Cleanup(func() { openRegular = osutil.OpenRegularFile })
+	root := filepath.Join(t.TempDir(), "job")
+	if _, err := Create(Options{Root: root, ID: "id"}); err == nil || err.Error() != filepath.Join(root, "commands.jsonl")+" is not the file the store created" {
+		t.Fatalf("create: %v", err)
 	}
 }

@@ -1944,10 +1944,10 @@ cancelled one at a time. *Not taken:* follow and cancel refused across builds
 **A member follows another member's job from the shared tree.** The follow from
 a folder takes a file another member owns when the output root is the shared
 jobs tree and the file stands in its group, mode 0640 or stricter, a regular
-file opened without following a link; outside that tree, or in another group, it
-is refused `run_output_records_unreadable`, the file's group stacked over the
-tree's. A job's scoreboard is the one sign that it runs: with none
-(`watch.enabled = false`) the follow of a summary not final answers
+file opened without following a link or waiting on a FIFO; outside that tree, or
+in another group, it is refused `run_output_records_unreadable`, the file's
+group stacked over the tree's. A job's scoreboard is the one sign that it runs:
+with none (`watch.enabled = false`) the follow of a summary not final answers
 `job_orphaned` at once. A summary naming no `commands_jsonl` is followed with
 one warning that the job's records are not kept, then the job's end, live or
 finished. *Why:* `job list` shows another member's running jobs, and following

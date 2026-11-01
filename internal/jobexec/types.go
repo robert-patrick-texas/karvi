@@ -8,6 +8,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"os"
 
 	"github.com/robert-patrick-texas/karvi/credentialpackage"
 	"github.com/robert-patrick-texas/karvi/credentials"
@@ -99,8 +100,10 @@ type Request struct {
 	// commit_job at this point, its receipt carrying warnings, the admission
 	// warnings raised before any device was contacted (spool_width_narrowed),
 	// each
-	// "code: message".
-	OnAccepted func(artifactDir string, warnings []string)
+	// "code: message". commands is the job's commands.jsonl opened
+	// read-only when the store created it (output.Store.CommandsReader),
+	// the callee's to keep and close; nil when the job writes none.
+	OnAccepted func(artifactDir string, commands *os.File, warnings []string)
 	// OnDurable receives each record with the store's notice after its
 	// durability barrier; the daemon sends the record to its followers over
 	// the socket.

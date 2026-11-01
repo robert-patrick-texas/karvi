@@ -257,15 +257,22 @@
   file's name it is kept as `live`, as a transcript without its end record
   is ([`docs/PRUNE.md`](docs/PRUNE.md)).
 - **`job list`, `job follow`, and the capacity ledger read a shared file only
-  from a regular file.** They read a job's `summary.json` and a ledger's file
-  by name, so a FIFO a member put there held karvi until a writer came, and a
-  link was read through. Each is now read as karvi-prune reads one: a
-  summary of at most 64 MiB, a ledger of at most 16 MiB, through one
-  descriptor that follows no link and waits on no FIFO. Anything else under
-  a summary's name is a summary that cannot be read (`job list`'s `?` row,
-  `run_output_records_unreadable`), a dangling link included, where it read
-  as no summary; under a ledger's name it is an error, never an empty
-  ledger ([`docs/OPERATIONS.md`](docs/OPERATIONS.md),
+  from a regular file.** They read a job's `summary.json` and a ledger's file by
+  name, so a FIFO a member put there held karvi until a writer came, and a link
+  was read through; `job follow` opened `commands.jsonl` without following a
+  link but waited on a FIFO there. Each is now read as karvi-prune reads one: a
+  summary of at most 64 MiB, a ledger of at most 16 MiB, through one descriptor
+  that follows no link and waits on no FIFO, and `commands.jsonl` opened the
+  same way before its owner and mode are checked. Anything else under a
+  summary's name is a summary that cannot be read (`job list`'s `?` row,
+  `run_output_records_unreadable`), a dangling link included, where it read as
+  no summary; under a ledger's name it is an error, never an empty ledger; under
+  `commands.jsonl`'s, `run_output_records_unreadable`. The daemon reopened its
+  own job's `commands.jsonl` by name for each follower, where a member who can
+  write the job's folder (`output.directory-mode = 0770`) could put another file
+  or a FIFO; it now reads the file the job's store opened beside its writer,
+  held until the job leaves the daemon's table of 1,024 jobs or the daemon stops
+  ([`docs/OPERATIONS.md`](docs/OPERATIONS.md),
   [`docs/FILES.md`](docs/FILES.md)).
 - **Breaking: a link at a capacity ledger's lock or its `devices` folder is
   refused.** A shared capacity root is every member's to write, with no

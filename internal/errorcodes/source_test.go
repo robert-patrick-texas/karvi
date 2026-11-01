@@ -230,6 +230,8 @@ var detailFuncs = map[string]string{
 	"internal/buildinfo/build.go:readBuild":                               "the build ID's reading, reported under build_unreadable",
 	"internal/icmpgate/system.go:Probe":                                   "a pinger that cannot run, reported under icmp_capability_unavailable",
 	"internal/osutil/shared.go:ReadRegularFile":                           "why a file in a shared tree is not read, shown in a scoreboard entry's ? row or under the caller's code (run_output_records_unreadable, capacity_admission_failed, capacity_root_unusable)",
+	"internal/osutil/shared.go:":                                          "ErrNotRegular, OpenRegularFile's refusal of an entry that is not a regular file, shown as ReadRegularFile's are or under run_output_records_unreadable",
+	"internal/output/store.go:readerOf":                                   "another entry at commands.jsonl's name when the store opens its reader, reported under output_store_create_failed",
 	"internal/capacity/ledger.go:ensureDir":                               "why a ledger folder is refused, reported under capacity_root_unusable or capacity_admission_failed",
 	"internal/configload/tomlmini/parser.go:*":                            "TOML syntax diagnostics reported under config_toml_syntax",
 	"internal/configload/include.go:parseDirectiveTarget":                 "include directive syntax reported under config_include_syntax",

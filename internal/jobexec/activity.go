@@ -315,7 +315,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		return FailedResult("audit_write_failed", err)
 	}
 	if req.OnAccepted != nil {
-		req.OnAccepted(artifact, admissionWarnings)
+		req.OnAccepted(artifact, store.CommandsReader(), admissionWarnings)
 	}
 	if req.Mode == executionplan.ModeExercise {
 		// The exercise branch: everything above is

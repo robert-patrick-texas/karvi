@@ -245,26 +245,47 @@ func MakeSharedDirectory(path string, mode os.FileMode) error {
 	return os.Chmod(path, os.ModeSetgid|fi.Mode().Perm())
 }
 
-// ReadRegularFile is the file at path read through one descriptor opened
-// without following a link and without waiting on a FIFO: a regular file
-// of at most limit bytes. Anything else is an error and is not read: a
-// link at the name (the open's ELOOP), a FIFO, a folder, a device, a
-// socket, or a file larger than limit. An absent file is the open's error,
-// fs.ErrNotExist. A shared tree's folders are every member's to write, so
-// any member's entry can stand under a name another reads there.
-func ReadRegularFile(path string, limit int64) ([]byte, error) {
+// ErrNotRegular is OpenRegularFile's refusal of an entry that is not a
+// regular file.
+var ErrNotRegular = errors.New("not a regular file")
+
+// OpenRegularFile opens the regular file at path for reading, with the
+// FileInfo of the open descriptor: opened without following a link and
+// without waiting on a FIFO, then closed and refused unless it is a
+// regular file. A link at the name is the open's ELOOP; a FIFO, a folder,
+// a device, or a socket is ErrNotRegular. An absent file is the open's
+// error, fs.ErrNotExist. A shared tree's folders are every member's to
+// write, so any member's entry can stand under a name another reads there.
+// O_NONBLOCK changes nothing in a regular file's reads: one at the end
+// returns io.EOF, and one after the file grows returns the new bytes.
+func OpenRegularFile(path string) (*os.File, os.FileInfo, error) {
 	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		return nil, nil, err
+	}
+	fi, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return nil, nil, err
+	}
+	if !fi.Mode().IsRegular() {
+		f.Close()
+		return nil, nil, ErrNotRegular
+	}
+	return f, fi, nil
+}
+
+// ReadRegularFile is the file at path read through one descriptor
+// (OpenRegularFile): a regular file of at most limit bytes. Anything else
+// is an error and is not read: a link at the name, a FIFO, a folder, a
+// device, a socket, or a file larger than limit. An absent file is the
+// open's error, fs.ErrNotExist.
+func ReadRegularFile(path string, limit int64) ([]byte, error) {
+	f, fi, err := OpenRegularFile(path)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	fi, err := f.Stat()
-	if err != nil {
-		return nil, err
-	}
-	if !fi.Mode().IsRegular() {
-		return nil, errors.New("not a regular file")
-	}
 	if fi.Size() > limit {
 		return nil, fmt.Errorf("%d bytes, more than the %d allowed", fi.Size(), limit)
 	}
