@@ -14,6 +14,17 @@
   one descriptor opened without following a link, so a file put at its path
   after the digest's pass never reaches `output.TARGET.txt` or a collection
   ([`docs/FILES.md`](docs/FILES.md)).
+- **A record that cannot be written leaves the job output whole.** A record
+  whose line failed partway, or whose write or sync failed, left a torn line
+  in `commands.jsonl` or `errors.jsonl` and offsets past it, took a sequence
+  number, so that a following `job follow` refused the next record
+  (`ipc_result_malformed`), and in a `crun` let the device's partial
+  collection replace its previous file. The failed line is now cut back out of
+  its file, the sequence goes to the next record, a record already in
+  `commands.jsonl` reaches its followers even when its `errors.jsonl` line
+  fails, and the device keeps its previous collection, as a device not reached
+  does; a line that cannot be cut back fails every later record of the job
+  `output_write_failed` ([`docs/COLLECTION.md`](docs/COLLECTION.md)).
 
 ## 0.38.0 - 2026-10-28
 

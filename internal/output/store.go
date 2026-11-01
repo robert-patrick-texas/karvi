@@ -72,9 +72,10 @@ type Options struct {
 	// the effective timezone, the display Formatter's method); nil is
 	// DefaultTimestamp.
 	Timestamp Timestamp
-	// OnDurable receives each record with its notice once its
-	// commands.jsonl line is written, under the store's lock, so that
-	// records leave in sequence: the daemon's followers refuse a stream
+	// OnDurable receives each record with its notice once the record is
+	// durable, its commands.jsonl line written or the file not kept (an
+	// errors.jsonl line that then fails changes nothing), under the store's
+	// lock, so that records leave in sequence: the daemon's followers refuse a stream
 	// whose sequence does not follow (ipc_result_malformed). It must not
 	// block, and it must not keep the record beyond the follower's need:
 	// the daemon sends the record itself over the socket and holds it only
@@ -108,15 +109,19 @@ type Store struct {
 	id             string
 	paths          Paths
 	dirMode        os.FileMode // DirectoryMode, the commands/ folder's
-	commands, errs *os.File
+	commands, errs jsonlFile
 	fsync          bool
-	sequence       int64
+	sequence       int64 // the last durable record's
 	bytes          int64 // commands.jsonl, what Bytes reports
+	errBytes       int64 // errors.jsonl
 	textBytes      int64 // every output.TARGET.txt; counted with bytes against maxBytes
 	maxBytes       int64
 	stamp          Timestamp // the text files' header time
 	// err is the first record that could not be appended (Err).
-	err    error
+	err error
+	// broken is the failure of a line that could not be cut back out of its
+	// file (cutBack): every later append fails with it.
+	broken error
 	failed map[string]bool
 	// texts is each device's output.TARGET.txt: absent until the device's
 	// first record, which creates the file and writes the header; failed
@@ -173,6 +178,15 @@ type collectionFile struct {
 	tmp    string
 	blocks int
 	failed bool
+}
+
+// jsonlFile is a .jsonl file the store appends lines to: the *os.File,
+// or in a test one whose writes fail partway.
+type jsonlFile interface {
+	io.Writer
+	Sync() error
+	Truncate(size int64) error
+	Close() error
 }
 
 type textState int
@@ -240,7 +254,7 @@ func Create(opts Options) (*Store, error) {
 	if err := osutil.EnsureOutputDirectory(opts.Root, mode, "output_directory_not_writable"); err != nil {
 		return nil, err
 	}
-	// A skipped .jsonl file is a nil *os.File, which appendLine passes by.
+	// A skipped .jsonl file is nil, which appendLine passes by.
 	var err error
 	if !opts.Skip.CommandsJSONL {
 		if s.commands, err = osutil.CreateExclusive(p.CommandsJSONL, os.O_APPEND); err != nil {
@@ -385,18 +399,28 @@ func (s *Store) AppendRecord(r *records.CommandRecord, src Source) (Notice, erro
 
 // appendFailed keeps the first record that could not be appended, and lists
 // its device for a rerun. The executor fails the device with the error's
-// code, but a device's result reaches no operator by itself: through
-// v0.12.1 a job that met output.max-job-bytes ended "errored" with the code
-// nowhere. The job reads Err once the
-// devices are done and ends as an output failure.
+// code, but a device's result reaches no operator by itself: the job reads
+// Err once the devices are done and ends as an output failure. In a crun
+// the device is a failure too, and keeps its previous file: its temporary
+// lacks the record's block, and every block after it, since the executor
+// ends the device there.
 func (s *Store) appendFailed(r *records.CommandRecord, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	name := r.Device.CanonicalName
 	if s.err == nil {
-		s.err = fmt.Errorf("%w (device %s, command %q)", err, r.Device.CanonicalName, r.Command)
+		s.err = fmt.Errorf("%w (device %s, command %q)", err, name, r.Command)
 	}
 	if r.CommandKind != "session_init" {
-		s.failed[r.Device.CanonicalName] = true
+		s.failed[name] = true
+	}
+	if s.collection != nil {
+		cf := s.collections[name]
+		if cf == nil {
+			cf = &collectionFile{}
+			s.collections[name] = cf
+		}
+		cf.failed = true
 	}
 }
 
@@ -521,14 +545,23 @@ func jobLimitExceeded(limit int64) error {
 
 // appendLine is AppendRecord's part under the lock: the sequence, the
 // line, and the state of the device's text file before this record.
+//
+// The record's line carries the next sequence, which the store takes once
+// the record is durable: its commands.jsonl line written, or the file not
+// kept. A record that fails before leaves commands.jsonl as it was and the
+// sequence to the next record, so the followers' sequence has no gap
+// (ipc_result_malformed). A durable record goes to the followers even when
+// its errors.jsonl line then fails.
 func (s *Store) appendLine(r *records.CommandRecord, src Source) (notice Notice, text textState, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed {
 		return Notice{}, textAbsent, errorcodes.Errorf("output_store_closed", "output store is closed")
 	}
-	s.sequence++
-	r.Sequence = s.sequence
+	if s.broken != nil {
+		return Notice{}, textAbsent, s.broken
+	}
+	r.Sequence = s.sequence + 1
 	if err := r.Validate(); err != nil {
 		return Notice{}, textAbsent, err
 	}
@@ -545,22 +578,29 @@ func (s *Store) appendLine(r *records.CommandRecord, src Source) (notice Notice,
 		return Notice{}, textAbsent, err
 	}
 	notice = Notice{Sequence: r.Sequence, LineLength: length, LineOffset: -1, RecordID: r.RecordID}
-	failed := r.Status != "success"
 	if s.commands != nil {
 		notice.LineOffset = s.bytes
 		if err := s.appendCommandsLine(line, length); err != nil {
 			return Notice{}, textAbsent, err
 		}
 	}
+	s.sequence = r.Sequence
+	// A spooled record leaves with its Output empty: the follower is fed
+	// from the file at the notice's offset, and the renderer streams from
+	// the source.
+	if s.onDurable != nil {
+		s.onDurable(r, notice)
+	}
+	failed := r.Status != "success"
 	if failed && s.errs != nil {
-		if _, err := writeLine(s.errs, line); err != nil {
-			return Notice{}, textAbsent, err
+		n, err := writeLine(s.errs, line)
+		if err == nil && s.fsync {
+			err = s.errs.Sync()
 		}
-		if s.fsync {
-			if err := s.errs.Sync(); err != nil {
-				return Notice{}, textAbsent, err
-			}
+		if err != nil {
+			return Notice{}, textAbsent, s.cutBack(s.errs, s.errBytes, err)
 		}
+		s.errBytes += n
 	}
 	// A device is listed for a rerun by its requested records only: a
 	// session-init failure under on-error continue does not fail the
@@ -572,35 +612,41 @@ func (s *Store) appendLine(r *records.CommandRecord, src Source) (notice Notice,
 	if text == textAbsent {
 		s.texts[r.Device.CanonicalName] = textOpen
 	}
-	// A spooled record leaves with its Output empty: the follower is fed
-	// from the file at the notice's offset, and the renderer streams from
-	// the source.
-	if s.onDurable != nil {
-		s.onDurable(r, notice)
-	}
 	return notice, text, nil
 }
 
 // appendCommandsLine writes a line of the measured length to
-// commands.jsonl under the job's byte limit.
+// commands.jsonl under the job's byte limit. A line that fails at its
+// write, its length, or its sync is cut back out (cutBack).
 func (s *Store) appendCommandsLine(line recordLine, length int64) error {
 	if s.maxBytes > 0 && s.bytes+s.textBytes+length > s.maxBytes {
 		return jobLimitExceeded(s.maxBytes)
 	}
 	n, err := writeLine(s.commands, line)
+	if err == nil && n != length {
+		err = errorcodes.Errorf("output_commands_short_write", "short commands.jsonl write")
+	}
+	if err == nil && s.fsync {
+		err = s.commands.Sync()
+	}
 	if err != nil {
-		return err
-	}
-	if n != length {
-		return errorcodes.Errorf("output_commands_short_write", "short commands.jsonl write")
-	}
-	if s.fsync {
-		if err := s.commands.Sync(); err != nil {
-			return err
-		}
+		return s.cutBack(s.commands, s.bytes, err)
 	}
 	s.bytes += n
 	return nil
+}
+
+// cutBack truncates a .jsonl file to size, its whole lines, after a line
+// failed with err, and returns err: the file is O_APPEND, so the next line
+// is written at the cut. A cut that fails leaves part of the line in the
+// file, and the store is broken: this append and every later one fail with
+// output_write_failed.
+func (s *Store) cutBack(f jsonlFile, size int64, err error) error {
+	if cutErr := f.Truncate(size); cutErr != nil {
+		s.broken = errorcodes.Errorf("output_write_failed", "%w; %w", err, cutErr)
+		return s.broken
+	}
+	return err
 }
 
 // writeLine writes a record's line through one buffer, so a line in pieces
@@ -641,9 +687,9 @@ func (s *Store) Close() error {
 			return err
 		}
 	}
-	// Close on a nil *os.File (a skipped file) is os.ErrInvalid, not a fault.
+	// A skipped file is nil and has nothing to close.
 	var first error
-	for _, f := range []*os.File{s.commands, s.errs} {
+	for _, f := range []jsonlFile{s.commands, s.errs} {
 		if f == nil {
 			continue
 		}

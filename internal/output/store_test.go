@@ -1,15 +1,19 @@
 package output
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/ipc"
 	"github.com/robert-patrick-texas/karvi/platform"
 	"github.com/robert-patrick-texas/karvi/records"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -653,6 +657,370 @@ func TestCollectionSuffixAndSweep(t *testing.T) {
 		}
 		if d := s.CollectionSummary().Devices["r1"]; d.File != "r1"+suffix || d.Outcome != "replace" {
 			t.Fatalf("%q: summary %+v", suffix, d)
+		}
+	}
+}
+
+// appendable is a record the store takes for the device: a requested
+// statement that succeeded, with its output.
+func appendable(device, output string) records.CommandRecord {
+	return records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: device, ActivityID: "a", JobID: "a", ActivityType: "run", Device: records.DeviceProjection{CanonicalName: device}, CommandKind: "requested", PromptBefore: device + "#", Command: "show clock", Status: "success", Output: output, OutputEncoding: "utf-8"}
+}
+
+// rejected is appendable's record as the device rejected it, which
+// errors.jsonl takes too.
+func rejected(device, output string) records.CommandRecord {
+	r := appendable(device, output)
+	r.Status, r.Error = "device_error", &records.StructuredError{Code: "device_command_error", Category: "device", Message: "m", Operation: "execute_command"}
+	return r
+}
+
+// follow checks the store's notices as the daemon's follower takes them:
+// each line read from commands.jsonl at its notice's offset and length,
+// whole and carrying the notice's sequence, and each frame's sequence
+// following the one before (ipc.RecordFrame.Validate); then the file as a
+// catch-up reads it from its start, every line whole JSON and the
+// sequences 1 to the last, one line for each notice.
+func follow(path string, notices []Notice) error {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	type head struct {
+		Sequence int64 `json:"sequence"`
+	}
+	var cursor int64
+	for _, n := range notices {
+		if n.LineOffset < 0 || n.LineLength < 1 || n.LineOffset+n.LineLength > int64(len(b)) {
+			return fmt.Errorf("notice %+v lies outside commands.jsonl's %d bytes", n, len(b))
+		}
+		line := b[n.LineOffset : n.LineOffset+n.LineLength]
+		var h head
+		if line[len(line)-1] != '\n' || json.Unmarshal(line, &h) != nil || h.Sequence != n.Sequence {
+			return fmt.Errorf("commands.jsonl holds %.80q at offset %d where sequence %d was noticed", line, n.LineOffset, n.Sequence)
+		}
+		frame := ipc.RecordFrame{Sequence: n.Sequence, Record: line[:len(line)-1]}
+		if err := frame.Validate(cursor); err != nil {
+			return err
+		}
+		cursor = n.Sequence
+	}
+	lines := strings.SplitAfter(string(b), "\n")
+	if last := lines[len(lines)-1]; last != "" {
+		return fmt.Errorf("commands.jsonl ends in part of a line: %.80q", last)
+	}
+	lines = lines[:len(lines)-1]
+	for i, line := range lines {
+		var h head
+		if err := json.Unmarshal([]byte(line), &h); err != nil {
+			return fmt.Errorf("commands.jsonl line %d is not a record (%v): %.80q", i+1, err, line)
+		}
+		if h.Sequence != int64(i+1) {
+			return fmt.Errorf("commands.jsonl line %d carries sequence %d", i+1, h.Sequence)
+		}
+	}
+	if len(lines) != len(notices) {
+		return fmt.Errorf("commands.jsonl holds %d lines for %d notices", len(lines), len(notices))
+	}
+	return nil
+}
+
+// TestFailedAppendTakesNoSequence: a record the store cannot append takes
+// no sequence and leaves commands.jsonl as it was, so the next record
+// follows the last one appended, as a follower checks it
+// (ipc_result_malformed otherwise) and as a catch-up reads the file. The
+// record is refused at the job's byte limit, or by its spool's digest, or
+// fails at its write or its sync.
+func TestFailedAppendTakesNoSequence(t *testing.T) {
+	isCode := func(code string) func(error) bool {
+		return func(err error) bool { return errorcodes.Of(err) == code }
+	}
+	for _, c := range []struct {
+		name    string
+		refused func(error) bool
+		src     func(*testing.T, *Store, *records.CommandRecord) Source
+	}{
+		{"the job limit", isCode("output_job_limit_exceeded"), func(_ *testing.T, _ *Store, r *records.CommandRecord) Source {
+			r.Output = strings.Repeat("x", 8192) + "\n"
+			return FromRecord(r)
+		}},
+		{"a spool that does not match its digest", isCode("output_spool_mismatch"), func(t *testing.T, _ *Store, r *records.CommandRecord) Source {
+			src, enc := spoolOf(t, []byte("Cisco IOS XE Software\n"))
+			r.OutputEncoding = enc
+			return FromSpool(src.path, src.bytes, strings.Repeat("0", 64), enc)
+		}},
+		{"a write that fails partway", isENOSPC, func(_ *testing.T, s *Store, r *records.CommandRecord) Source {
+			fault(&s.commands).cut = 40
+			r.Output = "10:00\n"
+			return FromRecord(r)
+		}},
+		{"a sync that fails", isEIO, func(_ *testing.T, s *Store, r *records.CommandRecord) Source {
+			fault(&s.commands).syncErr = syscall.EIO
+			r.Output = "10:00\n"
+			return FromRecord(r)
+		}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			var notices []Notice
+			s, err := Create(Options{Root: t.TempDir() + "/job", ID: "id", Skip: FileSet{OutputTxt: true}, Fsync: true, MaxJobBytes: 4096, OnDurable: func(_ *records.CommandRecord, n Notice) { notices = append(notices, n) }})
+			if err != nil {
+				t.Fatal(err)
+			}
+			first := appendable("router1", "10:00\n")
+			if _, err := appendRecord(s, &first); err != nil {
+				t.Fatal(err)
+			}
+			refused := appendable("switch1", "")
+			if _, err := s.AppendRecord(&refused, c.src(t, s, &refused)); !c.refused(err) {
+				t.Fatalf("the refused record: %v", err)
+			}
+			next := appendable("austin-rtr1", "10:01\n")
+			n, err := appendRecord(s, &next)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if n.Sequence != 2 || next.Sequence != 2 {
+				t.Errorf("the record after the refused one has sequence %d (notice %d), want 2", next.Sequence, n.Sequence)
+			}
+			if err := follow(s.Paths().CommandsJSONL, notices); err != nil {
+				t.Error(err)
+			}
+			s.Close()
+		})
+	}
+}
+
+// TestAppendFailureKeepsThePreviousCollection: a crun device whose record
+// cannot be appended is a failed device, so it keeps its previous file
+// whatever blocks its temporary holds by then, leaves no temporary, and is
+// counted kept.
+func TestAppendFailureKeepsThePreviousCollection(t *testing.T) {
+	dir := t.TempDir()
+	coll := filepath.Join(dir, "crun")
+	if err := os.MkdirAll(coll, 0o770); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(coll, "router1"), []byte("old router1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	s, err := Create(Options{Root: filepath.Join(dir, "job"), ID: "261101-020000-00", Skip: FileSet{OutputTxt: true}, MaxJobBytes: 4096,
+		Collection: &CollectionOptions{Directory: coll, FileMode: 0o660}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := appendable("router1", "*10:00:00.000 UTC Sun Nov 1 2026\n")
+	if _, err := appendRecord(s, &first); err != nil {
+		t.Fatal(err)
+	}
+	refused := appendable("router1", strings.Repeat("x", 8192)+"\n")
+	refused.Command = "show running-config"
+	if _, err := appendRecord(s, &refused); errorcodes.Of(err) != "output_job_limit_exceeded" {
+		t.Fatalf("the refused record: %v", err)
+	}
+	s.EndDevice("router1")
+	if got, _ := os.ReadFile(filepath.Join(coll, "router1")); string(got) != "old router1\n" {
+		t.Fatalf("router1's previous file was replaced with %q", got)
+	}
+	if left, _ := filepath.Glob(filepath.Join(coll, ".router1.*")); len(left) != 0 {
+		t.Fatalf("temporaries left: %v", left)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if c := s.CollectionSummary(); c.Replaced != 0 || c.Kept != 1 || c.Devices["router1"].Outcome != records.CollectionKeep {
+		t.Fatalf("summary %+v", c)
+	}
+}
+
+// faultyFile is a .jsonl file of the store's whose next write fails with
+// ENOSPC once cut more bytes have reached it, as when the disk fills
+// partway through a line: the bytes before the cut are in the file.
+// syncErr fails the next sync, truncateErr every truncate.
+type faultyFile struct {
+	*os.File
+	cut                  int64 // 0: the writes pass
+	syncErr, truncateErr error
+}
+
+func (f *faultyFile) Write(p []byte) (int, error) {
+	if f.cut == 0 || int64(len(p)) < f.cut {
+		n, err := f.File.Write(p)
+		if f.cut > 0 {
+			f.cut -= int64(n)
+		}
+		return n, err
+	}
+	n, _ := f.File.Write(p[:f.cut])
+	f.cut = 0
+	return n, syscall.ENOSPC
+}
+
+func (f *faultyFile) Sync() error {
+	if err := f.syncErr; err != nil {
+		f.syncErr = nil
+		return err
+	}
+	return f.File.Sync()
+}
+
+func (f *faultyFile) Truncate(size int64) error {
+	if f.truncateErr != nil {
+		return f.truncateErr
+	}
+	return f.File.Truncate(size)
+}
+
+// fault puts a faultyFile, passing every call until a test arms it, in
+// the place of the store's commands.jsonl or errors.jsonl.
+func fault(file *jsonlFile) *faultyFile {
+	f := &faultyFile{File: (*file).(*os.File)}
+	*file = f
+	return f
+}
+
+func isENOSPC(err error) bool { return errors.Is(err, syscall.ENOSPC) }
+func isEIO(err error) bool    { return errors.Is(err, syscall.EIO) }
+
+// wholeLines checks that a .jsonl file holds whole lines alone, each a
+// JSON object, and reports how many.
+func wholeLines(t *testing.T, path string) int {
+	t.Helper()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.SplitAfter(string(b), "\n")
+	if last := lines[len(lines)-1]; last != "" {
+		t.Fatalf("%s ends in part of a line: %.80q", filepath.Base(path), last)
+	}
+	for i, line := range lines[:len(lines)-1] {
+		var v map[string]any
+		if err := json.Unmarshal([]byte(line), &v); err != nil {
+			t.Fatalf("%s line %d is not whole (%v): %.80q", filepath.Base(path), i+1, err, line)
+		}
+	}
+	return len(lines) - 1
+}
+
+// TestFailedLineIsCutBack: a line that fails partway through its write,
+// or at its sync, is cut back out of its file, commands.jsonl or
+// errors.jsonl, so neither holds part of a line, the store's count is
+// commands.jsonl's size, and the next line's notice locates it. A record
+// whose commands.jsonl line is written is durable: its errors.jsonl line
+// failing after fails the append, and still the record goes to the
+// followers with its sequence.
+func TestFailedLineIsCutBack(t *testing.T) {
+	for _, c := range []struct {
+		name    string
+		errors  bool // the fault is errors.jsonl's
+		arm     func(*faultyFile)
+		refused func(error) bool
+	}{
+		{"commands.jsonl, a write that fails partway", false, func(f *faultyFile) { f.cut = 40 }, isENOSPC},
+		{"commands.jsonl, a sync that fails", false, func(f *faultyFile) { f.syncErr = syscall.EIO }, isEIO},
+		{"errors.jsonl, a write that fails partway", true, func(f *faultyFile) { f.cut = 40 }, isENOSPC},
+		{"errors.jsonl, a sync that fails", true, func(f *faultyFile) { f.syncErr = syscall.EIO }, isEIO},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			var notices []Notice
+			s, err := Create(Options{Root: t.TempDir() + "/job", ID: "id", Skip: FileSet{OutputTxt: true}, Fsync: true, OnDurable: func(_ *records.CommandRecord, n Notice) { notices = append(notices, n) }})
+			if err != nil {
+				t.Fatal(err)
+			}
+			first := rejected("router1", "% Invalid input detected at '^' marker.\n")
+			if _, err := appendRecord(s, &first); err != nil {
+				t.Fatal(err)
+			}
+			file := &s.commands
+			if c.errors {
+				file = &s.errs
+			}
+			c.arm(fault(file))
+			failing := rejected("switch1", "% Invalid input detected at '^' marker.\n")
+			if _, err := appendRecord(s, &failing); !c.refused(err) {
+				t.Fatalf("the failing record: %v", err)
+			}
+			next := rejected("austin-rtr1", "% Invalid input detected at '^' marker.\n")
+			if _, err := appendRecord(s, &next); err != nil {
+				t.Fatal(err)
+			}
+			if err := s.Close(); err != nil {
+				t.Fatal(err)
+			}
+			if err := follow(s.Paths().CommandsJSONL, notices); err != nil {
+				t.Error(err)
+			}
+			info, err := os.Stat(s.Paths().CommandsJSONL)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if info.Size() != s.Bytes() {
+				t.Errorf("commands.jsonl holds %d bytes, the store's count %d", info.Size(), s.Bytes())
+			}
+			// A record whose errors.jsonl line is cut is in commands.jsonl,
+			// and its followers have it.
+			want := 2
+			if c.errors {
+				want = 3
+			}
+			if len(notices) != want {
+				t.Errorf("%d records reached the followers, want %d", len(notices), want)
+			}
+			if n := wholeLines(t, s.Paths().ErrorsJSONL); n != 2 {
+				t.Errorf("errors.jsonl holds %d lines, want 2", n)
+			}
+		})
+	}
+}
+
+// TestFailedCutRefusesLaterAppends: a line that cannot be cut back leaves
+// part of it in its file, so the store refuses every later record
+// (output_write_failed) and writes nothing after the part, a record whose
+// commands.jsonl line was written going to the followers all the same.
+func TestFailedCutRefusesLaterAppends(t *testing.T) {
+	for _, errorsFile := range []bool{false, true} {
+		var notices []Notice
+		s, err := Create(Options{Root: t.TempDir() + "/job", ID: "id", Skip: FileSet{OutputTxt: true}, OnDurable: func(_ *records.CommandRecord, n Notice) { notices = append(notices, n) }})
+		if err != nil {
+			t.Fatal(err)
+		}
+		first := rejected("router1", "% Invalid input detected at '^' marker.\n")
+		if _, err := appendRecord(s, &first); err != nil {
+			t.Fatal(err)
+		}
+		file, name := &s.commands, "commands.jsonl"
+		if errorsFile {
+			file, name = &s.errs, "errors.jsonl"
+		}
+		f := fault(file)
+		f.cut, f.truncateErr = 40, syscall.EIO
+		before := map[string]int64{}
+		failing := rejected("switch1", "% Invalid input detected at '^' marker.\n")
+		if _, err := appendRecord(s, &failing); errorcodes.Of(err) != "output_write_failed" || !isENOSPC(err) || !isEIO(err) {
+			t.Fatalf("%s: the failing record: %v", name, err)
+		}
+		for _, p := range []string{s.Paths().CommandsJSONL, s.Paths().ErrorsJSONL} {
+			info, _ := os.Stat(p)
+			before[p] = info.Size()
+		}
+		next := rejected("austin-rtr1", "% Invalid input detected at '^' marker.\n")
+		if _, err := appendRecord(s, &next); errorcodes.Of(err) != "output_write_failed" {
+			t.Fatalf("%s: the record after: %v", name, err)
+		}
+		if err := s.Close(); err != nil {
+			t.Fatal(err)
+		}
+		for p, size := range before {
+			if info, _ := os.Stat(p); info.Size() != size {
+				t.Errorf("%s: %s grew from %d to %d bytes after the part of a line", name, filepath.Base(p), size, info.Size())
+			}
+		}
+		want := 1
+		if errorsFile {
+			want = 2 // the record whose commands.jsonl line was written
+		}
+		if len(notices) != want {
+			t.Errorf("%s: %d records reached the followers, want %d", name, len(notices), want)
 		}
 	}
 }

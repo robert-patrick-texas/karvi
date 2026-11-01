@@ -39,8 +39,9 @@ karvi crun --all --dry-run                         # each device's list, no devi
   line. A rejected statement's block is the device's own error text.
 - **Replacement only on success.** The file is written as a hidden
   temporary and renamed into place when every command of the device came
-  back; a device not reached, timed out, halted, or cancelled keeps its
-  previous file and leaves nothing behind. The display ends, after the
+  back; a device not reached, timed out, halted, or cancelled, or one whose
+  record could not be written, keeps its previous file and leaves nothing
+  behind. The display ends, after the
   footer, with `! collection=DIR replace=N keep=M`
   (`display.collection.footer`; under jsonl the summary document carries
   the counts); `failed-devices.txt` in the job folder is the rerun.

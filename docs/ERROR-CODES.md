@@ -479,7 +479,7 @@ Active failure causes.
 | `output_store_create_failed` | output | 111 | no | Unclassified. The job output directory or record files cannot be created. |
 | `output_store_options_invalid` | internal | 1 | no | The output store was created without a root directory or activity ID. |
 | `output_summary_write_failed` | output | 111 | no | Unclassified. The job summary cannot be written. |
-| `output_write_failed` | output | 111 | no | A command record cannot be appended to the job output. |
+| `output_write_failed` | output | 111 | no | A command record cannot be appended to the job output; a line that failed partway and cannot be cut back out of its file fails every later record of the job. |
 | `paging_disable_failed` | device | 107 | no | The platform's paging-disable command fails: the device rejects it or no prompt returns. |
 | `path_other_user_home_unsupported` | config | 2 | no | A configured path uses `~otheruser`; only the operator's own `~` is expanded. |
 | `peer_uid_denied` | permission | 112 | no | An IPC peer's effective UID differs from the daemon's. |
