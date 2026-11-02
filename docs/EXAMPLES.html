@@ -132,6 +132,11 @@
 <li><a href="#84-config-show-refuses---format-beside-keys-2026-10-27">84. config show refuses --format beside keys (2026-10-27)</a></li>
 <li><a href="#85-the-release-0370-2026-10-27">85. The release 0.37.0 (2026-10-27)</a></li>
 <li><a href="#86-platform-names-the-markets-2026-10-28">86. Platform names: the market&#39;s (2026-10-28)</a></li>
+<li><a href="#87-the-release-0380-2026-10-28">87. The release 0.38.0 (2026-10-28)</a></li>
+<li><a href="#88-the-code-review-of-2026-10-31-and-its-fixes-2026-11-01">88. The code review of 2026-10-31 and its fixes (2026-11-01)</a></li>
+<li><a href="#89-the-reviews-later-fixes-waves-5-to-7-2026-11-01">89. The review&#39;s later fixes: waves 5 to 7 (2026-11-01)</a></li>
+<li><a href="#90-the-reviews-later-fixes-waves-8-to-10-2026-11-01">90. The review&#39;s later fixes: waves 8 to 10 (2026-11-01)</a></li>
+<li><a href="#91-the-reviews-later-fixes-wave-11-2026-11-01">91. The review&#39;s later fixes: wave 11 (2026-11-01)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -143,8 +148,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -278,6 +283,11 @@
 <li><a href="#84-config-show-refuses---format-beside-keys-2026-10-27">84. config show refuses --format beside keys (2026-10-27)</a></li>
 <li><a href="#85-the-release-0370-2026-10-27">85. The release 0.37.0 (2026-10-27)</a></li>
 <li><a href="#86-platform-names-the-markets-2026-10-28">86. Platform names: the market&#39;s (2026-10-28)</a></li>
+<li><a href="#87-the-release-0380-2026-10-28">87. The release 0.38.0 (2026-10-28)</a></li>
+<li><a href="#88-the-code-review-of-2026-10-31-and-its-fixes-2026-11-01">88. The code review of 2026-10-31 and its fixes (2026-11-01)</a></li>
+<li><a href="#89-the-reviews-later-fixes-waves-5-to-7-2026-11-01">89. The review&#39;s later fixes: waves 5 to 7 (2026-11-01)</a></li>
+<li><a href="#90-the-reviews-later-fixes-waves-8-to-10-2026-11-01">90. The review&#39;s later fixes: waves 8 to 10 (2026-11-01)</a></li>
+<li><a href="#91-the-reviews-later-fixes-wave-11-2026-11-01">91. The review&#39;s later fixes: wave 11 (2026-11-01)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -289,8 +299,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -18401,8 +18411,1623 @@ release's manifest names it by the new name.</p>
 <code>s2-go-test.log</code>, and <code>s3-go-test.log</code>; <code>s3-lab.sh</code> and <code>s3-lab.log</code>;
 <code>battery.sh</code>, <code>wait-battery.sh</code>, and the batteries' logs, <code>s2-battery</code>,
 <code>s3-battery</code>, and <code>s3-battery-2</code>).</p>
+<h2 id="87-the-release-0380-2026-10-28">87. The release 0.38.0 (2026-10-28) <a class="anchor" href="#87-the-release-0380-2026-10-28" aria-label="Link to this section">#</a></h2>
+<p>The nineteenth public release, 0.38.0, on the operator's word and number,
+carrying <a href="#86-platform-names-the-markets-2026-10-28">chapter 86</a> (the Cisco
+platforms' names, <code>cisco_ios</code> and <code>cisco_xr</code>). A minor release: every counter
+is 0.37.0's, and Go and the modules are 0.37.0's; a script or a tool that looks
+for an old name in a record, a job folder, or output changes, as does a glob
+written for one (the CHANGELOG's Breaking entry). The daemon IPC schema stays
+12, so the compatibility example is the drain, beside the released 0.37.0
+daemon. The sequence is <a href="#75-the-release-0341-2026-10-20">chapter 75</a>'s as
+<a href="#85-the-release-0370-2026-10-27">chapter 85</a> ran it. The operator settled the
+manifest's real-device key during the baseline and gave the word to publish
+during the remaining evidence. No step failed; the build paused once, before
+1/3, for the compatibility example's record of the host.</p>
+<p><strong>What it gains.</strong> A site has chapter 86 from a published, checksummed bundle
+and package, with the documents on GitHub Pages at the release. The Cisco
+platforms carry the names Netmiko and NTC's TextFSM templates give them, and
+an inventory or a configuration naming the old ones is read as before. A host
+on 0.37.0 takes the release by <code>sudo karvi-sysutil package update</code>, or by <code>apt install</code> as before; <code>releases/latest</code> redirects to the tag, the redirect
+<code>package update</code> reads.</p>
+<p><strong>Before the number.</strong> The archive's mirror was at <code>2ec83e0</code> already, <code>dev</code> as
+the session found it (= <code>origin/dev</code>, chapter 86's Built record): a fetch found
+nothing, and its <code>SHA256SUMS</code> passed. The bridge probe reached every address,
+and <code>/tmp</code> had 3.8 GB free at load 0.16. <code>latest.sh</code> found nothing behind, so
+nothing moved before the baseline: Go and the four modules are 0.37.0's.
+<code>latest.sh</code> on the baseline's clean clone (its own lines):</p>
+<pre><code class="language-text">== Go: /usr/local/go/bin/go against go.dev
+go                               go1.27.3                               newest
+== the 4 modules /dev/shm/r380/base/karvi/go.mod requires
+github.com/yuin/goldmark         v1.8.6                                 newest
+golang.org/x/crypto              v0.58.0                                newest
+golang.org/x/sys                 v0.49.0                                newest
+golang.org/x/term                v0.47.0                                newest
+latest: Go and every module at their newest
+</code></pre>
+<p><strong>The number.</strong> <code>VERSION</code>, the <code>Makefile</code>, <code>buildinfo.Version</code>, and the two
+verifiers; the <code>## Unreleased</code> block became <code>## 0.38.0 - 2026-10-28</code> under a
+lead paragraph: a minor release on 0.37.0 for the Cisco platforms' names,
+every counter, Go, and the modules 0.37.0's, the old names read wherever a
+platform name is read, and what a site changes where a script or a tool looks
+for <code>cisco_iosxe</code> or <code>cisco_iosxr</code> in a record, a job folder, or output, where
+a glob was written for an old name, or where a configuration holds
+<code>[platform.cisco_ios]</code> beside <code>[platform.cisco_iosxe]</code> or
+<code>[platform.cisco_xe]</code>. No code was retired this cycle, so there is no
+<code>retiredV0380</code>. <code>CHECKSUMS.sha256</code> has its four lines from the
+release-identity build.</p>
+<p><strong>The documents.</strong> 2/3 is 0.37.0's with this release's values: the build
+result, the artifact index, the manifest, the compatibility example's log,
+and the build guide's, the qualification document's, the runbook's, and
+OPERATIONS' release values. One key changed its name.</p>
+<p><strong>The manifest's key, agreed.</strong> <code>release/release-manifest.json</code>'s
+qualification block named the real-device qualification <code>real_cisco_iosxe</code>,
+the platform's old name. Raised with the operator before 2/3 and agreed, in
+simple terms:</p>
+<ul>
+<li>The key names the platform under test: <code>real_cisco_ios</code>, its value
+<code>not-run</code>.</li>
+<li><code>real_</code> stays: the suites test <code>cisco_ios</code> against the fake device, and only
+the real-device lab has not run.</li>
+<li>Prose naming the device's operating system stays: the qualification
+document's title, &quot;Cisco IOS XE qualification&quot;, the fake device's <code>iosxe</code>
+persona, and BUILD-RESULT's &quot;Cisco IOS XE laboratory qualification&quot;.</li>
+</ul>
+<p>Nothing in the tree reads the key; <code>grep</code> finds it in the manifest alone, so
+its name is for its reader. The block, before:</p>
+<pre><code class="language-text">&quot;parity_suite_system_and_native&quot;: &quot;passed (the fake device's IOS XE and Linux personas)&quot;,
+&quot;real_cisco_iosxe&quot;: &quot;not-run&quot;,
+&quot;production_scale&quot;: &quot;not-run&quot;,
+</code></pre>
+<p><strong>Not taken.</strong> A bare <code>cisco_ios</code>, the operator's question: beside the parity
+suite's <code>passed</code>, <code>&quot;cisco_ios&quot;: &quot;not-run&quot;</code> reads as the platform never tested,
+which it is, against the fake device. Keeping <code>real_cisco_iosxe</code>: the key would
+name a platform karvi no longer has.</p>
+<p><strong>The compatibility example, twice.</strong> The first run's last section, the host,
+listed <code>/tmp/karvi-1000</code>: made at 05:33 local that morning, empty, mode 0700,
+not this session's, and untouched by the run. The log becomes
+<code>release/evidence/ipc-schema-compat.log</code>, the public record, where the line
+reads as left by the run. The operator removed the folder, and the example ran
+again before 1/3, with the same turning points and the host clean. The first
+log is kept with the evidence. Not taken: the first log with a note in
+BUILD-RESULT and here, a public record explaining a line where a clean one
+cost thirty seconds.</p>
+<pre><code class="language-text"># run 1, the host
+[11] the host
+cannot access '/var/tmp/karvi-*': No such file or directory
+cannot access '/home/netops/.local/share/karvi': No such file or directory
+/tmp/karvi-1000
+</code></pre>
+<p><strong>The release notes' glob, executed.</strong> The notes gave <code>--select-platform 'cisco_iosx*'</code> as a glob written for an old name, and the draft said it
+&quot;changes&quot;. Run on the release's build before publishing, in a lab under
+<code>/dev/shm</code> whose inventory holds router1 as <code>cisco_iosxe</code> and router2 as
+<code>cisco_iosxr</code>, the glob is refused, not empty, and the notes say so. Each
+command ran with the lab's <code>--config</code> and <code>--no-daemon</code>, left out of the <code>$</code>
+labels; the <code>$</code> and <code>exit=</code> lines are the script's labels, the others karvi's,
+those naming a router, a selector, or the targets:</p>
+<pre><code class="language-text">$ karvi run --dry-run --select-platform 'cisco_iosx*' 'show clock'
+exit=4
+platform_selector_unknown: client planning: --select-platform &quot;cisco_iosx*&quot; matches no known platform; known platforms: generic, cisco_ios, cisco_xr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell
+$ karvi run --dry-run --select-platform 'cisco_iosxe' 'show clock'
+exit=0
+target_data_submitted: false
+targets: 1 (client 1, daemon 0)
+- name:router1: planned
+$ karvi run --dry-run --select-platform 'cisco_*' 'show clock'
+exit=0
+target_data_submitted: false
+targets: 2 (client 2, daemon 0)
+- name:router1: planned
+- name:router2: planned
+</code></pre>
+<p><strong>The sequence, as run</strong>, from the pre-checks at 12:38 to the published check
+at 13:25 (UTC; 08:38 to 09:25, EDT):</p>
+<ul>
+<li>12:38 to 12:40, the pre-checks: the archive's mirror at <code>2ec83e0</code> already;
+the bridge probe passed; <code>latest.sh</code> exit 0.</li>
+<li>12:40:15 to 12:50:08, the baseline on a clean clone of <code>2ec83e0</code>:
+<code>latest.sh</code>, gofmt, make, and the release verifier with its package and
+container steps, exit 0 each. The manifest's key was agreed during it.</li>
+<li>12:50:49 to 13:01:22, the release-identity build, the compatibility example
+twice, and 1/3: the build <code>XVaquK8HnILbatvlhwRi</code> by go1.27.3; the 0.37.0
+daemon drained idle, refusing busy; <code>9e3e94a</code>.</li>
+<li>13:01:40 to 13:03:46, the core evidence: 1,109 named tests across 92
+packages, vet 0, both socket lengths exit 0, with 3.8 GB free in <code>/tmp</code>.</li>
+<li>13:05:53, the documents: <code>56c204e</code> (2/3).</li>
+<li>13:06:05 to 13:15:30, the remaining evidence: the shipped checks exit 0, the
+release verifier exit 0 with the nineteen suites, the package, and its
+container test, the checksums unchanged by its rebuild; the replay skipped.
+The operator's word to publish without stopping came during it.</li>
+<li>13:16:02, 3/3, the tag, <code>main</code>: <code>6d1bfac</code>, <code>karvi-v0.38.0</code>, <code>main</code>
+fast-forwarded from <code>07f3f0b</code>.</li>
+<li>13:16:13 to 13:22:17, the artifacts: the bundle reproducible byte for byte
+and verified from its own archive; the package reproducible and checked
+against the extraction; 39,761,795 and 6,541,484 bytes.</li>
+<li>13:22 to 13:23, the package installed in a throwaway <code>ubuntu:26.04</code>: <code>apt install</code> exit 0; the four installed executables <code>CHECKSUMS.sha256</code>'s;
+<code>karvi-audit --help</code> exit 0; 22 files under <code>/usr/share/karvi</code>.</li>
+<li>13:23 to 13:25, the push, the site, the GitHub release: <code>dev</code>, <code>main</code>, and
+the tag pushed; <code>pages.sh</code> pushed the release's site (<code>9391ec4</code>), built at
+13:24:13, its 50 files 200 and its footer <code>karvi-v0.38.0</code>; release
+<code>karvi-v0.38.0</code> with the five assets, marked latest, its body the notes
+file; the assets downloaded back match, and <code>releases/latest</code> redirects to
+the tag.</li>
+</ul>
+<p><strong>Executed.</strong> The compatibility example's turning points
+(<code>release/evidence/ipc-schema-compat.log</code>) and the published state:</p>
+<pre><code class="language-text">[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.37.0 build=1bFnbnZ8vZu2v2U7sP-a
+daemon started socket=/dev/shm/r380/compat/base/socket/d.sock
+pid 3011707 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build 1bFnbnZ8vZu2v2U7sP-a 0.37.0
+  client build XVaquK8HnILbatvlhwRi 0.38.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 3011806 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+latest: karvi-v0.38.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.38.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.38.0-source-linux-amd64.tar.gz: OK
+karvi_0.38.0_amd64.deb: OK
+</code></pre>
+<p><strong>Found on the way.</strong></p>
+<ul>
+<li>The four executables keep 0.37.0's sizes, with other bytes; the bundle is
+10,317 bytes larger and the package 5,996.</li>
+<li>The default configuration's evidence ships <code>platform-resolution.default = &quot;cisco_ios&quot;</code>, and its comments name <code>cisco_ios</code>, <code>cisco_xr</code>, and the
+spellings read as them. The module metadata of the four executables is
+0.37.0's, the same Go and modules, so 3/3 carries nine evidence files.</li>
+<li>The site answered the old footer for a moment after <code>pages.sh</code> pushed: the
+Pages build had not landed. <code>gh api repos/robert-patrick-texas/karvi/pages/builds/latest</code> says when it has.</li>
+<li>In the throwaway container <code>man karvi-audit</code> has no page, as in chapters 67,
+70, 73, 75, 77, 80, and 85: the minimal image leaves out <code>/usr/share/man</code>.</li>
+</ul>
+<p>The evidence is kept beside the tree (<code>release-design-evidence/v0380-*</code>: the
+timeline, the bridge probe, the baseline with <code>latest.sh</code>'s output, the build,
+the compatibility example and its two logs, the 1/3 and 2/3 patches, the
+artifacts with their bundle verifier log, <code>check-deb</code>, the container install,
+the release notes and their glob check, the push, the site, the GitHub
+release, and the published check).</p>
+<h2 id="88-the-code-review-of-2026-10-31-and-its-fixes-2026-11-01">88. The code review of 2026-10-31 and its fixes (2026-11-01) <a class="anchor" href="#88-the-code-review-of-2026-10-31-and-its-fixes-2026-11-01" aria-label="Link to this section">#</a></h2>
+<p>Opened on the operator's request for a read-only review of the shipped program,
+two reviewers to a slice reading in opposite directions and every finding
+checked: <code>dev</code> at <code>4a70be2</code>, 0.38.0 and <a href="#87-the-release-0380-2026-10-28">chapter
+87</a>. The review found 59 defects; the operator
+decided the eight that needed a rule and approved a plan of fourteen sections;
+the fixes found fourteen more, three of which became a fifteenth section.
+Nineteen commits on <code>dev</code>, <code>39a7034</code> to <code>908be92</code>, carry the work, each
+section's message naming its findings (&quot;review 2026-10-31, #N&quot;); nothing is
+pushed. The findings and the plan are kept in the operator's private archive.</p>
+<p><strong>What it gains.</strong> The defects are fixed before a site meets them, each beside
+a test that failed on the tree as it was: among the three high ones, a telnet
+banner line that made karvi type <code>enable</code> as the username and send the enable
+secret as the login password, another user's <code>/tmp/karvi-&lt;uid&gt;</code> taken for the
+operator's spool and scratch, and a <code>--days</code> that removed every job, running
+ones included. It waits on nothing. The cost: twelve of the CHANGELOG's 26
+<code>Unreleased</code> entries are Breaking, as a configuration, an inventory, a
+<code>.cloginrc</code>, a trust store, or a schedule that relied on a misreading is now
+refused.</p>
+<p><strong>The review.</strong> The shipped Go code alone: 73 packages, 218 files that are not
+tests, about 59,700 lines (not <code>tools/</code>, the tests, the shell scripts, the
+packaging, or <code>vendor/</code>), in four slices on package boundaries, each read by
+one reviewer from the entry points down and one from the leaf packages up. 88
+raw findings became 59, 26 found by both reviewers of a slice and 33 by one,
+none rejected and two narrowed: three high, 19 medium, 37 low. A
+capture-recapture estimate from the slices' overlaps put the total near 70; the
+fixes found fourteen more, #60 to #73.</p>
+<p><strong>The sections</strong>, in the plan's waves (the CHANGELOG's <code>Unreleased</code> block says
+what each changed):</p>
+<table>
+<thead>
+<tr>
+<th>Wave</th>
+<th>Section</th>
+<th>Findings</th>
+<th>Commit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>S1 telnet reads</td>
+<td>#1 #14</td>
+<td><code>57b4c18</code></td>
+</tr>
+<tr>
+<td>1</td>
+<td>S2 spool and scratch chains</td>
+<td>#2</td>
+<td><code>395f88a</code></td>
+</tr>
+<tr>
+<td>1</td>
+<td>S3 the output store</td>
+<td>#5 #6 #30</td>
+<td><code>7bc2009</code></td>
+</tr>
+<tr>
+<td>1</td>
+<td>S4 credentials and secrets</td>
+<td>#3 #12 #18 #22 #50 #58 #59</td>
+<td><code>dd82b03</code></td>
+</tr>
+<tr>
+<td>1</td>
+<td>S5 host keys</td>
+<td>#4 #48</td>
+<td><code>672f9e8</code> <code>8bd69ca</code></td>
+</tr>
+<tr>
+<td>1</td>
+<td>S6 prune</td>
+<td>#10 #27 #34 #35</td>
+<td><code>f8357f6</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>S7 login recordings</td>
+<td>#31 #36 #37</td>
+<td><code>835ad86</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>S8 terminal and renderer</td>
+<td>#7 #8 #13 #19 #49</td>
+<td><code>f1d702f</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>S9 audit and masks</td>
+<td>#11 #28</td>
+<td><code>a0fbacc</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>S10 daemon and jobs</td>
+<td>#9 #16 #17 #20 #21 #32 #38-#40 #42</td>
+<td><code>2ccc6c4</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>S11 transports</td>
+<td>#33 #41 #45-#47</td>
+<td><code>447c51d</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>S12 configuration loading</td>
+<td>#15 #29 #53-#57</td>
+<td><code>908be92</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>S13 tomlmini, timestamp</td>
+<td>#23-#26</td>
+<td><code>70ca70b</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>S14 inventory, .cloginrc</td>
+<td>#43 #44 #51 #52</td>
+<td><code>41bcc4c</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>S15 found while fixing</td>
+<td>#60-#62</td>
+<td><code>62d7d7a</code></td>
+</tr>
+</tbody>
+</table>
+<p>Outside them, <code>39a7034</code> makes a test ask a rooted name, since this host's
+domain answers every name, and <code>c4c0afd</code> and <code>a874dca</code> give karvi-prune's
+command tests and k03's dry runs no free-space floor, so that the host's disk,
+at 96% used, no longer decides what they keep.</p>
+<p><strong>How the fixes ran.</strong> Per finding: the defect confirmed in the code, a test
+that fails on the tree as it is (its output kept), the fix, the test again; the
+four claims the review had not run (#8, #11, #45, #46) each reproduced first.
+Each section had its own worktree and agent; the orchestrator read each diff
+against its finding, merged in section order, and wrote the CHANGELOG. The full
+battery passed after each wave: at <code>57b4c18</code>; at <code>447c51d</code> once the build cache
+was cleaned, the host's full disk having failed its first run; and at
+<code>908be92</code>, <code>go test</code> over 73 packages and every suite in 239 seconds, the host
+clean after. No schema counter moved; <code>host_key_revoked</code> and
+<code>config_platform_telnet_port_out_of_range</code> are new, and
+<code>askpass_enable_password_unset</code> is retired.</p>
+<p><strong>The operator's decisions</strong>, in simple terms, each stated in its section of
+<a href="DESIGN.html"><code>docs/DESIGN.md</code></a>:</p>
+<ul>
+<li>#3: the askpass broker answers the login's username and password, nothing
+else; a command session sends the enable secret in-band, as before.</li>
+<li>#4: a key the trust store marks <code>@revoked</code> is <code>host_key_revoked</code> under every
+policy, on both transports, never a match and never enrolled; a
+<code>@cert-authority</code> line is no enrolled key and is passed by. A revoked key
+halts the run under <code>ssh.halt-run-on-host-key-mismatch</code>, as a changed key
+does; under <code>insecure</code> over <code>system</code>, a device whose <code>ssh-keyscan</code>
+comparison cannot complete keeps the <code>host_key_not_compared</code> notice.</li>
+<li>#10: a tree karvi-prune cannot walk makes the exit 1; a folder below a root
+that it cannot read is reported and passed by.</li>
+<li>#11: a failed write to an audit sink that is not required is a warning, not
+<code>audit_write_failed</code>; an event too large for a journald datagram goes in a
+sealed memfd, as journald's protocol passes one.</li>
+<li>#22: the <code>crun.after</code> hook keeps the operator's shell environment without
+<code>NETUSER</code>, <code>NETPASS</code>, and <code>NETENABLE</code>.</li>
+<li>#27: <code>karvi-prune --days</code> takes one to 999; above, a usage error, exit 2.</li>
+<li>#29: a locked key whose value takes a macro defined by a layer without
+authority over the lock is <code>config_lock_violation</code>.</li>
+<li>#43: two rows naming one device become one only when they agree on every
+field; any difference is <code>inventory_conflict</code>.</li>
+<li>The plan as recommended: each section committed as it completes, no push;
+#2's owner check on the <code>auto</code> chains' own candidates, an explicit <code>spooldir</code>
+or <code>tempdir</code> the site's choice; the mask audit of all five lists; the
+shell-script review later, on its own.</li>
+<li>#60 to #62 fixed as S15, by the same method: below a tree's root, a link at a
+day folder's or a job folder's name is refused, the root itself the site's
+(in this chapter's lab, a link planted at <code>jobs/261101</code> is refused
+<code>output_directory_not_writable</code>, exit 9, nothing made where it points);
+karvi-prune reads a transcript's metadata from a regular file alone; a
+<code>login.start</code> that cannot be written ends the scoreboard. #63 waits for a
+design session, #64 and #65 for the shell-script review.</li>
+</ul>
+<p><strong>Settled under the existing rules</strong>, each reported to the operator: a login
+resolves no enable secret, nothing reading it after #3; askpass refuses the
+host-key question and judges a prompt by its own words, OpenSSH's <code>user@host</code>
+cut; telnet takes the device session's prompt rule; the shared scoreboards are
+judged as the shared trees (#10); script(1) is given the transcript by its
+descriptor, never by a name; the daemon's stop moves read deadlines to now
+rather than closing a follower's connection; the system transport judges a
+failure by OpenSSH's own last line. While the last sections merged: a lowercase
+<code>mm</code> with a date token on one side and a time token on the other is
+<code>display_timestamp_mm_ambiguous</code>, the review's rule, so <code>hh:mm</code> written before a
+date is refused, <code>hh:mm:ss</code> or <code>yyyy-MM-dd hh:mm</code> being the ways to write it; a
+<code>\u</code> or <code>\U</code> escape that is no Unicode character is refused in every TOML
+string, as TOML says; a row naming its transport and one leaving it to the
+mode's default differ, while credential key pins still compare case-folded, as
+documented; a platform field's kind is checked by the function that checks a
+scalar key's (<code>configschema.ValidateKind</code>); transcript metadata is read up to
+1 MiB.</p>
+<p><strong>The lab.</strong> The examples ran on a lab build of <code>908be92</code> (<code>karvi</code>,
+<code>karvi-prune</code>, <code>karvi-askpass</code>) in a folder under <code>/var/tmp</code>, mode 0700, that
+each script made and removed: every place karvi writes under it (<code>basedir</code>,
+<code>sharedroot = &quot;none&quot;</code>, <code>spooldir</code>, <code>scoreboards</code>, <code>tempdir</code>, the trust store in
+a 0700 folder, the capacity root, <code>output.root</code>, <code>transcript.root</code>,
+<code>audit.file</code>), <code>display.color = &quot;never&quot;</code>, and the credential the environment's
+(<code>NETUSER=jsmith</code>). The lab's <code>--config</code>, and <code>run</code>'s <code>--no-daemon</code>, are left
+out of the <code>$</code> labels, and the lab's path is written <code>LAB</code>. The <code>$</code>, <code>exit=</code>,
+and <code>==</code> lines are the scripts'; the rest is karvi's, its standard output then
+its standard error, unless the paragraph says otherwise. None of
+<code>/tmp/karvi-1000</code>, <code>/var/tmp/karvi-1000</code>, <code>/dev/shm/karvi</code>, and the home's
+<code>.local/share/karvi</code> existed after any script; the jobs' audit events went to
+the host's journal, as a job's do.</p>
+<p><strong>A revoked host key, executed.</strong> The lab's inventory names this host's
+OpenSSH, 127.0.0.1 port 22, <code>router1</code>; the lab's store holds the three keys
+<code>ssh-keyscan 127.0.0.1</code> returned, each on a <code>@revoked router1</code> line, and
+nothing else, so no policy reaches authentication. Every policy on both
+transports ended <code>host_key_revoked</code>. Shown are <code>secure</code> on each and the halt;
+the others printed what their transport's <code>secure</code> run printed, but for
+<code>insecure</code> over <code>system</code>, where karvi's own <code>ssh-keyscan</code> comparison refuses
+before OpenSSH starts. This host's key fingerprints are written <code>&lt;redacted&gt;</code>:</p>
+<pre><code class="language-text">$ karvi run --transport native --ssh-host-key-policy secure --target router1 'show clock'
+exit=101
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+karvi: target=router1 status=connection_error error=host_key_revoked: ssh: handshake failed: host=router1: known_hosts=LAB/kh/known_hosts: presented=ssh-ed25519 SHA256:&lt;redacted&gt;
+! exit=101 elapsed=89ms artifacts=LAB/jobs/261101/261101-044147-00
+$ karvi run --transport system --ssh-host-key-policy secure --target router1 'show clock'
+exit=101
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=system
+karvi: target=router1 status=connection_error error=host_key_revoked: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@       WARNING: REVOKED HOST KEY DETECTED!               @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+The ED25519 host key for router1 is marked as revoked.
+This could mean that a stolen key is being used to
+impersonate this host.
+ED25519 host key for router1 was revoked and you have requested strict checking.
+Host key verification failed.
+! exit=101 elapsed=150ms artifacts=LAB/jobs/261101/261101-044148-00
+$ karvi --set ssh.halt-run-on-host-key-mismatch=true run --transport native --target router1 'show clock'
+exit=114
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+karvi: target=router1 status=connection_error error=host_key_revoked: ssh: handshake failed: host=router1: known_hosts=LAB/kh/known_hosts: presented=ssh-ed25519 SHA256:&lt;redacted&gt;
+! exit=114 elapsed=83ms artifacts=LAB/jobs/261101/261101-044148-03
+</code></pre>
+<p>A failed device makes the job's exit 101, and the halt 114, as for a changed
+key; before <code>672f9e8</code> the native transport took a revoked key for a match. Not
+taken: <code>host_key_changed</code> for a revoked key, a reviewer's first fix (the
+operator named a code of its own); a store holding a <code>@cert-authority</code> line
+refused (OpenSSH reads such lines itself, and the native transport has no
+certificates); a revoked key failing its device alone while the run goes on, as
+between <code>672f9e8</code> and <code>8bd69ca</code> (<a href="SSH-HOST-KEY-POLICY.html#marked-lines"><code>docs/SSH-HOST-KEY-POLICY.md</code>, &quot;Marked
+lines&quot;</a>).</p>
+<p><strong>karvi-prune's range, and a tree it cannot read.</strong> On the lab's private root,
+by option, since karvi-prune reads no configuration: <code>--basedir</code>,
+<code>--sharedroot none</code>, <code>--scoreboards</code>, and <code>--minfree 0</code> are left out of the
+labels; the <code>chmod</code> lines are the script's steps, and the usage text after the
+refusal's first line is cut:</p>
+<pre><code class="language-text">$ karvi-prune --days 1000 --dry-run
+exit=2
+karvi-prune: --days takes one to 999, not 1000
+$ chmod 000 jobs/261020
+$ karvi-prune --days 999 --dry-run
+exit=0
+skipped kind=activity path=LAB/base/jobs/261020 error=open LAB/base/jobs/261020: permission denied
+examined=0 removed=0 skipped=1 not_owned=0 failed=0 bytes=0 dry_run=true
+$ chmod 000 jobs
+$ karvi-prune --days 999 --dry-run
+exit=1
+failed kind=tree path=LAB/base/jobs error=open LAB/base/jobs: permission denied
+examined=0 removed=0 skipped=0 not_owned=0 failed=1 bytes=0 dry_run=true
+</code></pre>
+<p>999,999 days had put the cutoff in 2211; it is now counted in calendar days
+(<code>time.AddDate</code>). Not taken: a bound at the arithmetic's limit or at 36,500
+days, or <code>AddDate</code> with no bound, the review's suggestions; exit 0 for a tree
+that cannot be read, the documents changed to say so, its alternative for #10
+(<a href="PRUNE.html#the-exits"><code>docs/PRUNE.md</code>, &quot;The exits&quot;</a>).</p>
+<p><strong>Two rows for one device.</strong> <code>run --dry-run</code> plans on the client and contacts
+no device. Two identical rows still become one, with a warning naming both
+lines (<code>ex-inventory.log</code>); rows that differ are refused:</p>
+<pre><code class="language-text">$ cat inv.csv
+name,management_address,platform,transport,port,risk_tier
+router1,192.0.2.11,cisco_ios,native,,low
+router1,192.0.2.11,cisco_ios,,,low
+$ karvi run --dry-run --target router1 'show clock'
+exit=5
+inventory_conflict: client planning: inventory conflict for id name:router1 between LAB/inv.csv:2 and LAB/inv.csv:3
+$ cat inv.csv
+name,management_address,platform,transport,port,risk_tier
+router1,192.0.2.11,cisco_ios,native,,low
+router1,192.0.2.11,cisco_ios,native,,high
+$ karvi run --dry-run --target router1 'show clock'
+exit=5
+inventory_conflict: client planning: inventory conflict for id name:router1 between LAB/inv.csv:2 and LAB/inv.csv:3
+</code></pre>
+<p>The rows were one when they agreed on the address, platform, transport, port,
+site, groups, and key, the first row's session cap, name transform, risk tier,
+deployment ring, topology domain, and attributes standing for both. Not taken:
+the documented rule narrowed to the fields compared, the reviewer's alternative.</p>
+<p><strong>A locked key's macro.</strong> A lock is declared only in the global layer
+(<code>/etc/karvi/config.toml</code>, else <code>/opt/karvi/config.toml</code>), which no option or
+environment variable moves, so a lab cannot declare one. The regression test
+passes in the worktree (<code>go test -count=1 -run TestLockedValueTakesNoMacroFromBelowTheLock -v ./internal/configload/</code>), and a
+scratch test through <code>go test -overlay</code>, the tree untouched, points the
+package's <code>globalRoots</code> at a lab file as that test does: the global file locks
+<code>ssh.host-key-policy</code>, set to <code>&quot;%policy%&quot;</code> with <code>policy = &quot;secure&quot;</code>, and
+<code>user.toml</code> sets <code>policy = &quot;insecure&quot;</code>. The block is the scratch test's output;
+its <code>--</code> lines name each load's options as the command line gives them and,
+with the <code>loaded:</code> line, are the test's, and each <code>config_lock_violation</code> line
+is the load's error, the text karvi reports:</p>
+<pre><code class="language-text">-- the global file alone
+loaded: ssh.host-key-policy = &quot;secure&quot;
+-- --set 'macros.policy=&quot;insecure&quot;'
+config_lock_violation: ssh.host-key-policy takes %policy%: write blocked by lock &quot;ssh.host-key-policy&quot; declared at LAB/global.toml:2 for macros.policy at --set[1]
+-- --config LAB/user.toml
+config_lock_violation: ssh.host-key-policy takes %policy%: write blocked by lock &quot;ssh.host-key-policy&quot; declared at LAB/global.toml:2 for macros.policy at LAB/user.toml:2
+-- --set 'ssh.host-key-policy=&quot;insecure&quot;'
+config_lock_violation: write blocked by lock &quot;ssh.host-key-policy&quot; declared at LAB/global.toml:2 for ssh.host-key-policy at --set[1]
+</code></pre>
+<p><code>%operator%</code>, built in, is no layer's, and a locked key takes it. Not taken:
+every macro a locked key takes locked where the lock is declared, the
+reviewer's other fix, under which no layer could set that macro for an unlocked
+key.</p>
+<p><strong>TOML as TOML reads it, and the timestamp's <code>mm</code>.</strong> <code>config validate FILE</code>
+loads the lab's configuration and <code>FILE</code>, with no discovered layer:</p>
+<pre><code class="language-text">$ cat octal.toml
+[config]
+include-depth = 010
+$ karvi config validate octal.toml
+exit=2
+config_toml_syntax: invalid TOML at LAB/octal.toml: TOML line 2 column 1: unsupported bare value &quot;010&quot;
+$ cat surrogate.toml
+[display.run]
+header = &quot;! \uD800 &lt;target&gt;&quot;
+$ karvi config validate surrogate.toml
+exit=2
+config_toml_syntax: invalid TOML at LAB/surrogate.toml: TOML line 2 column 1: invalid unicode escape
+$ karvi --set 'display.timestamp=&quot;dd-mm hh:mm&quot;' config validate
+exit=2
+display_timestamp_mm_ambiguous: ambiguous mm in display.timestamp; use MM for month or place mm between hh and ss for minutes for display.timestamp at --set[1]
+$ karvi --set 'display.timestamp=&quot;hh:mm dd-MM&quot;' config validate
+exit=2
+display_timestamp_mm_ambiguous: ambiguous mm in display.timestamp; use MM for month or place mm between hh and ss for minutes for display.timestamp at --set[1]
+$ karvi --set 'display.timestamp=&quot;yyyy-MM-dd hh:mm&quot;' config validate
+exit=0
+valid: true
+</code></pre>
+<p><code>010</code> was 8; an integer is decimal with no leading zero, or <code>0x</code>, <code>0o</code>, or <code>0b</code>
+written out. <code>\uD800</code>, half a surrogate pair, is no Unicode character. <code>dd-mm hh:mm</code> had shown the minutes where the month belonged. Not taken: <code>mm</code> decided
+by the separator beside it, the reviewer's alternative.</p>
+<p><strong>The mask lists, amended.</strong> S9's audit drew up 179 secret-bearing lines across
+the five built-in lists and found 39 left in clear or masked at the wrong word;
+each is masked, the corpus tests showing no new over-masking, some forms written
+from a command's documented syntax rather than read from a device.
+<a href="#63-the-audit-trails-names-and-fields-2026-10-17">Chapter 63</a>, issue 8, gives
+the earlier lists and their reasons. Below are the lists as they stand, for a
+site's <code>[platform.NAME]</code> tables, where <code>masks</code> replaces the built-in list whole
+(<a href="COLLECTION.html#61-the-secrets-the-mask"><code>docs/COLLECTION.md</code> section 6.1</a>).
+They come from the code: a scratch test through <code>go test -overlay</code> reads each
+list and its comments from <code>platform/masks.go</code> with <code>go/parser</code>, checks that it
+equals, pattern for pattern, the <code>Masks</code> of the built-in carrying it, and writes
+each pattern as a TOML literal string, which holds its bytes as they are; the
+lab build then loaded the file beside the lab's configuration, and <code>config show --format json</code> read back each table's masks. The <code>go test</code> line is go test's;
+the <code>#</code> comment, the <code>==</code> lines, and the <code>read back equal</code> lines (a <code>jq</code>
+comparison with the built-in lists) are the script's:</p>
+<pre><code class="language-text">== tree 908be92, go version go1.27.3 linux/amd64
+$ go test -count=1 -overlay overlay/masks-overlay.json -run TestChapter88MasksAsTOML -v ./platform/
+ok  	github.com/robert-patrick-texas/karvi/platform	0.006s
+== masks.toml: 139 lines, 76 patterns, sha256 cf794487c6cc6800
+$ karvi config validate masks.toml
+exit=0
+valid: true
+$ karvi --config masks.toml config show --format json  # each table's masks against the built-in lists
+exit=0
+arista_eos: read back equal, 15 patterns
+cisco_ios: read back equal, 21 patterns
+cisco_nxos: read back equal, 14 patterns
+cisco_xr: read back equal, 16 patterns
+juniper_junos: read back equal, 10 patterns
+</code></pre>
+<pre><code class="language-toml">[platform.cisco_ios]
+masks = [
+  # SNMP: community, a host's v1/v2c community, a v3 user's auth and priv
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+comm\S*\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+host\s+\S+(?:\s+vrf\s+\S+)?(?:\s+(?:informs?|traps?))?(?:\s+version\s+(?:1|2c|3\s+\S+))?\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bauth\s+(?:md5|sha\S*(?:\s+\d{3})?)\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bpriv\s+(?:des\S*|3des|aes(?:\s+\d{3})?)\s+(\S+)',
+  # password or secret anywhere: username, enable (with level), line, BGP
+  # neighbor, PPP, IS-IS, dot1x, MSDP (its peer kept whole); abbreviations
+  # pass… and sec…; encryption holds no secret
+  '(?i)\b(?:msdp\s+(?:vrf\s+\S+\s+)?password\s+peer\s+\S+\s+(?:\d\s+)?(\S+)|(?:pass(?:w(?:o(?:r(?:d)?)?)?)?|sec(?:r(?:e(?:t)?)?)?)\s+(?:encryption\s|(?:level\s+\d+\s+)?(?:\d\s+)?(\S+)))',
+  '(?i)\bpassword-encrypt\s+(\S+)',
+  # keys: tacacs/radius server's bare key, legacy -server key and a server
+  # group's server-private, server-key and pac key, ISAKMP, a keyring's
+  # pre-shared-key by address or hostname, IKEv2 pre-shared and pre-share
+  # (MKA's key-chain holds no secret), OSPF and NTP, key chains and HSRP
+  # key-string
+  '(?i)^\s*(?:no\s+)?key\s+(?:\d\s+)?(\S+)\s*$',
+  '(?i)^\s*(?:no\s+)?(?:(?:tacacs|radius)-server|server-private)\s.*?\bkey\s+(?:\d\s+)?(\S+)',
+  '(?i)\b(?:server-key|pac\s+key)\s+(?:\d\s+)?(\S+)',
+  '(?i)^\s*(?:no\s+)?crypto\s+isakmp\s+key\s+(?:\d\s+)?(\S+)',
+  '(?i)\bpre-shared-key\s+(?:key-chain\s|(?:address|hostname)\s.*?\skey\s+(?:\d\s+)?(\S+)|(?:(?:local|remote)\s+)?(?:\d\s+)?(\S+))',
+  '(?i)\bpre-share\s+key\s+(?:\d\s+)?(\S+)',
+  '(?i)\bauthentication-key\s+(?:\d+\s+)?(?:(?:md5|sha\S*|cmac\S*|hmac\S*)\s+)?(?:\d\s+)?(\S+)',
+  '(?i)\bmessage-digest-key\s+\d+\s+md5\s+(?:\d\s+)?(\S+)',
+  '(?i)\bkey-string\s+(?:\d\s+)?(\S+)',
+  # OSPFv3's IPsec authentication and encryption keys, named EIGRP's
+  # HMAC-SHA-256 password
+  '(?i)\b(?:authentication\s+(?:mode\s+hmac-sha-256|ipsec\s+spi\s+\d+\s+(?:md5|sha1))|encryption\s+ipsec\s+spi\s+\d+\s+esp\s+(?:null|(?:des|3des|aes-cbc(?:\s+\d{3})?)\s+(?:\d\s+)?(\S+))\s+(?:md5|sha1))\s+(?:\d\s+)?(\S+)',
+  # LISP's map-server key, an Easy VPN client's group key
+  '(?i)(?:\bmap-server\s+\S+|^\s*group\s+\S+)\s+key\s+(?:\d\s+)?(\S+)',
+  # HSRP, VRRP, and GLBP plain text, wireless PSK, NHRP, a URL's password
+  '(?i)^\s*(?:no\s+)?(?:standby|vrrp|glbp)\s+\d+\s+authentication\s+(?:text\s+)?(\S+)\s*$',
+  '(?i)\b(?:wpa-psk|set-key)\s+(?:ascii|hex)\s+(?:\d\s+)?(\S+)',
+  '(?i)\bnhrp\s+authentication\s+(\S+)',
+  '(?i)\b(?:ftp|tftp|scp|sftp|https?)://[^/\s:@]+:([^@\s]+)@',
+]
 
-<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.38.0</code>.</footer>
+[platform.cisco_xr]
+masks = [
+  # SNMP: community, a host's community, a v3 user's auth and priv
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+comm\S*\s+(?:(?:encrypted|clear)\s+)?(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+host\s+\S+(?:\s+vrf\s+\S+)?(?:\s+(?:informs?|traps?))?(?:\s+version\s+(?:1|2c|3\s+\S+))?(?:\s+(?:encrypted|clear))?\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bauth\s+(?:md5|sha\S*(?:\s+\d{3})?)\s+(?:(?:encrypted|clear)\s+)?(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bpriv\s+(?:des\S*|3des|aes(?:\s+\d{3})?)\s+(?:(?:encrypted|clear)\s+)?(\S+)',
+  # password or secret anywhere: username, BGP and LDP neighbor, IS-IS
+  # lsp- and hello-password; abbreviations pass… and sec…
+  '(?i)\b(?:pass(?:w(?:o(?:r(?:d)?)?)?)?|sec(?:r(?:e(?:t)?)?)?)\s+(?:(?:hmac-md5|text)\s+)?(?:(?:encrypted|clear|\d{1,2})\s+)?(\S+)',
+  # keys: a tacacs/radius host's bare key, -server key and a server group's
+  # server-private, server-key, IKEv2 and a keyring's pre-shared-key by
+  # address or hostname, OSPF and NTP, key chains
+  '(?i)^\s*(?:no\s+)?key\s+(?:(?:encrypted|clear|\d)\s+)?(\S+)\s*$',
+  '(?i)^\s*(?:no\s+)?(?:(?:tacacs|radius)-server|server-private)\s.*?\bkey\s+(?:(?:encrypted|clear|\d)\s+)?(\S+)',
+  '(?i)\bserver-key\s+(?:(?:encrypted|clear|\d)\s+)?(\S+)',
+  '(?i)\bpre-shared-key\s+(?:(?:address|hostname)\s.*?\skey\s+(?:(?:encrypted|clear|password|\d)\s+)?(\S+)|(?:(?:local|remote)\s+)?(?:(?:clear|password|\d)\s+)?(\S+))',
+  '(?i)\bauthentication-key\s+(?:\d+\s+)?(?:(?:md5|sha\S*|hmac\S*)\s+)?(?:(?:encrypted|clear|\d)\s+)?(\S+)',
+  '(?i)\bmessage-digest-key\s+\d+\s+md5\s+(?:(?:encrypted|clear|\d)\s+)?(\S+)',
+  '(?i)\bkey-string\s+(?:(?:clear|password|\d)\s+)?(\S+)',
+  # OSPFv3's IPsec authentication and encryption keys
+  '(?i)\b(?:authentication\s+ipsec\s+spi\s+\d+\s+(?:md5|sha1)|encryption\s+ipsec\s+spi\s+\d+\s+esp\s+(?:null|(?:3des|des|aes(?:\s+\d{3})?)\s+(?:(?:clear|password)\s+)?(\S+))\s+authentication\s+(?:md5|sha1))\s+(?:(?:clear|password)\s+)?(\S+)',
+  # HSRP plain text (8 characters at most), VRRP text, a URL's password
+  '(?i)^\s*(?:no\s+)?authentication\s+(\S{1,8})\s*$',
+  '(?i)\btext-authentication\s+(\S+)',
+  '(?i)\b(?:ftp|tftp|scp|sftp|https?)://[^/\s:@]+:([^@\s]+)@',
+]
+
+[platform.cisco_nxos]
+masks = [
+  # SNMP: community, a host's community (its use-vrf, source-interface, and
+  # filter-vrf hold none), the MIB community map, a v3 user's auth and priv
+  # (printed as localized keys too)
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+comm\S*\s+(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+host\s+\S+\s+(?:use-vrf\s|source-interface\s|filter-vrf\s|(?:(?:informs|traps)\s+)?(?:version\s+(?:1|2c|3\s+\S+)\s+)?(&quot;[^&quot;]*&quot;|\S+))',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+mib\s+community-map\s+(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bauth\s+(?:md5|sha\S*)\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bpriv\s+(?:aes-128\s+)?(\S+)',
+  # password or secret anywhere: username, enable, BGP neighbor, LDAP, MSDP
+  # (its peer kept whole); strength-check, secure-mode, and encryption hold
+  # no secret
+  '(?i)\b(?:msdp\s+password\s+\S+\s+(?:\d\s+)?(&quot;[^&quot;]*&quot;|\S+)|(?:pass(?:w(?:o(?:r(?:d)?)?)?)?|sec(?:r(?:e(?:t)?)?)?)\s+(?:strength-check|secure-mode|encryption\s|(?:\d\s+)?(&quot;[^&quot;]*&quot;|\S+)))',
+  # keys: tacacs/radius, OSPF and NTP, key chains and HSRP key-string,
+  # MACsec key-octet-string
+  '(?i)^\s*(?:no\s+)?(?:tacacs|radius)-server\s.*?\bkey\s+(?:\d\s+)?(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)\bauthentication-key\s+(?:\d+\s+)?(?:(?:md5|sha\S*)\s+)?(?:\d\s+)?(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)\bmessage-digest-key\s+\d+\s+md5\s+(?:\d\s+)?(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)\bkey-(?:octet-)?string\s+(?:\d\s+)?(&quot;[^&quot;]*&quot;|\S+)',
+  # HSRP and VRRP text, PIM hello, BFD's key, a URL's password
+  '(?i)^\s*(?:no\s+)?authentication\s+text\s+(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)\bhello-authentication\s+ah-md5\s+(?:\d\s+)?(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)\bkey-id\s+\d+\s+(?:hex-)?key\s+(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)\b(?:ftp|tftp|scp|sftp|https?)://[^/\s:@]+:([^@\s]+)@',
+]
+
+[platform.juniper_junos]
+masks = [
+  # the printed form: Junos tags each secret line itself
+  '(?i)\s(&quot;[^&quot;]*&quot;|[^\s;]+);\s*## SECRET-DATA',
+  # SNMP: the community in a statement, v3's community-name, a printed block
+  '(?i)\bsnmp\s+community\s+(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)^\s*community\s+(&quot;[^&quot;]*&quot;|\S+)\s*\{',
+  '(?i)\bcommunity-name\s+(&quot;[^&quot;]*&quot;|[^\s;]+)',
+  # authentication-key (BGP, IS-IS, VRRP, v3), NTP's value first
+  '(?i)\bauthentication-key\s+(?:\d+\s+type\s+\S+\s+value\s+(&quot;[^&quot;]*&quot;|[^\s;]+)|(&quot;[^&quot;]*&quot;|[^\s;]+))',
+  # passwords and secrets: login, v3 users, OSPF simple, RADIUS, TACACS+,
+  # key chains; login password rules and a printed block hold no secret
+  '(?i)\b(?:encrypted-password|plain-text-password-value|authentication-password|privacy-password|simple-password|privacy-key|secret)\s+(&quot;[^&quot;]*&quot;|[^\s;]+)',
+  '(?i)\bpassword\s+(?:(?:minimum|maximum)-\S+\s|format\s|change-type\s|[{;]|(&quot;[^&quot;]*&quot;|[^\s;]+))',
+  # OSPF MD5, IKE's pre-shared-key and a manual IPsec SA's key, MACsec CAK,
+  # a URL's password
+  '(?i)\bmd5\s+\d+\s+key\s+(&quot;[^&quot;]*&quot;|[^\s;]+)',
+  '(?i)\b(?:key\s+(?:ascii-text|hexadecimal)|cak)\s+(&quot;[^&quot;]*&quot;|[^\s;]+)',
+  '(?i)\b(?:ftp|pasvftp|tftp|scp|sftp|https?)://[^/\s:@&quot;]+:([^@\s&quot;]+)@',
+]
+
+[platform.arista_eos]
+masks = [
+  # SNMP: community, a host's community, a v3 user's auth and priv
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+comm\S*\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+host\s+\S+(?:\s+vrf\s+\S+)?(?:\s+(?:informs?|traps?))?(?:\s+version\s+(?:1|2c|3\s+\S+))?\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bauth\s+(?:md5|sha\d{0,3})\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bpriv\s+(?:des|3des|aes\d{0,3})\s+(\S+)',
+  # password or secret as a word: username, enable, aaa root, BGP neighbor,
+  # a shared-secret profile's key; management security's minimum, policy,
+  # and encryption-key hold no secret; the type a digit, 8a, or sha512
+  '(?i)(?:^|\s)(?:pass(?:w(?:o(?:r(?:d)?)?)?)?|sec(?:r(?:e(?:t)?)?)?)\s+(?:minimum\s|policy\s|encryption\S*\s|\d+\s+\d\S*\s+(\S+)\s+receive-lifetime|(?:(?:\d|8a|sha512)\s+)?(\S+))',
+  # keys: tacacs/radius, OSPF and NTP, IS-IS and VRRP, key-string, MACsec
+  # CAK, OSPFv3's IPsec passphrase; the type a digit or 8a
+  '(?i)^\s*(?:no\s+)?(?:tacacs|radius)-server\s.*?\bkey\s+(?:(?:\d|8a)\s+)?(\S+)',
+  '(?i)\bauthentication-key\s+(?:\d+\s+)?(?:(?:md5|sha\S*)\s+)?(?:(?:\d|8a)\s+)?(\S+)',
+  '(?i)\bmessage-digest-key\s+\d+\s+md5\s+(?:(?:\d|8a)\s+)?(\S+)',
+  '(?i)\bauthentication\s+(?:key|text)\s+(?:(?:\d|8a)\s+)?(\S+)',
+  '(?i)\bkey-string\s+(?:(?:\d|8a)\s+)?(\S+)',
+  '(?i)^\s*key\s+[0-9a-f]+\s+(?:\d|8a)\s+(\S+)',
+  '(?i)\bpassphrase\s+(?:(?:\d|8a)\s+)?(\S+)',
+  # the licence key, TerminAttr's CloudVision key, a URL's password
+  '(?i)\bunsupported-transceiver\s+\S+\s+(\S+)',
+  '(?i)-cvauth=key,(\S+)',
+  '(?i)\b(?:ftp|tftp|scp|sftp|https?):(?://)?[^/\s:@]+:([^@\s]+)@',
+]
+</code></pre>
+<p><strong>Left open.</strong> The later findings, for the operator's word or a review of their
+own: #63, Go's resolver taking the host's domain where <code>search .</code> names none (a
+design session); #64 and #65, two suites' fragilities (the shell-script
+review); #66 and #67, tomlmini's floats read as Go reads them and the quotes
+TOML allows before a closing <code>&quot;&quot;&quot;</code>; #68, <code>.cloginrc</code>'s <code>[!</code> read as negation,
+which clogin's Tcl has not (a behaviour change); #69, #60's link check going by
+path, not by a held descriptor (a design item); #70, karvi-prune reading a
+job's summary, a scoreboard, and a snapshot by name, as #61 found for
+transcripts; #71, internal/app's login tests writing to the host's journal (the
+test review); #72, a transform parameter of the wrong kind read as empty; #73,
+<code>platform.&lt;name&gt;.legacy-class</code>, unread, whose removal moves the execution
+plan's schema. The parts the review did not read wait for reviews of their own,
+the shell scripts first. The push, the release, and its number are the
+operator's.</p>
+<p>The evidence is kept beside the tree
+(<code>release-design-evidence/review-fixes-2026-11-01</code>: each agent's failing and
+passing runs, every merged patch, each section's checks, the batteries, and in
+<code>chapter-88/</code> this chapter's lab scripts with their logs, the two scratch
+tests, and the script that cut the shown blocks from the logs).</p>
+<h2 id="89-the-reviews-later-fixes-waves-5-to-7-2026-11-01">89. The review's later fixes: waves 5 to 7 (2026-11-01) <a class="anchor" href="#89-the-reviews-later-fixes-waves-5-to-7-2026-11-01" aria-label="Link to this section">#</a></h2>
+<p>Opened as <a href="#88-the-code-review-of-2026-10-31-and-its-fixes-2026-11-01">chapter
+88</a> closed, on the
+operator's word for each wave: the fixes of chapter 88 found more defects than
+the review, numbered on from #60, and the operator decided which to fix now.
+Waves 5 to 7 fix twelve of them, #66 to #68, #70, and #72 to #79, in nine
+sections; nine commits on <code>dev</code>, <code>b07d3ff</code> to <code>5b0c29c</code>, carry them, each
+message naming its findings (&quot;review 2026-10-31 (new findings), #N&quot;). Nothing is
+pushed. The findings and the plan are kept in the operator's private archive.</p>
+<p><strong>What it gains.</strong> A <code>.cloginrc</code> that clogin reads is read the same way, its
+patterns, braces, and passwords as Tcl reads them, so a line written for clogin
+reaches the devices it reaches there with the password clogin sends; a FIFO or a
+link a member puts in a shared tree no longer holds or redirects karvi; a
+configuration number means what TOML says it means. It waits on nothing. The
+cost: the CHANGELOG's <code>Unreleased</code> block holds 30 entries, 14 of them Breaking,
+two more than at chapter 88's end and two widened, as a <code>.cloginrc</code>, a
+configuration, or a capacity root that relied on the old reading is now refused
+or read otherwise.</p>
+<p><strong>The sections</strong>, in the plan's waves (the CHANGELOG's <code>Unreleased</code> block says
+what each changed):</p>
+<table>
+<thead>
+<tr>
+<th>Wave</th>
+<th>Section</th>
+<th>Findings</th>
+<th>Commit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5</td>
+<td>S16 tomlmini numbers and strings</td>
+<td>#66 #67</td>
+<td><code>b07d3ff</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>S18 configuration</td>
+<td>#72 #73</td>
+<td><code>018ff41</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>S17 prune reads</td>
+<td>#70</td>
+<td><code>5b010bc</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>S19 .cloginrc patterns</td>
+<td>#68</td>
+<td><code>54c0280</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>S20 shared files read by name</td>
+<td>#74</td>
+<td><code>ae571ff</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>S21 .cloginrc braces</td>
+<td>#75</td>
+<td><code>10181e0</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>S22 the capacity ledger's lock</td>
+<td>#76</td>
+<td><code>198e011</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>S23 job follow's open</td>
+<td>#77</td>
+<td><code>6e1508b</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>S24 .cloginrc passwords, messages</td>
+<td>#78 #79</td>
+<td><code>5b0c29c</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>How the fixes ran.</strong> As in chapter 88: per finding, the defect confirmed, a
+test that fails on the tree as it was (its output kept), the fix, the test
+again; one worktree and one agent per section, the agents of a wave in parallel;
+the orchestrator read each diff against its finding, merged it, wrote the
+CHANGELOG, ran <code>go vet</code>, <code>make generated-clean</code>, and the whole tree's <code>go test</code>,
+and committed it. Every <code>.cloginrc</code> rule was checked against <code>tclsh8.6</code> and
+clogin's own <code>add</code> and <code>find</code> procedures on the host, the password join on 62
+recorded and 40,000 random values. The full battery passed after each wave: at
+<code>54c0280</code>, <code>10181e0</code>, and <code>5b0c29c</code>, <code>go test</code> over 73 packages and every suite
+in 236 to 238 seconds, the host clean after. The key registry moved from 32 to
+33 (#73); no other counter moved, and no error code is new.</p>
+<p><strong>The operator's decisions</strong>, in simple terms:</p>
+<ul>
+<li>#66: a number in a karvi file is a TOML integer or decimal float; <code>inf</code> and
+<code>nan</code> are refused.</li>
+<li>#68: a <code>.cloginrc</code> pattern matches exactly as clogin's Tcl <code>string match</code>
+does: a class has no negation, so <code>[!x]</code> and <code>[^x]</code> each match only the
+characters listed.</li>
+<li>#73: <code>platform.&lt;name&gt;.legacy-class</code> removed, nothing reading it; the key
+registry moves to 33, and the execution plan's schema stays, since nothing
+writes a platform definition's JSON.</li>
+<li>#75: inside braces every character is literal, as Tcl reads it; <code>$</code>, <code>[</code>,
+<code>]</code>, and <code>;</code> are refused only in a bare word, where Tcl would substitute.</li>
+<li>#78: an <code>add password</code> line's password and enable are what clogin sends: each
+value read again as a Tcl list, its words joined with nothing between; <code>user</code>
+and <code>userpassword</code> are taken as written; a value that is not a Tcl list (an
+unmatched quote or brace, where clogin's join stops with a Tcl error) is
+<code>cloginrc_malformed</code>, naming the file and line.</li>
+<li>#70, #72, #74, #76, #77, #79 fixed as found, #77 by one regular-file open in
+<code>osutil</code> that <code>ReadRegularFile</code> and <code>job follow</code> share, the daemon reading its
+own <code>commands.jsonl</code> through the descriptor it holds.</li>
+</ul>
+<p><strong>Settled under the existing rules</strong>, each reported to the operator: the
+stricter number forms reach <code>--set</code> and <code>KARVI__</code> overrides too, one parser; a
+link or FIFO at a scoreboard snapshot's name is &quot;not live&quot;; <code>router\[12</code>, an
+open class, loads, as Tcl matches <code>router1</code> with it; a bare <code>]</code> stays refused; a
+dangling link at <code>summary.json</code> is a summary that cannot be read; the ledger's
+bound is 16 MiB. In wave 7: the capacity root keeps its mode set by name, a link
+there being the site's; the operator's own <code>devices</code> folder at a mode without
+owner read is refused, as its mode is now set through a descriptor; the daemon
+holds a job's <code>commands.jsonl</code> until the job leaves its table of 1,024 jobs or
+the daemon stops, so a job folder karvi-prune removes in that time keeps its
+space until then, the idle timer (ten minutes by default) bounding it; a value
+whose join is empty (<code>{ }</code>) is a missing password, as <code>{}</code> was; Redis's coded
+replies write their code once too.</p>
+<p><strong>The lab.</strong> The examples ran on a lab build of <code>5b0c29c</code> (<code>karvi</code>,
+<code>karvi-fake-device</code>) in a folder under <code>/var/tmp</code>, mode 0700, that each script
+made and removed, laid out as chapter 88's (every place karvi writes under it,
+<code>display.color = &quot;never&quot;</code>, <code>NETUSER=jsmith</code>). The lab's <code>--config</code>, and <code>run</code>'s
+<code>--no-daemon</code>, are left out of the <code>$</code> labels, and the lab's path is written
+<code>LAB</code>. The <code>$</code>, <code>exit=</code>, and <code>==</code> lines are the scripts'; the rest is karvi's,
+its standard output then its standard error, unless the paragraph says
+otherwise. None of <code>/tmp/karvi-1000</code>, <code>/var/tmp/karvi-1000</code>, <code>/dev/shm/karvi</code>,
+and the home's <code>.local/share/karvi</code> existed after any script.</p>
+<p><strong>A password as clogin sends it.</strong> <code>router1</code> is the fake device on 127.0.0.1,
+taking the user <code>jsmith</code>, the password <code>passone</code>, and the enable secret <code>en 1</code>;
+the credential policy holds the lab's <code>.cloginrc</code> alone:</p>
+<pre><code class="language-text">$ cat cloginrc
+add user router1 jsmith
+add password router1 {pass one} {&quot;en 1&quot;}
+$ karvi run --target router1 'show clock'
+exit=0
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=clogin transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=788ms artifacts=LAB/jobs/261101/261101-105506-00
+! ssh accepted new host-key router1 (ED25519)
+$ cat cloginrc
+add user router1 jsmith
+add password router1 {pass one} {en 1}
+$ karvi run --target router1 'show clock'
+exit=101
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=clogin transport=native
+karvi: target=router1 status=privilege_error error=privilege_failed: the device stayed at the &quot;exec&quot; prompt &quot;Router&gt;&quot; after one &quot;enable&quot; attempt
+! exit=101 elapsed=403ms artifacts=LAB/jobs/261101/261101-105507-00
+$ cat cloginrc
+add user router1 jsmith
+add password router1 {&quot;pass one}
+$ karvi run --target router1 'show clock'
+exit=6
+cloginrc_malformed: 1 of 1 targets failed credential resolution: name:router1 (LAB/cloginrc:2: the password is not a Tcl list: unmatched open quote policy=default backend=clogin)
+</code></pre>
+<p><code>{pass one}</code> logs in as <code>passone</code>, and <code>{&quot;en 1&quot;}</code> is the list of one word
+<code>en 1</code>; <code>{en 1}</code> is two words, joined <code>en1</code>, which the device refuses. Before
+<code>5b0c29c</code>, karvi sent <code>pass one</code>, a password clogin never sent. Not taken: the
+literal value kept and the difference documented, the alternative put to the
+operator; the join for <code>user</code> and <code>userpassword</code> too, which clogin does not do
+(<a href="OPERATIONS.html#credential-files"><code>docs/OPERATIONS.md</code>, &quot;Credential files&quot;</a>).</p>
+<p><strong>A pattern and a brace as Tcl reads them.</strong> <code>run --dry-run</code> plans on the client
+and contacts no device; the plan's lines other than each target's name and
+credential are cut:</p>
+<pre><code class="language-text">$ cat cloginrc
+add user {router[!x]*} bob
+add user * alice
+add password * {pa$$w0rd}
+$ karvi run --dry-run --all 'show clock'
+exit=0
+- name:router1: planned
+  credential: bound 20261101T105647.734104-0500-kgmbyap0kj0vz8a6j6hg (policy=default backend=clogin user=alice; value not displayed)
+- name:routerx: planned
+  credential: bound 20261101T105647.734156-0500-9ggs8pj7pgbbpb9j5xnt (policy=default backend=clogin user=bob; value not displayed)
+- name:router!: planned
+  credential: bound 20261101T105647.734156-0500-9ggs8pj7pgbbpb9j5xnt (policy=default backend=clogin user=bob; value not displayed)
+$ cat cloginrc
+add user * alice
+add password * pa$$w0rd
+$ karvi run --dry-run --all 'show clock'
+exit=6
+cloginrc_tcl_substitution_forbidden: client planning: 3 of 3 targets failed credential resolution: name:router1 (LAB/cloginrc:2: '$' in a bare word; brace the word policy=default backend=clogin); name:routerx (LAB/cloginrc:2: '$' in a bare word; brace the word policy=default backend=clogin); name:router! (LAB/cloginrc:2: '$' in a bare word; brace the word policy=default backend=clogin)
+</code></pre>
+<p><code>{router[!x]*}</code> matches <code>routerx</code> and <code>router!</code> and not <code>router1</code>: Tcl's class
+lists <code>!</code> and <code>x</code>, and has no negation. karvi had read <code>[!x]</code> as negation, any
+character but <code>x</code>, which matches <code>router1</code> and <code>router!</code> and not <code>routerx</code>.
+<code>{pa$$w0rd}</code> loads, as clogin reads it; bare, where Tcl would substitute, it is
+refused naming the character. Not taken: the negation kept as a karvi extension,
+which matches devices clogin's line does not.</p>
+<p><strong>A number as TOML writes it.</strong> By <code>config validate</code> with a case file beside the
+lab's configuration; a case accepted shows <code>valid: true</code>, as <code>1.5</code> did:</p>
+<pre><code class="language-text">$ cat case.toml
+[output]
+reserve-multiplier = 01.5
+$ karvi config validate case.toml
+exit=2
+config_toml_syntax: invalid TOML at LAB/case.toml: TOML line 2 column 1: unsupported bare value &quot;01.5&quot;
+$ cat case.toml
+[output]
+reserve-multiplier = .5
+$ karvi config validate case.toml
+exit=2
+config_toml_syntax: invalid TOML at LAB/case.toml: TOML line 2 column 1: unsupported bare value &quot;.5&quot;
+$ cat case.toml
+[output]
+reserve-multiplier = inf
+$ karvi config validate case.toml
+exit=2
+config_toml_syntax: invalid TOML at LAB/case.toml: TOML line 2 column 1: unsupported bare value &quot;inf&quot;
+$ cat case.toml
+[output]
+reserve-multiplier = 1e0
+$ karvi config validate case.toml
+exit=0
+valid: true
+digest: 138ea3e38f59b29ddfe905b7b0486e707b20c1422bdac15711e12602a7fe9fe9
+sources: LAB/karvi.toml, LAB/case.toml
+warnings: 0
+$ cat case.toml
+[platform.cisco_ios]
+legacy-class = &quot;ios-12&quot;
+$ karvi config validate case.toml
+exit=2
+config_unknown_key: unknown configuration key for platform.cisco_ios.legacy-class at LAB/case.toml:2
+</code></pre>
+<p><code>01.5</code>, <code>.5</code>, and <code>inf</code> were taken by Go's float reading. Not taken: <code>inf</code> and
+<code>nan</code> accepted, as TOML allows them; a <code>removed.go</code> row for <code>legacy-class</code>, a
+refusal of its own naming the removal, where it is an unknown key like any
+other.</p>
+<p><strong><code>job follow</code> and a FIFO.</strong> <code>router1</code> is 127.0.0.1 on port 2, where nothing
+listens, so the job ends at once with its summary final; no daemon runs, so
+<code>job follow</code> renders the job from its folder. Each follow is bounded by
+<code>timeout 10</code>, the script's, which would print <code>timeout</code>; the <code>rm</code> and <code>mkfifo</code>
+that put the FIFO at <code>commands.jsonl</code> are the script's steps:</p>
+<pre><code class="language-text">$ karvi run --target router1 'show clock'
+exit=101
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+karvi: target=router1 status=connection_error error=native_session_open_failed: dial tcp 127.0.0.1:2: connect: connection refused
+! exit=101 elapsed=61ms artifacts=LAB/jobs/261101/261101-105710-00
+$ karvi job follow 261101-105710-00
+exit=101
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+karvi: target=router1 status=connection_error error=native_session_open_failed: dial tcp 127.0.0.1:2: connect: connection refused
+! exit=101 elapsed=61ms artifacts=LAB/jobs/261101/261101-105710-00
+$ stat -c '%A %n' commands.jsonl
+prw------- commands.jsonl
+$ karvi job follow 261101-105710-00
+exit=111
+run_output_records_unreadable: LAB/jobs/261101/261101-105710-00/commands.jsonl is not a regular file
+</code></pre>
+<p>Before <code>6e1508b</code> the second follow waited for a writer that never came. Not
+taken: <code>ReadRegularFile</code> for the follow, which reads a file once to a bound
+where the follow reads one that grows; the daemon reopening the file by name and
+comparing its identity with the store's, the descriptor held instead, as the
+operator chose.</p>
+<p><strong>A link at a ledger's lock.</strong> The lab's capacity root, <code>LAB/cap</code>, is named by
+<code>sessions.shared-capacity-root</code>, so no fallback is taken; <code>private</code>, a 0600 file
+of the operator's, stands for a colleague's. The <code>$</code> lines other than karvi's
+are the script's steps, each followed by what it printed:</p>
+<pre><code class="language-text">$ karvi run --target router1 'show clock'
+exit=101
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+karvi: target=router1 status=connection_error error=native_session_open_failed: dial tcp 127.0.0.1:2: connect: connection refused
+! exit=101 elapsed=58ms artifacts=LAB/jobs/261101/261101-105749-00
+$ stat -c '%A %N' cap/server.lock
+-rw------- 'cap/server.lock'
+$ rm cap/server.lock
+$ printf 'not a lock\n' &gt;private; chmod 600 private
+$ ln -s ../private cap/server.lock
+$ karvi run --target router1 'show clock'
+exit=9
+capacity_root_unusable: open LAB/cap/server.lock: too many levels of symbolic links; a shared capacity root needs mode 2770 in the operators' group (group write and search, setgid, no sticky bit), as sudo karvi setup shared makes it
+$ stat -c '%A %N' private cap/server.lock
+-rw------- 'private'
+lrwxrwxrwx 'cap/server.lock' -&gt; '../private'
+$ rm cap/server.lock private
+$ ln -s ../absent cap/server.lock
+$ karvi run --target router1 'show clock'
+exit=9
+capacity_root_unusable: open LAB/cap/server.lock: too many levels of symbolic links; a shared capacity root needs mode 2770 in the operators' group (group write and search, setgid, no sticky bit), as sudo karvi setup shared makes it
+$ ls absent 2&gt;&amp;1
+ls: cannot access 'absent': No such file or directory
+</code></pre>
+<p>Before <code>198e011</code> karvi opened the lock through the link: here it leased through
+<code>private</code>, and in a shared root, whose lock files are <code>0660</code>, a colleague's own
+lease made the colleague's private file <code>0660</code>; the dangling link made <code>absent</code>.
+The remedy after the refusal speaks of the root's mode (#88). Not taken: the
+lock checked by <code>Lstat</code> and then opened by name, a race; a link at the capacity
+root refused, the root being the site's.</p>
+<p><strong>Left open.</strong> For the operator's word, or a review of their own: #63, Go's
+resolver and the host's domain (a design session); #64 and #65, two suites'
+fragilities (the shell-script review); #69 and #81, #60's and #76's checks going
+by path, not by a held descriptor (a design item); #71, internal/app's login
+tests writing to the host's journal (the test review); #80, <code>karvi exercise</code>
+coding every capacity read failure as a malformed ledger; #82, <code>.cloginrc</code>'s
+bare and quoted words read otherwise than Tcl reads them (a rule, as #68 and
+#75); #83, an empty joined password, for reading; #84 and #85, two <code>.cloginrc</code>
+checks that cannot fire and a long line refused without its file; #86, the &quot;text
+after the code&quot; trim written out in seven places; #87 and #88, two messages that
+run on or advise wrongly. The push, the release, and its number are the
+operator's.</p>
+<p>The evidence is kept beside the tree
+(<code>release-design-evidence/review-fixes-2026-11-01</code>: each agent's failing and
+passing runs, every merged patch, each section's checks, the batteries, and in
+<code>chapter-89/</code> this chapter's lab scripts with their logs and the blocks cut from
+them).</p>
+<h2 id="90-the-reviews-later-fixes-waves-8-to-10-2026-11-01">90. The review's later fixes: waves 8 to 10 (2026-11-01) <a class="anchor" href="#90-the-reviews-later-fixes-waves-8-to-10-2026-11-01" aria-label="Link to this section">#</a></h2>
+<p>Opened as <a href="#89-the-reviews-later-fixes-waves-5-to-7-2026-11-01">chapter 89</a>
+closed, on the operator's word for each wave: waves 8 to 10 fix eleven more of
+the defects the fixes found, #80, #82, #84 to #91, and #93, in five sections;
+five commits on <code>dev</code>, <code>acfb40d</code> to <code>7a988bf</code>, carry them, each message naming
+its findings (&quot;review 2026-10-31 (new findings), #N&quot;). Nothing is pushed. The
+findings and the plan are kept in the operator's private archive.</p>
+<p><strong>What it gains.</strong> A <code>.cloginrc</code> word and line mean in karvi what they mean to
+clogin: a backslash sequence, a double-quoted word, a <code>#</code> after the values, a
+carriage return, and a command's case are read as clogin's Tcl reads them, so
+karvi sends the password clogin sends and refuses a line clogin would fail on;
+<code>config show --explain</code> names the capacity root a run takes; a refusal names its
+cause once, its remedy fitting it. It waits on nothing. The cost: the
+CHANGELOG's <code>Unreleased</code> block holds 33 entries, 14 of them Breaking, three more
+than at chapter 89's end, and its <code>.cloginrc</code> entry widened, as a file that
+relied on the old reading is now refused or read otherwise.</p>
+<p><strong>The sections</strong>, in the plan's waves (the CHANGELOG's <code>Unreleased</code> block says
+what each changed):</p>
+<table>
+<thead>
+<tr>
+<th>Wave</th>
+<th>Section</th>
+<th>Findings</th>
+<th>Commit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8</td>
+<td>S25 the .cloginrc word reader</td>
+<td>#82 #84 #85</td>
+<td><code>acfb40d</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td>S26 messages</td>
+<td>#80 #86 #87 #88</td>
+<td><code>8b0c336</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>S27 exercise and Place</td>
+<td>#89 #90</td>
+<td><code>b44c576</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>S28 .cloginrc lines</td>
+<td>#91</td>
+<td><code>16c7f3b</code></td>
+</tr>
+<tr>
+<td>10</td>
+<td>S29 Place and the capacity root</td>
+<td>#93</td>
+<td><code>7a988bf</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>How the fixes ran.</strong> As in chapter 89: per finding, the defect confirmed, a
+test that fails on the tree as it was (its output kept), the fix, the test
+again; one worktree and one agent per section; the orchestrator read each diff
+against its finding, merged it, wrote the CHANGELOG, ran <code>go vet</code>,
+<code>make generated-clean</code>, and the whole tree's <code>go test</code>, and committed it. The
+<code>.cloginrc</code> rules were checked against <code>tclsh8.6</code> and clogin's own <code>add</code>,
+<code>find</code>, and line loop on the host: the words on 200,000 random lines (S25),
+whole files through Tcl's <code>gets</code> on 40,000 random files (S28), with no
+disagreement. The full battery passed after each wave: at <code>8b0c336</code>, <code>16c7f3b</code>,
+and <code>7a988bf</code>, <code>go test</code> over 73 packages and every suite in 232 to 238 seconds,
+the host clean after. No counter moved, and no error code is new.</p>
+<p><strong>The operator's decisions</strong>, in simple terms:</p>
+<ul>
+<li>#82: a <code>.cloginrc</code> word is read as Tcl reads a word: backslash sequences
+substituted in a bare or double-quoted word (inside braces, as before, not); a
+double-quoted word is one word; text right after a closing brace or quote is
+<code>cloginrc_malformed</code>, naming the file and line; <code>$ [ ] ;</code> refused wherever Tcl
+would substitute.</li>
+<li>#91: a <code>.cloginrc</code> line is what clogin's <code>gets</code> reads, with no continuation
+lines (a lone carriage return ends a line; a trailing backslash is part of the
+last word, as Tcl reads it); <code>add</code>, <code>include</code>, and the directive are matched
+as clogin's Tcl matches them, case-sensitively; a line clogin would fail on is
+refused.</li>
+<li>#93: <code>config show --explain</code> follows a link at the capacity root as a run
+does and reads the server ledger to judge it as a run would; the scoreboards'
+judgement checked against their own run, and left, as both refuse a link.</li>
+<li>#80: an uncoded capacity read failure under <code>karvi exercise</code> is
+<code>capacity_root_unusable</code>. #87: <code>; </code> before a credential refusal's
+<code>policy=… backend=…</code>. #88: the refusal names the link at a ledger's lock, its
+remedy fitting it.</li>
+<li>#84, #85, #86, #89, #90 fixed as found, #86 by one function,
+<code>errorcodes.Text</code>, the error's text after its code; #81 waits for #69's design
+session; #83 and #92 no change.</li>
+</ul>
+<p><strong>Settled under the existing rules</strong>, each reported to the operator: <code>#</code> begins
+a comment only as a line's first word, so a comment after a line's values is
+read as values, as clogin reads it; in a quoted word <code>$</code> and <code>[</code> are refused,
+and <code>;</code> and <code>]</code> are characters, as to Tcl; an escaped <code>\$</code> is a <code>$</code>; words split
+on Tcl's six white-space bytes alone; a <code>;</code> right after a closing brace or quote
+is <code>cloginrc_tcl_substitution_forbidden</code>, where Tcl ends the command. A
+credential refusal with no message reads <code>code: policy=P backend=B</code>; a link at
+the ledger's <code>devices</code> takes the lock's remedy. An exercise finding whose
+message showed its code, or dropped a host-key error's <code>known_hosts=PATH</code>, now
+shows its whole text without the code. <code>\r\r\n</code> and <code>\n\r</code> are three lines, as
+<code>gets</code> counts them; <code>add METHOD</code>, an ignored directive in another case, is an
+unknown directive. <code>--explain</code> passes by a root whose <code>server.lock</code> is a folder,
+a socket, or closed to the operator, or whose <code>server.json</code> is a link, not
+regular, too large, or unreadable; a link to nothing at the root is passed by,
+or a named root refused; the ledger is read without its lock, since a write
+replaces it by a rename.</p>
+<p><strong>The lab.</strong> The examples ran on a lab build of <code>7a988bf</code> (<code>karvi</code>,
+<code>karvi-fake-device</code>) in a folder under <code>/var/tmp</code>, mode 0700, that each script
+made and removed, laid out as chapter 89's (every place karvi writes under it,
+<code>display.color = &quot;never&quot;</code>, <code>NETUSER=jsmith</code>). The lab's <code>--config</code>, and <code>run</code>'s
+<code>--no-daemon</code>, are left out of the <code>$</code> labels, and the lab's path is written
+<code>LAB</code>. The <code>$</code>, <code>exit=</code>, and <code>==</code> lines are the scripts'; the rest is karvi's,
+its standard output then its standard error, unless the paragraph says
+otherwise. None of <code>/tmp/karvi-1000</code>, <code>/var/tmp/karvi-1000</code>, <code>/dev/shm/karvi</code>,
+and the home's <code>.local/share/karvi</code> existed after any script.</p>
+<p><strong>A word as Tcl reads it.</strong> <code>router1</code> is the fake device on 127.0.0.1, taking
+the user <code>jsmith</code>, the password <code>pass</code>, and the enable secret <code>en1</code>; the
+credential policy holds the lab's <code>.cloginrc</code> alone. Each case shows the file,
+then clogin's reading of it, then karvi's run. clogin's reading is printed by
+<code>clogin-read.tcl</code>, a script under <code>tclsh8.6</code> holding clogin's own <code>add</code>, <code>find</code>,
+and line loop (<code>gets</code>, then <code>eval</code>), with the password and enable joined as
+clogin joins them, in brackets; its lines are the script's, not karvi's:</p>
+<pre><code class="language-text">$ cat cloginrc
+add user router1 jsmith
+add password router1 pa\tss en1
+$ tclsh8.6 clogin-read.tcl cloginrc router1
+password [pass] enable [en1]
+$ karvi run --target router1 'show clock'
+exit=0
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=clogin transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=689ms artifacts=LAB/jobs/261101/261101-131753-00
+! ssh accepted new host-key router1 (ED25519)
+$ cat cloginrc
+add user router1 jsmith
+add password router1 &quot;pa ss&quot; en1
+$ tclsh8.6 clogin-read.tcl cloginrc router1
+password [pass] enable [en1]
+$ karvi run --target router1 'show clock'
+exit=0
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=clogin transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=795ms artifacts=LAB/jobs/261101/261101-131754-00
+$ cat cloginrc
+add user router1 jsmith
+add password router1 pa\x73s en1
+$ tclsh8.6 clogin-read.tcl cloginrc router1
+password [pass] enable [en1]
+$ karvi run --target router1 'show clock'
+exit=0
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=clogin transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=681ms artifacts=LAB/jobs/261101/261101-131755-00
+$ cat cloginrc
+add user router1 jsmith
+add password router1 {pa}ss en1
+$ tclsh8.6 clogin-read.tcl cloginrc router1
+clogin stops: extra characters after close-brace
+$ karvi run --target router1 'show clock'
+exit=6
+cloginrc_malformed: 1 of 1 targets failed credential resolution: name:router1 (LAB/cloginrc:2: text after a closing brace; policy=default backend=clogin)
+$ cat cloginrc
+add user router1 jsmith
+add password router1 pass #note
+$ tclsh8.6 clogin-read.tcl cloginrc router1
+password [pass] enable [#note]
+$ karvi run --target router1 'show clock'
+exit=101
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=clogin transport=native
+karvi: target=router1 status=privilege_error error=privilege_failed: the device stayed at the &quot;exec&quot; prompt &quot;Router&gt;&quot; after one &quot;enable&quot; attempt
+! exit=101 elapsed=364ms artifacts=LAB/jobs/261101/261101-131756-01
+</code></pre>
+<p><code>pa\tss</code> is <code>pa</code>, a tab, and <code>ss</code> to Tcl, a list of two words that clogin joins
+<code>pass</code>; <code>&quot;pa ss&quot;</code> is one word, joined <code>pass</code>; <code>\x73</code> is <code>s</code>. Before <code>acfb40d</code>
+karvi read <code>patss</code> and <code>pax73s</code>, and <code>&quot;pa ss&quot;</code> as two words, refusing <code>&quot;pa</code> as
+an unmatched quote. <code>{pa}ss</code> stops clogin, and karvi refuses it, where it had
+read two words; <code>#note</code> after the values is clogin's enable secret, which the
+device refuses, where karvi had dropped it as a comment. The refusals end
+<code>; policy=default backend=clogin</code>, where the message had run on into the fields
+(#87). Not taken: a <code>;</code> after a closing brace as <code>cloginrc_malformed</code>, where Tcl
+ends the command there; a comment kept after the values, which drops a value
+clogin sends (<a href="OPERATIONS.html#credential-files"><code>docs/OPERATIONS.md</code>, &quot;Credential
+files&quot;</a>).</p>
+<p><strong>A line as clogin's <code>gets</code> reads it.</strong> The same lab; the last file is shown by
+<code>cat -v</code>, its carriage return as <code>^M</code>:</p>
+<pre><code class="language-text">$ cat cloginrc
+add user router1 jsmith
+ADD password router1 pass en1
+$ tclsh8.6 clogin-read.tcl cloginrc router1
+clogin stops: invalid command name &quot;ADD&quot;
+$ karvi run --target router1 'show clock'
+exit=6
+cloginrc_malformed: 1 of 1 targets failed credential resolution: name:router1 (LAB/cloginrc:2: unsupported statement; policy=default backend=clogin)
+$ cat cloginrc
+add user router1 jsmith
+add PASSWORD router1 pass en1
+$ tclsh8.6 clogin-read.tcl cloginrc router1
+password [] enable []
+$ karvi run --target router1 'show clock'
+exit=6
+cloginrc_unknown_directive: 1 of 1 targets failed credential resolution: name:router1 (LAB/cloginrc:2: PASSWORD; policy=default backend=clogin)
+$ cat -v cloginrc
+add user router1 jsmith
+add password router1 pass en1^Madd password router1 other x
+$ tclsh8.6 clogin-read.tcl cloginrc router1
+password [pass] enable [en1]
+$ karvi run --target router1 'show clock'
+exit=0
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=clogin transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=668ms artifacts=LAB/jobs/261101/261101-131756-04
+</code></pre>
+<p><code>ADD</code> stops clogin, and karvi refuses it; <code>add PASSWORD</code> gives clogin's <code>find</code>
+no password for <code>router1</code>, and karvi refuses the directive, naming it. A lone
+carriage return ends a line for <code>gets</code>, so the second <code>add password</code> is a line
+of its own, and the first match is taken, as <code>find</code> takes it. Before <code>16c7f3b</code>
+karvi read <code>ADD</code> and <code>add PASSWORD</code> as <code>add password</code>, a credential clogin never
+uses, and the carriage return as white space within one line. Not taken:
+continuation lines kept, which clogin does not have; the case folded, as karvi
+had folded it.</p>
+<p><strong><code>--explain</code> and a linked capacity root.</strong> <code>sessions.shared-capacity-root</code>
+names <code>LAB/cap</code>, a link to <code>LAB/shared-cap</code>, so no fallback is taken; <code>router1</code>
+is the fake device, asking no enable secret. <code>--explain</code>'s lines other than
+<code>key</code>, <code>value</code>, and <code>resolved</code> are cut; the <code>$</code> lines other than karvi's are the
+script's steps:</p>
+<pre><code class="language-text">== a link at the root
+$ ls -l cap
+cap -&gt; shared-cap
+$ karvi config show --explain sessions.shared-capacity-root
+exit=0
+key:        sessions.shared-capacity-root
+value:      &quot;LAB/cap&quot;
+resolved:   LAB/cap
+$ karvi run --target router1 'show clock'
+exit=0
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=589ms artifacts=LAB/jobs/261101/261101-131836-00
+! ssh accepted new host-key router1 (ED25519)
+$ ls shared-cap
+devices
+server.json
+server.lock
+== a server ledger that does not decode
+$ printf '{router1\n' &gt;shared-cap/server.json
+$ karvi config show --explain sessions.shared-capacity-root
+exit=0
+key:        sessions.shared-capacity-root
+value:      &quot;LAB/cap&quot;
+resolved:   error: capacity_root_unusable: LAB/cap: LAB/cap/server.json: invalid character 'r' looking for beginning of object key string
+$ karvi run --target router1 'show clock'
+exit=9
+capacity_root_unusable: capacity_ledger_malformed: LAB/cap/server.json: invalid character 'r' looking for beginning of object key string; a shared capacity root needs mode 2770 in the operators' group (group write and search, setgid, no sticky bit), as sudo karvi setup shared makes it
+== a link at the server lock
+$ rm shared-cap/server.json shared-cap/server.lock
+$ ln -s ../private shared-cap/server.lock
+$ karvi config show --explain sessions.shared-capacity-root
+exit=0
+key:        sessions.shared-capacity-root
+value:      &quot;LAB/cap&quot;
+resolved:   error: capacity_root_unusable: LAB/cap: LAB/cap/server.lock is a link, not a file
+$ karvi run --target router1 'show clock'
+exit=9
+capacity_root_unusable: LAB/cap/server.lock is a link, not a file; remove it
+</code></pre>
+<p>On a build of <code>16c7f3b</code>, the same script's three <code>--explain</code> runs each printed
+<code>resolved: error: capacity_root_unusable: LAB/cap: not a real directory</code>, while
+the first run leased in the root and the other two refused as here (the log is
+kept beside the chapter): <code>--explain</code> refused a root the run used, and, reading
+no ledger, took a real root whose ledger the run refused (S29's test, kept with
+its evidence). The run's refusal of the ledger carries two codes and the root's
+mode remedy, which does not fit (#97, below). The link at the lock is refused
+naming the link and its removal (#88), where before <code>8b0c336</code> the open's own
+text named no link and the remedy was the root's mode. Not taken: a link at the
+root passed by in the run too, where the root is the site's (<a href="FILES.html#45-the-shared-scratch-scoreboards-and-the-session-ledger"><code>docs/FILES.md</code>,
+section
+4.5</a>); the
+ledger read under its lock, which <code>--explain</code> never takes.</p>
+<p><strong>Left open.</strong> For the operator's word, or a review of their own: #63, Go's
+resolver and the host's domain (a design session); #64 and #65, two suites'
+fragilities (the shell-script review); #69 and #81, #60's and #76's checks going
+by path, not by a held descriptor (a design item); #71, internal/app's login
+tests writing to the host's journal (the test review); #83 and #92, an empty
+joined password and a relative <code>include</code>, read and left; and #94 to #97, found
+by S29's check of each scratch-folder chain's <code>--explain</code> against its run: an
+explicit path whose parent is absent, which <code>--explain</code> takes and a run refuses;
+a folder on a filesystem with no free inodes, which <code>--explain</code> passes by and a
+run takes; a shared folder that cannot be made, which a run warns of and
+<code>--explain</code> does not list; and the run's refusal of a ledger that does not
+decode. The push, the release, and its number are the operator's.</p>
+<p>The evidence is kept beside the tree
+(<code>release-design-evidence/review-fixes-2026-11-01</code>: each agent's failing and
+passing runs, every merged patch, each section's checks, the batteries, and in
+<code>chapter-90/</code> this chapter's lab scripts with their logs and the blocks cut from
+them).</p>
+<h2 id="91-the-reviews-later-fixes-wave-11-2026-11-01">91. The review's later fixes: wave 11 (2026-11-01) <a class="anchor" href="#91-the-reviews-later-fixes-wave-11-2026-11-01" aria-label="Link to this section">#</a></h2>
+<p>Opened as <a href="#90-the-reviews-later-fixes-waves-8-to-10-2026-11-01">chapter 90</a>
+closed, on the operator's word: wave 11 fixes the four defects that S29's check
+of each scratch-folder chain's <code>--explain</code> against its run found, #94 to #97, in
+one section, and one commit after it makes <code>config show</code>'s help name every kind
+of <code>passed:</code> line (#98). <code>6d5622c</code> and <code>f327004</code> on <code>dev</code> carry them, each
+message naming its findings (&quot;review 2026-10-31 (new findings), #N&quot;). Nothing is
+pushed. The findings and the plan are kept in the operator's private archive.</p>
+<p><strong>What it gains.</strong> <code>config show --explain</code> and a run take the same scoreboards
+folder and capacity root, or refuse them alike, in four cases where they
+differed: a named folder whose parent is absent, a folder on a filesystem with
+no free inodes, a shared folder the operator cannot make, and a server ledger
+that does not decode, whose refusal carries one code and no remedy that does not
+fit; the help says what the <code>passed:</code> lines list. It waits on nothing. The cost:
+the CHANGELOG's <code>Unreleased</code> block holds 35 entries, 14 of them Breaking, two
+more than at chapter 90's end, and its <code>--explain</code> entry widened.</p>
+<p><strong>The sections:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Wave</th>
+<th>Section</th>
+<th>Findings</th>
+<th>Commit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>11</td>
+<td>S30 the scratch folders' Place and run</td>
+<td>#94 #95 #96 #97</td>
+<td><code>6d5622c</code></td>
+</tr>
+<tr>
+<td>after 11</td>
+<td>the help's <code>passed:</code> lines</td>
+<td>#98</td>
+<td><code>f327004</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>How the fixes ran.</strong> S30 ran as chapter 89's sections did: per finding, the
+defect confirmed, a test that fails on the tree as it was (its output kept), the
+fix, the test again, in one worktree by one agent; the orchestrator read the
+diff against its findings, merged it, rewrote two codes' causes, wrote the
+CHANGELOG, ran <code>go vet</code>, <code>make generated-clean</code>, and the whole tree's <code>go test</code>,
+and committed it. S29's harness, which compares each scratch-folder chain's
+<code>--explain</code> judgement with its run, ran again over 60 cases, all agreeing at
+<code>6d5622c</code>. The full battery passed at <code>6d5622c</code>: <code>go test</code> over 73 packages and
+every suite in 244 seconds, the host clean after. #98 is the orchestrator's edit
+of the help, the man page regenerated, the <code>cli</code> tests and
+<code>make generated-clean</code> run. No counter moved, and no error code is new;
+<code>capacity_root_unusable</code>'s and <code>scoreboard_root_invalid</code>'s causes name what each
+refuses.</p>
+<p><strong>The operator's decisions</strong>, in simple terms:</p>
+<ul>
+<li>#94: a named scoreboards folder or capacity root that is absent is judged by
+its parent alone, as the run makes only the last folder; a missing parent
+stays refused by both.</li>
+<li>#95: a run passes by a scratch folder on a filesystem with no free inodes with
+the warning it gives any other (under <code>auto</code>), or refuses it (named), as
+<code>--explain</code> judges it.</li>
+<li>#96: <code>--explain</code> lists an absent shared folder that the operator cannot make,
+with its reason, as the run warns of it.</li>
+<li>#97: a server ledger that does not decode is refused under
+<code>capacity_root_unusable</code> alone, without the root's mode remedy, the code's
+cause naming it.</li>
+<li>#98: the help and the man page name, among the <code>passed:</code> lines, a scratch
+candidate too long for the askpass socket and a scratch root's folder that
+cannot be made.</li>
+<li>This chapter's #95 example ran once in a container, never again for each
+build.</li>
+</ul>
+<p><strong>Settled under the existing rules</strong>, each reported to the operator: osutil
+exports its free-inodes test and the <code>statfs</code> seam behind it, so the capacity
+and scoreboard tests set it as they set the scratch root; the private fallback's
+inodes are judged by neither <code>--explain</code> nor the run; the new reason is
+<code>parent absent</code>, the folder named and its parent not, and an absent folder whose
+parent the operator cannot write in takes the parent's reason, the folder named
+(below); on a filesystem really full, an absent folder's <code>mkdir</code> fails
+<code>no space left on device</code> where <code>--explain</code> says <code>no free inodes</code>, the outcome
+the same.</p>
+<p><strong>The lab.</strong> The host's examples ran on lab builds of <code>f327004</code> and of
+<code>b753db8</code>, <code>dev</code> just before S30 (<code>karvi</code>, <code>karvi-fake-device</code>), in a folder
+under <code>/var/tmp</code>, mode 0700, that each run made and removed, laid out as chapter
+90's, with <code>scoreboards</code> and <code>sessions.shared-capacity-root</code> set for each case
+in the lab's file. The lab's <code>--config</code>, and <code>run</code>'s <code>--no-daemon</code>, are left out
+of the <code>$</code> labels, and the lab's path is written <code>LAB</code>; <code>--explain</code>'s lines
+other than <code>key</code>, <code>value</code>, <code>resolved</code>, and <code>passed</code> are cut. The <code>$</code>, <code>#</code>,
+<code>exit=</code>, <code>==</code>, and <code>===</code> lines are the scripts'; the rest is karvi's, its
+standard output then its standard error, unless the paragraph says otherwise.
+<code>router1</code> is the fake device on 127.0.0.1, asking no enable secret. None of
+<code>/tmp/karvi-1000</code>, <code>/var/tmp/karvi-1000</code>, <code>/dev/shm/karvi</code>, and the home's
+<code>.local/share/karvi</code> existed after either host run.</p>
+<p><strong>A named folder whose parent is absent (#94).</strong> <code>scoreboards</code> and
+<code>sessions.shared-capacity-root</code> name folders under <code>LAB/missing</code>, which does not
+exist; the <code>ls</code> line is the system's:</p>
+<pre><code class="language-text">== named folders whose parent is absent
+$ ls -d missing
+ls: cannot access 'missing': No such file or directory
+$ karvi config show --explain scoreboards sessions.shared-capacity-root
+exit=0
+key:        scoreboards
+value:      &quot;LAB/missing/scoreboards&quot;
+resolved:   error: scoreboard_root_invalid: LAB/missing/scoreboards: parent absent
+
+key:        sessions.shared-capacity-root
+value:      &quot;LAB/missing/capacity&quot;
+resolved:   error: capacity_root_unusable: LAB/missing/capacity: parent absent
+$ karvi run --target router1 'show clock'
+exit=9
+scoreboard_root_invalid: the scoreboards LAB/missing/scoreboards cannot be used (make LAB/missing/scoreboards: stat LAB/missing: no such file or directory); set scoreboards to a folder the operator can write
+== scoreboards = &quot;LAB/sb&quot;, the capacity root as before
+$ karvi run --target router1 'show clock'
+exit=9
+capacity_root_unusable: make LAB/missing/capacity: stat LAB/missing: no such file or directory
+</code></pre>
+<p>Both judge each folder by its parent: <code>--explain</code> names the folder and the
+reason, <code>parent absent</code>, and the run's refusal is the maker's, naming the <code>stat</code>
+that failed. The run stops at the scoreboards, the first place it prepares, so
+the second run names them in the lab and meets the capacity root. On the build
+of <code>b753db8</code>, <code>--explain</code> printed <code>resolved: LAB/missing/scoreboards</code> and
+<code>resolved: LAB/missing/capacity</code>, taking both, while the runs refused as here:
+the judgement walked up to the nearest folder present, where the maker makes
+only the last. Not taken: the run making the missing parents, as <code>mkdir -p</code>
+would, which would make folders the site never named.</p>
+<p><strong>A shared folder the operator cannot make (#96).</strong> <code>scoreboards</code> and
+<code>sessions.shared-capacity-root</code> are <code>auto</code>. The scratch root is a stand-in:
+<code>/dev/shm/karvi</code> made by the operator at 0555, which the operator cannot write
+in, where a site's is root's at 3770 and closed to an operator outside its
+group; the script removed it:</p>
+<pre><code class="language-text">== auto, a scratch root the operator cannot write in
+$ mkdir -m 555 /dev/shm/karvi
+$ karvi config show --explain scoreboards sessions.shared-capacity-root
+exit=0
+key:        scoreboards
+value:      &quot;auto&quot;
+resolved:   LAB/base/state/scoreboards
+passed:     /dev/shm/karvi/scoreboards: not writable by the operator
+
+key:        sessions.shared-capacity-root
+value:      &quot;auto&quot;
+resolved:   LAB/base/state/capacity
+passed:     /dev/shm/karvi/capacity: not writable by the operator
+$ karvi run --target router1 'show clock'
+exit=0
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=577ms artifacts=LAB/jobs/261101/261101-143557-01
+warning: shared capacity root unavailable (mkdir /dev/shm/karvi/capacity: permission denied); using private fallback LAB/base/state/capacity
+warning: shared scoreboard directory unavailable (/dev/shm/karvi/scoreboards: mkdir /dev/shm/karvi/scoreboards: permission denied); using private fallback LAB/base/state/scoreboards
+! ssh accepted new host-key router1 (ED25519)
+$ ls -A /dev/shm/karvi
+$ rmdir /dev/shm/karvi
+</code></pre>
+<p>Both take the private folders, <code>--explain</code> listing the shared ones passed by as
+the run warns of them, and nothing is made in the scratch root. The reason given
+for the folder that would be made is its parent's,
+<code>not writable by the operator</code>. On the build of <code>b753db8</code>, <code>--explain</code> printed
+the same two <code>resolved:</code> lines and no <code>passed:</code> line, an absent candidate never
+being listed, while the run warned as here. The capacity warning carries no
+<code>capacity_root_unusable</code>, which <a href="OPERATIONS.html"><code>docs/OPERATIONS.md</code></a> gives
+every such warning, and the scoreboards' names its folder twice (#99, below).</p>
+<p><strong>A server ledger that does not decode (#97).</strong> <code>sessions.shared-capacity-root</code>
+names <code>LAB/cap</code>, a real folder, and the scoreboards are the lab's:</p>
+<pre><code class="language-text">== a server ledger that does not decode
+$ printf '{router1\n' &gt;cap/server.json
+$ karvi config show --explain sessions.shared-capacity-root
+exit=0
+key:        sessions.shared-capacity-root
+value:      &quot;LAB/cap&quot;
+resolved:   error: capacity_root_unusable: LAB/cap: LAB/cap/server.json: invalid character 'r' looking for beginning of object key string
+$ karvi run --target router1 'show clock'
+exit=9
+capacity_root_unusable: LAB/cap/server.json: invalid character 'r' looking for beginning of object key string
+</code></pre>
+<p>The run's refusal carries one code and the ledger's text alone. On the build of
+<code>b753db8</code> the same run gave two codes and the root's mode remedy, which no mode
+fixes:</p>
+<pre><code class="language-text">$ karvi run --target router1 'show clock'
+exit=9
+capacity_root_unusable: capacity_ledger_malformed: LAB/cap/server.json: invalid character 'r' looking for beginning of object key string; a shared capacity root needs mode 2770 in the operators' group (group write and search, setgid, no sticky bit), as sudo karvi setup shared makes it
+</code></pre>
+<p><code>--explain</code>'s line was the same there.</p>
+<p><strong>A folder on a filesystem with no free inodes (#95), in a container.</strong> No
+filesystem on this host can be filled without root, so the case ran once in a
+container of <code>ubuntu:26.04</code>, <code>karvi-ch91</code>, with no network, removed when it
+ended, and a tmpfs of 16 inodes at <code>/dev/shm/karvi</code> (<code>docker run --tmpfs</code>). As
+root (the <code>#</code> lines) the script ran <code>karvi setup shared</code> for the group
+<code>operators</code> and filled the free inodes with empty files (<code>made 12 files</code> is its
+count; the <code>df</code> and <code>ls</code> lines are the system's); then, as the operator <code>jsmith</code>
+in <code>operators</code>, the lab as on the host, each case ran under <code>auto</code> and then
+named. The container has no journald, so the lab's audit went to its file alone
+(<code>audit.journald-required = false</code>); a first run, before that line, stopped at
+<code>audit_journald_unavailable</code>, and the one shown is the second. The lab build of
+<code>f327004</code>:</p>
+<pre><code class="language-text"># karvi setup shared --group operators
+created  /opt/karvi/shared  group operators  mode 2770
+created  /opt/karvi/shared/jobs  group operators  mode 2770
+created  /opt/karvi/shared/crun  group operators  mode 2770
+created  /opt/karvi/shared/transcripts  group operators  mode 2770
+created  /opt/karvi/users  group operators  mode 1770
+repaired /dev/shm/karvi  group operators  mode 3770  (was group root mode 3770)
+created  /dev/shm/karvi/scoreboards  group operators  mode 3770
+created  /dev/shm/karvi/capacity  group operators  mode 2770
+created  /dev/shm/karvi/capacity/devices  group operators  mode 2770
+created  /etc/tmpfiles.d/karvi.conf  mode 0644
+exit=0
+# for i in 0 1 2 ...; do touch /dev/shm/karvi/fill.$i; done (until one fails)
+made 12 files
+$ df -i /dev/shm/karvi
+Filesystem     Inodes IUsed IFree IUse% Mounted on
+tmpfs              16    16     0  100% /dev/shm/karvi
+$ ls -l /dev/shm/karvi | grep -v fill
+total 0
+drwxrws--- 3 root operators 60 Nov  1 19:36 capacity
+drwxrws--T 2 root operators 40 Nov  1 19:36 scoreboards
+=== build: /opt/new
+== auto
+$ karvi config show --explain scoreboards sessions.shared-capacity-root
+exit=0
+key:        scoreboards
+value:      &quot;auto&quot;
+resolved:   LAB/base/state/scoreboards
+passed:     /dev/shm/karvi/scoreboards: no free inodes
+
+key:        sessions.shared-capacity-root
+value:      &quot;auto&quot;
+resolved:   LAB/base/state/capacity
+passed:     /dev/shm/karvi/capacity: no free inodes
+$ karvi run --target router1 'show clock'
+exit=0
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=588ms artifacts=LAB/jobs/261101/261101-193645-00
+warning: shared capacity root unavailable (capacity_root_unusable: /dev/shm/karvi/capacity: no free inodes); using private fallback LAB/base/state/capacity
+warning: shared scoreboard directory unavailable (/dev/shm/karvi/scoreboards: no free inodes); using private fallback LAB/base/state/scoreboards
+! ssh accepted new host-key router1 (ED25519)
+== named
+$ karvi config show --explain scoreboards sessions.shared-capacity-root
+exit=0
+key:        scoreboards
+value:      &quot;/dev/shm/karvi/scoreboards&quot;
+resolved:   error: scoreboard_root_invalid: /dev/shm/karvi/scoreboards: no free inodes
+
+key:        sessions.shared-capacity-root
+value:      &quot;/dev/shm/karvi/capacity&quot;
+resolved:   error: capacity_root_unusable: /dev/shm/karvi/capacity: no free inodes
+$ karvi run --target router1 'show clock'
+exit=9
+scoreboard_root_invalid: the scoreboards /dev/shm/karvi/scoreboards cannot be used (no free inodes); set scoreboards to a folder the operator can write
+</code></pre>
+<p>Both judge the folders alike: under <code>auto</code> the private folders are taken and the
+run warns of each shared one as <code>--explain</code> lists it; named, both refuse, the
+run at the scoreboards, the first it prepares. On the build of <code>b753db8</code>, in the
+same container, <code>--explain</code> printed the same lines, while both runs took the
+shared scoreboards and failed at the activity's claim of its ID, under <code>auto</code> as
+here and named the same:</p>
+<pre><code class="language-text">$ karvi run --target router1 'show clock'
+exit=1
+activity_id_generation_failed: cannot create the claim /dev/shm/karvi/scoreboards/261101-193646-00.id: open /dev/shm/karvi/scoreboards/261101-193646-00.id: no space left on device
+</code></pre>
+<p>The capacity root's half, each lease's temporary file failing, was read in the
+code, not run. Not taken: <code>--explain</code> ceasing to judge inodes, so that both take
+such a folder, where every activity's ID claim, or every lease, then fails.</p>
+<p><strong>Left open.</strong> For the operator's word, or a review of their own: #63, Go's
+resolver and the host's domain (a design session); #64 and #65, two suites'
+fragilities (the shell-script review); #69 and #81, #60's and #76's checks going
+by path, not by a held descriptor (a design item); #71, internal/app's login
+tests writing to the host's journal (the test review); #83 and #92, an empty
+joined password and a relative <code>include</code>, read and left; and #99, found in this
+chapter's lab: the capacity root's warning for a shared folder the operator
+cannot make carries no <code>capacity_root_unusable</code>, and the scoreboards' warning
+names its folder twice. The push, the release, and its number are the
+operator's.</p>
+<p>The evidence is kept beside the tree
+(<code>release-design-evidence/review-fixes-2026-11-01</code>: S30's agent's failing and
+passing runs and the harness, the merged patch, the section's check, the wave's
+battery, and in <code>chapter-91/</code> this chapter's lab scripts, the container's
+script, their logs, and the blocks cut from them).</p>
+
+<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.39.0</code>.</footer>
 </main>
 </body>
 </html>

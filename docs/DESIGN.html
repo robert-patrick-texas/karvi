@@ -74,8 +74,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -151,8 +151,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -600,11 +600,18 @@ inventory has none of a credential file's protections and is the file most
 likely to be mailed or committed; a headerless file read in header mode has a
 device row as its &quot;header&quot;, so quoting it could print a password. <em>Not taken:</em>
 a warning; an override key; scanning cells.</p>
+<p><strong>Two rows for one device are one only when they agree on every field.</strong> Rows
+naming one device, in one source or several, become one only when every field
+the device keeps from a row agrees, the pins compared folded; a row naming its
+transport and one leaving it to the mode's default differ. Any difference is
+<code>inventory_conflict</code>, naming both lines. <em>Why:</em> the first row stood for both,
+so the device's session cap, risk tier, and attributes hung on the file's
+order.</p>
 <p><strong>The inventory <code>credkeyref</code> pin.</strong> A device row may carry <code>credkeyref</code>, a
 literal key compared case-folded; it is outside the inventory digest (which
 covers identity and connection facts alone) and outside the plan, and the key a
 pinned device took appears in the grant's match evidence. Rows for one device
-coalesce when their pins agree and conflict when they differ. <em>Why:</em> the policy
+whose pins differ conflict, as any field that differs does. <em>Why:</em> the policy
 map selects a device's policy, and a second way to choose it would need its
 own precedence rule; coalescing conflicting pins would let file order pick the
 credential.</p>
@@ -838,9 +845,21 @@ where a credential came from.</p>
 requires one; <code>[platform.NAME] requires-enable = true</code> requires it for that
 platform, read from the platform the device actually runs as. When optional,
 resolution uses a secret if one is resolved, never prompts for one, and never
-fails for its absence; the session's one attempt then decides. <em>Why:</em> many
+fails for its absence; the session's one attempt then decides. A login
+resolves none on any platform: it asks for none, refuses no credential
+without one, reads no <code>NETENABLE</code>, and drops one a backend holds. <em>Why:</em> many
 organisations deliver privilege 15 at login or configure enable without a
-secret.</p>
+secret; a login's operator types <code>enable</code> at the device, so nothing of the
+login would send the secret.</p>
+<p><strong>The askpass broker answers the username and the password alone.</strong> Over
+<code>system</code>, OpenSSH's questions reach karvi's askpass broker, which answers the
+login's username and password, judging a prompt by its own words with
+OpenSSH's <code>user@host</code> part cut, and refuses every other question, the host-key
+one included (<code>askpass_prompt_unrecognized</code>). The enable secret goes to the
+device in-band, the command session sending it at the escalate prompt, and a
+login resolves none (above). <em>Why:</em> OpenSSH's prompt carries the device's name
+and the username, so a device or user named with <code>enable</code> drew the enable
+secret where the password was asked.</p>
 <p><strong>Prompting once per invocation, and a prompt left unanswered ends the
 run.</strong> The client's input provider caches by field: the first target
 needing a username, password, or enable secret asks, naming the device or
@@ -1394,6 +1413,20 @@ job's standard error carried out of the daemon (lost to a later reader); the
 store compared before and after a job's session (every overlapping job reports
 one enrollment); the policy as a notice on every record (one line a thousand
 times); an enrolled key's fingerprint (the store holds it).</p>
+<p><strong>A revoked key is refused under every policy, and a marked line enrolls
+nothing.</strong> A presented key the trust store marks <code>@revoked</code> for the device is
+<code>host_key_revoked</code> under <code>secure</code>, <code>accept-new</code>, and <code>insecure</code>, on both
+transports (over <code>system</code>, OpenSSH's own refusal, and under <code>insecure</code> the
+<code>ssh-keyscan</code> comparison beside the connection), and under
+<code>ssh.halt-run-on-host-key-mismatch</code> it halts the run as a changed key does. A
+<code>@cert-authority</code> line, or one with another marker, is passed by, so it enrolls
+nothing; under <code>insecure</code> over <code>system</code>, a device whose comparison cannot
+complete keeps <code>host_key_not_compared</code>. <em>Why:</em> a revoked line is the store's
+word that the key is not the device's, and read as a plain line it matched over
+<code>native</code>, while a certificate authority's key made the device's own a change;
+the native transport has no certificates, and OpenSSH reads such lines itself.
+<em>Not taken:</em> <code>host_key_changed</code> for a revoked key; a store holding a
+<code>@cert-authority</code> line refused.</p>
 <p><strong>A login learns of a first contact from the trust store.</strong> A login runs
 OpenSSH at <code>LogLevel ERROR</code>, where it writes neither a device's banner nor its
 first-contact line. karvi reads the store before the session and, when it
@@ -1436,9 +1469,11 @@ too, an empty one none. Each chain is found by its own chooser, the one the
 activity's maker calls, without creating anything: a candidate present is judged
 by <code>access(2)</code>, its owner and mode where the place is private, and the free
 inodes of its filesystem; one absent is the folder the activity would make where
-its rule lets it. A candidate present and passed by adds a <code>passed:</code> line with
-the reason, in the activity's words where it warns, and so does a scratch
-candidate too long for the askpass socket, present or not; a refusal is
+its rule lets it, the scratch root's two folders or an explicit path for them
+only in a parent that exists. A candidate present and passed by adds a <code>passed:</code>
+line with the reason, in the activity's words where it warns, and so do a
+scratch candidate too long for the askpass socket, present or not, and a scratch
+root's folder absent that cannot be made, as the activity warns; a refusal is
 <code>resolved: error: CODE: message</code>, and the view exits 0. The lines come from the
 configuration the invocation loads, which its job runs under on every path; a
 running daemon keeps only its own sockets, state, and log under the <code>basedir</code> it
@@ -1633,8 +1668,7 @@ share, which <code>--cf FILE</code> sends once), or the lists in a transfer of t
 new channel for a limit not met); the collection refusal as an inventory one
 (the selection is not at fault); the plan recording <code>--literal</code> for the copies
 (two forms of copy, and the rerun would need to know which); every list in the
-audit <code>start</code> (the event is one journald datagram, and 2,500 devices' lists
-come to megabytes).</p>
+audit <code>start</code> (2,500 devices' lists come to megabytes in one event).</p>
 <p><strong>Address authority is <code>client</code> or <code>daemon</code>, and one selection rule serves
 both.</strong> A literal address wins, then the inventory management address, then the
 alternates; DNS runs only with no literal. Under client authority the client
@@ -1772,6 +1806,15 @@ client's, admission is still the one check); the bound judged by the running
 pid; a shorter name (the pid is the sweep's, and any name leaves a bound); an
 abstract socket (no 0600 file, the token its only guard); a warning when <code>auto</code>
 passes a candidate by (the next is as private).</p>
+<p><strong>The <code>auto</code> chains take only the operator's own folder.</strong> A present candidate
+of <code>tempdir</code>'s or <code>spooldir</code>'s <code>auto</code> chain is taken only when the operator owns
+it with no group or other access, judged when the place is resolved and again
+once the folder is made; any other is passed by, <code>config show --explain</code> naming
+why on a <code>passed:</code> line. An explicit <code>tempdir</code> or <code>spooldir</code> is the site's
+choice, taken when it is a real folder the operator can write. <em>Why:</em> the
+scratch holds the system transport's ssh configuration and a spool holds a
+device's output, and <code>/tmp</code> is every user's, so another user who made
+<code>/tmp/karvi-&lt;uid&gt;</code> first could replace either.</p>
 <p><strong>The daemon's sockets are bounded in a directory of their own.</strong>
 <code>daemon.sockets</code> is the daemon's socket directory (<code>auto</code>: <code>&lt;basedir&gt;/socket</code>),
 where the daemon binds <code>d.sock</code> and the credential channel's <code>c.sock</code> under
@@ -1905,10 +1948,10 @@ cancelled one at a time. <em>Not taken:</em> follow and cancel refused across bu
 <p><strong>A member follows another member's job from the shared tree.</strong> The follow from
 a folder takes a file another member owns when the output root is the shared
 jobs tree and the file stands in its group, mode 0640 or stricter, a regular
-file opened without following a link; outside that tree, or in another group, it
-is refused <code>run_output_records_unreadable</code>, the file's group stacked over the
-tree's. A job's scoreboard is the one sign that it runs: with none
-(<code>watch.enabled = false</code>) the follow of a summary not final answers
+file opened without following a link or waiting on a FIFO; outside that tree, or
+in another group, it is refused <code>run_output_records_unreadable</code>, the file's
+group stacked over the tree's. A job's scoreboard is the one sign that it runs:
+with none (<code>watch.enabled = false</code>) the follow of a summary not final answers
 <code>job_orphaned</code> at once. A summary naming no <code>commands_jsonl</code> is followed with
 one warning that the job's records are not kept, then the job's end, live or
 finished. <em>Why:</em> <code>job list</code> shows another member's running jobs, and following
@@ -2137,9 +2180,16 @@ folder of their own; a key to turn the claim off.</p>
 files are <code>0640</code>, created exclusively without following symlinks; an existing
 folder is accepted when writable and never changed in mode or group. A day
 folder under a setgid root takes the root's own bits so a second operator's
-first job of the day is not refused. <em>Why:</em> teams read output through group
-membership and setgid folders with no copying and no karvi-managed ACLs; karvi
-sets permissions only on what it creates.</p>
+first job of the day is not refused. Below a tree's root a day folder and a
+job folder are real folders: a link at either's name is refused
+(<code>output_directory_not_writable</code>, <code>transcript_directory_not_writable</code>) and
+nothing is made where it points; a link at <code>output.root</code> or
+<code>transcript.root</code>, or above either, is the site's and is followed. <em>Why:</em>
+teams read output through group membership and setgid folders with no copying
+and no karvi-managed ACLs; karvi sets permissions only on what it creates; a
+shared tree's day folders are every member's to write, with no sticky bit,
+and a link one member planted at a day's name would take every member's jobs
+or logins of that day where the link points.</p>
 <p><strong>The record is the authority; every file derives from it.</strong> <code>commands.jsonl</code>
 holds one record per command, <code>errors.jsonl</code> the non-succeeded ones,
 <code>output.TARGET.txt</code> one readable terminal session per device (header, prompt
@@ -2290,8 +2340,10 @@ verifying on the measuring pass is free; a <code>show tech-support</code> a time
 what the operator wants to see. <em>Not taken:</em> a record type that carries the
 file; recording nothing at a cut.</p>
 <p><strong>The spool lives under <code>spooldir</code>, never the scratch directory, named for its
-owner process.</strong> <code>auto</code> tries <code>/tmp/karvi-&lt;uid&gt;</code> then <code>/var/tmp/karvi-&lt;uid&gt;</code>;
-<code>tempdir</code>'s tmpfs choice is by design and a spool under it would put the
+owner process.</strong> <code>auto</code> tries <code>/tmp/karvi-&lt;uid&gt;</code> then <code>/var/tmp/karvi-&lt;uid&gt;</code>,
+each only when it is the operator's own
+(<a href="#7-the-plan-the-daemon-and-the-credential-channel">section 7</a>); <code>tempdir</code>'s
+tmpfs choice is by design and a spool under it would put the
 response back into RAM. A spool is <code>&lt;activity&gt;.&lt;device&gt;.&lt;index&gt;.&lt;pid&gt;.spool</code>,
 and at daemon start and every admission a file of that shape whose owner
 process is dead is removed and logged; anything else in the directory is not
@@ -2362,11 +2414,22 @@ with no mode, and the past-tense names; <code>KARVI_ACTIVITY_ID</code> as the li
 journald's <code>_UID</code> alone (a host's number); the digests beside the statements;
 each device's events masked by its own list (<a href="EXAMPLES.html#63-the-audit-trails-names-and-fields-2026-10-17"><code>docs/EXAMPLES.md</code>, chapter
 63</a>).</p>
+<p><strong>A sink that is not required only warns, and an event of any size reaches
+journald.</strong> A write that fails on a sink not required (<code>audit.journald-required</code>
+or <code>audit.file-required</code> false) is one warning per sink in the summary's
+<code>audit_sink_status.warnings</code>, and the job goes on; a required sink's failure is
+<code>audit_write_failed</code>. An event over the journal socket's datagram bound goes as
+journald's protocol passes a large entry, in a memfd sealed against change, its
+descriptor sent over the socket. <em>Why:</em> a sink the site does not require is one
+the job need not stop for; a job's <code>start</code> naming a few thousand statements
+passes the bound, and the audit records each statement. <em>Not taken:</em> a count
+and a digest in place of the statements (nothing would read the digest).</p>
 <p><strong><code>karvi-audit</code> reads the trail through <code>journalctl</code>, and reads no
 configuration.</strong> A fourth executable beside karvi, <code>karvi-prune</code>, and
-<code>karvi-askpass</code> runs <code>journalctl --no-pager -o json --output-fields=KARVI_AUDIT_JSON SYSLOG_IDENTIFIER=karvi MESSAGE_ID=…</code>, the
-audit's message ID, with its matches, and lays out each entry's JSON, decoded as
-the writer's <code>records.AuditRecord</code>, as one row. <code>-S</code>, <code>-U</code>, <code>-g</code>, <code>-r</code>, <code>-f</code>,
+<code>karvi-askpass</code> runs <code>journalctl --no-pager -o json --all --output-fields=KARVI_AUDIT_JSON SYSLOG_IDENTIFIER=karvi MESSAGE_ID=…</code>, the
+audit's message ID, with its matches (<code>--all</code>, as journalctl writes a field over
+4,096 bytes as null without it), and lays out each entry's JSON, decoded as the
+writer's <code>records.AuditRecord</code>, as one row. <code>-S</code>, <code>-U</code>, <code>-g</code>, <code>-r</code>, <code>-f</code>,
 and <code>-n</code> are journalctl's, passed as given; <code>-o NAME</code> matches <code>KARVI_OPERATOR</code>
 or <code>KARVI_LOGINUSER</code>, <code>-d NAME</code> matches <code>KARVI_DEVICE</code> lowercased, each
 repeatable, a flag's names ORed and the two flags ANDed. An entry with no
@@ -2556,10 +2619,14 @@ the file; tolerating the sticky bit.</p>
 executable run once when the summary is written, in the collection directory,
 with the replaced files' names on stdin and the counts in its environment,
 bounded by <code>crun.after-timeout</code>; two example hooks ship (a git commit and a
-diff mail). <em>Why:</em> the client has the operator's shell environment (git
-identity, mail transport) while the daemon has the user manager's; git and mail
-are a site's choices. <em>Not taken:</em> a built-in <code>crun.git</code>; the daemon running the
-hook; mail sent by karvi.</p>
+diff mail). The hook has the operator's shell environment without the device
+credentials <code>NETUSER</code>, <code>NETPASS</code>, and <code>NETENABLE</code>. <em>Why:</em> the client has the
+operator's shell environment (git identity, mail transport) while the daemon
+has the user manager's; git and mail are a site's choices; a device password
+the hook has no use for would reach every process it starts. <em>Not taken:</em> a
+built-in <code>crun.git</code>; the daemon running the hook; mail sent by karvi; the
+allow-list filter of ssh and the daemon, which drops the shell environment the
+client runs the hook for.</p>
 <p><strong>A hook's process group is gone when the client returns.</strong> The hook leads a
 process group of its own. At <code>crun.after-timeout</code>, or at the invocation's
 interrupt, the client sends the group SIGTERM, SIGKILL to what is left of it
@@ -2754,6 +2821,18 @@ the mode, each target's state, the invocation's inputs, the command count and
 file name, the collection's counts, the metrics, and whether the daemon ran it.
 <em>Why:</em> the directory is readable by the whole group while a job's folder is its
 operator's; the statements are read in the folder.</p>
+<p><strong>What another member wrote reaches the terminal as text.</strong> <code>watch</code> reads a
+<code>*.json</code> entry of the scoreboards only when it is a regular file, through one
+descriptor that follows no link and waits on no FIFO, and at most 64 MiB of it,
+a larger file being a <code>?</code> row; a link, a FIFO, or a folder is passed by. Every
+string from a snapshot or a file's name, on the screen, in the pane, and in
+<code>--format table</code>, and every cell of <code>job list</code>, is shown with its control
+characters as Go writes them in a quoted string (<code>\x1b</code>, <code>\u009b</code>), as
+<code>karvi-audit</code> shows its cells. <em>Why:</em> the scoreboards and a shared jobs tree are
+the group's, so one member's file reaches every colleague's screen: a FIFO
+would hang it, a link to <code>/dev/zero</code> or a sparse file would grow it without
+bound, and an escape in a target's name would rewrite the terminal or set its
+clipboard.</p>
 <p><strong>Running rows above a rule, finished below it newest first, two lines that
 never leave.</strong> Nine columns; running rows pinned between the heading's line and
 the rule; only the finished rows scroll; a stale running row is flagged and
@@ -2797,20 +2876,21 @@ all; to a pipe or a file nothing cuts it. OPERATOR and DEVICE, heading and
 cells, are centred while the width holds the column whole, an odd cell to the
 right, and at the column's left when the width cuts into it, so DEVICE is whole
 from 99 columns. OPERATOR is <code>OPERATOR/LOGINUSER</code> when the event names a login
-user, <code>/LOGINUSER</code> kept whole and the operator's part cut first. A statement's
-control characters are written as Go writes them in a quoted string (<code>\t</code>,
-<code>\n</code>, <code>\x1b</code>). <em>Why:</em> the job ID holds the job's start to the second; one rule
-for every mode, a table read whole or followed, its first line at once and its
-memory flat, which widths measured over the rows cannot give (thirty days'
-359,728 rows held before the first line); OUTCOME at 16 tells the two
-<code>not_attempted_*</code> words apart; DEVICE at 30 shows the extended hostnames of
-switches, routers, and servers whole; on a jump box where operators <code>sudo</code> to a
-shared account the person is the part a review looks for; a newline in a
-statement would start a row with no columns. <em>Not taken:</em> TIME (19 cells);
-widths measured over every row, as <code>job list</code>'s; a longer cell whole, pushing
-the rest of its row; two cells between columns; OUTCOME at 10; DEVICE at 20,
-which cut them; <code>OPERATOR(LOGINUSER)</code>; the pair cut at its end; the control
-characters removed.</p>
+user, <code>/LOGINUSER</code> kept whole and the operator's part cut first. Every cell's
+control characters, C1 among them, are written as Go writes them in a quoted
+string (<code>\t</code>, <code>\n</code>, <code>\x1b</code>, <code>\u009b</code>). <em>Why:</em> the job ID holds the job's start
+to the second; one rule for every mode, a table read whole or followed, its
+first line at once and its memory flat, which widths measured over the rows
+cannot give (thirty days' 359,728 rows held before the first line); OUTCOME at
+16 tells the two <code>not_attempted_*</code> words apart; DEVICE at 30 shows the extended
+hostnames of switches, routers, and servers whole; on a jump box where operators
+<code>sudo</code> to a shared account the person is the part a review looks for; a newline
+in a statement would start a row with no columns, and any local user can write
+an entry the trail's terms match, so an escape in any field would act on the
+auditor's terminal. <em>Not taken:</em> TIME (19 cells); widths measured over every
+row, as <code>job list</code>'s; a longer cell whole, pushing the rest of its row; two
+cells between columns; OUTCOME at 10; DEVICE at 20, which cut them;
+<code>OPERATOR(LOGINUSER)</code>; the pair cut at its end; the control characters removed.</p>
 <p><strong><code>karvi-audit</code>'s colours go to a terminal and through a pipe, never into a
 file.</strong> The headings in the label role, OPERATOR in the accent role, DEVICE in
 the target role (bold), and OUTCOME by its word: the success role for
@@ -2858,10 +2938,11 @@ the same list of places, so the boot makes them again on the emptied tmpfs
 (<code>devices</code> among them, so no operator's first run after a boot owns it). An operator's process
 never creates a missing parent: it makes its own <code>&lt;username&gt;</code> folder
 (0700) inside an existing root, and a missing <code>scoreboards</code> or <code>capacity</code>
-folder inside an existing parent with a setgid parent's bits. A root that
-is absent gives the private places under <code>basedir</code> without a word; a
-folder that exists but is closed to the operator gives them with one
-warning naming it. The capacity ledger's files take its root's group modes
+folder inside an existing parent with a setgid parent's bits. A root
+that is absent gives the private places under <code>basedir</code> without a word;
+a folder that exists but is closed to the operator, or one absent that
+the operator cannot make in the root, gives them with one warning
+naming it. The capacity ledger's files take its root's group modes
 (2770 gives 0660), another user's process is a live lease holder, and a
 ledger that cannot be read is an error. <em>Why:</em> the first operator's run
 had created the root at 0700 and closed it to every other, whose
@@ -2977,16 +3058,19 @@ writes a password typed at a prompt that does not echo); a raw copy beside the
 transcript; a switch to turn rendering off; <code>TERM=dumb</code> asked of the server; a
 terminal-emulator library.</p>
 <p><strong>The shell's output is rendered at no width.</strong> In <code>command</code> and <code>run</code> the
-renderer reads the shell's stream with no width: nothing wraps, and cursor up
-and down do nothing. Both transports keep asking the far end for a pty of no
-size, as <code>ssh -tt</code> does from a pipe. <em>Why:</em> karvi writes each command whole, so
-the far end echoes it as plain text whatever width it assumes (over a sizeless
-pty this host's <code>stty size</code> read <code>0 0</code>, bash took 80 columns, and a
-100-character command came back as one line with no control inside it); width
-changes the text only when the far end moves between a line's wrapped rows,
-which is interactive editing, a recorded login's case, whose width the timing
-log gives. <em>Not taken:</em> rendering at 80 (a device set to another width would be
-read at the wrong one); asking the far end for 80 or a large width (it changes
+renderer reads the shell's stream with no width: nothing wraps, cursor up and
+down and an insert do nothing, and cursor right and a column move stop at the
+line's end or its 4096th column, whichever is further. Both transports keep
+asking the far end for a pty of no size, as <code>ssh -tt</code> does from a pipe. <em>Why:</em>
+karvi writes each command whole, so the far end echoes it as plain text
+whatever width it assumes (over a sizeless pty this host's <code>stty size</code> read
+<code>0 0</code>, bash took 80 columns, and a 100-character command came back as one line
+with no control inside it); width changes the text only when the far end moves
+between a line's wrapped rows, which is interactive editing, a recorded
+login's case, whose width the timing log gives; a row without an end gives a
+move or an insert nothing to stop at, so nine bytes would open 65,535 cells.
+<em>Not taken:</em> rendering at 80 (a device set to another width would be read at
+the wrong one); asking the far end for 80 or a large width (it changes
 what devices print, wide tables and IOS XE's <code>terminal width</code>); the width of
 karvi's own terminal (a daemon's job has none).</p>
 <p><strong>A record keeps the spaces the far end wrote; a transcript trims every
@@ -3014,13 +3098,18 @@ as root each site user root, and <code>jobs</code>, <code>transcripts</code>, an
 the shared places, never <code>crun</code>, making nothing;
 ownership decides (a run removes what the invoking user owns and passes the
 rest by; root removes everything eligible); a removal that fails is one line
-and the run goes on; the free-space floor is judged per filesystem. Empty day
+and the run goes on; a root that cannot be read is a <code>failed kind=tree</code> line and
+exit 1, and a folder below it that cannot be read a <code>skipped</code> line, the walk
+going on; <code>--days</code> is one to 999, counted in calendar days, and any other value
+a usage error (exit 2); the free-space floor is judged per filesystem. Empty day
 folders older than the age are removed by their name's date; an orphan folder
 whose summary is not final and a stale non-terminal scoreboard retire by age
 alone, never under pressure. The six final statuses are one list. <em>Why:</em> the helper
 had matched a day-folder layout no writer used, so nothing it walked was ever
 pruned; a colleague's folder in a shared tree would otherwise stop a daily run
-at the first failure; three shapes stood forever. <em>Not taken:</em> a <code>karvi prune</code>
+at the first failure; a tree left unread is work a timer's exit must report; an
+age past the arithmetic's range put the cutoff in the future and removed
+running jobs; three shapes stood forever. <em>Not taken:</em> a <code>karvi prune</code>
 word; pruning by group membership; touching <code>crun</code>.</p>
 <p><strong>The site's unit's writable paths carry the dash and name what the command
 touches.</strong> <code>ReadWritePaths</code> entries are <code>-</code>-prefixed so an absent path does not
@@ -3121,6 +3210,14 @@ site's lock on any of the nine lock-eligible keys was passed by the option
 plan's validation. <em>Not taken:</em> the command line checking each range itself (a
 second copy of the registry's ranges, the locks still passed); clamping with a
 notice; <code>--dispatch</code> outside the rule.</p>
+<p><strong>A locked key takes its macros from the global configuration.</strong> A locked
+key's value takes no macro whose winning definition comes from a layer below
+the global configuration (the user's file, <code>--config</code>, <code>--set</code>); such a value
+is <code>config_lock_violation</code>, naming the macro, where it was set, and the lock.
+<code>%operator%</code>, built in, is no layer's, so a locked key takes it. <em>Why:</em> the
+lock is checked on the key written, so a lower layer's macro changed a locked
+value without writing the key. <em>Not taken:</em> every macro a locked key takes
+locked itself (no layer could then set it for an unlocked key).</p>
 <p><strong>A value an option sets is sourced to that option.</strong> The flag layer carries
 each value with the option that set it, so a message and <code>config show</code> name the
 option by its long name where they named <code>command-line</code>: <code>… for execution.blind-wait at --blind-wait</code>, <code>source: --ipv4</code>; <code>--fs</code> implying
@@ -3528,7 +3625,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.38.0</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.39.0</code>.</footer>
 </main>
 </body>
 </html>

@@ -60,8 +60,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -123,8 +123,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -204,7 +204,22 @@ router01#exit
 <p>Folders karvi creates take <code>output.directory-mode</code> (default <code>0750</code>); files
 are <code>0640</code>, created exclusively without following links. An existing folder
 is accepted when the operator can create files in it, else
-<code>transcript_directory_not_writable</code>.</p>
+<code>transcript_directory_not_writable</code>. The day folder is a real folder: a
+link at its name is refused with <code>transcript_directory_not_writable</code> and
+nothing is made where it points; a link at <code>transcript.root</code> itself is the
+site's and is followed.</p>
+</li>
+<li>
+<p>A session keeps to the two files it created. A shared tree's day folder is
+the group's to write, with no sticky bit, so another member can rename a
+session's files and put a link or a file in their place. <code>script(1)</code> is
+given the transcript through karvi's own open descriptor, not its name, and
+every later open of either file (the start and end records, the rendering,
+the digest) goes by the name without following a link and checks that it
+holds the file the session created. A name that no longer does is refused
+with <code>transcript_create_failed</code>, and nothing is read or written through it;
+a transcript refused at the session's end sets <code>recording_failed</code> in the
+metadata's end record.</p>
 </li>
 </ul>
 <h2 id="formats">Formats <a class="anchor" href="#formats" aria-label="Link to this section">#</a></h2>
@@ -258,7 +273,7 @@ day folders of the transcript trees alone: what a session recorded into a
 destination, the names, the two lines, and what the transcript holds for
 the terminal; a change to one changes both.</p>
 
-<footer>Generated from <code>docs/LOGIN-TRANSCRIPTS.md</code> at <code>karvi-v0.38.0</code>.</footer>
+<footer>Generated from <code>docs/LOGIN-TRANSCRIPTS.md</code> at <code>karvi-v0.39.0</code>.</footer>
 </main>
 </body>
 </html>

@@ -66,8 +66,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -135,8 +135,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -230,8 +230,9 @@ header is rendered. The templates may also use <code>&lt;timestamp&gt;</code>, <
 <code>&lt;platform&gt;</code>, and <code>&lt;transport&gt;</code>, and the footer <code>&lt;exit-status&gt;</code>, <code>&lt;exit-code&gt;</code>,
 and <code>&lt;elapsed&gt;</code>. They go to standard error, on the terminal and never into the
 transcript; an empty template prints no line; <code>--quiet</code> suppresses both; a
-template that does not render refuses the login before a transcript is created
-(<code>config_display_template_invalid</code>).</p>
+template that does not render refuses the configuration
+(<code>config_display_template_invalid</code>), so no login starts and no transcript is
+created.</p>
 <h2 id="borders-as-separators">Borders as separators <a class="anchor" href="#borders-as-separators" aria-label="Link to this section">#</a></h2>
 <p>A border separates adjacent command records. With the default <code>&quot;\n&quot;</code>, two
 records have one blank line between them. No border follows the last record
@@ -308,7 +309,7 @@ command errors. Structured records distinguish observed and inferred prompts.</p
 </ul>
 <p><code>display.json.indent</code> accepts 1 through 8 and affects only <code>json</code>.</p>
 
-<footer>Generated from <code>docs/DISPLAY-CONFIGURATION.md</code> at <code>karvi-v0.38.0</code>.</footer>
+<footer>Generated from <code>docs/DISPLAY-CONFIGURATION.md</code> at <code>karvi-v0.39.0</code>.</footer>
 </main>
 </body>
 </html>

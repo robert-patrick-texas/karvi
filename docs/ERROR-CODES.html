@@ -63,8 +63,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -129,8 +129,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -285,7 +285,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <tr>
 <td style="text-align:right">114</td>
 <td><code>ExitHaltHostKeyMismatch</code></td>
-<td>A run stopped starting devices after a changed host key (ssh.halt-run-on-host-key-mismatch).</td>
+<td>A run stopped starting devices after a changed or revoked host key (ssh.halt-run-on-host-key-mismatch).</td>
 </tr>
 </tbody>
 </table>
@@ -343,13 +343,6 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">—</td>
 <td style="text-align:center">no</td>
 <td>An askpass helper presents the wrong one-use token to the broker.</td>
-</tr>
-<tr>
-<td><code>askpass_enable_password_unset</code></td>
-<td>authentication</td>
-<td style="text-align:right">—</td>
-<td style="text-align:center">no</td>
-<td>OpenSSH asks the broker for an enable password that was not resolved.</td>
 </tr>
 <tr>
 <td><code>askpass_material_missing</code></td>
@@ -503,7 +496,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>permission</td>
 <td style="text-align:right">9</td>
 <td style="text-align:center">no</td>
-<td>The shared capacity root exists but this operator cannot lease in it: the sticky bit on another operator's directory, or a directory or lock file closed to the operator. The private fallback is taken with a warning naming the cause.</td>
+<td>The shared capacity root cannot be leased in by this operator: the sticky bit on another operator's directory, a directory or lock file closed to the operator, a link at a lock's or the devices folder's name, a server ledger that does not decode, a filesystem with no free inodes, or a root absent whose parent is absent or closed to the operator. Under <code>auto</code> the private fallback is taken with a warning naming the cause; a named root is refused.</td>
 </tr>
 <tr>
 <td><code>channel_exec_declaration_refused</code></td>
@@ -685,7 +678,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>credential</td>
 <td style="text-align:right">6</td>
 <td style="text-align:center">no</td>
-<td>The <code>.cloginrc</code> file cannot be read or has invalid syntax: continuation lines, unsupported statements, wrong value counts, unfinished escapes, or unterminated braces.</td>
+<td>The <code>.cloginrc</code> file cannot be read or has invalid syntax: a line of 1 MiB or more, unsupported statements, wrong value counts, unterminated braces or quotes, text after a closing brace or quote, a pattern that cannot match, or a password or enable password that is not a Tcl list.</td>
 </tr>
 <tr>
 <td><code>cloginrc_tcl_substitution_forbidden</code></td>
@@ -909,7 +902,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>config</td>
 <td style="text-align:right">2</td>
 <td style="text-align:center">no</td>
-<td>A formula backend's <code>password-source</code> is empty or names the backend itself.</td>
+<td>A formula backend's <code>password-source</code> is empty, names the backend itself, or names another formula backend.</td>
 </tr>
 <tr>
 <td><code>config_credential_formula_source_unknown</code></td>
@@ -1266,7 +1259,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>config</td>
 <td style="text-align:right">3</td>
 <td style="text-align:center">no</td>
-<td>A lower-authority layer writes a locked key.</td>
+<td>A lower-authority layer writes a locked key, or defines a macro that a locked key's value takes.</td>
 </tr>
 <tr>
 <td><code>config_lock_zero_coverage</code></td>
@@ -1414,6 +1407,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">2</td>
 <td style="text-align:center">no</td>
 <td><code>platform.&lt;name&gt;.ssh-port</code> is outside 1..65535.</td>
+</tr>
+<tr>
+<td><code>config_platform_telnet_port_out_of_range</code></td>
+<td>config</td>
+<td style="text-align:right">2</td>
+<td style="text-align:center">no</td>
+<td><code>platform.&lt;name&gt;.telnet-port</code> is outside 1..65535.</td>
 </tr>
 <tr>
 <td><code>config_policy_cycle</code></td>
@@ -1651,7 +1651,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>config</td>
 <td style="text-align:right">2</td>
 <td style="text-align:center">no</td>
-<td>A configuration key is not in the configuration registry.</td>
+<td>A configuration key is not in the configuration registry, or a transform operation or one of its pairs holds a key it does not take.</td>
 </tr>
 <tr>
 <td><code>config_unsupported_file_type</code></td>
@@ -2690,6 +2690,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>The host-key policy value is not <code>accept-new</code>, <code>secure</code>, or <code>insecure</code>.</td>
 </tr>
 <tr>
+<td><code>host_key_revoked</code></td>
+<td>connection</td>
+<td style="text-align:right">109</td>
+<td style="text-align:center">no</td>
+<td>The presented host key is one the trust store marks <code>@revoked</code> for the host.</td>
+</tr>
+<tr>
 <td><code>host_key_scan_empty</code></td>
 <td>connection</td>
 <td style="text-align:right">109</td>
@@ -3282,7 +3289,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>output</td>
 <td style="text-align:right">111</td>
 <td style="text-align:center">no</td>
-<td>A command record cannot be appended to the job output.</td>
+<td>A command record cannot be appended to the job output; a line that failed partway and cannot be cut back out of its file fails every later record of the job.</td>
 </tr>
 <tr>
 <td><code>paging_disable_failed</code></td>
@@ -3625,7 +3632,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td><code>run</code> combines <code>--dry-run</code>, <code>--exercise</code>, or <code>--detach</code> with one another, or <code>--detach</code> with <code>--follow</code> or <code>--no-daemon</code>; or <code>--of</code> without <code>--no-daemon</code>, since a job through the daemon is written under the daemon's <code>output.root</code>.</td>
+<td><code>run</code> combines <code>--dry-run</code>, <code>--exercise</code>, or <code>--detach</code> with one another, <code>--exercise</code> or <code>--detach</code> with <code>--no-daemon</code>, <code>--detach</code> with <code>--follow</code>, or <code>--nof</code> with <code>--detach</code> or <code>--exercise</code>; or <code>--exercise</code> runs under <code>output.persist-command = false</code>, which keeps no job folder for its report.</td>
 </tr>
 <tr>
 <td><code>run_output_format_unsupported</code></td>
@@ -3674,7 +3681,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>permission</td>
 <td style="text-align:right">9</td>
 <td style="text-align:center">no</td>
-<td>The scoreboard directory path is a symlink or not a directory.</td>
+<td>The scoreboards folder cannot be used: a link, not a folder, closed to the operator, on a filesystem with no free inodes, or absent with its parent absent or closed to the operator.</td>
 </tr>
 <tr>
 <td><code>scoreboard_write_failed</code></td>
@@ -3856,7 +3863,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>permission</td>
 <td style="text-align:right">9</td>
 <td style="text-align:center">no</td>
-<td>No candidate spool directory can be created and written: <code>spooldir</code> names a path, or its <code>auto</code> chain <code>/tmp/karvi-&lt;uid&gt;</code> then <code>/var/tmp/karvi-&lt;uid&gt;</code>, and none is a real directory the effective uid can create a file in. Reported at the job's admission before any device is contacted; the daemon logs it at its start and starts anyway, since the job is what needs the directory.</td>
+<td>No candidate spool directory can be created and written: <code>spooldir</code> names a path, or its <code>auto</code> chain <code>/tmp/karvi-&lt;uid&gt;</code> then <code>/var/tmp/karvi-&lt;uid&gt;</code>, and none is a real directory the effective uid can create a file in, under <code>auto</code> one the effective uid owns with no group or other access. Reported at the job's admission before any device is contacted; the daemon logs it at its start and starts anyway, since the job is what needs the directory.</td>
 </tr>
 <tr>
 <td><code>ssh_algorithm_negotiation_failed</code></td>
@@ -4136,14 +4143,14 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>output</td>
 <td style="text-align:right">111</td>
 <td style="text-align:center">no</td>
-<td>The login transcript directory, file, or metadata cannot be created.</td>
+<td>The login transcript directory, file, or metadata cannot be created, or a file of the recording is no longer the one its claim made (a link or another file put at its name).</td>
 </tr>
 <tr>
 <td><code>transcript_directory_not_writable</code></td>
 <td>permission</td>
 <td style="text-align:right">9</td>
 <td style="text-align:center">no</td>
-<td>A folder in the transcript tree exists and the operator cannot create files in it.</td>
+<td>A folder in the transcript tree exists and the operator cannot create files in it, or a path there is not a folder.</td>
 </tr>
 <tr>
 <td><code>transcript_format_unavailable</code></td>
@@ -4206,7 +4213,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>config</td>
 <td style="text-align:right">2</td>
 <td style="text-align:center">no</td>
-<td>A <code>replace-chars</code> pair's <code>from</code> or <code>to</code> is not exactly one character.</td>
+<td>A <code>replace-chars</code> pair is not an inline table, or its <code>from</code> or <code>to</code> is not exactly one character.</td>
 </tr>
 <tr>
 <td><code>transform_pairs_empty</code></td>
@@ -4431,7 +4438,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>halt</td>
 <td style="text-align:right">114</td>
 <td style="text-align:center">no</td>
-<td>A run-wide halt on a changed host key stopped the command from starting.</td>
+<td>A run-wide halt on a changed or revoked host key stopped the command from starting.</td>
 </tr>
 <tr>
 <td><code>halt_invalid_dispatch_mode</code></td>
@@ -4579,7 +4586,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>notice</td>
 <td style="text-align:right">—</td>
 <td style="text-align:center">no</td>
-<td>Under <code>ssh.host-key-policy = &quot;insecure&quot;</code> over <code>system</code> the trust store holds the device, and the <code>ssh-keyscan</code> that compares its key beside the connection failed (not installed, past five seconds, refused, no usable key), the session going on uncompared: the device's first record carries it with a short cause and the whole reason, the client shows <code>! ssh host-key DEVICE not compared: CAUSE</code> (<code>ssh-keyscan not installed</code>, <code>ssh-keyscan timed out</code>, <code>ssh-keyscan failed</code>, <code>no usable key</code>, <code>trust store unreadable</code>), and the audit event's <code>details.host_key_not_compared</code> holds the reason.</td>
+<td>Under <code>ssh.host-key-policy = &quot;insecure&quot;</code> over <code>system</code> the trust store holds the device, enrolled or <code>@revoked</code>, and the <code>ssh-keyscan</code> that compares its key beside the connection failed (not installed, past five seconds, refused, no usable key), the session going on uncompared: the device's first record carries it with a short cause and the whole reason, the client shows <code>! ssh host-key DEVICE not compared: CAUSE</code> (<code>ssh-keyscan not installed</code>, <code>ssh-keyscan timed out</code>, <code>ssh-keyscan failed</code>, <code>no usable key</code>, <code>trust store unreadable</code>), and the audit event's <code>details.host_key_not_compared</code> holds the reason.</td>
 </tr>
 <tr>
 <td><code>host_key_policy_insecure</code></td>
@@ -4776,6 +4783,12 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>v0.11.0 to v0.17.0</td>
 <td><code>output_directory_not_writable</code></td>
 <td><code>cmd --no-persist</code> could not create its scratch artifact directory; <code>cmd --nof</code> replaced the option and creates no directory. The one folder a command creates is its job folder.</td>
+</tr>
+<tr>
+<td><code>askpass_enable_password_unset</code></td>
+<td>v0.39.0</td>
+<td><code>privilege_failed</code></td>
+<td>The askpass broker was asked for an enable password that was not resolved; the broker answers the login's username and password alone, and a command session sends the enable secret in-band, <code>privilege_failed</code> when the credential has none.</td>
 </tr>
 <tr>
 <td><code>audit_sink_unavailable</code></td>
@@ -5374,7 +5387,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 </tbody>
 </table>
 
-<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.38.0</code>.</footer>
+<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.39.0</code>.</footer>
 </main>
 </body>
 </html>

@@ -69,8 +69,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -141,8 +141,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -341,8 +341,11 @@ prompt patterns: the levels' patterns for a platform that declares them
 built-ins), <code>generic</code>'s prompt pattern otherwise, and a broad line ending
 in <code>#</code>, <code>&gt;</code>, or <code>$</code> for a platform with neither. A candidate prompt must
 remain the final content for a short settle period so a banner line ending
-with a prompt character is not accepted prematurely. The prompt timeout and
-command timeout remain bounded configuration values.</p>
+with a prompt character is not accepted prematurely. The telnet transport
+matches the same way, its login's <code>Username:</code> and <code>Password:</code> questions and
+the enable step's <code>Password:</code> included: only on the last line, once it has
+stood for the settle period. The prompt timeout and command timeout remain
+bounded configuration values.</p>
 <p>The collected response is the rendered text: one echoed command line and
 the trailing prompt removed, every line ending in <code>\n</code>, a space the device
 wrote kept on an inner line, and the last line before the prompt without its
@@ -473,7 +476,7 @@ the connection serving the next command, so the policy applies to them too. A
 refused channel or exec request, a lost connection, the device timeout, and a
 keepalive expiry end the session.</p>
 
-<footer>Generated from <code>docs/COMMAND-SESSION.md</code> at <code>karvi-v0.38.0</code>.</footer>
+<footer>Generated from <code>docs/COMMAND-SESSION.md</code> at <code>karvi-v0.39.0</code>.</footer>
 </main>
 </body>
 </html>

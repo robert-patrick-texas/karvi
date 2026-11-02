@@ -67,8 +67,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -137,8 +137,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -486,7 +486,9 @@ command line reaches these as flag-origin configuration values, in one function,
 <code>cli.outputOptions</code>: <code>--nof</code> and <code>--of</code> are <code>output.persist-command</code>, and
 <code>--of=PATH</code> is <code>output.root</code> for that invocation, on <code>cmd</code> and <code>run</code>; <code>run</code>
 refuses <code>--nof</code> with <code>--detach</code> (nothing persisted and nobody following) and
-with <code>--exercise</code> (the report is a file). A job that keeps no folder has an
+with <code>--exercise</code> (the report is a file), and <code>--exercise</code> under
+<code>output.persist-command = false</code> from the configuration, which the daemon's
+job refuses too before its acceptance. A job that keeps no folder has an
 empty <code>artifact_dir</code> in its receipt and its follow start, and its footer says
 <code>artifacts=none</code>. The store writes every file from memory and none from another,
 so no key depends on another; <code>Store.Paths</code> names only the files written, and
@@ -545,9 +547,10 @@ guide; <a href="DESIGN.html"><code>docs/DESIGN.md</code></a> the record.</p>
 trail's identifier and message ID (<code>audit.Identifier</code>, <code>audit.MessageID</code>, the
 writer's own constants) and its matches, the <code>KARVI_*</code> field names the writer
 uses (<code>audit.Field*</code>), and lays out each entry's <code>KARVI_AUDIT_JSON</code> decoded
-into <code>records.AuditRecord</code> as one row of fixed widths. It reads no
-configuration: the window, the pattern, the order, and the follow are
-journalctl's, and who reads whose events journald's. Its colour is
+into <code>records.AuditRecord</code> as one row of fixed widths, every cell's controls
+escaped by <code>termtext.Visible</code>, the sanitizer <code>watch</code> and <code>job list</code> share. It
+reads no configuration: the window, the pattern, the order, and the follow
+are journalctl's, and who reads whose events journald's. Its colour is
 <code>display.ColorEnabled(&quot;always&quot;, …)</code> for a terminal and a pipe, never a file,
 the dark theme's roles. Its command line, as <code>karvi-prune</code>'s, is one
 <code>flagspec.Spec</code> that the parser, the help, the hidden word for Tab, and the man
@@ -848,7 +851,7 @@ rehearsals detect the capability without probing and report it as
 device from the <code>display.ping.header</code> template, with details and the notice
 under <code>--debug</code>.</p>
 
-<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.38.0</code>.</footer>
+<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.39.0</code>.</footer>
 </main>
 </body>
 </html>

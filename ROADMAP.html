@@ -60,8 +60,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -123,8 +123,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -503,17 +503,6 @@ from journald, how a suite's is, and the audit suite's, whose subject is
 the round trip through journald, its jobs at devices named for its run
 alone (<a href="docs/EXAMPLES.html#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17"><code>docs/EXAMPLES.md</code>, chapter
 64</a>).</li>
-<li><strong>An audit event over journald's datagram bound.</strong> The audit writes each
-event to journald as one datagram, and the socket refuses one over its send
-buffer (212,992 bytes on the development host, <code>net.core.wmem_default</code>): a
-job whose <code>start</code> event carries one list of 4,000 statements, 296,785 bytes,
-is refused at its acceptance, <code>audit_write_failed: … message too long</code>, exit
-111, before any device is contacted (<a href="docs/EXAMPLES.html#79-a-command-file-per-target-2026-10-25"><code>docs/EXAMPLES.md</code>, chapter
-79</a>). The item: an
-event of any size the audit accepts reaches journald, as <code>sd_journal_send</code>
-passes a large entry in a sealed memfd over the socket. The questions: the
-largest event karvi writes, and whether one is bounded; the audit file
-beside it; a device command event of that size.</li>
 <li><strong>The spool suite's timeout row waiting on a condition.</strong> The spool suite's S4
 cuts <code>show big</code> at a one-second command timeout and needs 1 MiB settled by the
 cut. The fake builds its 65.7 MB answer before it sends it, and what settles
@@ -609,7 +598,7 @@ interactive session whose operator saw it end.</li>
 2,500-device accounting gate waits on that run and on review by the network
 operations and security owners.</p>
 
-<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.38.0</code>.</footer>
+<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.39.0</code>.</footer>
 </main>
 </body>
 </html>

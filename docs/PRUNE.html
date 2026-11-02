@@ -66,8 +66,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -135,8 +135,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -180,7 +180,8 @@ schedules and the hand run invoke the same executable with the same
 flags, so they make the same decisions.</p>
 <h2 id="what-goes-and-when">What goes, and when <a class="anchor" href="#what-goes-and-when" aria-label="Link to this section">#</a></h2>
 <p>Everything below is judged against the retention age, <code>--days</code> (31 by
-default), the cutoff being now less that many days.</p>
+default, from one to 999), the cutoff being that many calendar days before
+now.</p>
 <table>
 <thead>
 <tr>
@@ -224,7 +225,7 @@ default), the cutoff being now less that many days.</p>
 <tr>
 <td><code>day</code></td>
 <td>a <code>YYMMDD</code> day folder that holds nothing</td>
-<td>its date is before the cutoff; removed after the run's other removals, with a plain <code>rmdir</code>, so a folder that gained a job in the meantime stays</td>
+<td>the whole day it names ended before the cutoff; removed after the run's other removals, with a plain <code>rmdir</code>, so a folder that gained a job in the meantime stays</td>
 <td>never</td>
 </tr>
 </tbody>
@@ -232,11 +233,27 @@ default), the cutoff being now less that many days.</p>
 <p>What never goes: a running job (its folder is younger than the age, or
 its scoreboard file is live), a transcript still being recorded (no end
 record), a folder under a name that is not a <code>YYMMDD</code> day folder, a
-symbolic link, a file the helper cannot read, the collection directory
-(<code>crun</code>; the latest file per device is not retention), the audit log,
-and anything in journald. Long-term audit retention is journald's and the
-central forwarder's, never this helper's; <code>karvi-audit</code> reads it
-(<a href="OPERATIONS.html#the-audit-trail"><code>docs/OPERATIONS.md</code> &quot;The audit trail&quot;</a>).</p>
+symbolic link, a file or folder the helper cannot read, the collection
+directory (<code>crun</code>; the latest file per device is not retention), the audit
+log, and anything in journald. Long-term audit retention is journald's and
+the central forwarder's, never this helper's; <code>karvi-audit</code> reads it
+(<a href="OPERATIONS.html#the-audit-trail"><code>docs/OPERATIONS.md</code> &quot;The audit trail&quot;</a>).
+A job's <code>summary.json</code>, a scoreboard file, and a transcript's metadata are
+read only from a regular file, opened without following a link and without
+waiting on a FIFO, and only within a bound: 64 MiB for a summary or a
+scoreboard file, 1 MiB for metadata. Anything else under a summary's or a
+scoreboard file's name stays, <code>kept</code> as <code>unreadable</code> as a file that does
+not decode is, and a scoreboard file that cannot be read holds no orphan
+live; under a metadata file's name it stays, <code>kept</code> as <code>live</code>, as a
+transcript without its end record does.</p>
+<p><strong>The day folders' zone.</strong> A day folder's name is a date in the zone karvi
+named it in. The helper reads no configuration, so it reads the names in
+its own local zone (<code>TZ</code>, else the host's), the zone karvi names them in
+under <code>timezone</code>'s default, <code>auto</code>; a site whose <code>timezone</code> names another
+zone sets <code>TZ</code> to the same zone on the helper's line. An empty day folder
+goes once the whole day it names, to the next midnight in that zone, ended
+before the cutoff, so with <code>--days</code> at one or more today's and yesterday's
+folders stay; an orphan's day folder is read in the same zone.</p>
 <p><strong>Pressure.</strong> <code>--minfree</code> (5 by default) is a free-space floor in
 percent. A tree whose filesystem is under the floor gives up its oldest
 finished items before their age, one at a time until the floor is met,
@@ -255,7 +272,10 @@ timer.</p>
 <p><strong>Failure is a line, not the end.</strong> A removal that fails (a folder made
 unwritable, a file system gone read-only) is reported as <code>failed</code> with
 its reason and the run goes on to the next item; the summary counts it
-and the exit is 1. A tree that cannot be walked is reported the same way.</p>
+and the exit is 1. A tree that cannot be walked, its root unreadable, is
+reported the same way, a <code>failed</code> line of <code>kind=tree</code>. A folder below a
+root that cannot be read (a colleague's job folder of mode 0700) is a
+<code>skipped</code> line with its reason, and the walk goes on past it.</p>
 <h2 id="where-it-looks-in-sequence">Where it looks, in sequence <a class="anchor" href="#where-it-looks-in-sequence" aria-label="Link to this section">#</a></h2>
 <p>A run walks its trees in this order and reports each under <code>--verbose</code>
 as a <code>walk</code> line. It makes nothing: a place that does not exist is not
@@ -288,7 +308,9 @@ first root that holds it,</p>
 the run goes on. <code>crun</code> is never walked.</p>
 </li>
 <li>
-<p>The shared scoreboards, <code>--scoreboards</code>: <code>/dev/shm/karvi/scoreboards</code>.</p>
+<p>The shared scoreboards, <code>--scoreboards</code>: <code>/dev/shm/karvi/scoreboards</code>,
+judged as the shared trees are: a folder the operator cannot write to,
+or a link, is reported as skipped and the run goes on.</p>
 </li>
 </ol>
 <p>The walk is by kind: the job trees (private, then shared), the transcript
@@ -338,11 +360,14 @@ its date. Under <code>--verbose</code> every examined item that stays has a <cod
 line with one reason: <code>young</code> (within the age), <code>live</code> (a running job's
 snapshot, a transcript without its end record, an orphan whose snapshot is
 live), <code>not-owned</code>, <code>not-a-day-folder</code>, <code>symlink</code>,
-<code>unreadable</code>; and every place looked at has a <code>walk</code> line.</p>
+<code>unreadable</code>; and every place looked at has a <code>walk</code> line. A <code>skipped</code>
+line, with or without <code>--verbose</code>, names a shared tree passed by or a
+folder that cannot be read, with the error.</p>
 <p>The summary: <code>examined</code> records read, <code>removed</code> items removed (or that
 would be), <code>skipped</code> entries passed by (a name that is not a day folder,
-a live record, a tree not walked), <code>not_owned</code> items another user owns,
-<code>failed</code> removals that returned an error, <code>bytes</code> the size removed.</p>
+a live record, a folder that cannot be read), <code>not_owned</code> items another
+user owns, <code>failed</code> removals that returned an error and trees that could
+not be walked, <code>bytes</code> the size removed.</p>
 <p><strong><code>--format jsonl</code></strong> writes the same report as one JSON document per line
 for a site's log pipeline: the event word under
 <code>event</code> (<code>removed</code>, <code>would-remove</code>, <code>failed</code>, <code>kept</code>, <code>skipped</code>, <code>walk</code>,
@@ -369,11 +394,11 @@ line per item, the summary last, standard error for a usage error alone.</p>
 </tr>
 <tr>
 <td>1</td>
-<td>a removal failed or a tree could not be walked; the report says which</td>
+<td>a removal failed or a tree could not be walked (its root unreadable); the report says which</td>
 </tr>
 <tr>
 <td>2</td>
-<td>a usage error: an unknown flag, a positional argument, <code>--days</code> below one, <code>--minfree</code> outside 0 to 100, <code>--format</code> neither <code>text</code> nor <code>jsonl</code></td>
+<td>a usage error: an unknown flag, a positional argument, <code>--days</code> outside 1 to 999, <code>--minfree</code> outside 0 to 100 or not a number, <code>--format</code> neither <code>text</code> nor <code>jsonl</code></td>
 </tr>
 </tbody>
 </table>
@@ -408,7 +433,7 @@ line per item, the summary last, standard error for a usage error alone.</p>
 <tr>
 <td><code>--days</code></td>
 <td><code>31</code></td>
-<td>the retention age in days, one or more</td>
+<td>the retention age in days, from one to 999</td>
 </tr>
 <tr>
 <td><code>--minfree</code></td>
@@ -479,7 +504,7 @@ storage&quot;</a>: the helper's place beside the
 daemon.</li>
 </ul>
 
-<footer>Generated from <code>docs/PRUNE.md</code> at <code>karvi-v0.38.0</code>.</footer>
+<footer>Generated from <code>docs/PRUNE.md</code> at <code>karvi-v0.39.0</code>.</footer>
 </main>
 </body>
 </html>

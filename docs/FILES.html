@@ -62,8 +62,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -127,8 +127,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -164,7 +164,8 @@ operator cannot use is refused, warned about, or passed by, as the last
 column says: the trees and the private root are refused, since the site made
 them for the operator and a silent fall-through would split the operator's
 work across two places; the scratch root's two folders are passed by with
-one warning, since a job can run without them.</p>
+one warning, since a job can run without them, and so is either of them
+absent where the operator cannot make it in the scratch root.</p>
 <table>
 <thead>
 <tr>
@@ -261,6 +262,13 @@ or refused if it cannot be. <code>sharedroot = &quot;none&quot;</code> keeps the
 private root, the spool, the trust store, and the daemon's sockets are always
 one operator's: <code>basedir</code> is never shared, since its <code>socket</code> and <code>state</code> are
 one operator's daemon.</p>
+<p>A present candidate of the scratch's or the spool's <code>auto</code> chain is taken only
+when it is a real directory the operator owns, with no group or other access,
+that the operator can write in, on a filesystem with free inodes; any other is
+passed by for the next candidate. The activity judges it again once it has
+made the directory, since another user may have made it first. An explicit
+<code>tempdir</code> or <code>spooldir</code> is the site's choice, taken whatever its owner and
+mode when the operator can write in it.</p>
 <p>The scratch holds the askpass socket, whose path a Unix socket bounds at 107
 bytes with a name of up to 37, so the scratch may be at most 69 bytes: <code>auto</code>
 passes a longer candidate by, named on <code>config show --explain</code>'s <code>passed:</code>
@@ -282,22 +290,28 @@ other. An explicit value that would need one made is refused before any
 device is contacted, <code>shared_directory_absent</code>, naming the place, <code>sudo karvi setup shared</code>, and the key to set elsewhere. Inside the places that exist an
 operator's run makes its own folders: its <code>&lt;user&gt;</code> folder in the scratch root,
 a missing <code>scoreboards</code> or <code>capacity</code> folder in the root's group, its folder
-under <code>users</code>, the day and job folders in the trees. <code>/dev/shm</code> is emptied at
-every boot, and <code>systemd-tmpfiles</code> makes the scratch root again from the rule
-<code>setup shared</code> writes; a host where the rule did not run is in individual mode
-for the scratch, the scoreboards, and the ledger until it does.</p>
+under <code>users</code>, the day and job folders in the trees. The scratch root's two
+folders, and an explicit <code>scoreboards</code> or <code>sessions.shared-capacity-root</code>, are
+made only in a parent that exists, never with their parents: an explicit one
+whose parent is absent is refused (<code>scoreboard_root_invalid</code>,
+<code>capacity_root_unusable</code>). <code>/dev/shm</code> is emptied at every boot, and
+<code>systemd-tmpfiles</code> makes the scratch root again from the rule <code>setup shared</code>
+writes; a host where the rule did not run is in individual mode for the
+scratch, the scoreboards, and the ledger until it does.</p>
 <p><strong>A quick look at a host.</strong> <code>karvi config show KEY…</code> names on each key's
 <code>resolved:</code> line the place the next activity would use, by the rule above and
 without creating anything: <code>karvi config show basedir ssh.known-hosts-file</code>
 names the operator's private root and trust store. A candidate present on the
-host and passed by follows on a <code>passed:</code> line with its reason, and a place the
-activity would refuse is <code>resolved:   error: CODE: message</code>. Each candidate is
-judged as the activity judges it, by its permissions (<code>access(2)</code>), its owner
-and mode where it is private, and the free inodes of its filesystem; what only
-a write shows, a network filesystem's refusal or a quota, can still differ.
-Every place at once, one line for each key that names one and for each
-candidate passed by, from the configuration this invocation loads, here on a
-host after <code>setup shared</code>, before the operator's first activity:</p>
+host and passed by follows on a <code>passed:</code> line with its reason, as does a
+scratch root's folder absent that the operator cannot make, which the activity
+warns about; a place the activity would refuse is
+<code>resolved:   error: CODE: message</code>. Each candidate is judged as the activity
+judges it, by its permissions (<code>access(2)</code>), its owner and mode where it is
+private, and the free inodes of its filesystem; what only a write shows, a
+network filesystem's refusal or a quota, can still differ. Every place at once,
+one line for each key that names one and for each candidate passed by, from the
+configuration this invocation loads, here on a host after <code>setup shared</code>,
+before the operator's first activity:</p>
 <pre><code class="language-bash">karvi config show --explain | awk '/^key:/{k=$2} /^(resolved|passed):/{print k&quot;: &quot;$0}'
 </code></pre>
 <pre><code class="language-text">basedir: resolved:   /opt/karvi/users/netops
@@ -1013,17 +1027,23 @@ it is written; the other copies are named by rule, as the output files are.</p>
 </table>
 <p>A ledger file is rewritten whole, through a temporary file set to its mode
 and renamed over it, so its owner becomes the operator who last wrote it and a
-reader never sees half a file; its group is the directory's. A lease names its
-job, process, start time, and boot, and an entry whose process is gone is
-dropped at the next change, so a stopped job or a reboot leaves no lease.
-Between runs, with no session active, the ledger holds no lasting state; it is
-never removed while jobs run, since a lock file removed mid-run would let two
-writers race.</p>
+reader never sees half a file; its group is the directory's. It is read only
+from a regular file, never through a link or from a FIFO, and at most 16 MiB of
+it; anything else under its name is a ledger that cannot be read, an error,
+never an empty ledger. A lock is never opened or made through a link, and
+<code>devices</code> must be a real folder: a link at either's name is refused
+(<code>capacity_root_unusable</code>, the message naming the link to remove), nothing
+made or changed where it points; a link at the ledger's root is the site's and
+is followed. A lease names its job, process, start time, and boot, and an entry
+whose process is gone is dropped at the next change, so a stopped job or a
+reboot leaves no lease. Between runs, with no session active, the ledger holds
+no lasting state; it is never removed while jobs run, since a lock file removed
+mid-run would let two writers race.</p>
 <p>The shared modes come from the folder: under a folder with the setgid bit, the
 ledger's files take the folder's permission bits without search (<code>2770</code> gives
 <code>0660</code>) and its folders the folder's bits with setgid, so every member takes
-and releases leases in files another member made. A file at <code>0600</code>, or outside
-the operators' group, in a shared ledger is one an earlier release left: other
+and releases leases in files another member made. A file in a shared ledger
+at <code>0600</code>, or outside the operators' group, is not one karvi makes: other
 operators meet <code>capacity_admission_failed … permission denied</code> until its
 owner's next run sets it right, or the site resets it.</p>
 <h3 id="46-what-the-sites-commands-write">4.6 What the site's commands write <a class="anchor" href="#46-what-the-sites-commands-write" aria-label="Link to this section">#</a></h3>
@@ -1181,7 +1201,7 @@ the home from the password database, so a run under another <code>HOME</code> st
 writes to the account's own.</li>
 </ul>
 
-<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.38.0</code>.</footer>
+<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.39.0</code>.</footer>
 </main>
 </body>
 </html>

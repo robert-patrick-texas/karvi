@@ -47,6 +47,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0390---2026-11-02">0.39.0 - 2026-11-02</a></li>
 <li><a href="#0380---2026-10-28">0.38.0 - 2026-10-28</a></li>
 <li><a href="#0370---2026-10-27">0.37.0 - 2026-10-27</a></li>
 <li><a href="#0360---2026-10-26">0.36.0 - 2026-10-26</a></li>
@@ -78,8 +79,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -128,6 +129,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0390---2026-11-02">0.39.0 - 2026-11-02</a></li>
 <li><a href="#0380---2026-10-28">0.38.0 - 2026-10-28</a></li>
 <li><a href="#0370---2026-10-27">0.37.0 - 2026-10-27</a></li>
 <li><a href="#0360---2026-10-26">0.36.0 - 2026-10-26</a></li>
@@ -159,8 +161,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -172,6 +174,434 @@
 </nav>
 <main>
 <h1 id="changelog">Changelog <a class="anchor" href="#changelog" aria-label="Link to this section">#</a></h1>
+<h2 id="0390---2026-11-02">0.39.0 - 2026-11-02 <a class="anchor" href="#0390---2026-11-02" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.38.0 for the fixes of the code review of 2026-10-31. The
+configuration registry moves to 33; every other counter is 0.38.0's
+(configuration schema 6, execution plan 15, plan report 4, scoreboard 5,
+daemon IPC 12, command record 4, job manifest and summary 5, credential
+package 2, audit 2, metrics 1, inventory 1). goldmark, which builds the
+documents alone, moves to v1.8.7; Go and the other modules are 0.38.0's. A
+site has something to change where a trust store holds <code>@revoked</code> or
+<code>@cert-authority</code> lines; a script gives <code>karvi-prune --days</code> more than 999,
+counts on its exit 0 for a tree it cannot read, or looks for
+<code>askpass_enable_password_unset</code>, retired for <code>privilege_failed</code>; <code>run --exercise</code> runs under a configuration that keeps no job folder; the
+configuration's TOML holds a string or a number TOML reads otherwise than Go
+did; <code>display.timestamp</code> holds <code>mm</code> between a date token and a time token; two
+inventory rows for one device differ in any field; a <code>.cloginrc</code> counts on a
+reading clogin's Tcl does not give; a link sits at a day folder's, a job
+folder's, a capacity ledger's lock's, or its <code>devices</code> folder's name; a
+<code>[platform.NAME]</code> table holds a field of the wrong kind or <code>legacy-class</code>; a
+locked key takes a macro from a lower layer; or a configuration holds what it
+was refused only later. An operator's 0.38.0 daemon, of another build, is
+drained by the first submission after the upgrade.</p>
+<ul>
+<li><strong>The scratch and spool chains take only the operator's own directory.</strong>
+A present candidate of <code>tempdir</code>'s or <code>spooldir</code>'s <code>auto</code> chain
+(<code>/dev/shm/karvi/&lt;username&gt;</code>, <code>&lt;basedir&gt;/tmp</code>, <code>/tmp/karvi-&lt;uid&gt;</code>,
+<code>/var/tmp/karvi-&lt;uid&gt;</code>) was taken whoever owned it and whatever its mode, so
+another user who made <code>/tmp/karvi-&lt;uid&gt;</code> first could replace the system
+transport's ssh configuration or a spool. Such a candidate is now passed by
+unless the operator owns it with no group or other access, judged again once
+made, and <code>config show --explain</code> names why; an explicit <code>tempdir</code> or
+<code>spooldir</code> is the site's choice, taken as before. Each spool is read through
+one descriptor opened without following a link, so a file put at its path
+after the digest's pass never reaches <code>output.TARGET.txt</code> or a collection
+(<a href="docs/FILES.html"><code>docs/FILES.md</code></a>).</li>
+<li><strong>A record that cannot be written leaves the job output whole.</strong> A record
+whose line failed partway, or whose write or sync failed, left a torn line
+in <code>commands.jsonl</code> or <code>errors.jsonl</code> and offsets past it, took a sequence
+number, so that a following <code>job follow</code> refused the next record
+(<code>ipc_result_malformed</code>), and in a <code>crun</code> let the device's partial
+collection replace its previous file. The failed line is now cut back out of
+its file, the sequence goes to the next record, a record already in
+<code>commands.jsonl</code> reaches its followers even when its <code>errors.jsonl</code> line
+fails, and the device keeps its previous collection, as a device not reached
+does; a line that cannot be cut back fails every later record of the job
+<code>output_write_failed</code> (<a href="docs/COLLECTION.html"><code>docs/COLLECTION.md</code></a>).</li>
+<li><strong>Breaking: a revoked host key is refused, and a marked line is no enrolled
+key.</strong> The trust store's <code>@revoked</code> and <code>@cert-authority</code> lines were read as
+enrolled keys: a revoked key matched, and a certificate authority's key made
+the device's own key a change. A presented key the store marks <code>@revoked</code>
+for the device is now <code>host_key_revoked</code> under every policy, <code>secure</code>,
+<code>accept-new</code>, and <code>insecure</code>, on both transports (the system transport's
+OpenSSH refusal included, and under <code>insecure</code> the comparison beside the
+connection), and under <code>ssh.halt-run-on-host-key-mismatch</code> it halts the run
+as a changed key does (exit 114); a <code>@cert-authority</code> line, or one with
+another marker, is passed by as OpenSSH passes it, so a device it names
+alone is not enrolled. An enrolled key is appended on a line of its own when
+the store's last line lacks its newline
+(<a href="docs/SSH-HOST-KEY-POLICY.html"><code>docs/SSH-HOST-KEY-POLICY.md</code></a>).</li>
+<li><strong>Breaking: <code>karvi-prune --days</code> takes one to 999, and a tree it cannot read
+fails the run.</strong> A retention age of 106,752 days or more overflowed and put
+the cutoff in the future, so every job went, running ones included; <code>--days</code>
+above 999 is now a usage error (exit 2), the cutoff counted in calendar
+days, and <code>--minfree NaN</code> is refused too. A root that cannot be read is a
+<code>failed kind=tree</code> line and exit 1, where it was a skipped line and exit 0;
+a folder below it that cannot be read is a <code>skipped</code> line and the walk goes
+on, where one such folder dropped the whole tree; and a shared scoreboards
+folder the operator cannot use is passed by, as the shared jobs and
+transcripts trees are. Day folders are read in the local zone they are named
+in, not as UTC, and an empty one goes only when its whole day ended before
+the cutoff (<a href="docs/PRUNE.html"><code>docs/PRUNE.md</code></a>).</li>
+<li><strong>Breaking: askpass answers the login's username and password alone, and a
+login resolves no enable secret.</strong> The askpass broker answered an enable
+password, and its prompt matching read the user and host in OpenSSH's
+prompt, so a device or user whose name held <code>enable</code> drew the enable secret
+where a password was asked, and one holding <code>password</code> drew the password at
+a keyboard-interactive question. The broker now answers the username and the
+password, judging a prompt's own words without its <code>user@host</code> part, and
+refuses every other question, the host-key one included
+(<code>askpass_prompt_unrecognized</code>); <code>askpass_enable_password_unset</code> is retired
+for <code>privilege_failed</code>, a command session sending the enable secret in-band
+as before. <code>karvi login</code>, whose operator types <code>enable</code> at the device, asks
+for no enable secret, reads no <code>NETENABLE</code>, and refuses no credential
+without one.</li>
+<li><strong>Device credentials stay where they are needed.</strong> The <code>crun.after</code> hook has
+the operator's shell environment without <code>NETUSER</code>, <code>NETPASS</code>, and
+<code>NETENABLE</code> (<a href="docs/COLLECTION.html#5-the-commit-and-the-diff-mail-the-hook"><code>docs/COLLECTION.md</code> section
+5</a>); a
+credential plan that fails to bind a target wipes the secrets of the targets
+after it; a credential package that fails to decode wipes what it decoded;
+and <code>secrets.Value.Hint</code>, which showed a short secret's last bytes and had no
+caller, is gone.</li>
+<li><strong>The Redis credential backend's handshake is bounded, and its refusals say
+why.</strong> A TLS handshake to a store that accepts and never answers waited for
+ever; it now ends at the backend's connect timeout (<code>redis_unavailable</code>).
+Only a reply refusing <code>AUTH</code> is <code>redis_auth_failed</code>; a closed connection or a
+timeout is <code>redis_unavailable</code>, and a reply that is not Redis's
+<code>redis_protocol_error</code>.</li>
+<li><strong>Telnet takes the device's prompt from the last line alone.</strong> The telnet
+transport took any line ending in <code>&gt;</code>, <code>#</code>, or <code>$</code>, anywhere in what it had
+read, for the prompt: a banner line before <code>Username:</code> made it type <code>enable</code>
+as the username and send the enable secret as the login password, and an
+output line ending so cut a response short, the rest landing in the next
+record. It now matches as the device session does: the last line alone,
+against the platform's prompt patterns, once it has stood for the settle
+period, its login's <code>Username:</code> and <code>Password:</code> questions included, so a
+platform needs its prompt pattern over telnet as over SSH; a login that asks
+only <code>Password:</code> gets the login password there and the enable secret only at
+the privilege step. A read scans only its new bytes and the last line (a
+4 MiB response read 4 KiB at a time took minutes), and a cancel or a forced
+stop ends a blocked read at once
+(<a href="docs/COMMAND-SESSION.html"><code>docs/COMMAND-SESSION.md</code></a>).</li>
+<li><strong>A recorded login keeps to the two files it claimed.</strong> The transcript
+day folder of a shared root is group-writable without the sticky bit, so
+another member could put a link at a session's name after its claim: the
+render republished through it, and the end record was appended wherever it
+pointed. Every later open of the transcript and its metadata now refuses a
+link or a file other than the one the claim made
+(<code>transcript_create_failed</code>), nothing written through it, and script(1) is
+given the transcript by the wrapper's descriptor, never by a name. A device
+name holding <code>.meta.</code> pairs its own transcript and metadata (the login and
+<code>karvi-prune</code> alike), and a header that cannot be written after
+<code>login.start</code> ends the login through <code>login.end</code> with a final scoreboard
+(<a href="docs/LOGIN-TRANSCRIPTS.html"><code>docs/LOGIN-TRANSCRIPTS.md</code></a>).</li>
+<li><strong>An audit sink that is not required only warns, and an event of any size
+reaches journald.</strong> A write that failed on a sink not required
+(<code>audit.journald-required</code>, <code>audit.file-required</code> false) failed the job
+<code>audit_write_failed</code>; it is now one warning per sink in the summary's
+<code>audit_sink_status.warnings</code>, a required sink's failure as before. An event
+over the journal socket's datagram bound (a job's <code>start</code> with a few
+thousand statements) was refused <code>message too long</code>, exit 111, before any
+device; it now goes as journald's protocol passes a large entry, in a sealed
+memfd over the socket, and <code>karvi-audit</code> reads a field over 4,096 bytes
+whole (journalctl <code>--all</code>), where it counted such an event as not audit
+schema 2. ROADMAP's Later item for it is closed.</li>
+<li><strong>The built-in masks hide more secrets.</strong> A table of 179 secret-bearing
+lines across the five built-in lists found 39 left in clear or masked at the
+wrong word; each is now masked: on <code>cisco_ios</code> <code>server-private … key</code>, a
+keyring's <code>pre-shared-key address … key</code>, MSDP and OSPFv3 IPsec keys, named
+EIGRP, GLBP, LISP, and Easy VPN keys; on <code>cisco_xr</code> <code>server-private</code> and
+keyring forms and OSPFv3 IPsec keys; on <code>cisco_nxos</code> SNMP hosts without
+<code>traps</code>, MACsec, BFD, and MSDP keys; on <code>arista_eos</code> type 8a, OSPFv3
+passphrases, and TerminAttr's <code>-cvauth</code>; on <code>juniper_junos</code> manual IPsec and
+MACsec keys. The lists hold 21, 16, 14, 15, and 10 patterns; a site's copy of
+a list takes them from <code>platform/masks.go</code>
+(<a href="docs/COLLECTION.html#61-the-secrets-the-mask"><code>docs/COLLECTION.md</code> section 6.1</a>).</li>
+<li><strong>The daemon and its jobs end cleanly where they hung or leaked.</strong> A run
+through the daemon refused at client planning left the job folder it had
+reserved; it is released. An idle connection, or one stopped mid-line, held
+the daemon's stop for ever; the stop now ends every waiting read, and a
+credential frame is read within the preparation channel's window. A commit
+whose job could not be opened after it started left the job running; it is
+cancelled. <code>daemon restart</code> over a socket nothing listens on (a daemon killed
+outright) was refused <code>daemon_unreachable</code>; it starts a daemon. A daemon call
+without a deadline ignored its context's cancel; it ends at it. An accept
+error on either socket ended that loop without a word; a temporary one
+(descriptors exhausted) is retried, logged, from 5 ms doubling to 1 s, and a
+fatal one runs the daemon's normal shutdown.</li>
+<li><strong>Breaking: <code>run --exercise</code> refuses a configuration that keeps no job
+folder.</strong> With <code>output.persist-command = false</code> from the configuration, an
+exercise wrote <code>exercise.json</code> in the daemon's working directory; it is now
+refused <code>run_mode_conflict</code>, by the client before a credential is asked and
+by the daemon's job, as <code>--nof --exercise</code> is. An exercise's early return
+stops its scoreboard's heartbeat; <code>job follow</code> says the admission warnings
+once, not again at each resume; and a job without a folder is named
+<code>artifacts none</code> on its cancel and follow lines, not a bare <code>artifacts</code>.</li>
+<li><strong>A device's escapes and a colleague's files reach no terminal raw and grow
+no memory.</strong> A device's escape sequence could make the screen renderer open
+millions of cells from a few bytes (<code>ESC[999999999C</code>, repeated cursor moves
+or inserts with no width, cursor down far past the last row); a parameter
+is now capped and held as it is read, moves and inserts with no width reach
+at most column 4,096 (an insert there does nothing), and cursor down stops
+at the last row. Every cell of <code>karvi-audit</code>, <code>watch</code> (its screen, pane, and
+<code>--format table</code>), and <code>job list</code> shows its control characters, C1 among
+them, escaped as Go quotes them, where only <code>karvi-audit</code>'s COMMAND was;
+<code>watch</code> reads a scoreboard entry only when it is a regular file, through one
+descriptor that follows no link and waits on no FIFO, at most 64 MiB of it;
+and the pane no longer panics on a target whose key is longer than the
+width. A device session that fails or closes while its output queue is full
+no longer leaves its reader blocked for ever.</li>
+<li><strong>The system transport judges a failure by OpenSSH's own lines.</strong> OpenSSH
+prints a device's banner on standard error, and karvi matched words anywhere
+in it: a banner holding <code>Permission denied</code> made a later failure an
+authentication one, one holding <code>Warning: Permanently added</code> said
+<code>host_key_enrolled</code> of a device already enrolled, one holding host-key words
+made an authentication failure <code>host_key_changed</code> (a halt under
+<code>ssh.halt-run-on-host-key-mismatch</code>), and one over 64 KiB pushed OpenSSH's
+failure line out of the message. A failure is now decided by the last line
+in one of OpenSSH's own forms, each matched whole, the diagnostics kept to
+their last 64 KiB and emptied once authenticated; the enrollment line counts
+only once and only for a device the store held nothing for. Every ssh
+command line ends its options with <code>--</code> before the device, so a command
+beginning with <code>-</code> is the device's, not ssh's; a failed <code>ssh -Q</code> or <code>ssh -G</code>
+is asked again rather than kept for the process or the job.</li>
+<li><strong>A name lookup asks the fallback family in its own time, and a ping that
+cannot run says so.</strong> <code>name.dns-timeout</code> bounded both address families'
+lookups together, so when the preferred family (IPv6 by default) timed out
+the other was never really asked; each family now has its own timeout, so a
+lookup can take twice it. The system ping marked each probe failed when ping
+could not run at all (not installed, its socket refused, a usage error),
+which skipped the device <code>icmp_unreachable</code>; it is now
+<code>icmp_capability_unavailable</code>, the device's own failure kept for a probe
+that was sent.</li>
+<li><strong>Breaking: the configuration's TOML reads strings and numbers as TOML
+does.</strong> A multi-line basic string decoded its escapes as Go does: a
+backslash ending a line became a literal <code>\n</code> rather than joining the lines,
+and Go's own escapes (<code>\x41</code>, <code>\101</code>, <code>\a</code>, <code>\v</code>) were accepted, while a
+lone <code>&quot;</code> inside the string was refused; a backslash ending a line also hid
+the next line's <code>include</code> directive from the include scan. Strings now take
+TOML's escapes alone, a backslash ending a line drops the line break and the
+white space after it, and a <code>\u</code> or <code>\U</code> that is not a Unicode character is
+refused in every string, and one or two quotes just before a multi-line
+string's closing delimiter belong to the string, as TOML says, where they
+were refused. An integer was read as Go reads one, so <code>010</code> was 8, <code>0022</code>
+18, and <code>1__2</code>, <code>_1</code>, <code>-0x10</code>, and <code>0X10</code> were accepted; an integer is now
+decimal with no leading zero, or hexadecimal, octal, or binary only after a
+lowercase <code>0x</code>, <code>0o</code>, or <code>0b</code>, an underscore only between two digits. A
+float was read as Go reads one too, so <code>010.5</code>, <code>.5</code>, <code>5.</code>, <code>1__0.5</code>, and
+<code>0x1.8p1</code> were accepted; a float is now decimal as TOML writes it, and
+<code>inf</code>, <code>nan</code>, and a value beyond a 64-bit float are refused, as no key
+takes one. A file that used any of these is refused <code>config_toml_syntax</code>
+(<code>--set</code> and the environment by their own codes).</li>
+<li><strong>Breaking: <code>display.timestamp</code> writes what its pattern says.</strong> A lowercase
+<code>mm</code> with a date token on one side and a time token on the other was taken
+as minutes, so <code>dd-mm hh:mm</code> showed the minutes where the month belonged; it
+is now <code>display_timestamp_mm_ambiguous</code> (<code>MM</code> is the month, <code>hh:mm:ss</code> the
+minutes). Literal text went through Go's time layout, so <code>(UTC+1)</code> printed
+<code>(UTC+10)</code> and words such as <code>Jan</code> or <code>MST</code> printed as dates and zones, and
+<code>sss</code> after anything but <code>.</code> printed <code>000</code>; each token now writes its own
+digits and literal text is written as it stands.</li>
+<li><strong>Breaking: two inventory rows for one device become one only when they
+agree on every field.</strong> Rows naming the same device were taken as one when
+they agreed on the address, platform, transport, port, site, groups, and
+key, and the first row's session cap, name transform, risk tier, deployment
+ring, topology domain, and attributes stood for both, so the device's
+values depended on the file's order. Any difference is now
+<code>inventory_conflict</code> naming both lines; a row naming its transport and a
+row leaving it to the mode's default differ, and a key still compares
+folded. The source's digest and its rows come from one read, so the digest
+names the bytes the devices came from.</li>
+<li><strong>Breaking: <code>.cloginrc</code> reads lines, words, patterns, and passwords as
+clogin's Tcl does.</strong> A line ended only at a newline, a lone carriage return
+read as white space; a line ending in a backslash was refused as a
+continuation line; and <code>add</code>, <code>include</code>, and the directive were taken whatever
+their case, so karvi used an <code>add PASSWORD</code> line clogin never finds. A line is
+now what clogin's <code>gets</code> reads (a newline, a carriage return and a newline, or
+a carriage return alone ends it), read alone with no continuation (a trailing
+backslash part of its last word), and <code>add</code>, <code>include</code>, and the directive
+match case and all: <code>ADD</code> is an unsupported statement (<code>cloginrc_malformed</code>),
+<code>add PASSWORD</code> an unknown directive (<code>cloginrc_unknown_directive</code>). A braced
+word dropped each backslash; inside braces a backslash and the character after
+it are now kept, as Tcl reads a braced word, and in a braced pattern a
+backslash escapes the glob character after it. <code>$</code>, <code>[</code>, <code>]</code>, and <code>;</code> inside
+braces were refused, though Tcl takes them as written, so a file clogin reads
+(<code>{pa$$w0rd}</code>) was refused whole; they are now taken as written, and refused
+only in a bare word, the message naming the character. A bare word took the
+character after a backslash as it stood, a double-quoted word was split at its
+spaces, text after a closing brace began another word, and a <code>#</code> anywhere
+began a comment; a word is now read as Tcl reads one: backslash sequences are
+substituted in a bare or a quoted word (<code>pa\tss</code> holds a tab, <code>\x41</code> is <code>A</code>),
+a quoted word is one word (<code>&quot;pa ss&quot;</code>) in which <code>$</code> and <code>[</code> are refused, text
+right after a closing brace or quote is refused <code>cloginrc_malformed</code> (a <code>;</code>
+there <code>cloginrc_tcl_substitution_forbidden</code>), and a <code>#</code> begins a comment only
+as a line's first word, so a comment after a line's values is read as more
+values. An <code>add password</code> line's password and enable password were taken as
+the word reads, where clogin reads each again as a Tcl list and joins its
+words with nothing between; karvi now does the same (<code>{pass one}</code> is
+<code>passone</code>, <code>{pa\ss}</code> is <code>pass</code>, <code>{&quot;a b&quot;}</code> is <code>a b</code>) and refuses a value that
+is not a Tcl list (an unmatched quote or brace) <code>cloginrc_malformed</code>, naming
+the file and line; <code>add user</code> and <code>add userpassword</code> are taken as their words
+read. A pattern was matched by Go's rules, <code>[!x]</code> and <code>[^x]</code> read as negation
+and <code>*</code> stopping at <code>/</code>, so a line written for clogin matched other devices in
+karvi, or none; a pattern now matches as clogin's <code>string match -nocase</code> does:
+a class has no negation (<code>[!x]</code> matches <code>!</code> or <code>x</code>), <code>*</code> and <code>?</code> cross <code>/</code>, a
+range reads either way round, and a class left open runs to the end of the
+pattern. A pattern no name can match (a trailing <code>\</code>, or a class that lists
+nothing, <code>[]</code>) was passed by, so a later <code>*</code> line answered; the file is now
+refused <code>cloginrc_malformed</code> naming the line. An unsupported statement, a
+wrong count of values, an unknown directive, and a line of 1 MiB or more are
+refused naming the file and line too
+(<a href="docs/OPERATIONS.html"><code>docs/OPERATIONS.md</code></a>).</li>
+<li><strong>A credential backend's refusal writes its code once, and its message stands
+apart from its fields.</strong> The CSV and <code>.cloginrc</code> backends' refusals, and
+Redis's for a coded reply, wrote the code twice in their text
+(<code>credential_file_mode_unsafe: credential_file_mode_unsafe: …</code>); the text now
+follows the code once. A refusal's message ran on into its <code>policy=</code> and
+<code>backend=</code> fields (<code>…unmatched open quote policy=default backend=clogin</code>); a
+<code>;</code> now sets them apart
+(<code>…unmatched open quote; policy=default backend=clogin</code>).</li>
+<li><strong>Breaking: a link at a day folder's or a job folder's name is refused.</strong>
+A shared job or transcript tree's day folders are every member's to write,
+with no sticky bit, and karvi followed a link planted at a day folder's
+name when it made a job folder there, so every member's jobs that day were
+made where the link pointed, a folder the planter could read; a link at a
+day folder being made was refused, but as <code>private_directory_not_real</code>.
+Below a tree's root, a day folder, a job folder, and its <code>commands</code> folder
+must now be real folders: a link there is refused
+<code>output_directory_not_writable</code> or <code>transcript_directory_not_writable</code>, and
+nothing is made where it points. A link at <code>output.root</code> or
+<code>transcript.root</code>, or above either, is the site's and is followed.</li>
+<li><strong>karvi-prune reads a summary, a scoreboard file, and a transcript's
+metadata only from a regular file.</strong> The helper read them by name, so a
+FIFO there held the run until a writer came and a link was read through.
+Each is now read through one descriptor, opened without following a link
+and without waiting on a FIFO, only when it is a regular file of at most
+64 MiB (a summary or a scoreboard file) or 1 MiB (metadata). Anything else
+under a summary's or a scoreboard file's name is kept as <code>unreadable</code>, as
+a file that does not decode is, and holds no orphan live; under a metadata
+file's name it is kept as <code>live</code>, as a transcript without its end record
+is (<a href="docs/PRUNE.html"><code>docs/PRUNE.md</code></a>).</li>
+<li><strong><code>job list</code>, <code>job follow</code>, and the capacity ledger read a shared file only
+from a regular file.</strong> They read a job's <code>summary.json</code> and a ledger's file by
+name, so a FIFO a member put there held karvi until a writer came, and a link
+was read through; <code>job follow</code> opened <code>commands.jsonl</code> without following a
+link but waited on a FIFO there. Each is now read as karvi-prune reads one: a
+summary of at most 64 MiB, a ledger of at most 16 MiB, through one descriptor
+that follows no link and waits on no FIFO, and <code>commands.jsonl</code> opened the
+same way before its owner and mode are checked. Anything else under a
+summary's name is a summary that cannot be read (<code>job list</code>'s <code>?</code> row,
+<code>run_output_records_unreadable</code>), a dangling link included, where it read as
+no summary; under a ledger's name it is an error, never an empty ledger; under
+<code>commands.jsonl</code>'s, <code>run_output_records_unreadable</code>. The daemon reopened its
+own job's <code>commands.jsonl</code> by name for each follower, where a member who can
+write the job's folder (<code>output.directory-mode = 0770</code>) could put another file
+or a FIFO; it now reads the file the job's store opened beside its writer,
+held until the job leaves the daemon's table of 1,024 jobs or the daemon stops
+(<a href="docs/OPERATIONS.html"><code>docs/OPERATIONS.md</code></a>,
+<a href="docs/FILES.html"><code>docs/FILES.md</code></a>).</li>
+<li><strong>Breaking: a link at a capacity ledger's lock or its <code>devices</code> folder is
+refused.</strong> A shared capacity root is every member's to write, with no sticky
+bit, and karvi opened a ledger's lock and made or set its <code>devices</code> folder by
+name, following a link a member put there: a link to a colleague's private
+file widened its mode at the colleague's next lease, a dangling one made its
+target, and a link at <code>devices</code> took every lease's files where it pointed. The
+lock is now opened without following a link, its mode set through the open
+file, and <code>devices</code> must be a real folder: a link at either is refused
+(<code>capacity_root_unusable</code> when the root is prepared,
+<code>capacity_admission_failed</code> at a lease), the message naming the link to
+remove, and nothing is made or changed where it points. A link at the capacity
+root, or above it, is the site's and is followed. A ledger that does not
+decode is named with its <code>.json</code> (<code>capacity_ledger_malformed</code>)
+(<a href="docs/FILES.html"><code>docs/FILES.md</code></a>).</li>
+<li><strong><code>karvi exercise</code> names a capacity root it cannot read
+<code>capacity_root_unusable</code>.</strong> A ledger's lock or file the operator could not
+open, lock, or read was reported <code>capacity_ledger_malformed</code>, whose cause is a
+ledger that does not decode; it is now <code>capacity_root_unusable</code>, and a ledger
+that does not decode keeps its own code.</li>
+<li><strong>A <code>karvi exercise</code> finding's message is its error's whole text, without its
+code.</strong> The message was the error's first inner text: a host-key finding
+dropped the trust store it names (<code>known_hosts=PATH: …</code>), and a dispatch or
+transport-selection finding repeated its code
+(<code>transport_mapping_missing: selector &quot;lab&quot; has no …</code>), as did the job's
+<code>exercise_not_ready</code> line that quotes it. It is now the text after the code,
+which the finding's <code>code</code> field carries.</li>
+<li><strong><code>config show --explain</code> judges the capacity root and the scoreboards as a
+run does.</strong> A link at the capacity root, which a run follows as the site's,
+was passed by as &quot;not a real directory&quot;, so <code>--explain</code> named the private
+fallback while a run used the shared root. A root whose <code>server.lock</code> was a
+link, a folder, or closed to the operator, or whose <code>server.json</code> was a link,
+not a regular file, too large, unreadable, or not valid JSON, was shown as the
+place taken, while a run passed it by for the private fallback (or refused a
+named root). <code>--explain</code> now follows a link at the root and judges what it
+points to, and passes by, or refuses, a root whose server files a run could
+not use, naming the file. For both folders, a named path whose parent was
+absent was shown as taken, where a run, which makes only the last folder,
+refused it; it is now refused, <code>parent absent</code>. A shared folder the operator
+could not make in the scratch root was passed by in silence while a run warned
+of it; it is now listed on a <code>passed:</code> line with its reason.</li>
+<li><strong>A scoreboards or capacity folder on a filesystem with no free inodes is
+passed by.</strong> A run took the shared folder, which <code>config show --explain</code>
+passed by, and then failed each lease's or activity's file in it; under
+<code>auto</code> it is now passed by with the run's warning for the private folder, and
+a named one is refused (<code>capacity_root_unusable</code>,
+<code>scoreboard_root_invalid</code>).</li>
+<li><strong>A capacity root's server ledger that does not decode is refused under one
+code.</strong> The refusal read <code>capacity_root_unusable: capacity_ledger_malformed: …/server.json: …; a shared capacity root needs mode 2770 …</code>, two codes and a
+remedy no mode fits; it is now <code>capacity_root_unusable: …/server.json: …</code>.</li>
+<li><strong>A scratch folder's fallback warning names the folder once, and the capacity
+root's carries its code.</strong> Under <code>auto</code>, a shared folder the operator could
+not make in the scratch root was warned of as <code>shared capacity root unavailable (mkdir …/capacity: permission denied)</code>, without the
+<code>capacity_root_unusable</code> every other such warning carries, and as <code>shared scoreboard directory unavailable (…/scoreboards: mkdir …/scoreboards: permission denied)</code>, the folder twice. The first now carries the code; the
+second, and a named scoreboards folder's refusal, name the folder once and
+then the cause, <code>(…/scoreboards: permission denied)</code>.</li>
+<li><strong>A login whose <code>login.start</code> cannot be written ends its scoreboard.</strong> The
+snapshot written just before <code>login.start</code> stayed <code>running</code> when that
+audit write failed; the login now writes its final snapshot, at <code>error</code>
+with the target failed and <code>audit_write_failed</code> in its errors.</li>
+<li><strong>Breaking: a <code>[platform.NAME]</code> table's fields take the registry's kinds.</strong>
+A field of the wrong kind was passed by or misread: <code>requires-enable = &quot;true&quot;</code> (a string), <code>privileged-level = 15</code> and <code>default-transport = 1</code>
+(numbers), and <code>ssh-port = 2222.0</code> loaded, and <code>telnet-port = 70023</code> wrapped
+to port 4487. Every field present is now checked against its kind in the
+registry (<code>config_type_error</code>), <code>channel</code> included, and <code>telnet-port</code> must
+be 1..65535 (<code>config_platform_telnet_port_out_of_range</code>, new) as <code>ssh-port</code>
+must; a plan's platform never takes a port outside the range or a fraction.</li>
+<li><strong>Breaking: a locked key takes its macros from the global configuration.</strong>
+A locked key's value could take a macro that the user's file, <code>--config</code>,
+or <code>--set</code> defined, so a lower layer changed the locked value through the
+macro; such a value is now refused <code>config_lock_violation</code>, naming the
+macro, where it was set, and the lock (<code>%operator%</code> is no layer's). An
+alias that arrived through a macro was not turned into the word it stands
+for, so <code>source = &quot;%src%&quot;</code> with <code>src = &quot;auto&quot;</code> was refused; a filled value
+is now stored as one written out is. The keys are filled in sorted order,
+so a configuration with two faults names the same one on every run, and
+<code>config show --explain</code> lists every macro a key takes.</li>
+<li><strong>Breaking: the configuration refuses what it would refuse later.</strong> A
+formula backend whose <code>password-source</code> names another formula backend
+loaded and failed at the first device; it is now
+<code>config_credential_formula_source_invalid</code> at load.
+<code>display.record.header</code> and <code>display.record.footer</code> were checked only when
+a login used them; they are now checked at load with the other templates.
+A name or credential transform's operation ignored a key it does not take,
+so a misspelled <code>replacment</code> read as no replacement; it is now
+<code>config_unknown_key</code>, a text parameter of another kind (<code>replacement = 5</code>,
+a pair's <code>to = 5</code>) read as an empty one and is now <code>config_type_error</code>, and
+a <code>replace-chars</code> pair that is not an inline table of <code>from</code> and <code>to</code> is
+<code>transform_pair_rune_invalid</code>. <code>config = { includes = false }</code> written inline was not judged by the include rules (a
+root's directives were followed, an include's own <code>config.includes</code> and
+one after the first directive were not refused), nor was an inline
+<code>schema-version</code> checked; both are now judged as when written out.</li>
+<li><strong>Breaking: a <code>[platform.NAME]</code> table takes no <code>legacy-class</code>; registry
+33.</strong> The field took any word and nothing read it; it is now
+<code>config_unknown_key</code>.</li>
+<li><strong>The newest goldmark.</strong> <code>github.com/yuin/goldmark</code> v1.8.7 (from v1.8.6);
+x/crypto, x/sys, x/term, and Go 1.27.3 were the newest already. goldmark is
+vendored for <code>tools/md-to-html</code> alone, and no executable contains it. Its
+changes bound the parser's work where it searched the same text again (an
+unclosed HTML comment, a long footnote label, many headings of one name)
+and rework how an autolink's trailing punctuation and an indented code block
+are read; <code>make html</code> builds the same 40 pages, byte for byte.</li>
+</ul>
 <h2 id="0380---2026-10-28">0.38.0 - 2026-10-28 <a class="anchor" href="#0380---2026-10-28" aria-label="Link to this section">#</a></h2>
 <p>A minor release on 0.37.0 for the Cisco platforms' names, <code>cisco_ios</code> and
 <code>cisco_xr</code>. Every counter is 0.37.0's (configuration schema 6, registry 32,
@@ -2072,7 +2502,7 @@ operator's private archive. Their executables are not installed anywhere
 outside the operator's own environment, and every release is installed as
 new.</p>
 
-<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.38.0</code>.</footer>
+<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.39.0</code>.</footer>
 </main>
 </body>
 </html>

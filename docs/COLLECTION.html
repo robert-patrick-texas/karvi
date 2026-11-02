@@ -65,8 +65,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -133,8 +133,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -181,8 +181,9 @@ else: no header, no prompt, no sent statement, no timestamp, no error
 line. A rejected statement's block is the device's own error text.</li>
 <li><strong>Replacement only on success.</strong> The file is written as a hidden
 temporary and renamed into place when every command of the device came
-back; a device not reached, timed out, halted, or cancelled keeps its
-previous file and leaves nothing behind. The display ends, after the
+back; a device not reached, timed out, halted, or cancelled, or one whose
+record could not be written, keeps its previous file and leaves nothing
+behind. The display ends, after the
 footer, with <code>! collection=DIR replace=N keep=M</code>
 (<code>display.collection.footer</code>; under jsonl the summary document carries
 the counts); <code>failed-devices.txt</code> in the job folder is the rerun.</li>
@@ -667,6 +668,8 @@ reads the replaced files' names on standard input, one per line, sorted
 </tr>
 </tbody>
 </table>
+<p>Beside them it has the operator's environment, without <code>NETUSER</code>, <code>NETPASS</code>,
+and <code>NETENABLE</code>.</p>
 <p>Its output, both streams, goes to karvi's stderr after the display, so a
 <code>--format jsonl</code> stdout stays records. A hook that cannot start, exits
 non-zero, or runs past <code>crun.after-timeout</code> (<code>5m</code> by default, <code>1s</code> to <code>1h</code>)
@@ -807,17 +810,18 @@ matched against a line without its terminator, or a marker's statement
 without its <code>! </code>; the text of every capturing group of every match is replaced
 by <code>&lt;removed&gt;</code>, text two groups cover once, and a group that matched nothing
 is left alone. A collection file is masked by its device's own platform's
-list. <code>cisco_ios</code> (19 patterns), <code>cisco_xr</code> (15), <code>cisco_nxos</code> (13),
-<code>arista_eos</code> (13), and <code>juniper_junos</code> (10, Junos's own <code>## SECRET-DATA</code> tag
+list. <code>cisco_ios</code> (21 patterns), <code>cisco_xr</code> (16), <code>cisco_nxos</code> (14),
+<code>arista_eos</code> (15), and <code>juniper_junos</code> (10, Junos's own <code>## SECRET-DATA</code> tag
 among them) each have a built-in list, written for a statement as sent and a
 line as the device prints it alike; <code>linux</code>, <code>linux_shell</code>, and <code>generic</code> have
-none. Each built-in list, with the reason for each pattern and the checks it
-passed, is in <a href="EXAMPLES.html#63-the-audit-trails-names-and-fields-2026-10-17"><code>docs/EXAMPLES.md</code>, chapter
-63</a>, in TOML ready
-to copy. A site's array replaces the list whole, and an alias inherits its
-driver's list unless it sets its own, as with <code>crun-filters</code>; a site adding a
-pattern copies the built-in list and adds to it. The same lists mask every
-statement the audit records, always, whatever <code>crun.mask</code> says
+none. Each built-in list is in the source, <code>platform/masks.go</code>, each pattern a
+Go raw string that a TOML literal string (<code>'…'</code>) takes as written; the reasons
+for the lists and the checks they passed are in <a href="EXAMPLES.html#63-the-audit-trails-names-and-fields-2026-10-17"><code>docs/EXAMPLES.md</code>, chapter
+63</a>. A site's
+array replaces the list whole, and an alias inherits its driver's list unless
+it sets its own, as with <code>crun-filters</code>; a site adding a pattern copies the
+built-in list and adds to it. The same lists mask every statement the audit
+records, always, whatever <code>crun.mask</code> says
 (<a href="OPERATIONS.html#the-audit-trail"><code>docs/OPERATIONS.md</code>, &quot;The audit trail&quot;</a>), so
 <code>masks = []</code> leaves that platform's statements in clear in the audit too.</p>
 <p>A pattern that does not compile, or holds no group, refuses the
@@ -895,7 +899,7 @@ change to one changes both.</li>
 <code>/usr/share/karvi/cron/karvi-crun</code>: the schedule's two forms.</li>
 </ul>
 
-<footer>Generated from <code>docs/COLLECTION.md</code> at <code>karvi-v0.38.0</code>.</footer>
+<footer>Generated from <code>docs/COLLECTION.md</code> at <code>karvi-v0.39.0</code>.</footer>
 </main>
 </body>
 </html>

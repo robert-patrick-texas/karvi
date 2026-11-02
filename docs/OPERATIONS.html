@@ -94,8 +94,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -191,8 +191,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -243,15 +243,15 @@ of its executable, equal the client's. The next submission (<code>run</code>, <c
 <code>--exercise</code>, <code>--detach</code>, a stream's job, or <code>daemon start</code>) drains a daemon of
 another build. Holding no job, it exits at once, and the client starts one of
 its own build in the same invocation:</p>
-<pre><code>daemon drained version=0.37.0 build=1bFnbnZ8vZu2v2U7sP-a
+<pre><code>daemon drained version=0.38.0 build=XVaquK8HnILbatvlhwRi
 daemon started socket=/home/netops/.local/share/karvi/socket/d.sock
 </code></pre>
 <p>Holding jobs, the drained daemon finishes them and exits after the last,
 killing nothing. Until then every submission is refused, the daemon's build
 over the client's:</p>
 <pre><code>daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
-  daemon build 1bFnbnZ8vZu2v2U7sP-a 0.37.0
-  client build XVaquK8HnILbatvlhwRi 0.38.0
+  daemon build XVaquK8HnILbatvlhwRi 0.38.0
+  client build OVm9OErdgujJlrhYFLuV 0.39.0
 </code></pre>
 <p>Meanwhile <code>karvi run --no-daemon</code> runs in the foreground, and <code>karvi job follow</code> and <code>karvi job cancel</code> reach the draining daemon's jobs, as a client of
 any build does at the same IPC schema. <code>karvi daemon status</code> stacks each of the
@@ -266,7 +266,9 @@ still receiving terminal records. A wait begins with a line naming the jobs
 (<code>daemon draining: 1 job running; waiting for it to exit</code>), which <code>--quiet</code>
 leaves out; interrupted, the wait ends and the daemon still finishes its jobs
 and exits. With no option, <code>daemon stop</code> and <code>daemon restart</code> are refused while
-the daemon runs a job, which it alone counts.</p>
+the daemon runs a job, which it alone counts. A socket a daemon killed outright
+left refuses the connection: <code>daemon restart</code> finds nothing to stop there and
+starts a daemon, as <code>daemon start</code> does.</p>
 <p>An older karvi beside a newer daemon is refused, <code>daemon_incompatible</code>, the
 schemas stacked: the older client cannot speak the newer schema, so it neither
 drains nor stops that daemon. A downgrade is the administrator's, who ends the
@@ -376,7 +378,9 @@ in MODE and <code>u/u</code> in DONE, TARGET blank. A folder whose summary canno
 or decoded, and a day folder that cannot be read, is a <code>?</code> row, STATUS
 <code>invalid</code>, its path in TARGET, or <code>…</code> at a terminal where the path does not
 fit; <code>--format json</code> and <code>karvi job follow ID</code> name the path and the reason. A
-list with no row prints <code>(no jobs)</code>, exit 0.</p>
+summary is read only from a regular file, never through a link or from a FIFO,
+and at most 64 MiB of it; anything else under its name is a summary that cannot
+be read. A list with no row prints <code>(no jobs)</code>, exit 0.</p>
 <p>The filters, each judging a job before <code>--last</code> counts it:</p>
 <ul>
 <li><code>--last N</code> lists N rows, <code>0</code> every job kept.</li>
@@ -454,9 +458,13 @@ list never takes a running job out of view. With no running job the two lines
 stand together: an empty band says at once that nothing is in progress. A
 running job whose snapshot has not moved for <code>watch.stale-after</code> (<code>10s</code>) is
 flagged <code>!</code> and dimmed, its status word unchanged; a file the screen cannot read
-is flagged <code>?</code> with <code>invalid</code> as its status and its path as its target. The
-clock at the top right is the time of the last refresh. Nothing in the screen
-names a command: the statements are read in the job's folder.</p>
+is flagged <code>?</code> with <code>invalid</code> as its status and its path as its target. Only a
+regular file is read, never through a link or from a FIFO, and at most 64 MiB of
+it, a larger one flagged <code>?</code>; a link or a FIFO is passed by. A control character
+in a snapshot's strings or a file's name is shown as Go writes it in a quoted
+string (<code>\x1b</code>), here and in <code>karvi job list</code>. The clock at the top right is the
+time of the last refresh. Nothing in the screen names a command: the statements
+are read in the job's folder.</p>
 <p>The keys: <code>q</code> or Ctrl-C leave, and the shell is as it was; <code>↑</code>/<code>↓</code> or
 <code>k</code>/<code>j</code> select a row (marked <code>&gt;</code>), PgUp/PgDn a screen of rows, Home/End
 the first and last; Enter opens the detail pane on the selected job (the
@@ -763,6 +771,8 @@ value:      [&quot;show version&quot;, &quot;show inventory&quot;, &quot;show ru
 <li><strong>A value that is the macro alone takes the macro's kind</strong>, a list or a table
 as well as a string, and a list macro inside a list is spliced into it, as
 <code>%core%</code> above. Inside text a macro must be a string, a number, or a boolean.</li>
+<li><strong>A filled value is stored as a value written out is</strong>: an alias that
+arrives through a macro is the word it stands for, so <code>[dispatch] order = &quot;%ord%&quot;</code> with <code>ord = &quot;name&quot;</code> holds <code>sorted</code>.</li>
 <li><strong><code>%operator%</code> is built in</strong>: the operator's login name from the password
 database, filled in every value as a site's macro is. <code>[macros] operator</code> is
 refused, and <code>%Operator%</code> is an ordinary macro.</li>
@@ -809,6 +819,14 @@ sent as written, <code>%operator%</code> and <code>%HOME%</code> included.</li>
 </tbody>
 </table>
 <pre><code class="language-text">config_macro_undefined: undefined macro %site% for crun.directory at FILE:2
+</code></pre>
+<p><strong>A locked key takes its macros from the global configuration.</strong> A locked
+key whose value takes a macro, directly or through another macro, that a
+layer below the global configuration defines last (the user's file,
+<code>--config</code>, <code>--set</code>) is refused with <code>config_lock_violation</code> (exit 3), naming
+the macro, where it was set, and the lock, so no lower layer changes a locked
+value through its macro. <code>%operator%</code> is no layer's.</p>
+<pre><code class="language-text">config_lock_violation: crun.directory takes %region%: write blocked by lock &quot;crun.directory&quot; declared at /etc/karvi/config.toml:2 for macros.region at --set[1]
 </code></pre>
 <p><code>%operator%</code> with no name known for the operator is
 <code>operator_identity_unavailable</code>.</p>
@@ -873,7 +891,8 @@ never authenticated), and every <code>&lt;kind&gt;.command</code> audit event na
 network built-ins), karvi asks at the controlling
 terminal for what is missing and needed (<code>creds.interactive-prompt</code>,
 <code>creds.prompt-for-username</code>, <code>creds.prompt-for-password</code>): <code>Username for router1: </code>, then <code>Password for router1: </code>, and the enable secret only where
-the platform requires one. A run of several targets asks once and names
+the platform requires one and never for <code>login</code>, whose operator types
+<code>enable</code> at the device. A run of several targets asks once and names
 the count (<code>Password for 3 targets: </code>); the daemon never asks. The answer
 is edited as a stream line is: Backspace (DEL or Ctrl-H) and the Delete
 key, the arrows, Ctrl-A and Ctrl-E, Ctrl-K, Ctrl-U, and Ctrl-W; a password
@@ -909,7 +928,7 @@ shell, before any later prompt and with no job made:</p>
 </tbody>
 </table>
 <pre><code class="language-text">Username for router1:
-credential_prompt_interrupted: 1 of 1 targets failed credential resolution: name:router1 (interrupted at the username prompt policy=default)
+credential_prompt_interrupted: 1 of 1 targets failed credential resolution: name:router1 (interrupted at the username prompt; policy=default)
 </code></pre>
 <p>A script that runs karvi without a terminal sets the three variables, or
 names a backend, since nothing can be asked.</p>
@@ -947,7 +966,7 @@ loads, <code>config validate</code> included, with
 </code></pre>
 <p>An operator's name that makes no variable name, after the transform, stops
 the device at planning under the same code, naming the remedy:</p>
-<pre><code class="language-text">config_credential_backend_variable_invalid: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend e: password-var-template gives &quot;KARVI_netops.adm_PASSWORD&quot;, not a variable name (letters, digits, underscores; no leading digit); remedy: replace-chars in the backend's operator transform policy=default backend=e)
+<pre><code class="language-text">config_credential_backend_variable_invalid: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend e: password-var-template gives &quot;KARVI_netops.adm_PASSWORD&quot;, not a variable name (letters, digits, underscores; no leading digit); remedy: replace-chars in the backend's operator transform; policy=default backend=e)
 </code></pre>
 </li>
 <li>
@@ -1020,7 +1039,7 @@ bounds the read. <code>ca-file</code>, <code>client-cert-file</code>, <code>clie
 device's policy reaches the backend, and never by <code>config validate</code>; unset or
 empty, the device stops at planning before any connection, and the run with
 it:</p>
-<pre><code class="language-text">credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend v: token-env: VAULT_TOKEN not set policy=default backend=v)
+<pre><code class="language-text">credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend v: token-env: VAULT_TOKEN not set; policy=default backend=v)
 </code></pre>
 <p>A token the store refuses is <code>vault_http_error</code> (<code>Vault returned HTTP 403</code>)
 and a store that does not answer <code>vault_unavailable</code>, each exit 6.</p>
@@ -1031,7 +1050,7 @@ field whose value, trimmed, begins with <code>env:</code> (the prefix's case ign
 names a variable, read as the token is: <code>enable_password = &quot;env:NETENABLE&quot;</code>
 takes <code>NETENABLE</code>'s value, and an unset or empty one stops the device, naming
 the record, the field, and the variable:</p>
-<pre><code class="language-text">credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend v: v1/secret/data/karvi/netops enable_password: NETENABLE not set policy=default backend=v)
+<pre><code class="language-text">credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend v: v1/secret/data/karvi/netops enable_password: NETENABLE not set; policy=default backend=v)
 </code></pre>
 <p>A rest that is no variable name is the record's form wrong,
 <code>vault_response_malformed</code>, naming the field and never the value. Any other
@@ -1085,7 +1104,7 @@ the variable holding it, and one with users <code>auth-username-env</code> besid
 <code>auth-username-env</code> alone is refused at load. Each is read as Vault's token
 is, the credential helper's value where it set it, and unset or empty stops
 the device before any connection:</p>
-<pre><code class="language-text">credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend r: auth-password-env: REDIS_PASS not set policy=default backend=r)
+<pre><code class="language-text">credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend r: auth-password-env: REDIS_PASS not set; policy=default backend=r)
 </code></pre>
 <p>A password the server refuses is <code>redis_auth_failed</code>, exit 6. With neither
 key, no <code>AUTH</code> is sent.</p>
@@ -1150,7 +1169,7 @@ and its name: to a CA in <code>ca-file</code> when one is named, the file then t
 backend's whole trust, or else to the host's trust, the public roots and the
 CAs the site installed. A server the trust does not vouch for is refused
 before anything is sent:</p>
-<pre><code class="language-text">vault_unavailable: client planning: 1 of 1 targets failed credential resolution: name:d1 (Get &quot;https://127.0.0.1:8202/v1/secret/data/karvi/netops&quot;: tls: failed to verify certificate: x509: certificate signed by unknown authority policy=default backend=v)
+<pre><code class="language-text">vault_unavailable: client planning: 1 of 1 targets failed credential resolution: name:d1 (Get &quot;https://127.0.0.1:8202/v1/secret/data/karvi/netops&quot;: tls: failed to verify certificate: x509: certificate signed by unknown authority; policy=default backend=v)
 </code></pre>
 </li>
 <li>
@@ -1336,6 +1355,56 @@ with <code>credential_file_unavailable</code> before a job exists. Any file that
 present but fails its symlink, type, owner, or mode check fails whatever
 the scope. A relative <code>include</code> resolves beside the file that includes it
 and inherits its scope; a shared file cannot include from a home directory.</p>
+<p>A <code>.cloginrc</code> line is what clogin's Tcl <code>gets</code> reads: a newline, a carriage
+return and a newline, or a carriage return alone ends it. Each line is read
+on its own, as clogin evaluates it, so no line continues onto the next: a
+backslash that ends a line is part of its last word, as Tcl reads that line
+alone (<code>add password router1 PASSWORD\</code> gives the password <code>PASSWORD\</code>), and
+in a quoted or braced word it leaves the word open on its line. <code>add</code>,
+<code>include</code>, and the directive after <code>add</code> are matched as clogin's Tcl matches
+them, case and all: <code>ADD</code> or <code>Include</code> fails the load as an unsupported
+statement (<code>cloginrc_malformed</code>), and <code>add PASSWORD</code> or <code>add METHOD</code> as an
+unknown directive (<code>cloginrc_unknown_directive</code>).</p>
+<p>A <code>.cloginrc</code> line's pattern matches a device's name as clogin matches it,
+with Tcl's <code>string match -nocase</code>: <code>*</code> matches any run of characters, <code>/</code>
+included; <code>?</code> one character; <code>\x</code> the character <code>x</code>; and a class one of the
+characters or ranges it lists, a range read either way round (<code>[a-c]</code>,
+<code>[c-a]</code>). A class has no negation: <code>[!x]</code> matches <code>!</code> or <code>x</code>, <code>[^x]</code>
+matches <code>^</code> or <code>x</code>. A class is written inside braces
+(<code>add password {core-[!x]*} {PASSWORD}</code>) or in a bare word with its brackets
+escaped (<code>add password core-\[!x\]* {PASSWORD}</code>); inside braces an escaped
+bracket stays a literal bracket. A pattern no name can match fails the load
+with <code>cloginrc_malformed</code>: a backslash that ends it, or a class that lists
+nothing (<code>[]</code>, or a <code>[</code> or <code>[a-</code> that ends the pattern).</p>
+<p>A line's words are read as Tcl reads a command's words, separated by white
+space (spaces, tabs, vertical tabs, form feeds). Inside braces every
+character of a pattern or a value is taken as written: <code>{pa$$w0rd}</code>,
+<code>{pa;ss}</code>, and <code>{core-[!x]*}</code> are read as they stand. A word in double
+quotes is one word, its spaces, <code>;</code>, <code>]</code>, and braces characters like any
+other (<code>&quot;pa ss&quot;</code>). In a quoted or a bare word a backslash sequence stands
+for the character Tcl gives it: <code>\t</code> a tab, <code>\x41</code> and <code>\101</code> an <code>A</code> (<code>\u</code>
+and <code>\U</code> for Unicode), <code>\$</code> a <code>$</code>, <code>\ </code> a space, and a backslash before any
+other character that character; a quote or a brace inside a bare word is a
+character (<code>pa&quot;ss</code>). A <code>#</code> begins a comment only as a line's first word;
+elsewhere it is part of a word, so <code>add password router1 PASSWORD #en</code>
+gives the enable password <code>#en</code>, and no comment can follow a line's values.</p>
+<p>Where Tcl would substitute or end the command, a character is refused
+(<code>cloginrc_tcl_substitution_forbidden</code>), the message naming the character and
+the file and line: <code>$</code>, <code>[</code>, <code>]</code>, and <code>;</code> in a bare word, <code>$</code> and <code>[</code> in a
+quoted word, and <code>;</code> right after a closing brace or quote; inside braces, or
+after a backslash (<code>\$</code>), the character is taken as written. Text right after a
+closing brace or quote (<code>{pa}ss</code>), a brace or quote left open on its line, and a
+line of 1 MiB or more each fail the load with <code>cloginrc_malformed</code>, the message
+naming the file and line.</p>
+<p>An <code>add password</code> line's password and enable password are what clogin sends:
+clogin reads each value again as a Tcl list and joins its words with nothing
+between (<code>join [lindex $pswd 0] &quot;&quot;</code>), and karvi does the same. <code>{pass one}</code>
+is the password <code>passone</code>, <code>{pa\ss}</code> is <code>pass</code>, and <code>{&quot;a b&quot;}</code> is <code>a b</code>; a
+backslash keeps a space, a quote, or a brace as a character (<code>{pass\ one}</code>
+is <code>pass one</code>, <code>{\&quot;pass}</code> is <code>&quot;pass</code>). A value that is not a Tcl list, with
+an unmatched quote or brace where clogin stops with a Tcl error, fails the
+load with <code>cloginrc_malformed</code>, the message naming the file and line.
+<code>add user</code> and <code>add userpassword</code> values are taken as their words read.</p>
 <p>The checks are the same for every credential file backend and carry one
 code each, the message naming the backend and the path and never a value:</p>
 <table>
@@ -1470,14 +1539,19 @@ a list of operations applied in order: <code>lowercase</code>, <code>uppercase</
 <code>crop-to-dot</code> (up to the first dot), <code>strip-chars</code> (<code>chars</code>),
 <code>replace-chars</code> (<code>pairs</code>, each <code>{from, to}</code>), <code>strip-suffix</code> (<code>suffix</code>),
 <code>replace-suffix</code> (<code>suffix</code>, <code>replacement</code>), and <code>add-suffix</code> (<code>suffix</code>,
-added only to a name without a dot). A username the operations leave empty
-is <code>credential_incomplete</code>.</li>
+added only to a name without a dot); an operation takes <code>op</code> and its own
+keys alone. A username the operations leave empty is
+<code>credential_incomplete</code>.</li>
 <li><strong>A backend's table</strong> is its <code>transform</code>; without one, the table named like
 the backend, and otherwise <code>default</code>, which changes nothing unless defined. A
 <code>transform</code> naming no table is refused when the configuration loads, <code>config validate</code> included, with <code>credential_transform_unknown</code> (exit 2), and so is a
 list that does not build in any transform table, credential or name, whether
 or not anything names the table: <code>transform_operation_unknown</code> for an
-operation karvi does not know, naming the list and its line.</li>
+operation karvi does not know, <code>config_unknown_key</code> for a key the operation
+does not take (<code>replacment</code>), <code>config_type_error</code> for a parameter that is
+not a string (<code>replacement = 5</code>), and <code>transform_pair_rune_invalid</code> for a
+pair that is not <code>{from, to}</code> of one character each, naming the list and
+its line.</li>
 <li><strong>The platform's fallback</strong> (the <code>NET*</code> variables, the prompt, and the
 operator's keys) takes <code>default</code>'s <code>username</code> operations.</li>
 </ul>
@@ -1753,8 +1827,9 @@ device listed in <code>failed-devices.txt</code>.</li>
 file, on <code>cmd</code>, <code>run --no-daemon</code>, and a run through the daemon alike: the
 invocation's keys travel in the plan and the daemon's store honours
 them. <code>run --nof</code> with <code>--detach</code> or
-<code>--exercise</code> is refused; <code>run --nof --follow=false</code> is a run for its
-exit code.</li>
+<code>--exercise</code> is refused, and so is <code>--exercise</code> under the key false from
+the configuration (<code>run_mode_conflict</code>; the report is a file in the job
+folder); <code>run --nof --follow=false</code> is a run for its exit code.</li>
 <li><strong><code>--of[=PATH]</code> is the opposite of <code>--nof</code>, and names the root</strong>:
 <code>cmd --of</code> is <code>output.persist-command = true</code>; <code>--of=PATH</code> also sets <code>output.root</code> for that invocation (<code>~</code>
 expanded, a relative path from the working directory), so the job's
@@ -1781,15 +1856,17 @@ command in flight under <code>spooldir</code>, removed as soon as the command's 
 written and handed on (<a href="DESIGN.html"><code>docs/DESIGN.md</code></a>, the output spool). The
 record is the same whether the response spooled or not.</p>
 <p><strong>Where.</strong> <code>spooldir</code> is <code>&quot;auto&quot;</code> by default, which tries <code>/tmp/karvi-&lt;uid&gt;</code>
-and then <code>/var/tmp/karvi-&lt;uid&gt;</code>, each made 0700 for the effective user;
-an absolute path replaces the list. It is not <code>tempdir</code>: the scratch
-chain prefers <code>/dev/shm</code>, a tmpfs, by design, and a spool must cost disk.
-A site that wants both on one volume points both keys at paths under it.
-A directory that cannot be written fails the job with
-<code>spool_directory_unavailable</code> before any device is contacted. The daemon
-reads its own configuration for its jobs: a <code>--set</code> of <code>spooldir</code> or of
-the threshold on a <code>run</code> through the daemon does not reach the job, an
-in-process <code>cmd</code> or <code>run --no-daemon</code> it does.</p>
+and then <code>/var/tmp/karvi-&lt;uid&gt;</code>, each made 0700 for the effective user,
+one already present passed by unless it is the effective user's with no
+group or other access; an absolute path replaces the list, taken whatever
+its owner and mode. It is not <code>tempdir</code>: the scratch chain prefers
+<code>/dev/shm</code>, a tmpfs, by design, and a spool must cost disk. A site that
+wants both on one volume points both keys at paths under it. A directory
+that cannot be written fails the job with <code>spool_directory_unavailable</code>
+before any device is contacted. The daemon reads its own configuration for
+its jobs: a <code>--set</code> of <code>spooldir</code> or of the threshold on a <code>run</code> through the
+daemon does not reach the job, an in-process <code>cmd</code> or <code>run --no-daemon</code> it
+does.</p>
 <p><strong>Free space.</strong> <code>freecheck</code> decides what free space every volume an activity
 writes must have at admission, before any device is contacted: the job's folder,
 a <code>crun</code>'s collection directory, <code>spooldir</code>, and a recorded login's transcripts
@@ -1883,11 +1960,15 @@ scoreboards and the leases in <code>basedir/state</code>, one operator's: <code>
 no warning, since nothing the site made is wrong. A <code>scoreboards</code> or
 <code>capacity</code> folder missing from a scratch root that exists is made by the
 first run that needs it, in the root's group. One that exists but the
-operator cannot use is passed by with one warning naming it and the
-private place taken: <code>shared scoreboard directory unavailable</code>, or
-<code>capacity_root_unusable</code> in <code>shared capacity root unavailable</code>, whose
-message names the shape it needs. A scratch root an earlier release left
-behind (0700, the first operator's) is set right by <code>sudo karvi setup shared</code>, which reports it <code>repaired</code>.</p>
+operator cannot use (closed, or on a filesystem with no free inodes), or one
+missing that the operator cannot make there, is passed by with one warning
+naming it and the private place taken, as <code>config show --explain</code> lists it:
+<code>shared scoreboard directory unavailable</code>, or <code>capacity_root_unusable</code> in
+<code>shared capacity root unavailable</code>, whose message names its cause: the
+shape it needs, a link in it to remove, a server ledger that does not
+decode, no free inodes, or the folder it could not make. A scratch
+root an earlier release left behind (0700, the first operator's) is set
+right by <code>sudo karvi setup shared</code>, which reports it <code>repaired</code>.</p>
 <p><strong>The operators' roots.</strong> Once <code>/opt/karvi/users</code> exists, an operator's
 first activity that needs the private root creates
 <code>/opt/karvi/users/&lt;username&gt;</code> (0750) and every later one uses it: the
@@ -2353,9 +2434,10 @@ configuration (<code>config_platform_mask_invalid</code>, exit 2). A secret with
 before it, an answer to a <code>Password:</code> prompt sent as its own statement, passes
 in clear; an <code>--expect</code> response is never in the audit. The same lists mask a
 collection file under <code>crun.mask = true</code> (<a href="COLLECTION.html#61-the-secrets-the-mask"><code>docs/COLLECTION.md</code> section
-6.1</a>), and chapter 63 of
+6.1</a>); each list is in the source,
+<code>platform/masks.go</code>, and chapter 63 of
 <a href="EXAMPLES.html#63-the-audit-trails-names-and-fields-2026-10-17"><code>docs/EXAMPLES.md</code></a>
-holds each list and the checks it passed.</p>
+holds the reasons for the lists and the checks they passed.</p>
 <p>Who reads the trail is journald's: its files are <code>root:systemd-journal</code> 0640,
 an operator reads their own events, and the members of <code>adm</code> and
 <code>systemd-journal</code> everyone's. A host whose rsyslog copies the journal into
@@ -2367,7 +2449,7 @@ journald's and the forwarder's; <code>karvi-prune</code> never touches it (&quot
 records, and scoreboards as authoritative. Human headers, borders, and footers
 are projections only.</p>
 
-<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.38.0</code>.</footer>
+<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.39.0</code>.</footer>
 </main>
 </body>
 </html>
