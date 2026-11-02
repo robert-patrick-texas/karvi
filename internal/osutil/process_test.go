@@ -87,12 +87,18 @@ func TestKarviAliveByExecutable(t *testing.T) {
 }
 
 // startAliveHelper starts path as TestKarviAliveHelper under argv[0] argv0
-// and returns its pid; the helper is killed when the test ends.
+// and returns its pid once the helper says it runs: on a loaded host Start
+// can return before /proc/PID/exe names the file started, naming the test
+// binary that forked it or nothing. The helper is killed when the test ends.
 func startAliveHelper(t *testing.T, path, argv0 string) int {
 	t.Helper()
 	cmd := exec.Command(path, "-test.run=^TestKarviAliveHelper$")
 	cmd.Args[0] = argv0
 	cmd.Env = append(os.Environ(), "KARVI_ALIVE_HELPER=1")
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -100,8 +106,30 @@ func startAliveHelper(t *testing.T, path, argv0 string) int {
 		_ = cmd.Process.Kill()
 		_ = cmd.Wait()
 	})
+	running := make(chan bool, 1)
+	go func() {
+		lines := bufio.NewScanner(out)
+		for lines.Scan() {
+			if lines.Text() == aliveHelperRunning {
+				running <- true
+				return
+			}
+		}
+		running <- false
+	}()
+	select {
+	case ok := <-running:
+		if !ok {
+			t.Fatalf("the helper %s ended without saying it runs", argv0)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatalf("the helper %s did not say it runs within 30 s", argv0)
+	}
 	return cmd.Process.Pid
 }
+
+// aliveHelperRunning is the line the helper writes once it runs.
+const aliveHelperRunning = "karvi alive helper running"
 
 // TestKarviAliveHelper waits to be killed, for TestKarviAliveByExecutable,
 // and is nothing when run on its own.
@@ -109,6 +137,7 @@ func TestKarviAliveHelper(t *testing.T) {
 	if os.Getenv("KARVI_ALIVE_HELPER") != "1" {
 		t.Skip("the helper of TestKarviAliveByExecutable")
 	}
+	fmt.Println(aliveHelperRunning)
 	time.Sleep(time.Minute)
 }
 
