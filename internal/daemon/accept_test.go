@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"os"
@@ -56,15 +58,18 @@ func TestAcceptOutOfDescriptorsIsRetried(t *testing.T) {
 		case <-time.After(5 * time.Second):
 		}
 	})
-	// The state file is written once both sockets listen. No connection is
-	// made before the limit below, so that no descriptor of the daemon's is
-	// freed under it.
+	// The daemon answers once its start is done: the state file appears at
+	// its rename, before the daemon opens the folder to sync it, so the file
+	// alone does not say the start is over. The ping's connection is read to
+	// its end, the daemon's descriptor for it closed, so that none of the
+	// daemon's is freed under the limit below.
 	for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(10 * time.Millisecond) {
-		if _, err := os.Stat(s.StatePath); err == nil {
+		err := pingToEnd(socket)
+		if err == nil {
 			break
 		}
 		if time.Now().After(deadline) {
-			t.Fatal("the daemon did not start")
+			t.Fatalf("the daemon did not answer: %v", err)
 		}
 	}
 	// Both client sockets are made first; then the limit is set to the
@@ -163,6 +168,33 @@ func TestAcceptOutOfDescriptorsIsRetried(t *testing.T) {
 	default:
 	}
 	t.Logf("daemon log:\n%s", log.String())
+}
+
+// pingToEnd asks the daemon at socket for a ping and reads the connection
+// to its end, which comes once the daemon has closed its side.
+func pingToEnd(socket string) error {
+	conn, err := net.Dial("unix", socket)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(5 * time.Second))
+	req, err := ipc.NewRequest("request-0", "ping", map[string]any{})
+	if err != nil {
+		return err
+	}
+	if err := ipc.Write(conn, req, 1<<20); err != nil {
+		return err
+	}
+	var resp ipc.Response
+	if err := ipc.Read(conn, &resp, 1<<20); err != nil {
+		return err
+	}
+	if resp.Error != nil || len(resp.Result) == 0 {
+		return fmt.Errorf("ping answered %+v", resp)
+	}
+	_, err = io.Copy(io.Discard, conn)
+	return err
 }
 
 // scriptedListener answers each accept with the next of its errors.
