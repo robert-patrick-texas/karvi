@@ -1,30 +1,33 @@
-# karvi v0.38.0 build and qualification result
+# karvi v0.39.0 build and qualification result
 
 ## Result
 
 The build, with the native transport compiled in beside the external `system`
-transport, is **qualified as an engineering candidate**. v0.38.0 (2026-10-28) is
-a minor release on 0.37.0 for the Cisco platforms' names: the built-in
-`cisco_iosxe` is `cisco_ios`, for IOS and IOS XE alike, and `cisco_iosxr` is
-`cisco_xr`; the old names are read wherever a platform name is read, and
-`platform-resolution.default` ships as `cisco_ios`. Every counter is 0.37.0's,
-Go and the modules are 0.37.0's, and the first submission after the upgrade
-drains a 0.37.0 daemon. The changes are in [`CHANGELOG.md`](../CHANGELOG.md). It
-is not a production claim and not a real-device qualification: the native
+transport, is **qualified as an engineering candidate**. v0.39.0 (2026-11-02) is
+a minor release on 0.38.0 for the fixes of the code review of 2026-10-31: the
+scratch and spool chains take only the operator's own directory, a revoked host
+key is refused, askpass answers the login's username and password alone, a link
+planted in a shared tree is refused, and the configuration, the inventory,
+`.cloginrc`, and `display.timestamp` are read as their formats say; fourteen of
+the changes are Breaking. The configuration registry moves to 33, every other
+counter is 0.38.0's; goldmark, for the documents alone, moves to v1.8.7, Go and
+the other modules are 0.38.0's; and the first submission after the upgrade
+drains a 0.38.0 daemon. The changes are in [`CHANGELOG.md`](../CHANGELOG.md).
+It is not a production claim and not a real-device qualification: the native
 transport is proven against the fake device built from the tree, its IOS XE and
 Linux personas.
 
 ## Build identity
 
 ```text
-version:                  0.38.0
-commit:                   source-release-v0.38.0
-build:                    XVaquK8HnILbatvlhwRi
+version:                  0.39.0
+commit:                   source-release-v0.39.0
+build:                    OVm9OErdgujJlrhYFLuV
 Go toolchain:             go1.27.3
 dependencies:             vendored (go.mod, go.sum, vendor/); no network
 native:                   compiled-in
 configuration schema:    6
-configuration registry:  32
+configuration registry:  33
 command record schema:   4
 daemon IPC schema:       12
 job manifest/summary:    5
@@ -45,7 +48,7 @@ transports.
 
 The release source passed, with Go 1.27.3:
 
-- 1,109 top-level named Go tests across 92 packages in vendor mode, 0
+- 1,280 top-level named Go tests across 92 packages in vendor mode, 0
   failures (`evidence/core-qualification.log`);
 - `go vet` across all packages, and the Go race detector across all
   packages in the release verifier's run
@@ -84,7 +87,7 @@ The release source passed, with Go 1.27.3:
   and listens on `daemon.sock`, which this client never reaches; the drain is
   the daemon-upgrade suite's, against a fixture daemon of an older schema and of
   another build. The compatibility example ran before the number was committed,
-  beside the released v0.37.0 daemon, started from the released executable of
+  beside the released v0.38.0 daemon, started from the released executable of
   the tree's `bin/` before the rebuild, at this client's IPC schema and of
   another build: the client's `daemon status` stacked the two builds
   (`compatible: false`); its run's exercise drained the idle daemon and started
@@ -115,7 +118,7 @@ The release source passed, with Go 1.27.3:
   `scripts/check-deb.sh` against it.
 
 The release verifier had first passed on a clean clone of `dev` at
-`2ec83e0` before the number was assigned (the maintainer's release tools
+`1a3372d` before the number was assigned (the maintainer's release tools
 run it there, since a clone has no shipped bytes to check; the logs are kept
 with the maintainer's release evidence). The must-not-appear checks of the
 suites ran enforced throughout.
@@ -126,10 +129,10 @@ Evidence for this release is in `evidence/`.
 
 | Executable | Bytes | SHA-256 |
 |---|---:|---|
-| `bin/karvi-linux-amd64` | 12,800,160 | `6f14ffa5288c277886777b71d32fe2a13be09017eb90f101973c02fb7a1e41f8` |
-| `bin/karvi-askpass-linux-amd64` | 3,911,840 | `41daf1d22a58c06eaec02668fd7b70da8a120d2b0ef4ed5a8284cab95776ac81` |
-| `bin/karvi-prune-linux-amd64` | 3,797,152 | `e0d36d4060c0173928406997300e05b1ccb00d9e85e915ca8e4543d8148afc4b` |
-| `bin/karvi-audit-linux-amd64` | 3,940,512 | `ac603c53101f12d6f84305673f109eef7f683bd18d63e29d63fd7c7ee1b0d00c` |
+| `bin/karvi-linux-amd64` | 12,914,848 | `70b320fde743cbdf63fadec549baa4b6c17ab7b20a12656cb48d4da7e24d250c` |
+| `bin/karvi-askpass-linux-amd64` | 3,915,936 | `724d3de509c9fbe95095da5a97fe17b62dbf183f70ea8fec1b0236fa962d7abb` |
+| `bin/karvi-prune-linux-amd64` | 3,809,440 | `a3f0bf76dcb633087b17c58780026675cea16a7bf1752062c7ff0886cc9b990e` |
+| `bin/karvi-audit-linux-amd64` | 3,965,088 | `fac60afab7413fd9a0a1510dd04ab31898238d4e64b35eb6144f13b8ccc26ac2` |
 
 ## Operational upgrade sequence
 
