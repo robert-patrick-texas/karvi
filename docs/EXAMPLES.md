@@ -19887,3 +19887,354 @@ The evidence is kept beside the tree
 passing runs and the harness, the merged patch, the section's check, the wave's
 battery, and in `chapter-91/` this chapter's lab scripts, the container's
 script, their logs, and the blocks cut from them).
+
+## 92. The release 0.39.0 (2026-11-02)
+
+The twentieth public release, 0.39.0, on the operator's word and number,
+carrying the fixes of the code review of 2026-10-31 ([chapters
+88](#88-the-code-review-of-2026-10-31-and-its-fixes-2026-11-01) to
+[91](#91-the-reviews-later-fixes-wave-11-2026-11-01)) and wave 12 below, which
+closes #99, the one finding chapter 91 left open from its own lab. A minor
+release: the configuration registry moves to 33 (a `[platform.NAME]` table takes
+no `legacy-class`), every other counter is 0.38.0's, and Go is 0.38.0's;
+goldmark, which builds the documents alone, moves to v1.8.7. Fourteen of the
+CHANGELOG block's 37 entries are Breaking. The daemon IPC schema stays 12, so
+the compatibility example is the drain, beside the released 0.38.0 daemon. The
+sequence is [chapter 75](#75-the-release-0341-2026-10-20)'s as [chapter
+87](#87-the-release-0380-2026-10-28) ran it. It stopped twice for the operator,
+each time on a test that read a result before it was due on a loaded host, as
+chapter 75's two stops did; both tests were mended on the operator's word. The
+build then stopped after the package's install check, and was published at the
+operator's second word.
+
+**What it gains.** A site has the review's fixes from a published, checksummed
+bundle and package, with the documents on GitHub Pages at the release; a host on
+0.38.0 takes it by `sudo karvi-sysutil package update`, or by `apt install` as
+before. Two tests that could fail a release on a loaded host now wait for what
+they check. The cost is the fourteen Breaking changes, each named in the
+CHANGELOG's lead paragraph with what a site changes.
+
+**Wave 12: the fallback warnings (#99).** Under `auto`, with the scratch root
+closed to the operator, chapter 91's lab printed two warnings at fault: the
+capacity root's carried no `capacity_root_unusable`, which
+[`docs/OPERATIONS.md`](OPERATIONS.md) gives every such warning, and the
+scoreboards' named its folder twice. On the operator's word, as recommended, one
+section by the plan's method (S31): a fix agent in its own worktree, the
+orchestrator's reading of the diff against the finding, gofmt, vet,
+`make generated-clean`, the whole tree's `go test` (73 packages), the host
+clean, and `d856b62`. The capacity ledger's `New` warned with `mkdir`'s error
+uncoded; it now codes the error before the warning and a named root's refusal
+alike. The scoreboards' warning put the folder before an error that already
+named it; it now keeps the cause alone where the error names the folder, and the
+whole error where it names another path, the parent. Both are messages only and
+no suite asserts on either warning, so no battery ran for the section. The
+agent's open question went to the operator: OPERATIONS' list of what the
+capacity warning's message names left out a filesystem with no free inodes and a
+folder that could not be made. The clause names both (`01b5be1`, docs only), and
+the full battery at `01b5be1` passed, its suites in 238 seconds. Chapter 91's
+#96 case, run again on the release (`ex-99.sh`; its other lines are chapter
+91's), the warnings before and after:
+
+```text
+# before: chapter 91's lab at f327004
+warning: shared capacity root unavailable (mkdir /dev/shm/karvi/capacity: permission denied); using private fallback LAB/base/state/capacity
+warning: shared scoreboard directory unavailable (/dev/shm/karvi/scoreboards: mkdir /dev/shm/karvi/scoreboards: permission denied); using private fallback LAB/base/state/scoreboards
+# after: the release 0.39.0
+warning: shared capacity root unavailable (capacity_root_unusable: mkdir /dev/shm/karvi/capacity: permission denied); using private fallback LAB/base/state/capacity
+warning: shared scoreboard directory unavailable (/dev/shm/karvi/scoreboards: permission denied); using private fallback LAB/base/state/scoreboards
+```
+
+**The operator's decisions**, in simple terms:
+
+- #99: every fallback warning of the capacity root carries
+  `capacity_root_unusable`; a scratch folder's warning names the folder once,
+  then its cause.
+- The OPERATIONS clause: the capacity warning's message names its cause, one of
+  five: the shape the root needs, a link in it to remove, a server ledger that
+  does not decode, no free inodes, or the folder it could not make.
+- `dev` pushed before the release (`4a70be2..01b5be1`), as chapter 91 and wave
+  12 left it.
+
+**Before the number.** The archive's mirror was at `01b5be1` already, its
+`SHA256SUMS` passing; the seven release tools were 0.38.0's. The bridge probe
+reached every address, and `/tmp` had 3.9 GB free at load 0.36. `latest.sh` on
+the tree found goldmark behind, so it moved first, by the rule of chapter 75
+(its own lines):
+
+```text
+== Go: /usr/local/go/bin/go against go.dev
+go                               go1.27.3                               newest
+== the 4 modules /home/netops/karvi/karvi/go.mod requires
+github.com/yuin/goldmark         v1.8.6                                 behind
+                                 v1.8.7                                 newest
+golang.org/x/crypto              v0.58.0                                newest
+golang.org/x/sys                 v0.49.0                                newest
+golang.org/x/term                v0.47.0                                newest
+latest: 1 behind; move each to its newest, with its CHANGELOG entry, and run the baseline again
+exit=1
+```
+
+**The module move.** `07171fb`: goldmark v1.8.7 by `go get`, `go mod tidy`, and
+`go mod vendor`; `go mod verify` passes. goldmark is vendored for
+`tools/md-to-html` alone, and no executable contains it. Its changes bound the
+parser's work where it searched the same text again (an unclosed HTML comment, a
+long footnote label, many headings of one name) and rework how an autolink's
+trailing punctuation and an indented code block are read. `make html` into a lab
+folder at v1.8.6 and again at v1.8.7 wrote the same 40 pages and 10 other files,
+byte for byte. vet, `make generated-clean`, and the whole tree's `go test`
+passed; the commit carries the CHANGELOG entry and BUILD-HOWTO's vendored
+version.
+
+**The first stop: the alive test.** The baseline on a clean clone of `07171fb`
+failed in the release verifier's race run, one test. What it guards, in plain
+terms: a running karvi names its scratch files with its process ID, and a
+starting karvi sweeps away those whose owner is no longer a running karvi. It
+judges the owner by the file the process runs, `/proc/PID/exe`, not the name it
+was started under, since a site's `/usr/bin/k` starts karvi under another name;
+judged by the name, karvi had removed a live session's files ([chapter
+74](#74-a-shorter-name-keeps-its-scratch-files-2026-10-20)).
+`TestKarviAliveByExecutable` copies its own test binary as `karvi-sweep-test`,
+links it as `k`, starts it through `k`, and asks whether that process is alive
+as karvi; it then removes the file, as an upgrade does, and asks again; last, it
+starts a process that calls itself karvi but runs another file, which must not
+count.
+
+The obstacle: the test asked the instant `Start` returned, and on a loaded host
+`Start` can return before the kernel names the new file. A probe of 3,000 starts
+of a copied `sleep` through a link, reading `/proc/PID/exe` at once: idle, every
+read named the file started; beside loops starting `/bin/true`, some reads named
+no file, and one named the probe itself, the binary that forked the child. The
+test had read `osutil.test`, its own name. karvi's sweeps are untouched: a
+scratch file's owner made it after its own start. The mend, `1a3372d`: the
+helper writes a line once it runs, and the test waits for that line, up to 30
+seconds, before asking, so the `k` case is checked every time rather than in a
+window. Alone, the test passed 600 of 600 runs, with and without the race
+detector; beside load, as committed, it failed 1 of 1,400, and mended, none (the
+probe below was rerun for this chapter with its outcomes folded; the first
+run's, keyed by process, is kept with the evidence):
+
+```text
+# the baseline at 07171fb, the release verifier's go test -race
+--- FAIL: TestKarviAliveByExecutable (0.02s)
+    process_test.go:75: a karvi started as k judged not alive: its file "osutil.test"
+FAIL
+FAIL	github.com/robert-patrick-texas/karvi/internal/osutil	0.381s
+# the probe, rerun for this chapter with its outcomes folded: 3,000 starts each
+stress=false starts=3000 other-file reads=map[] (self probe) go=go1.27.3
+stress=true starts=3000 other-file reads=map[no file (no such file or directory):77] (self probe) go=go1.27.3
+stress=true starts=3000 other-file reads=map[no file (no such file or directory):150 probe-race:1] (self probe-race) go=go1.27.3
+# the test, 400 runs as committed and 400 mended, beside eight /bin/true loops
+committed: exit=1 failures=1 of 400; load 4.58
+      1 judged not alive: its file "osutil.test"
+mended: exit=0 failures=0 of 400; load 9.22
+# 1,000 runs each beside sixteen loops
+committed-1000: exit=0 failures=0 of 1000; load 18.26
+mended-1000: exit=0 failures=0 of 1000; load 19.05
+```
+
+**The second stop: the accept test.** The core evidence after 1/3 failed one
+test of 1,280. What it guards, a fix of chapter 88's S10: with the process out
+of file descriptors, the daemon cannot accept a connection; it must log the
+failure, retry, and serve the connection once descriptors are free, still
+running, not stop. `TestAcceptOutOfDescriptorsIsRetried` starts a daemon, waits
+until it is up, lowers the process's descriptor limit to the lowest free
+descriptor, connects to both sockets, and requires each accept's retry to be
+logged and both connections served once the limit is restored.
+
+The obstacle: the test took the daemon's state file appearing as the daemon
+being up. The daemon writes that file by renaming it into place and then opening
+its folder to sync it; the test lowered the limit in the gap, the folder's open
+failed, and the daemon stopped. The gap is too narrow to meet by load alone, so
+it was widened by an overlay of the atomic write pausing 50 ms after the rename,
+which was not committed. The mend, `0aa8a54`: the test waits for the daemon to
+answer a ping, which it does only once its start is done, the sync included, and
+reads that connection to its end, so the daemon has closed its descriptor for it
+before the limit, as the test requires. With the daemon's retry mutated away,
+the mended test fails, so it still guards the fix:
+
+```text
+# the core evidence at 61e5759 (go test -count=1 -v)
+=== RUN   TestAcceptOutOfDescriptorsIsRetried
+    accept_test.go:121: Serve returned at a passing accept error: sync parent directory: open /var/tmp/ndN: too many open files
+--- FAIL: TestAcceptOutOfDescriptorsIsRetried (5.06s)
+# 500 runs each beside eight /bin/true loops
+committed: exit=0 failures=0 of 500; load 4.40
+mended: exit=0 failures=0 of 500; load 6.99
+# the gap between the rename and the folder's open widened to 50 ms: 20 runs as committed
+     20 Serve returned at a passing accept error: sync parent directory: open /var/tmp/ndN: too many open files
+FAIL	github.com/robert-patrick-texas/karvi/internal/daemon
+# 20 runs mended
+ok  	github.com/robert-patrick-texas/karvi/internal/daemon
+# mended, with the daemon's retry mutated away (acceptRetryable false)
+Serve returned at a passing accept error: accept unix /var/tmp/ndN/d.sock: accept4: too many open files
+```
+
+**Not taken**, for both: a longer fixed pause before the test asks, which a
+slower host outruns, where waiting on the condition does not; a readiness signal
+added to the daemon for the accept test, a change to karvi's code for what a
+test alone needs; and running the release on an idle host, which the release
+cannot promise.
+
+**The number.** `VERSION`, the `Makefile`, `buildinfo.Version`, and the two
+verifiers; the `## Unreleased` block became `## 0.39.0 - 2026-11-02` under a
+lead paragraph: a minor release on 0.38.0 for the fixes of the code review, the
+registry 33 and every other counter 0.38.0's, goldmark v1.8.7 for the documents
+alone, and what a site changes, one clause for each Breaking entry.
+`retiredV0390`, which the review's fixes had set for
+`askpass_enable_password_unset`, already named this number, so nothing was
+renamed. `CHECKSUMS.sha256` has its four lines from the release-identity build.
+The two test mends came after 1/3 and before the core evidence's second run;
+neither changes a shipped byte.
+
+**The documents.** 2/3 is 0.38.0's with this release's values, in the same eight
+files: the build result, the artifact index, the manifest (its registry 33,
+goldmark v1.8.7, its previous release 0.38.0), the compatibility example's log,
+and the build guide's, the qualification document's, the runbook's, and
+OPERATIONS' release values.
+
+**The release notes, executed.** Before publishing, the notes' concrete claims
+ran on the release's build in a lab under `/dev/shm`, every place under it
+(`v0390-notes-check.sh`; the lab's `--config` is left out of the `$` labels, the
+lab's path written `LAB`; the `#`, `$`, and `exit=` lines are the script's).
+Each held, and the notes went out as drafted. The exercise case is refused by
+the client, and no daemon was started:
+
+```text
+# karvi 0.39.0 build: OVm9OErdgujJlrhYFLuV
+# karvi-prune --days above 999
+$ karvi-prune --days 1000 --dry-run
+karvi-prune: --days takes one to 999, not 1000
+exit=2
+# karvi-prune on a root it cannot read
+$ karvi-prune --basedir unreadable --days 30 --dry-run
+failed kind=tree path=LAB/unreadable/jobs error=lstat LAB/unreadable/jobs: permission denied
+failed kind=tree path=LAB/unreadable/transcripts error=open LAB/unreadable/transcripts: permission denied
+failed kind=tree path=LAB/unreadable/state/scoreboards error=open LAB/unreadable/state/scoreboards: permission denied
+examined=0 removed=0 skipped=0 not_owned=0 failed=3 bytes=0 dry_run=true
+exit=1
+# an integer with a leading zero
+$ karvi config validate v.toml
+config_toml_syntax: invalid TOML at LAB/v.toml: TOML line 3 column 1: unsupported bare value "010"
+exit=2
+# display.timestamp with mm between a date token and a time token
+$ karvi config validate v.toml
+display_timestamp_mm_ambiguous: ambiguous mm in display.timestamp; use MM for month or place mm between hh and ss for minutes for display.timestamp at LAB/v.toml:2
+exit=2
+# a platform table's telnet-port outside 1..65535
+$ karvi config validate v.toml
+config_platform_telnet_port_out_of_range: must be 1..65535 for platform.cisco_ios.telnet-port at LAB/v.toml:2
+exit=2
+# a platform table's legacy-class
+$ karvi config validate v.toml
+config_unknown_key: unknown configuration key for platform.cisco_ios.legacy-class at LAB/v.toml:2
+exit=2
+# run --exercise where no job folder is kept
+$ karvi --set output.persist-command=false run --exercise --target router1 show clock
+run_mode_conflict: --exercise with output.persist-command = false: the exercise report is a file in the job folder; --of
+exit=4
+$ karvi daemon status
+daemon_unreachable: daemon not running or unreadable: dial unix LAB/base/socket/d.sock: connect: no such file or directory
+exit=110
+# two inventory rows for one device, differing in the port
+$ karvi run --dry-run --no-daemon --target router1 show clock
+inventory_conflict: client planning: inventory conflict for id name:router1 between LAB/inv.csv:2 and LAB/inv.csv:3
+exit=5
+```
+
+**The sequence, as run**, from the pre-checks at 23:47 on 2026-11-01 to the
+published check at 02:46 on 2026-11-02 (UTC; 18:47 to 21:46, EST), the
+operator's two decisions on the tests between:
+
+- 23:47 to 23:51, the pre-checks, `latest.sh` exit 1, and the module move:
+  `07171fb`.
+- 23:51:18 to 23:52:42, the baseline on a clean clone of `07171fb`: the release
+  verifier exit 1 at the alive test. The first stop for the operator, with the
+  probe and the measurements.
+- 01:46, the alive test mended: `1a3372d`.
+- 01:46:06 to 01:57:08, the baseline on a clean clone of `1a3372d`: `latest.sh`,
+  gofmt, make, and the release verifier with its package and container steps,
+  exit 0 each.
+- 01:57 to 01:58, the release-identity build, the compatibility example, and
+  1/3: the build `OVm9OErdgujJlrhYFLuV` by go1.27.3; the 0.38.0 daemon drained
+  idle, refusing busy; `61e5759`.
+- 01:58:09 to 02:00:29, the core evidence: the accept test failed. The second
+  stop for the operator, with the widened gap.
+- 02:09, the accept test mended: `0aa8a54`.
+- 02:09:31 to 02:11:46, the core evidence: 1,280 named tests across 92 packages,
+  vet 0, both socket lengths exit 0.
+- 02:13, the documents: `68dede4` (2/3).
+- 02:14:02 to 02:24:09, the remaining evidence: the shipped checks exit 0, the
+  release verifier exit 0 with the nineteen suites, the package, and its
+  container test, the checksums unchanged by its rebuild; the replay skipped.
+- 02:24, 3/3, the tag, `main`: `7158fa1`, `karvi-v0.39.0`, `main` fast-forwarded
+  from `6d1bfac`.
+- 02:24:47 to 02:31:19, the artifacts: the bundle reproducible byte for byte and
+  verified from its own archive; the package reproducible and checked against
+  the extraction; 39,984,978 and 6,611,546 bytes.
+- 02:31:30 to 02:31:42, the package installed in a throwaway `ubuntu:26.04`:
+  `apt install` exit 0; the four installed executables `CHECKSUMS.sha256`'s;
+  `karvi-audit --help` exit 0; 22 files under `/usr/share/karvi`. The stop for
+  the operator's word.
+- To 02:44:49, the notes' claims executed on the release's build (the second run
+  kept, the exercise case corrected to leave out `--no-daemon`, which
+  `--exercise` refuses on its own); 02:44:57 to 02:46, the push, the site, the
+  GitHub release: `dev`, `main`, and the tag pushed; `pages.sh` pushed the
+  release's site (`3c85ffc`), built at 02:45:36, its 50 files 200 and its footer
+  `karvi-v0.39.0`; release `karvi-v0.39.0` with the five assets, marked latest,
+  its body the notes file; the assets downloaded back match, and
+  `releases/latest` redirects to the tag.
+
+**Executed.** The compatibility example's turning points
+(`release/evidence/ipc-schema-compat.log`) and the published state:
+
+```text
+[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.38.0 build=XVaquK8HnILbatvlhwRi
+daemon started socket=/dev/shm/r390/compat/base/socket/d.sock
+pid 1849402 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build XVaquK8HnILbatvlhwRi 0.38.0
+  client build OVm9OErdgujJlrhYFLuV 0.39.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 1849507 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+latest: karvi-v0.39.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.39.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.39.0-source-linux-amd64.tar.gz: OK
+karvi_0.39.0_amd64.deb: OK
+$ the latest redirect
+location: https://github.com/robert-patrick-texas/karvi/releases/tag/karvi-v0.39.0
+site files: 50, not 200: 0
+```
+
+**Found on the way.**
+
+- `karvi` is 114,688 bytes larger, `karvi-askpass` 4,096, `karvi-prune` 12,288,
+  and `karvi-audit` 24,576; the bundle is 223,183 bytes larger and the package
+  70,062.
+- The default configuration's evidence carries the review's words: the scratch
+  and spool chains' owner and mode rule, the lookup timeout per address family,
+  and the halt at a revoked host key. The module metadata of the four
+  executables is 0.38.0's, goldmark being in none, so 3/3 carries nine evidence
+  files.
+- `exec.Cmd.Start` returning does not mean `/proc/PID/exe` names the new file,
+  and a file renamed into place does not mean its writer is done: a test waits
+  on the condition it means, as chapter 75 found for time.
+- In the throwaway container `man karvi-audit` has no page, as in chapters 67,
+  70, 73, 75, 77, 80, 85, and 87: the minimal image leaves out `/usr/share/man`.
+
+The evidence is kept beside the tree (`release-design-evidence/v0390-*`: the
+timeline, the bridge probe, `latest.sh`'s output and the module move's checks,
+both baselines, the probe and the two tests' measurements, overlays, and
+mutation, the first core evidence, the build, the compatibility example, the 1/3
+and 2/3 patches, the artifacts with their bundle verifier log, `check-deb`, the
+container install, the release notes and their check, the push, the site, the
+GitHub release, the published check, and in `v0390-chapter-92/` this chapter's
+example, its blocks, and the scripts that cut and assemble them;
+`review-fixes-2026-11-01/` S31's check and wave 12's battery).
