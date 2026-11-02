@@ -1,6 +1,27 @@
 # Changelog
 
-## Unreleased
+## 0.39.0 - 2026-11-02
+
+A minor release on 0.38.0 for the fixes of the code review of 2026-10-31. The
+configuration registry moves to 33; every other counter is 0.38.0's
+(configuration schema 6, execution plan 15, plan report 4, scoreboard 5,
+daemon IPC 12, command record 4, job manifest and summary 5, credential
+package 2, audit 2, metrics 1, inventory 1). goldmark, which builds the
+documents alone, moves to v1.8.7; Go and the other modules are 0.38.0's. A
+site has something to change where a trust store holds `@revoked` or
+`@cert-authority` lines; a script gives `karvi-prune --days` more than 999,
+counts on its exit 0 for a tree it cannot read, or looks for
+`askpass_enable_password_unset`, retired for `privilege_failed`; `run
+--exercise` runs under a configuration that keeps no job folder; the
+configuration's TOML holds a string or a number TOML reads otherwise than Go
+did; `display.timestamp` holds `mm` between a date token and a time token; two
+inventory rows for one device differ in any field; a `.cloginrc` counts on a
+reading clogin's Tcl does not give; a link sits at a day folder's, a job
+folder's, a capacity ledger's lock's, or its `devices` folder's name; a
+`[platform.NAME]` table holds a field of the wrong kind or `legacy-class`; a
+locked key takes a macro from a lower layer; or a configuration holds what it
+was refused only later. An operator's 0.38.0 daemon, of another build, is
+drained by the first submission after the upgrade.
 
 - **The scratch and spool chains take only the operator's own directory.**
   A present candidate of `tempdir`'s or `spooldir`'s `auto` chain
