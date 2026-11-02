@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- **The device-qualification script's parity rows pass on a device, and the
+  runbook gives the run on the production network.** D1, D2, and D4 compared
+  four streams of which the first was the device's first contact, whose first
+  record alone carries `host_key_enrolled`, so their parity failed on every
+  device, and on the fake, since the notice was added; each row now stores the
+  device's key first. D7 h failed at times over `system`, where OpenSSH writes
+  the trust store without a lock and two first contacts may append the same
+  line; a duplicate there is observed, while over `native`, which enrols under
+  karvi's lock, one still fails the row.
+  [`docs/DEVICE-QUALIFICATION-RUNBOOK.md`](docs/DEVICE-QUALIFICATION-RUNBOOK.md)
+  gains section 10, for the operators on the production network: the run at a
+  glance, the rows never run on a production device, every command that
+  reaches the device, and what to bring back.
+
 ## 0.39.0 - 2026-11-02
 
 A minor release on 0.38.0 for the fixes of the code review of 2026-10-31. The

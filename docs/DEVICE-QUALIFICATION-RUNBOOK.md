@@ -11,8 +11,11 @@ software release.
 The script is checked against the fake IOS XE device before every lab run
 (`FAKE=1`, step 2): every row it sends to a device has first passed there,
 so a failure in the laboratory is the device's answer and not the script's.
-A production Linux server is qualified by hand, by the rows of [section
-9](#9-a-production-server).
+That check is the development environment's; an operator qualifying a device
+on the production network starts at [section
+10](#10-on-the-production-network-the-run-at-a-glance), the run at a glance and
+what to bring back. A production Linux server is qualified by hand, by the
+rows of [section 9](#9-a-production-server).
 
 ## 1. What the run needs
 
@@ -48,7 +51,7 @@ FAKE=1 CONFIG_ROW=1 RELOAD="system native" scripts/device-qualification.sh
 ```
 
 The last line must end `device qualification: pass`. Executed
-on the released executable: 71 pass, 10 observe, 2 skip (D5
+on the released executable: 90 pass, 8 observe, 2 skip (D5
 and D12, which need an account and a name the fake does not have), none
 failed; both blind reloads pass with the
 `prompt_not_observed_after_blind_send` notice. The log and the evidence
@@ -84,7 +87,9 @@ Each invocation writes a new evidence directory,
 Each row runs over `system` and `native`. `both` means `command` and
 `run --no-daemon` on each transport, four streams compared path by path by
 `tools/paritycheck` (the matrix's "records equal path by path" row on the
-device).
+device), after one `command` that stores the device's key, so that none of
+the four is the first contact, whose first record alone carries the notice
+`host_key_enrolled` (D7 a checks the first contact).
 
 | Row | Matrix line | What is sent | Pass |
 |---|---|---|---|
@@ -99,7 +104,7 @@ device).
 | D7 d, e | `secure`: unknown host; changed key | an empty store; another key under the identity | 109 `host_key_not_enrolled`; 109 `host_key_changed` |
 | D7 f | `insecure`: the mismatch warning, then access | the same wrong entry | exit 0, the policy's two lines and `! ssh host-key mismatch DEVICE proceeding at risk` on stderr |
 | D7 g | literal-address targeting | `--target ADDRESS` | the store holds the address identity |
-| D7 h | concurrent first enrollment from two clients | two `command` processes at once on an empty store | both exit 0; no entry twice |
+| D7 h | concurrent first enrollment from two clients | two `command` processes at once on an empty store | both exit 0; over `native` no entry twice; over `system`, where OpenSSH writes the store without a lock, a duplicate is observed |
 | D7 i | a non-`0600` store is refused or ignored, never repaired | mode 0644 under `secure`, `accept-new`, then `insecure` | `secure` and `accept-new`: 109 `host_key_trust_store_permission` with the `chmod 600` remedy; `insecure`: 0; the mode still 0644 after each |
 | D7 j | fleet isolation; the run-wide halt | two names for the device, the first with a wrong entry, serial | `connection_error,succeeded`; with `ssh.halt-run-on-host-key-mismatch` observed (`not_started_halt`, exit 114 on the fake) |
 | D8 | concurrent sessions to the cap | `CONCURRENCY` names for the device through the daemon, parallel: `show clock`, `show users` | every record succeeded |
@@ -444,3 +449,62 @@ Host names, addresses, the account name, and the server's output are in the
 evidence in clear, as for a device; the collection holds the server's
 addresses, routes, and enabled units. The network operations and security
 owners review the directory before it leaves the host.
+
+## 10. On the production network: the run at a glance
+
+For the operators qualifying a Cisco IOS XE device on the production
+network. Section 2 is the development environment's and is not theirs to
+repeat. A run that departs from these steps still counts: the evidence is
+read row by row, beside a note of what was done otherwise.
+
+**The run**, from the unpacked bundle's folder, the account's secrets in the
+environment alone:
+
+```bash
+export NETUSER=ACCOUNT
+read -rs NETPASS;   export NETPASS
+read -rs NETENABLE; export NETENABLE   # not when the account logs in at 15
+DEVICE=NAME ADDRESS=ADDRESS scripts/device-qualification.sh
+DEVICE=NAME ADDRESS=ADDRESS CONCURRENCY=4 BIG_COMMAND="show tech-support" \
+  ROWS="D8 D9" scripts/device-qualification.sh
+```
+
+Then D15 and D16 by hand, in the evidence directory ([section
+4](#4-the-rows)), and the scan once more over the whole directory, the hand
+rows included: `bin/secret-scan -canary-env NETPASS -canary-env NETENABLE
+EVIDENCE` must report 0 hits.
+
+**Not on a production device.** `RELOAD` (D13 reloads the unit) and
+`CONFIG_ROW` (D4 enters configuration mode) stay unset, and both rows print
+`skip`. `show tech-support` (D9) loads the device for minutes: run it in a
+quiet period, or leave `BIG_COMMAND` unset. `CONCURRENCY` (D8) takes vty
+lines the operators use: keep it small.
+
+**What reaches the device**, all of it:
+
+- karvi's own, in every session: `enable` (only when the account does not
+  land at privilege 15), `terminal length 0`, `terminal width 512`, and
+  `exit` at the end.
+- Read-only: `show clock`, `show version`, `show privilege`, `show users`,
+  `show bogus` (the command the device must reject), `show running-config`
+  (D5, as the restricted account alone), and `BIG_COMMAND` (D9).
+- Opt-in, never on a production device: `configure terminal` and `end` (D4),
+  and `reload`, answered `no` at the save prompt (D13).
+- By hand: `show clock` and `exit` (D15), and D16's line editing, ending in
+  `show history`.
+
+**What to bring back**, most useful first:
+
+1. Each evidence directory whole, once the scan over it passed.
+2. Short of that: `results.tsv`, `identification.txt`, `device-release.txt`,
+   and the script's printed lines (`device qualification: …`).
+3. The recorded logins: `D15/` and `D16/`, each `transcripts/` folder with
+   its transcript and `.meta.jsonl`, and `ssh.exit`, `ssh-verbose.log`,
+   `karvi.exit`, and `karvi.err`.
+4. A failed row's folder (`D1/`, …) and any command run by hand, as typed.
+5. A note: the device's model and software release, the rows skipped or run
+   otherwise and why, and the account's privilege at login.
+
+The evidence names the device, its address, and the account in clear
+(section 5); the network operations and security owners review it before it
+leaves the production network.

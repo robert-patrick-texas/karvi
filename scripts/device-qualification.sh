@@ -240,6 +240,12 @@ fresh_store() { : >"$KH"; chmod 600 "$KH"; }
 # device: `command` and `run` over each transport, one comparison.
 both() {
   b_row=$1; b_expect=$2; b_exit=$3; shift 4
+  # The device's key is stored first, so that none of the four streams is
+  # the first contact, whose first record alone carries host_key_enrolled
+  # (D7 a checks the first contact itself).
+  b_first=${TRANSPORTS%% *}
+  qrun "$b_row" "enroll.$b_first" command "$b_first" -- --target "$DEVICE" --cmd 'show clock'
+  expect_exit "$b_row" "enroll.$b_first" 0
   b_streams=
   for b_tr in $TRANSPORTS; do
     for b_act in command run; do
@@ -290,7 +296,7 @@ if wanted D4; then
   if [ -n "${CONFIG_ROW:-}" ]; then
     fresh_store; write_config accept-new
     both D4 'success,success,success' 0 -- --cmd 'configure terminal' --cmd 'end' --cmd 'show clock'
-    for f in "$EVIDENCE"/D4/*.out; do
+    for f in "$EVIDENCE"/D4/command.*.out "$EVIDENCE"/D4/run.*.out; do
       head -1 "$f" | grep -q '"prompt":"[^"]*(config[^"]*)#"' && result D4 "$(basename "$f" .out) prompt level" pass "$(head -1 "$f" | grep -o '"prompt":"[^"]*"')" \
         || result D4 "$(basename "$f" .out) prompt level" fail "the first record's prompt is $(head -1 "$f" | grep -o '"prompt":"[^"]*"')"
     done
@@ -354,7 +360,10 @@ if wanted D7; then
     fresh_store; write_config accept-new
     qrun D7 "g.$tr" command "$tr" -- --target "$ADDRESS" --cmd 'show clock'; expect_exit D7 "g.$tr literal address" 0
     [ "$(cut -d' ' -f1 "$KH" | sort -u)" = "$ADDRESS_IDENTITY" ] && result D7 "g.$tr identity" pass "$ADDRESS_IDENTITY" || result D7 "g.$tr identity" fail "the store holds $(cut -d' ' -f1 "$KH" | sort -u | tr '\n' ' ')"
-    # h: two clients enroll at once: both succeed, one entry per key type.
+    # h: two clients enroll at once: both succeed; over native one entry per
+    # key type, karvi's handshake enrolling under the store's lock. Over
+    # system OpenSSH writes the store itself, with no lock, so both may
+    # append the same line: a duplicate there is observed, not failed.
     fresh_store
     rm -rf "$WORK/base"; install -d -m 700 "$WORK/base"
     for k in 1 2; do
@@ -366,6 +375,7 @@ if wanted D7; then
     dup=$(cut -d' ' -f1,2 "$KH" | sort | uniq -d | wc -l)
     cp "$KH" "$EVIDENCE/D7/h.$tr.known_hosts"
     if [ "$hc" -eq 0 ] && [ "$dup" -eq 0 ] && [ -s "$KH" ]; then result D7 "h.$tr concurrent first enrollment" pass "$(wc -l <"$KH") entries, none twice"
+    elif [ "$hc" -eq 0 ] && [ -s "$KH" ] && [ "$tr" = system ]; then result D7 "h.$tr concurrent first enrollment" observe "$(wc -l <"$KH") entries, $dup duplicated: OpenSSH writes the store without a lock"
     else result D7 "h.$tr concurrent first enrollment" fail "exit $hc, $dup duplicated entries"; fi
     rm -rf "$WORK/base/socket" "$WORK/base/cap"; mv "$WORK/base" "$EVIDENCE/D7/h.$tr.base"
     # i: a trust store of mode 0644. secure and
