@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **The release verifier reads karvi's output whole before checking it.**
+  `scripts/verify-release.sh` checked `karvi --version` through `grep -q` under
+  `pipefail`; `--version` writes its transports a line at a time, so a `grep`
+  that stopped at the native line left karvi's next write to a closed pipe,
+  and on a loaded host karvi's SIGPIPE failed the verifier (103 of 1000 runs
+  beside eight busy loops). It now reads `version --format json` and
+  `--version` once each, and checks the version against `VERSION` and both
+  transports through `scripts/lib/json.sh`.
 - **Breaking: a schema file's title and `$id` name no counter; each counter
   is written once.** The audit's, the command record's, the job manifest's and
   summary's, the plan report's, and the scoreboard's files in `schema/` were

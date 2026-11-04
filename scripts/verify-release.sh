@@ -36,14 +36,22 @@ go test -race -count=1 -mod=vendor ./...
 # release's source-release-vVERSION), else the checkout's.
 make build
 
-./bin/karvi-linux-amd64 version --format json | grep -q '"version": "0.39.0"'
-./bin/karvi-linux-amd64 version --format json | grep -q '"id": "system"'
-./bin/karvi-linux-amd64 version --format json | grep -q '"id": "native"'
-./bin/karvi-linux-amd64 --version | grep -q '^  native: compiled-in$'
+# Each output is read whole before it is checked: under pipefail a reader
+# that stops early, as grep -q does, leaves karvi's next write to a closed
+# pipe, and karvi's SIGPIPE fails the line on a loaded host (--version
+# writes its transports a line at a time; the release 0.40.0's baseline).
+. "$ROOT/scripts/lib/json.sh"
+version_json=$(./bin/karvi-linux-amd64 version --format json)
+version_text=$(./bin/karvi-linux-amd64 --version)
+[[ $(json_get - version <<<"$version_json") == "$(cat VERSION)" ]] \
+  || { echo "bin/karvi-linux-amd64 is not version $(cat VERSION)" >&2; exit 1; }
+[[ $(json_get - 'ssh_transports.*.id' <<<"$version_json") == $'native\nsystem' ]] \
+  || { echo 'bin/karvi-linux-amd64 does not name the native and system transports' >&2; exit 1; }
+grep -qx '  native: compiled-in' <<<"$version_text" \
+  || { echo 'bin/karvi-linux-amd64 --version names no compiled-in native transport' >&2; exit 1; }
 # The executable names its build, the Go build ID's last part: without it
 # its daemon would refuse to start (docs/EXAMPLES.md chapter 57, issue 8).
-. "$ROOT/scripts/lib/json.sh"
-build=$(./bin/karvi-linux-amd64 version --format json | json_get - build)
+build=$(json_get - build <<<"$version_json")
 [[ ${#build} -eq 20 ]] || { echo "bin/karvi-linux-amd64 names no build (build: $build)" >&2; exit 1; }
 for command in login command cmd run daemon config watch version; do
   ./bin/karvi-linux-amd64 "$command" --help >/dev/null
