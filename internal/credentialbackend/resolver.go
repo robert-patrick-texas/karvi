@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -180,7 +181,8 @@ func (r *Resolver) Resolve(ctx context.Context, operator credentials.Operator, d
 	if err != nil {
 		return credentials.Resolved{}, err
 	}
-	requiredEnable := !r.omitEnable && requiresEnable(device, r.cfg)
+	def := usedDefinition(device, r.cfg)
+	n := r.enableNeed(device, def)
 	// A backend's credential has no key yet (the credential CSV's keyfile
 	// is later work), so it needs a password.
 	requirePassword := true
@@ -208,7 +210,10 @@ func (r *Resolver) Resolve(ctx context.Context, operator credentials.Operator, d
 		if result.Outcome != credentials.Success {
 			return credentials.Resolved{}, &Error{Code: defaultString(result.ErrorCode, "credential_backend_error"), Message: result.Message, Backend: name, Policy: p.Name, Retryable: result.Retryable}
 		}
-		resolved, err := r.finalize(result.Credential, name, p.Name, requiredEnable, requirePassword)
+		// A backend's enable field is its own, blank or not: NETSUDO and
+		// NETENABLE never fill it (EXAMPLES chapter 56).
+		n.from = credentials.SudoEnable
+		resolved, err := r.finalize(result.Credential, name, p.Name, n, requirePassword)
 		if err != nil {
 			return credentials.Resolved{}, err
 		}
@@ -229,13 +234,73 @@ func (r *Resolver) Resolve(ctx context.Context, operator credentials.Operator, d
 		return credentials.Resolved{}, &Error{Code: "credkeyref_unresolved", Message: fmt.Sprintf("device %s: credkeyref %q: no keyed backend answered (asked: %s; skipped, unkeyed: %s)", device.CanonicalName, device.CredKeyRef, listOrNone(asked), listOrNone(skipped)), Policy: p.Name}
 	}
 	// What follows the policy's backends is the platform's fallback.
-	return r.fallback(ctx, operator, device, p.Name, requiredEnable)
+	return r.fallback(ctx, operator, device, def, p.Name, n)
 }
 
-// NetVariables are the netvars fallback's variables: the username's, the
-// password's, and the enable secret's. The daemon warns of them in its own
-// environment, and the crun.after hook does not get them.
-var NetVariables = [3]string{"NETUSER", "NETPASS", "NETENABLE"}
+// NetVariables are the built-in credential variables: netvars' username,
+// password, and enable secret, and NETSUDO, a --sudo command's password
+// under the fallback. The daemon warns of them in its own environment, and
+// the crun.after hook does not get them.
+var NetVariables = [4]string{"NETUSER", "NETPASS", "NETENABLE", "NETSUDO"}
+
+// enableUse is what a device's session does with the credential's enable
+// field.
+type enableUse int
+
+const (
+	// enableDevice: a shell channel's enable secret, for the device's
+	// privileged mode.
+	enableDevice enableUse = iota
+	// enableNone: no enable field, for a login, whose operator types enable
+	// at the device, and an exec device without a --sudo command, whose
+	// session sends none.
+	enableNone
+	// enableSudo: sudo's password, for an exec device with a --sudo command
+	// (EXAMPLES chapter 96).
+	enableSudo
+)
+
+// need is what a device's resolution asks of the enable field: its use,
+// whether the platform requires it there, and, for a --sudo device, where a
+// value it holds came from (a credentials.Sudo* source).
+type need struct {
+	use      enableUse
+	required bool
+	from     string
+}
+
+// enableNeed is the device's need of the enable field: none under
+// OmitEnable; on a shell channel the device's enable secret; on an exec
+// channel sudo's password where the device has a --sudo command, else none.
+// The platform's requires-enable requires the field wherever it is used, so
+// on exec only of a --sudo device.
+func (r *Resolver) enableNeed(d inventory.Device, def platform.Definition) need {
+	n := need{use: enableNone}
+	switch {
+	case r.omitEnable:
+	case def.Channel != platform.ChannelExec:
+		n.use = enableDevice
+	case d.Sudo:
+		n.use = enableSudo
+	}
+	n.required = n.use != enableNone && def.RequiresEnable
+	return n
+}
+
+// fallbackSudo is a --sudo device's password when the platform's fallback
+// answers: NETSUDO, else NETENABLE where the fallback holds netvars, else
+// none, with its source. An empty variable is unset, as netvars reads one.
+func (r *Resolver) fallbackSudo(list []string) (string, string) {
+	if v, _ := r.lookupEnv("NETSUDO"); v != "" {
+		return v, credentials.SudoNETSUDO
+	}
+	if slices.Contains(list, platform.FallbackNetvars) {
+		if v, _ := r.lookupEnv("NETENABLE"); v != "" {
+			return v, credentials.SudoNETENABLE
+		}
+	}
+	return "", credentials.SudoNone
+}
 
 // fallback walks the platform's fallback in order once the policy's
 // backends have not answered: netvars reads NETUSER, NETPASS, and
@@ -247,9 +312,19 @@ var NetVariables = [3]string{"NETUSER", "NETPASS", "NETENABLE"}
 // something (the fields incomplete, or no key usable), else that no
 // username was supplied. The input provider serves the variables and the
 // prompts; without one there is neither.
-func (r *Resolver) fallback(ctx context.Context, operator credentials.Operator, device inventory.Device, policyName string, requiredEnable bool) (credentials.Resolved, error) {
-	list := platformFallback(device, r.cfg)
+//
+// The enable field is the sources' for a shell device alone: a --sudo
+// device's is fallbackSudo's whichever source ends the walk, and no source
+// reads it or asks for it; under enableNone it stays empty.
+func (r *Resolver) fallback(ctx context.Context, operator credentials.Operator, device inventory.Device, def platform.Definition, policyName string, n need) (credentials.Resolved, error) {
+	list := def.Fallback
+	if list == nil {
+		list = platform.DefaultFallback()
+	}
 	var username, password, enable string
+	if n.use == enableSudo {
+		enable, n.from = r.fallbackSudo(list)
+	}
 	source := "builtin-env-fallback"
 	fieldsCredential := func() credentials.Credential {
 		return credentials.Credential{Material: secrets.NewMaterial(username, password, enable), Backend: source, Policy: policyName, MatchedOn: credentials.Match{Category: "operator", SafeValue: operator.Username, Source: source}}
@@ -266,38 +341,48 @@ func (r *Resolver) fallback(ctx context.Context, operator credentials.Operator, 
 				continue
 			}
 			found := false
-			for i, field := range []*string{&username, &password, &enable} {
-				if field == &enable && r.omitEnable {
+			for _, v := range []struct {
+				name  string
+				field *string
+			}{{"NETUSER", &username}, {"NETPASS", &password}, {"NETENABLE", &enable}} {
+				if v.field == &enable && n.use != enableDevice {
 					continue
 				}
-				if value, ok := r.lookupEnv(NetVariables[i]); ok {
+				if value, ok := r.lookupEnv(v.name); ok {
 					found = true
-					if *field == "" {
-						*field = value
+					if *v.field == "" {
+						*v.field = value
 					}
 				}
 			}
 			if !found {
 				continue
 			}
-			if username != "" && password != "" && (enable != "" || !requiredEnable) {
-				return r.finalize(fieldsCredential(), source, policyName, requiredEnable, true)
+			if username != "" && password != "" && (enable != "" || !n.required) {
+				return r.finalize(fieldsCredential(), source, policyName, n, true)
 			}
 			// Incomplete: the prompt, when it follows, fills the rest, and
 			// until a later source finds something of its own the fields
-			// are the failure.
-			if username+password+enable != "" {
+			// are the failure. A --sudo device's password is not netvars'
+			// finding.
+			filled := username + password
+			if n.use == enableDevice {
+				filled += enable
+			}
+			if filled != "" {
 				failure, incomplete = nil, true
 			}
 		case platform.FallbackPrompt:
 			if r.input == nil {
 				continue
 			}
-			if err := r.prompt(ctx, device, policyName, requiredEnable, &username, &password, &enable, &source); err != nil {
+			// The terminal is asked for a shell device's enable secret
+			// alone, never for sudo's password.
+			if err := r.prompt(ctx, device, policyName, n.use == enableDevice && n.required, &username, &password, &enable, &source); err != nil {
 				return credentials.Resolved{}, err
 			}
 			if username != "" {
-				return r.finalize(fieldsCredential(), source, policyName, requiredEnable, true)
+				return r.finalize(fieldsCredential(), source, policyName, n, true)
 			}
 		case platform.FallbackKeys:
 			if device.Transport == "telnet" {
@@ -309,8 +394,14 @@ func (r *Resolver) fallback(ctx context.Context, operator credentials.Operator, 
 				failure, incomplete = &Error{Code: "credential_operator_keys_missing", Message: "no key of ssh.identities is usable; examined: " + listOrNone(result.Examined), Policy: policyName}, false
 				continue
 			}
-			cred := credentials.Credential{Material: secrets.NewMaterial(operator.Username, "", ""), Backend: operatorkeys.Backend, Policy: policyName, MatchedOn: credentials.Match{Category: "operator", SafeValue: operator.Username, Source: operatorkeys.Backend}, Keys: append([]credentials.KeyRef(nil), result.Keys...)}
-			resolved, err := r.finalize(cred, operatorkeys.Backend, policyName, requiredEnable, false)
+			// The keys replace the fields netvars found, a --sudo device's
+			// password aside.
+			keysEnable := ""
+			if n.use == enableSudo {
+				keysEnable = enable
+			}
+			cred := credentials.Credential{Material: secrets.NewMaterial(operator.Username, "", keysEnable), Backend: operatorkeys.Backend, Policy: policyName, MatchedOn: credentials.Match{Category: "operator", SafeValue: operator.Username, Source: operatorkeys.Backend}, Keys: append([]credentials.KeyRef(nil), result.Keys...)}
+			resolved, err := r.finalize(cred, operatorkeys.Backend, policyName, n, false)
 			if err != nil {
 				return credentials.Resolved{}, err
 			}
@@ -321,7 +412,7 @@ func (r *Resolver) fallback(ctx context.Context, operator credentials.Operator, 
 		}
 	}
 	if incomplete && username != "" {
-		return r.finalize(fieldsCredential(), source, policyName, requiredEnable, true)
+		return r.finalize(fieldsCredential(), source, policyName, n, true)
 	}
 	if failure != nil {
 		return credentials.Resolved{}, failure
@@ -330,15 +421,16 @@ func (r *Resolver) fallback(ctx context.Context, operator credentials.Operator, 
 }
 
 // prompt asks the terminal for the fields still empty: the username when
-// creds.prompt-for-username, the password, and the enable secret where the
-// platform requires one, each under creds.interactive-prompt. A prompt is
+// creds.prompt-for-username, the password, and the enable secret where
+// askEnable (a shell device's platform requires one), each under
+// creds.interactive-prompt. A prompt is
 // asked only for a field the device needs, so no job runs past one left
 // unanswered: Ctrl-C (or a signal) at the prompt is
 // credential_prompt_interrupted, an empty answer the field's missing code,
 // at once and before any later prompt; Ctrl-D on an empty line, like a
 // missing terminal, is credential_prompt_unavailable. An answer makes the
 // source interactive-tty.
-func (r *Resolver) prompt(ctx context.Context, device inventory.Device, policyName string, requiredEnable bool, username, password, enable, source *string) error {
+func (r *Resolver) prompt(ctx context.Context, device inventory.Device, policyName string, askEnable bool, username, password, enable, source *string) error {
 	if !r.cfg.Bool("creds.interactive-prompt") {
 		return nil
 	}
@@ -368,7 +460,7 @@ func (r *Resolver) prompt(ctx context.Context, device inventory.Device, policyNa
 			return err
 		}
 	}
-	if requiredEnable && *enable == "" && r.cfg.Bool("creds.prompt-for-password") {
+	if askEnable && *enable == "" && r.cfg.Bool("creds.prompt-for-password") {
 		if err := ask(FieldEnablePassword, true, enable); err != nil {
 			return err
 		}
@@ -396,24 +488,6 @@ func (r *Resolver) operatorKeys() operatorkeys.Result {
 // never the contents.
 func skippedMessage(skip operatorkeys.Skip) string {
 	return fmt.Sprintf("operator key %s skipped: %s", skip.Path, skip.Reason)
-}
-
-// platformFallback is the platform used's fallback, as requiresEnable reads
-// requires-enable; a definition that leaves it unset is netvars then
-// prompt.
-func platformFallback(d inventory.Device, cfg configload.Snapshot) []string {
-	name := d.PlatformUsed
-	if name == "" {
-		name = d.Platform
-	}
-	if name == "" {
-		name = "generic"
-	}
-	list := platform.Resolve(name, cfg.NamedTables("platform")).Fallback
-	if list == nil {
-		return platform.DefaultFallback()
-	}
-	return list
 }
 
 // emptyAnswerCodes are the codes of a prompt answered with nothing, by
@@ -450,8 +524,8 @@ func listOrNone(names []string) string {
 }
 
 // lookupEnv is the resolver's one lookup of a variable, its input
-// provider's: the built-in fallback reads NETUSER, NETPASS, and NETENABLE
-// through it, and every backend through its request, so a value the
+// provider's: the built-in fallback reads NETUSER, NETPASS, NETENABLE, and
+// NETSUDO through it, and every backend through its request, so a value the
 // provider holds reaches each. Without a provider no variable is set.
 func (r *Resolver) lookupEnv(name string) (string, bool) {
 	if r.input == nil {
@@ -579,12 +653,15 @@ func copyMaterial(m credentials.Material) (credentials.Material, error) {
 	return out, nil
 }
 
-func (r *Resolver) finalize(c credentials.Credential, backend, policyName string, requiredEnable, requirePassword bool) (credentials.Resolved, error) {
+// finalize judges the credential that ended the walk by the ordinary
+// completeness rules and n: an enable field the device does not use is
+// dropped, and a --sudo device's Resolved names its password's source.
+func (r *Resolver) finalize(c credentials.Credential, backend, policyName string, n need, requirePassword bool) (credentials.Resolved, error) {
 	username, password, enable, err := materialStrings(c.Material)
 	if err != nil {
 		return credentials.Resolved{}, err
 	}
-	if r.omitEnable {
+	if n.use == enableNone {
 		enable = ""
 	}
 	profile := r.transforms[r.backendProfile[backend]]
@@ -606,13 +683,24 @@ func (r *Resolver) finalize(c credentials.Credential, backend, policyName string
 		c.Material.Destroy()
 		return credentials.Resolved{}, &Error{Code: "credential_password_missing", Message: "password is required for the selected authentication policy", Backend: backend, Policy: policyName}
 	}
-	if requiredEnable && enable == "" {
+	if n.required && enable == "" {
 		c.Material.Destroy()
-		return credentials.Resolved{}, &Error{Code: "credential_enable_missing", Message: "enable password is required by the platform", Backend: backend, Policy: policyName}
+		message := "enable password is required by the platform"
+		if n.use == enableSudo {
+			message = "the platform requires an enable password, sudo's for a --sudo command, and none was found"
+		}
+		return credentials.Resolved{}, &Error{Code: "credential_enable_missing", Message: message, Backend: backend, Policy: policyName}
 	}
 	c.Backend = backend
 	c.Policy = policyName
-	return credentials.Resolved{Credential: c, DeviceUsername: username}, nil
+	resolved := credentials.Resolved{Credential: c, DeviceUsername: username}
+	if n.use == enableSudo {
+		resolved.Sudo = credentials.SudoNone
+		if enable != "" {
+			resolved.Sudo = n.from
+		}
+	}
+	return resolved, nil
 }
 func materialStrings(m credentials.Material) (string, string, string, error) {
 	if m == nil {
@@ -709,13 +797,13 @@ func (r *Resolver) selectPolicy(d inventory.Device) (policy, error) {
 	return p, nil
 }
 
-// requiresEnable is the platform used's requires-enable: an enable secret
-// is optional unless the platform's table requires one. The platform used
-// is the view's PlatformUsed, which the planner and login fill from their
-// resolution;
-// when it is empty (a caller outside planning) the set platform stands in,
-// blank as generic.
-func requiresEnable(d inventory.Device, cfg configload.Snapshot) bool {
+// usedDefinition is the platform used's definition, whose channel,
+// requires-enable (an enable secret is optional unless the platform's table
+// requires one), and fallback (unset: netvars then prompt) the resolver
+// reads. The platform used is the view's PlatformUsed, which the planner and
+// login fill from their resolution; when it is empty (a caller outside
+// planning) the set platform stands in, blank as generic.
+func usedDefinition(d inventory.Device, cfg configload.Snapshot) platform.Definition {
 	name := d.PlatformUsed
 	if name == "" {
 		name = d.Platform
@@ -723,7 +811,7 @@ func requiresEnable(d inventory.Device, cfg configload.Snapshot) bool {
 	if name == "" {
 		name = "generic"
 	}
-	return platform.Resolve(name, cfg.NamedTables("platform")).RequiresEnable
+	return platform.Resolve(name, cfg.NamedTables("platform"))
 }
 func str(m map[string]any, k string) string { s, _ := m[k].(string); return s }
 func intVal(m map[string]any, k string, d int) int {

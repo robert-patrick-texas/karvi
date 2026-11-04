@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -46,6 +47,7 @@ func TestEnsureDaemonPassesOnlyTheAllowList(t *testing.T) {
 	seed := canarytest.Seed(t)
 	t.Setenv("NETPASS", seed.Raw)
 	t.Setenv("NETENABLE", seed.Raw)
+	t.Setenv("NETSUDO", seed.Raw)
 	t.Setenv("KARVI__DISPLAY__COLOR", "never")
 	t.Setenv("TERM", "xterm-canary")
 	t.Setenv("TZ", "UTC")
@@ -92,7 +94,7 @@ func TestEnsureDaemonPassesOnlyTheAllowList(t *testing.T) {
 		name, value, _ := strings.Cut(kv, "=")
 		names[name] = value
 	}
-	for _, absent := range []string{"NETPASS", "NETENABLE"} {
+	for _, absent := range []string{"NETPASS", "NETENABLE", "NETSUDO"} {
 		if _, ok := names[absent]; ok {
 			t.Errorf("%s reached the daemon", absent)
 		}
@@ -106,4 +108,31 @@ func TestEnsureDaemonPassesOnlyTheAllowList(t *testing.T) {
 		t.Error("PATH did not reach the daemon")
 	}
 	t.Logf("daemon pid %d: %d variables, no canary; KARVI__DISPLAY__COLOR, TERM, TZ, PATH present", pid, len(names))
+}
+
+// TestSecretVariableNotice: daemon serve writes one
+// daemon_environment_secret_variable notice for each built-in credential
+// variable in its own environment, NETSUDO among them, naming the variable
+// and never its value; an unset one has none.
+func TestSecretVariableNotice(t *testing.T) {
+	t.Setenv("NETUSER", "jsmith")
+	t.Setenv("NETPASS", "S3cret-pass")
+	t.Setenv("NETSUDO", "S3cret-sudo")
+	os.Unsetenv("NETENABLE")
+	var b bytes.Buffer
+	secretVariableNotice(slog.New(slog.NewTextHandler(&b, nil)))
+	got := b.String()
+	for _, name := range []string{"NETUSER", "NETPASS", "NETSUDO"} {
+		if !strings.Contains(got, "daemon_environment_secret_variable: "+name+" is set") {
+			t.Errorf("no notice for %s: %s", name, got)
+		}
+	}
+	if strings.Contains(got, "NETENABLE") || strings.Count(got, "daemon_environment_secret_variable") != 3 {
+		t.Errorf("notices: %s", got)
+	}
+	for _, value := range []string{"jsmith", "S3cret-pass", "S3cret-sudo"} {
+		if strings.Contains(got, value) {
+			t.Errorf("a notice holds the value %q: %s", value, got)
+		}
+	}
 }

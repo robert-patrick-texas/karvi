@@ -171,6 +171,8 @@ func TestReportValidationVectors(t *testing.T) {
 		{"exercise readiness in inspection", fixtureInspection, func(r *PlanReport) { r.Targets[0].Readiness = ReadinessReady }, "targets[0].readiness"},
 		{"address disagrees", fixtureInspection, func(r *PlanReport) { r.Targets[0].Address.Selected = netip.MustParseAddr("10.0.0.9") }, "targets[0].address"},
 		{"deferred with provenance", fixtureInspection, func(r *PlanReport) { r.Targets[2].CredentialBinding.CredentialID = plantest.GrantB }, "targets[2].credential_binding"},
+		{"deferred with a sudo source", fixtureInspection, func(r *PlanReport) { r.Targets[2].CredentialBinding.Sudo = credentials.SudoNone }, "targets[2].credential_binding"},
+		{"sudo source unknown", fixtureInspection, func(r *PlanReport) { r.Targets[0].CredentialBinding.Sudo = "prompt" }, "targets[0].credential_binding.sudo"},
 		{"probes", fixtureInspection, func(r *PlanReport) { r.Targets[0].IntendedPing.Probes = 1 }, "targets[0].intended_ping"},
 		{"transport differs", fixtureInspection, func(r *PlanReport) { r.Targets[0].IntendedTransport.Transport = "native" }, "targets[0].intended_transport"},
 		{"sensitive detail", fixtureInspection, func(r *PlanReport) {
@@ -208,6 +210,28 @@ func TestReportValidationVectors(t *testing.T) {
 	r.Plan = plantest.DraftPlan()
 	if err := r.Validate(); err == nil || !strings.HasPrefix(err.Error(), "plan_report_invalid: plan:") {
 		t.Errorf("draft plan in exercise: %v", err)
+	}
+}
+
+// TestReportSudoSource: a bound target's credential_binding names where a
+// --sudo command's password came from, each of the four sources valid and
+// in the schema (EXAMPLES chapter 96).
+func TestReportSudoSource(t *testing.T) {
+	for _, source := range []string{credentials.SudoEnable, credentials.SudoNETSUDO, credentials.SudoNETENABLE, credentials.SudoNone} {
+		r := fixtureInspection()
+		r.Targets[0].CredentialBinding.Sudo = source
+		if err := r.Validate(); err != nil {
+			t.Fatalf("%s: %v", source, err)
+		}
+		canarytest.SchemaParity(t, reportSchema, r)
+		data, _ := json.Marshal(r.Targets[0].CredentialBinding)
+		if !strings.Contains(string(data), `"sudo":"`+source+`"`) {
+			t.Errorf("%s: %s", source, data)
+		}
+	}
+	data, _ := json.Marshal(fixtureInspection().Targets[0].CredentialBinding)
+	if strings.Contains(string(data), `"sudo"`) {
+		t.Errorf("a target without a --sudo command: %s", data)
 	}
 }
 

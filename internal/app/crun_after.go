@@ -156,9 +156,9 @@ func (h collectionHook) run(ctx context.Context, stderr io.Writer) hookOutcome {
 }
 
 // hookEnvironment is the operator's shell environment, which the hook's git
-// and mail read, without the device credentials NETUSER, NETPASS, and
-// NETENABLE (credentialbackend.NetVariables): the client resolved them, and
-// the hook has no use for them.
+// and mail read, without the device credentials NETUSER, NETPASS,
+// NETENABLE, and NETSUDO (credentialbackend.NetVariables): the client
+// resolved them, and the hook has no use for them.
 func hookEnvironment(environ []string) []string {
 	out := make([]string, 0, len(environ))
 	for _, entry := range environ {

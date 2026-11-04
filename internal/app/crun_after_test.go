@@ -115,8 +115,8 @@ func TestCollectionHookEndsItsGroup(t *testing.T) {
 }
 
 // TestCollectionHookHoldsNoDeviceCredentials: the hook has the operator's
-// shell environment and the job's variables, without NETUSER, NETPASS, and
-// NETENABLE.
+// shell environment and the job's variables, without NETUSER, NETPASS,
+// NETENABLE, and NETSUDO.
 func TestCollectionHookHoldsNoDeviceCredentials(t *testing.T) {
 	dir := t.TempDir()
 	out := filepath.Join(dir, "hook.env")
@@ -125,6 +125,7 @@ func TestCollectionHookHoldsNoDeviceCredentials(t *testing.T) {
 	t.Setenv("NETUSER", "jsmith")
 	t.Setenv("NETPASS", "S3cret")
 	t.Setenv("NETENABLE", "en-S3cret")
+	t.Setenv("NETSUDO", "sudo-S3cret")
 	script := filepath.Join(dir, "hook.sh")
 	if err := os.WriteFile(script, []byte("#!/bin/sh\nenv >\"$HOOK_OUT\"\n"), 0o755); err != nil {
 		t.Fatal(err)
@@ -148,7 +149,7 @@ func TestCollectionHookHoldsNoDeviceCredentials(t *testing.T) {
 		}
 	}
 	for line := range env {
-		for _, name := range []string{"NETUSER", "NETPASS", "NETENABLE"} {
+		for _, name := range []string{"NETUSER", "NETPASS", "NETENABLE", "NETSUDO"} {
 			if strings.HasPrefix(line, name+"=") {
 				t.Errorf("the hook's environment holds %s", line)
 			}

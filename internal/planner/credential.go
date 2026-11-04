@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"sort"
 	"sync"
 	"time"
@@ -59,6 +60,9 @@ type CredentialPlanner struct {
 	// notices are each target's resolution notices (a skipped operator
 	// key), written on the plan target by Bind.
 	notices map[string][]executionplan.TargetNotice
+	// sudo is, for each target with a --sudo command, where its sudo
+	// password came from (credentials.Resolved.Sudo), for the dry run.
+	sudo map[string]string
 }
 
 // credentialResolver resolves one target's credential: the configured
@@ -91,7 +95,7 @@ func NewCredentialPlanner(cfg configload.Snapshot, operator credentials.Operator
 	if err != nil {
 		return nil, err
 	}
-	p := &CredentialPlanner{cfg: cfg, operator: operator, resolver: r, devices: map[string]inventory.Device{}, draftedAt: draftedAt, newID: newID, prompts: prompts, sessions: sessions, setPlatform: SetPlatformFunc(cfg), bindings: map[string]string{}, profiles: map[string]string{}, notices: map[string][]executionplan.TargetNotice{}}
+	p := &CredentialPlanner{cfg: cfg, operator: operator, resolver: r, devices: map[string]inventory.Device{}, draftedAt: draftedAt, newID: newID, prompts: prompts, sessions: sessions, setPlatform: SetPlatformFunc(cfg), bindings: map[string]string{}, profiles: map[string]string{}, notices: map[string][]executionplan.TargetNotice{}, sudo: map[string]string{}}
 	for _, d := range devices {
 		p.devices[d.ID] = d
 	}
@@ -143,6 +147,7 @@ func (p *promptOnce) Prompt(ctx context.Context, req credentialbackend.PromptReq
 // call.
 func (p *CredentialPlanner) Resolve(ctx context.Context, plan executionplan.ExecutionPlan) error {
 	type slot struct {
+		view     inventory.Device
 		resolved credentials.Resolved
 		err      error
 		active   bool
@@ -163,7 +168,8 @@ func (p *CredentialPlanner) Resolve(ctx context.Context, plan executionplan.Exec
 		}
 		slots[i].active = true
 		selection.Total++
-		profile, err := p.sessions.selectProfile(p.deviceView(t))
+		slots[i].view = p.deviceView(plan, t)
+		profile, err := p.sessions.selectProfile(slots[i].view)
 		if err != nil {
 			selection.Failures = append(selection.Failures, resolver.TargetError{TargetID: t.TargetID, Err: err})
 		}
@@ -184,7 +190,7 @@ func (p *CredentialPlanner) Resolve(ctx context.Context, plan executionplan.Exec
 		go func(i int, t executionplan.ExecutionTarget) {
 			defer wg.Done()
 			defer func() { <-pool }()
-			slots[i].resolved, slots[i].err = p.resolver.Resolve(ctx, p.operator, p.deviceView(t))
+			slots[i].resolved, slots[i].err = p.resolver.Resolve(ctx, p.operator, slots[i].view)
 		}(i, t)
 	}
 	wg.Wait()
@@ -230,8 +236,10 @@ func (p *CredentialPlanner) Resolve(ctx context.Context, plan executionplan.Exec
 
 // deviceView is the inventory device with the plan's authoritative address,
 // transport kind, and effective port, so address-cidr rules see the
-// selected address and the password rule sees the kind.
-func (p *CredentialPlanner) deviceView(t executionplan.ExecutionTarget) inventory.Device {
+// selected address and the password rule sees the kind, and whether its
+// list in plan holds a --sudo command on an exec channel, which the sudo
+// rule reads (EXAMPLES chapter 96).
+func (p *CredentialPlanner) deviceView(plan executionplan.ExecutionPlan, t executionplan.ExecutionTarget) inventory.Device {
 	d, ok := p.devices[t.TargetID]
 	if !ok {
 		d = inventory.Direct(t.InputTarget, t.Device.Platform, t.Device.Transport, t.Device.Port)
@@ -244,6 +252,7 @@ func (p *CredentialPlanner) deviceView(t executionplan.ExecutionTarget) inventor
 	// the enable rule reads the platform used, the plan's.
 	d.Platform = p.setPlatform(d)
 	d.PlatformUsed = t.Device.Platform
+	d.Sudo = t.Channel == executionplan.ChannelExec && slices.Contains(plan.ListFor(&t).Sudo, true)
 	return d
 }
 
@@ -268,6 +277,9 @@ func (p *CredentialPlanner) bind(t executionplan.ExecutionTarget, r credentials.
 	}
 	for _, n := range r.Notices {
 		p.notices[t.TargetID] = append(p.notices[t.TargetID], executionplan.TargetNotice{Code: n.Code, Message: n.Message, Details: n.Details})
+	}
+	if r.Sudo != "" {
+		p.sudo[t.TargetID] = r.Sudo
 	}
 	var err error
 	if m.UsernameSet() {
@@ -412,6 +424,15 @@ func (p *CredentialPlanner) Notices(targetID string) []executionplan.TargetNotic
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return append([]executionplan.TargetNotice(nil), p.notices[targetID]...)
+}
+
+// Sudo reports where a bound target's --sudo password came from
+// (credentials.Resolved.Sudo: enable, NETSUDO, NETENABLE, or none), empty
+// for a target without a --sudo command or not bound.
+func (p *CredentialPlanner) Sudo(targetID string) string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.sudo[targetID]
 }
 
 // SessionInitProfile reports the session-init profile Resolve selected for a

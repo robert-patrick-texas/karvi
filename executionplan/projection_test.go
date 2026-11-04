@@ -22,6 +22,7 @@ var excludedDeviceFields = map[string]string{
 	"AddressAuthority":  "AddressPlan.authority",
 	"TransportExplicit": "transient",
 	"PlatformUsed":      "transient: the planner's device view for the enable rule; the projection's platform is the platform used",
+	"Sudo":              "transient: the planner's device view for the sudo rule; the plan's command lists carry the --sudo flags",
 	"InputToken":        "ExecutionTarget.input_target",
 	"CredKeyRef":        "an input to client-side credential resolution: no reader of the plan uses it, the key taken is the grant's matched_on.credkey, and projecting it later is additive",
 }

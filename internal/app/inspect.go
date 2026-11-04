@@ -211,7 +211,7 @@ func (cd *clientDraft) inspectionReport(activityID string, daemons []executionpl
 				tr.Address.ResolutionActor = executionplan.ResolverContextClient
 			}
 			matched := grant.MatchedOn
-			tr.CredentialBinding = records.CredentialBindingReport{Status: records.BindingBound, CredentialID: id, Policy: grant.Policy, Backend: grant.Backend, DeviceUsername: grant.DeviceUsername, MatchedOn: &matched, Keys: grant.Keys}
+			tr.CredentialBinding = records.CredentialBindingReport{Status: records.BindingBound, CredentialID: id, Policy: grant.Policy, Backend: grant.Backend, DeviceUsername: grant.DeviceUsername, MatchedOn: &matched, Keys: grant.Keys, Sudo: cd.planner.Sudo(t.TargetID)}
 			tr.IntendedTransport.SessionInitProfile, _ = cd.planner.SessionInitProfile(t.TargetID)
 		} else {
 			tr.Readiness = records.ReadinessDeferred

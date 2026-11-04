@@ -139,7 +139,7 @@ func TestEnableRuleReadsThePlatformUsed(t *testing.T) {
 	} {
 		d := inventory.Direct("127.0.0.1", tc.set, "system", 22)
 		d.PlatformUsed = tc.used
-		if got := requiresEnable(d, cfg); got != tc.want {
+		if got := usedDefinition(d, cfg).RequiresEnable; got != tc.want {
 			t.Errorf("set %q used %q: %v, want %v", tc.set, tc.used, got, tc.want)
 		}
 	}

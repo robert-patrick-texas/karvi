@@ -221,5 +221,5 @@ system = "ssh"
 # without a journald socket and configure audit.file instead.
 journald-required = true
 
-# Credential zero-config fallback reads NETUSER, NETPASS, and NETENABLE. Dynamic inventory examples are in examples/config.toml.
+# Credential zero-config fallback reads NETUSER, NETPASS, and NETENABLE (NETSUDO for a --sudo command). Dynamic inventory examples are in examples/config.toml.
 `

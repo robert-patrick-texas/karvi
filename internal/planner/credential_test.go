@@ -36,6 +36,7 @@ import (
 // device, so it is device-keyed and asked for each.
 type fakeBackend struct {
 	password string
+	enable   string
 	missing  map[string]bool
 	calls    int32
 	match    func(inventory.Device) credentials.Match
@@ -52,7 +53,7 @@ func (b *fakeBackend) Resolve(_ context.Context, req credentials.ResolveRequest)
 	if b.match != nil {
 		match = b.match(req.Device)
 	}
-	return credentials.BackendResult{Outcome: credentials.Success, Credential: credentials.Credential{Material: secrets.NewMaterial("svc", b.password, ""), Backend: "fake", Policy: req.Policy, MatchedOn: match}}
+	return credentials.BackendResult{Outcome: credentials.Success, Credential: credentials.Credential{Material: secrets.NewMaterial("svc", b.password, b.enable), Backend: "fake", Policy: req.Policy, MatchedOn: match}}
 }
 
 // fakeInput is an operator whose environment holds NETUSER and whose
@@ -624,6 +625,67 @@ func TestBindFailureWipesTheLaterTargets(t *testing.T) {
 	for id, m := range held {
 		if len(m.password) == 0 || strings.Trim(string(m.password), "\x00") != "" {
 			t.Errorf("%s: the resolved password is not wiped: %q", id, m.password)
+		}
+	}
+}
+
+// TestSudoPasswordTravelsOnlyWithARootCommand: the device view tells the
+// resolver which exec targets have a --sudo command in their list, so an
+// exec target carries the backend's enable field, sudo's password, only
+// with one (the source enable, which the dry run reports); an exec target
+// without one carries none, and a shell target its enable secret as before
+// (EXAMPLES chapter 96).
+func TestSudoPasswordTravelsOnlyWithARootCommand(t *testing.T) {
+	cfg := testConfig(t, `creds.backend-sequence=["fake"]`)
+	backend := &fakeBackend{password: "pw", enable: "en-S3cret"}
+	target := func(name, platform string) inventory.Device {
+		d := inventory.Direct(name, platform, "native", 0)
+		d.TransportExplicit = true
+		return d
+	}
+	devices := []inventory.Device{target("10.0.0.1", "linux"), target("10.0.0.2", "linux"), target("10.0.0.3", "cisco_ios")}
+	opts := draftOptions(nil)
+	opts.CommandFolders = []string{"cmds"}
+	opts.TargetCommands = func(name string) (executionplan.CommandList, error) {
+		list := executionplan.NewCommandList([]string{"id -u", "systemctl restart nginx"})
+		if name == "10-0-0-1" { // the --cf file name of 10.0.0.1
+			list.Sudo = []bool{false, true}
+		}
+		return list, nil
+	}
+	plan, err := Draft(context.Background(), cfg, operator, TargetSet{Devices: devices, Order: executionplan.OrderDefault}, opts, plantest.DraftedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := NewCredentialPlanner(cfg, operator, devices, plantest.DraftedAt, CredentialOptions{Resolver: newResolver(t, cfg, backend)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer p.Destroy()
+	if err := p.Resolve(context.Background(), plan); err != nil {
+		t.Fatal(err)
+	}
+	final, _, pkg := finish(t, p, plan)
+	for i, want := range []struct {
+		channel, enable, sudo string
+	}{
+		{executionplan.ChannelExec, "en-S3cret", credentials.SudoEnable},
+		{executionplan.ChannelExec, "", ""},
+		{executionplan.ChannelShell, "en-S3cret", ""},
+	} {
+		x := final.Targets[i]
+		g, ok := pkg.GrantForTarget(x.TargetID)
+		if !ok {
+			t.Fatalf("%s: no grant", x.TargetID)
+		}
+		enable := ""
+		if g.EnablePassword.IsSet() {
+			if err := g.EnablePassword.WithBytes(func(b []byte) error { enable = string(b); return nil }); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if x.Channel != want.channel || enable != want.enable || p.Sudo(x.TargetID) != want.sudo {
+			t.Errorf("%s: channel %s enable %q sudo %q, want %s %q %q", x.TargetID, x.Channel, enable, p.Sudo(x.TargetID), want.channel, want.enable, want.sudo)
 		}
 	}
 }

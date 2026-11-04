@@ -118,6 +118,11 @@ type CredentialBindingReport struct {
 	// Keys are the keys the credential offers, each with its fingerprint
 	// as seen at planning.
 	Keys []credentials.KeyRef `json:"keys,omitempty"`
+	// Sudo is, for a target with a --sudo command, where its sudo password
+	// came from: enable (the enable field of the backend named above),
+	// NETSUDO, NETENABLE, or none (sent as sudo -n); absent for any other
+	// target (EXAMPLES chapter 96).
+	Sudo string `json:"sudo,omitempty"`
 }
 
 type IntendedPing struct {
@@ -258,8 +263,13 @@ func (r *PlanReport) Validate() error {
 			if stage == executionplan.Committed && t.CredentialBinding.CredentialID != pt.CredentialBindingID {
 				return reportInvalid(field+".credential_binding.credential_id", "differs from the plan target's binding")
 			}
+			switch t.CredentialBinding.Sudo {
+			case "", credentials.SudoEnable, credentials.SudoNETSUDO, credentials.SudoNETENABLE, credentials.SudoNone:
+			default:
+				return reportInvalid(field+".credential_binding.sudo", "%q is not enable, NETSUDO, NETENABLE, or none", t.CredentialBinding.Sudo)
+			}
 		case Deferred, BindingUnresolved:
-			if t.CredentialBinding.CredentialID != "" || t.CredentialBinding.DeviceUsername != "" {
+			if t.CredentialBinding.CredentialID != "" || t.CredentialBinding.DeviceUsername != "" || t.CredentialBinding.Sudo != "" {
 				return reportInvalid(field+".credential_binding", "carries provenance without a binding")
 			}
 		default:

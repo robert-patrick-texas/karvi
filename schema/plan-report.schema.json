@@ -243,6 +243,14 @@
           "items": {
             "$ref": "credential-package-envelope.schema.json#/$defs/key_ref"
           }
+        },
+        "sudo": {
+          "enum": [
+            "enable",
+            "NETSUDO",
+            "NETENABLE",
+            "none"
+          ]
         }
       }
     },

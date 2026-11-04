@@ -159,7 +159,23 @@ type Resolved struct {
 	Credential     Credential
 	DeviceUsername string // explicit safe projection used for accountability/audit
 	Notices        []Notice
+	// Sudo is, for a device with a --sudo command on an exec channel, where
+	// the credential's enable field, sudo's password, came from: SudoEnable,
+	// SudoNETSUDO, SudoNETENABLE, or SudoNone (sudo -n). Empty for any other
+	// device.
+	Sudo string
 }
+
+// The sources of a --sudo command's password (Resolved.Sudo): the answering
+// backend's enable field; NETSUDO or NETENABLE, when the platform's fallback
+// answered; none, when there is no password and the command runs under sudo
+// -n.
+const (
+	SudoEnable    = "enable"
+	SudoNETSUDO   = "NETSUDO"
+	SudoNETENABLE = "NETENABLE"
+	SudoNone      = "none"
+)
 
 type Resolver interface {
 	Resolve(ctx context.Context, operator Operator, device inventory.Device) (Resolved, error)

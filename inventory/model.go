@@ -60,7 +60,12 @@ type Device struct {
 	// for the credential resolver's
 	// enable rule only; empty outside planning. Platform stays the set
 	// platform, which the run selector and the maps match.
-	PlatformUsed      string `json:"-"`
+	PlatformUsed string `json:"-"`
+	// Sudo says the device's command list holds a --sudo command, filled
+	// by the planner's device view from the plan, for the credential
+	// resolver's sudo rule only (EXAMPLES chapter 96); false outside
+	// planning.
+	Sudo              bool   `json:"-"`
 	Transport         string `json:"transport"`
 	TransportExplicit bool   `json:"-"`
 	// InputToken is the target token as the operator supplied it, before the

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/robert-patrick-texas/karvi/credentials"
@@ -15,14 +16,20 @@ import (
 )
 
 // scriptedInput answers the variables from a map and each prompt from a
-// map by field, counting the prompts.
+// map by field, recording the variables looked up (under mu: devices
+// resolving in parallel share it) and the prompts.
 type scriptedInput struct {
 	env     map[string]string
 	answers map[string]string
 	asked   []string
+	mu      sync.Mutex
+	looked  []string
 }
 
 func (s *scriptedInput) LookupEnv(name string) (string, bool) {
+	s.mu.Lock()
+	s.looked = append(s.looked, name)
+	s.mu.Unlock()
 	v, ok := s.env[name]
 	return v, ok
 }

@@ -41,8 +41,8 @@ func (r PromptRequest) Label() string {
 }
 
 // InputProvider is the resolver's input: its one lookup of a variable, which
-// the built-in fallback reads for NETUSER, NETPASS, and NETENABLE and every
-// backend reads through its request, and how the fallback asks for what is
+// the built-in fallback reads for NETUSER, NETPASS, NETENABLE, and NETSUDO
+// and every backend reads through its request, and how the fallback asks for what is
 // missing. It is local to the submitting client; the daemon supplies none,
 // so a resolver without a provider has no environment and no terminal.
 type InputProvider interface {
@@ -76,7 +76,8 @@ func (r *Resolver) SetInput(p InputProvider) { r.input = p }
 
 // OmitEnable makes the resolver resolve no enable secret, for a login, whose
 // operator types enable at the device: no platform requires one, NETENABLE
-// is not read, no prompt asks for one, and one a backend holds is dropped.
+// and NETSUDO are not read, no prompt asks for one, and one a backend holds
+// is dropped.
 func (r *Resolver) OmitEnable() { r.omitEnable = true }
 
 // RegisterBackend adds or replaces a backend adapter under name, for adapters
