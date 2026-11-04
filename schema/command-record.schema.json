@@ -26,7 +26,6 @@
     "command_count",
     "command_kind",
     "command",
-    "command_sha256",
     "status",
     "output",
     "output_encoding",
@@ -50,7 +49,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": 4
+      "const": 5
     },
     "record_id": {
       "type": "string",
@@ -254,10 +253,6 @@
     },
     "command": {
       "type": "string"
-    },
-    "command_sha256": {
-      "type": "string",
-      "pattern": "^[0-9a-f]{64}$"
     },
     "status": {
       "enum": [

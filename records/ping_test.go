@@ -29,7 +29,7 @@ func fixtureRecord() CommandRecord {
 		Credential:    &CredentialProjection{Policy: "default", DeviceUsername: "u", Backend: "env", MatchedOn: map[string]any{}, CredentialID: "c", Protection: "local-peer"},
 		Ping:          fixturePing(),
 		Dispatch:      DispatchContext{Mode: "serial", ServerID: "local", WorkerID: "w1", ScopePosition: 1, DesiredWidth: 1, EffectiveInflight: 1},
-		DispatchOrder: "default", CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "show clock", CommandSHA256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+		DispatchOrder: "default", CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "show clock",
 		Status: "success", Output: "", OutputEncoding: "utf-8", OutputBytes: 0, OutputSHA256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 		Prompt: "", PromptSource: "", PromptObserved: nil, Notices: []Notice{{Code: "icmp_packet_loss", Message: "ICMP packet loss 50%; proceeding because one validated reply was received", Details: map[string]any{"replies": 1}}},
 		Timing: Timing{QueuedAt: now, DeviceStartedAt: &now, CommandStartedAt: &now, EndedAt: now, TotalNS: 0, SchedulerWaitNS: &zero, ServerCapacityWaitNS: &zero, PingNS: ns(502 * time.Millisecond), ConnectNS: &zero, DeviceResponseNS: &zero},

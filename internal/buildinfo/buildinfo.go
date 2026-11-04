@@ -8,7 +8,7 @@ const (
 	AppName              = "karvi"
 	Version              = "0.39.0"
 	ConfigSchemaVersion  = 6
-	CommandRecordSchema  = 4
+	CommandRecordSchema  = 5
 	ScoreboardSchema     = 5
 	AuditSchema          = 2
 	JobSchema            = 5

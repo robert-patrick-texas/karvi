@@ -1136,7 +1136,6 @@ func (e *DeviceExecutor) record(work Work, dc dispatch.Context, cred *records.Cr
 			enc = "base64"
 		}
 	}
-	cmdHash := sha256.Sum256([]byte(st.command))
 	devStart := work.QueuedAt
 	if commandStart.IsZero() {
 		commandStart = end
@@ -1154,7 +1153,7 @@ func (e *DeviceExecutor) record(work Work, dc dispatch.Context, cred *records.Cr
 		AddressAuthority: string(a.Authority), ClientAddressCandidates: addrStrings(a.ClientCandidates), DaemonAddressCandidates: addrStrings(a.DaemonCandidates), AlternateAddresses: addrStrings(a.Alternates), AddressResolutionActor: a.ResolverContext,
 		Platform: d.Platform, Transport: d.Transport, Port: e.port(t), Channel: t.Channel, ConnectionReused: reused, SessionInitProfile: st.profile,
 		Dispatch:     records.DispatchContext{Mode: dc.Mode, ServerID: t.ExecutionEndpoint, WaveNumber: dc.WaveNumber, WaveWidth: dc.WaveWidth, WaveDepth: dc.WaveDepth, WorkerID: dc.WorkerID, ScopePosition: dc.ScopePosition, DesiredWidth: dc.DesiredWidth, EffectiveInflight: dc.EffectiveInflight},
-		CommandIndex: st.index + 1, CommandCount: st.count, CommandKind: st.kind, Command: st.command, CommandSHA256: hex.EncodeToString(cmdHash[:]), Status: status, Output: out, OutputEncoding: enc, OutputBytes: outputBytes, OutputSHA256: outHash, Prompt: prompt, PromptSource: promptSource, PromptObserved: promptObserved, Notices: []records.Notice{},
+		CommandIndex: st.index + 1, CommandCount: st.count, CommandKind: st.kind, Command: st.command, Status: status, Output: out, OutputEncoding: enc, OutputBytes: outputBytes, OutputSHA256: outHash, Prompt: prompt, PromptSource: promptSource, PromptObserved: promptObserved, Notices: []records.Notice{},
 		Timing:        records.Timing{QueuedAt: work.QueuedAt, DeviceStartedAt: &devStart, CommandStartedAt: &commandStart, EndedAt: end, TotalNS: total, SchedulerWaitNS: &sched, ServerCapacityWaitNS: &capNS, ConnectNS: &connNS, DeviceResponseNS: &respNS},
 		RetryEligible: false}
 	r.CandidateCount = e.opts.CandidateCount

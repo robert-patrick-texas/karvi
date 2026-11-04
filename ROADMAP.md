@@ -67,8 +67,7 @@ None chosen: the operator names the next item, from "Later" or anew.
   has; a reference that finds no value (refused at planning); and the stream.
   Masking the job's files by the platform's `masks` was weighed and set aside:
   the patterns are best effort, a masked `commands.txt` would send `<removed>`
-  on a rerun, the manifest's plan would no longer match its digest, and a
-  record's `command_sha256` beside a masked line is a fingerprint to guess.
+  on a rerun, and the manifest's plan would no longer match its digest.
 - **A daemon run's live view.** `--live` runs in the client's process alone
   ([`docs/DESIGN.md`, section 12](docs/DESIGN.md#12-display-and-help)).
   Through the daemon (`run` without `--no-daemon`, `job

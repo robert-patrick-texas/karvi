@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	CommandSchemaVersion    = 4 // 3: channel, and an exec command's exit and stderr; 4: the status words in the present tense
+	CommandSchemaVersion    = 5 // 3: channel, and an exec command's exit and stderr; 4: the status words in the present tense; 5: command_sha256 removed
 	ScoreboardSchemaVersion = 5 // 2: mode, targets with states, inputs, commands, collection, metrics, daemon; 3: the target row's bytes and the metrics' in_flight_bytes; 4: the status, state, and count words in the present tense; 5: commands.files, each --cf's name, for commands.file
 	AuditSchemaVersion      = 2 // 2: <kind>.<event> names, job_id or login_id, loginuser, the device typed, statements in place of digests
 	JobSchemaVersion        = 5 // 3: the policy block removed, the plan's configuration block the job's; 4: the summary written at acceptance, naming the devices; 5: the status, outcome, and count words in the present tense
@@ -261,7 +261,6 @@ type CommandRecord struct {
 	CommandCount   int             `json:"command_count"`
 	CommandKind    string          `json:"command_kind"`
 	Command        string          `json:"command"`
-	CommandSHA256  string          `json:"command_sha256"`
 	Status         string          `json:"status"`
 	Output         string          `json:"output"`
 	OutputEncoding string          `json:"output_encoding"`

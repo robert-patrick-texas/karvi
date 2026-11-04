@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Breaking: the command record has no `command_sha256`; command record
+  5.** Each record's `command_sha256`, the SHA-256 of its `command`, was read
+  by nothing in karvi, and the record holds the command itself; a tool that
+  wants the digest computes it from `command`, as the audit's statements
+  replaced its digests ([`docs/EXAMPLES.md`, chapter
+  63](docs/EXAMPLES.md#63-the-audit-trails-names-and-fields-2026-10-17)).
 - **Breaking: `--sleep DURATION` waits before the next command; execution
   plan 16.** `command`, `run`, and `crun` take `--sleep` (1s..12h) as a command
   source in the order written, beside `--cmd` and `--cf`, and a commands-file
