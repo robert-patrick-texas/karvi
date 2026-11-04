@@ -101,7 +101,8 @@ func TestExecLineRefusesAStderrSpoolThatChanged(t *testing.T) {
 }
 
 // TestTextBlockOfAnExecCommand: the inferred prompt and the command, stdout,
-// stderr, the `!` line; one that did not run is `! not sent:`.
+// stderr, the `!` line, a root command (--sudo) at "#"; one that did not
+// run is `! not sent:`.
 func TestTextBlockOfAnExecCommand(t *testing.T) {
 	_, spooled, src := execRecord(t, []byte("partial"), []byte("ls: cannot access '/nonexistent'\n"), false, true)
 	spooled.Device.CanonicalName = "srv1"
@@ -114,6 +115,14 @@ func TestTextBlockOfAnExecCommand(t *testing.T) {
 	want := "srv1$ ls /nonexistent\npartial\nls: cannot access '/nonexistent'\n! command_exit_nonzero: exited 2\n"
 	if got.String() != want {
 		t.Fatalf("block %q, want %q", got.String(), want)
+	}
+	spooled.Privilege = records.PrivilegeSudo
+	got.Reset()
+	if err := WriteTextBlock(&got, &spooled, src); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(got.String(), "srv1# ls /nonexistent\n") {
+		t.Fatalf("root block %q", got.String())
 	}
 	notRun := records.CommandRecord{Channel: records.ChannelExec, Device: records.DeviceProjection{CanonicalName: "srv1"}, Command: "uname -s", Status: "not_attempted_prior_command_failure", OutputEncoding: "utf-8"}
 	got.Reset()

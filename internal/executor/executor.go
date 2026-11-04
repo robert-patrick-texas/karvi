@@ -63,9 +63,9 @@ type Options struct {
 	Commands []string
 	// PlatformCommands is the plan's list per platform; a device whose
 	// platform has one runs it in place of Commands. TargetCommands is the
-	// plan's list per target, by target ID, each with its declarations; a
-	// target with one runs it in place of either.
-	PlatformCommands map[string][]string
+	// plan's list per target, by target ID; a target with one runs it in
+	// place of either. Each list carries its own declarations.
+	PlatformCommands map[string]executionplan.CommandList
 	TargetCommands   map[string]executionplan.CommandList
 	// BlindReturns is each requested command's count of blind returns, one
 	// entry per command, or empty for none (the wait for the prompt after a
@@ -91,7 +91,11 @@ type Options struct {
 	// command or empty, 0 none: waited after the previous command (or the
 	// session's preparation) before the command is sent (EXAMPLES
 	// chapter 95).
-	SleepsNS       []int64
+	SleepsNS []int64
+	// Sudo is each requested command's --sudo, one flag per command or
+	// empty: a root command, which an exec session sends under sudo with
+	// the grant's enable password, or with none (EXAMPLES chapter 96).
+	Sudo           []bool
 	CandidateCount int     // command: size of the ordered target set
 	DispatchOrder  string  // recorded order name
 	ShuffleKey     *string // shuffle and random only
@@ -450,8 +454,13 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 	if grant.Password.IsSet() {
 		openReq.Password = grant.Password.WithBytes
 	}
+	// A root command's sudo takes the enable password on an exec channel:
+	// --debug names whether there is one (sudo=password) or not (sudo=none,
+	// sent as sudo -n).
+	sudoMode := "none"
 	if grant.EnablePassword.IsSet() {
 		openReq.EnablePassword = grant.EnablePassword.WithBytes
+		sudoMode = "password"
 	}
 	for _, k := range grant.Keys {
 		openReq.Keys = append(openReq.Keys, k.Path)
@@ -614,19 +623,28 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 			initStart = cmdStart
 		}
 		commandHash := sha256.Sum256([]byte(st.command))
+		sudoField := ""
+		if st.sudo {
+			sudoField = " sudo=" + sudoMode
+		}
 		limit, _ := platform.Command{MaxBytes: st.maxBytes}.Limit(e.maxCommandBytes())
-		e.debugf("device command start target=%q%s index=%d total=%d sha256=%s bytes=%d command=%s timeout=%s maxbytes=%d blind=%t blind_returns=%d expectations=%s", d.CanonicalName, st.debugKind(), st.index+1, st.count, hex.EncodeToString(commandHash[:8]), len(st.command), debugCommandText(st.command), st.timeout, limit, st.blind, st.returns, debugExpectations(st.expect))
+		e.debugf("device command start target=%q%s index=%d total=%d sha256=%s bytes=%d command=%s timeout=%s maxbytes=%d blind=%t blind_returns=%d expectations=%s%s", d.CanonicalName, st.debugKind(), st.index+1, st.count, hex.EncodeToString(commandHash[:8]), len(st.command), debugCommandText(st.command), st.timeout, limit, st.blind, st.returns, debugExpectations(st.expect), sudoField)
 		if live != nil && t.Channel == platform.ChannelExec {
 			// An exec channel echoes nothing: the command is shown at the
 			// prompt --echo shows it at.
-			live.Write([]byte(records.ExecPrompt(d.CanonicalName) + st.command + "\n"))
+			live.Write([]byte(records.ExecPrompt(d.CanonicalName, st.sudo) + st.command + "\n"))
 		}
 		execCtx, cancelExec := ctx, context.CancelFunc(func() {})
 		if !deviceDeadline.IsZero() {
 			execCtx, cancelExec = context.WithDeadline(ctx, deviceDeadline)
 		}
-		r := driver.Execute(execCtx, platform.Command{Text: st.command, Timeout: st.timeout, TimeoutSource: st.source, MaxBytes: st.maxBytes, Blind: st.blind, BlindReturns: st.returns, Expectations: st.expect})
+		r := driver.Execute(execCtx, platform.Command{Text: st.command, Timeout: st.timeout, TimeoutSource: st.source, MaxBytes: st.maxBytes, Blind: st.blind, BlindReturns: st.returns, Expectations: st.expect, Sudo: st.sudo})
 		cancelExec()
+		if r.Exec != nil && r.Exec.SudoPrompts > 0 {
+			// sudo asked and the password went to it once; the password is
+			// never in a line.
+			e.debugf("device sudo answered target=%q index=%d", d.CanonicalName, st.index+1)
+		}
 		if r.Spool != nil {
 			e.debugf("device command spooled target=%q%s index=%d path=%s bytes=%d", d.CanonicalName, st.debugKind(), st.index+1, r.Spool.Path, r.Spool.Bytes)
 		}
@@ -975,8 +993,18 @@ type step struct {
 	returns int
 	expect  []platform.Expectation
 	// sleep is the --sleep waited before the command is sent, 0 none;
-	// session-init commands have none.
+	// session-init commands have none. sudo is the --sudo: a root command,
+	// on an exec channel alone; session-init commands are never one.
 	sleep time.Duration
+	sudo  bool
+}
+
+// privilege is the record's privilege: sudo for a root command, else none.
+func (st step) privilege() string {
+	if st.sudo {
+		return records.PrivilegeSudo
+	}
+	return ""
 }
 
 // sleepUntil waits d, or until ctx ends or the device deadline (zero for
@@ -1052,13 +1080,13 @@ func (e *DeviceExecutor) sequence(t executionplan.ExecutionTarget) deviceSequenc
 		}
 	}
 	// The device's list: its own when the plan carries one per target, its
-	// platform's when the plan carries lists per platform (with no
-	// declarations), else the plan's commands with theirs.
-	list := executionplan.CommandList{Commands: e.opts.Commands, BlindReturns: e.opts.BlindReturns, Blind: e.opts.Blind, Expectations: e.opts.Expectations, TimeoutsNS: e.opts.TimeoutsNS, MaxBytes: e.opts.MaxBytes, SleepsNS: e.opts.SleepsNS}
+	// platform's when the plan carries lists per platform, else the plan's
+	// commands, each with its declarations.
+	list := executionplan.CommandList{Commands: e.opts.Commands, BlindReturns: e.opts.BlindReturns, Blind: e.opts.Blind, Expectations: e.opts.Expectations, TimeoutsNS: e.opts.TimeoutsNS, MaxBytes: e.opts.MaxBytes, SleepsNS: e.opts.SleepsNS, Sudo: e.opts.Sudo}
 	if own, ok := e.opts.TargetCommands[t.TargetID]; ok {
 		list = own
-	} else if commands, ok := e.opts.PlatformCommands[t.Device.Platform]; ok {
-		list = executionplan.CommandList{Commands: commands}
+	} else if own, ok := e.opts.PlatformCommands[t.Device.Platform]; ok {
+		list = own
 	}
 	for i, c := range list.Commands {
 		st := step{kind: kindRequested, profile: seq.profile, index: i, count: len(list.Commands), command: c, timeout: commandTimeout, source: platform.SessionTimeout}
@@ -1070,6 +1098,9 @@ func (e *DeviceExecutor) sequence(t executionplan.ExecutionTarget) deviceSequenc
 		}
 		if i < len(list.SleepsNS) {
 			st.sleep = time.Duration(list.SleepsNS[i])
+		}
+		if i < len(list.Sudo) {
+			st.sudo = list.Sudo[i]
 		}
 		if i < len(list.BlindReturns) {
 			st.returns = list.BlindReturns[i]
@@ -1153,7 +1184,7 @@ func (e *DeviceExecutor) record(work Work, dc dispatch.Context, cred *records.Cr
 		AddressAuthority: string(a.Authority), ClientAddressCandidates: addrStrings(a.ClientCandidates), DaemonAddressCandidates: addrStrings(a.DaemonCandidates), AlternateAddresses: addrStrings(a.Alternates), AddressResolutionActor: a.ResolverContext,
 		Platform: d.Platform, Transport: d.Transport, Port: e.port(t), Channel: t.Channel, ConnectionReused: reused, SessionInitProfile: st.profile,
 		Dispatch:     records.DispatchContext{Mode: dc.Mode, ServerID: t.ExecutionEndpoint, WaveNumber: dc.WaveNumber, WaveWidth: dc.WaveWidth, WaveDepth: dc.WaveDepth, WorkerID: dc.WorkerID, ScopePosition: dc.ScopePosition, DesiredWidth: dc.DesiredWidth, EffectiveInflight: dc.EffectiveInflight},
-		CommandIndex: st.index + 1, CommandCount: st.count, CommandKind: st.kind, Command: st.command, Status: status, Output: out, OutputEncoding: enc, OutputBytes: outputBytes, OutputSHA256: outHash, Prompt: prompt, PromptSource: promptSource, PromptObserved: promptObserved, Notices: []records.Notice{},
+		CommandIndex: st.index + 1, CommandCount: st.count, CommandKind: st.kind, Command: st.command, Privilege: st.privilege(), Status: status, Output: out, OutputEncoding: enc, OutputBytes: outputBytes, OutputSHA256: outHash, Prompt: prompt, PromptSource: promptSource, PromptObserved: promptObserved, Notices: []records.Notice{},
 		Timing:        records.Timing{QueuedAt: work.QueuedAt, DeviceStartedAt: &devStart, CommandStartedAt: &commandStart, EndedAt: end, TotalNS: total, SchedulerWaitNS: &sched, ServerCapacityWaitNS: &capNS, ConnectNS: &connNS, DeviceResponseNS: &respNS},
 		RetryEligible: false}
 	r.CandidateCount = e.opts.CandidateCount
@@ -1326,7 +1357,7 @@ func (e *DeviceExecutor) afterRecord(r records.CommandRecord, src output.Source)
 		e.opts.OnRecord(r, src)
 	}
 	if e.opts.Audit != nil {
-		_ = e.opts.Audit.WriteAudit(records.AuditRecord{EventID: r.RecordID, EventName: e.opts.Kind + ".command", Timestamp: r.Timing.EndedAt, Outcome: r.Status, Severity: severity(r.Status), Operator: r.Operator, LoginUser: e.opts.Operator.LoginUser, Process: map[string]any{"pid": os.Getpid()}, JobID: r.JobID, Device: &records.AuditDevice{ID: r.Device.ID, CanonicalName: r.Device.CanonicalName, Platform: r.Platform}, DeviceIdentity: auditIdentity(r), Action: map[string]any{"mode": e.opts.Kind, "command": r.Command, "command_index": r.CommandIndex, "command_count": r.CommandCount, "command_kind": r.CommandKind}, Policy: map[string]any{"credential_policy": func() string {
+		_ = e.opts.Audit.WriteAudit(records.AuditRecord{EventID: r.RecordID, EventName: e.opts.Kind + ".command", Timestamp: r.Timing.EndedAt, Outcome: r.Status, Severity: severity(r.Status), Operator: r.Operator, LoginUser: e.opts.Operator.LoginUser, Process: map[string]any{"pid": os.Getpid()}, JobID: r.JobID, Device: &records.AuditDevice{ID: r.Device.ID, CanonicalName: r.Device.CanonicalName, Platform: r.Platform}, DeviceIdentity: auditIdentity(r), Action: auditAction(e.opts.Kind, r), Policy: map[string]any{"credential_policy": func() string {
 			if r.Credential != nil {
 				return r.Credential.Policy
 			}
@@ -1338,6 +1369,17 @@ func (e *DeviceExecutor) afterRecord(r records.CommandRecord, src output.Source)
 			return ""
 		}()}, Source: map[string]any{}, Details: AuditDetails(r.Notices)})
 	}
+}
+
+// auditAction is a device command event's action: the job's kind, the
+// statement as sent and its place, and a root command's privilege (sudo),
+// absent for any other.
+func auditAction(kind string, r records.CommandRecord) map[string]any {
+	action := map[string]any{"mode": kind, "command": r.Command, "command_index": r.CommandIndex, "command_count": r.CommandCount, "command_kind": r.CommandKind}
+	if r.Privilege != "" {
+		action["privilege"] = r.Privilege
+	}
+	return action
 }
 
 // AuditDetails is an audit event's details from a device's host-key

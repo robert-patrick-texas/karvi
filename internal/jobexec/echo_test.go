@@ -456,8 +456,8 @@ func TestReplayedRunHasNoFooter(t *testing.T) {
 }
 
 // TestEchoOfAnExecRecord: an exec command is echoed at the inferred prompt,
-// the target's name and "$ ", then its stdout and its stderr, each ending
-// its line; one that did not run is not echoed.
+// the target's name and "$ " ("# " for a root command), then its stdout and
+// its stderr, each ending its line; one that did not run is not echoed.
 func TestEchoOfAnExecRecord(t *testing.T) {
 	cfg, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}})
 	if err != nil {
@@ -478,6 +478,17 @@ func TestEchoOfAnExecRecord(t *testing.T) {
 	})
 	if got := out.String(); !strings.HasPrefix(got, "srv1$ both\ndata\nwarn\n") {
 		t.Fatalf("exec echo: %q", got)
+	}
+	out.Reset()
+	renderer.OnRecord(records.CommandRecord{
+		SchemaVersion: records.CommandSchemaVersion, ActivityType: "command", Channel: records.ChannelExec,
+		Device: records.DeviceProjection{CanonicalName: "srv1"}, InputTarget: "srv1",
+		Command: "whoami", Privilege: records.PrivilegeSudo, Status: "success", Output: "root\n", OutputEncoding: "utf-8",
+		ExitStatus: &status, Stderr: new(""), StderrEncoding: &enc, PromptSource: records.PromptSourceNone,
+		Timing: records.Timing{EndedAt: time.Now()},
+	})
+	if got := out.String(); !strings.HasPrefix(got, "srv1# whoami\nroot\n") {
+		t.Fatalf("root echo: %q", got)
 	}
 	out.Reset()
 	renderer.OnRecord(records.CommandRecord{

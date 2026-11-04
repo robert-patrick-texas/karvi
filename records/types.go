@@ -13,7 +13,7 @@ import (
 const (
 	CommandSchemaVersion    = 5 // 3: channel, and an exec command's exit and stderr; 4: the status words in the present tense; 5: command_sha256 removed
 	ScoreboardSchemaVersion = 5 // 2: mode, targets with states, inputs, commands, collection, metrics, daemon; 3: the target row's bytes and the metrics' in_flight_bytes; 4: the status, state, and count words in the present tense; 5: commands.files, each --cf's name, for commands.file
-	AuditSchemaVersion      = 2 // 2: <kind>.<event> names, job_id or login_id, loginuser, the device typed, statements in place of digests
+	AuditSchemaVersion      = 3 // 2: <kind>.<event> names, job_id or login_id, loginuser, the device typed, statements in place of digests; 3: action.privilege, a root command's sudo
 	JobSchemaVersion        = 5 // 3: the policy block removed, the plan's configuration block the job's; 4: the summary written at acceptance, naming the devices; 5: the status, outcome, and count words in the present tense
 	MetricsSchemaVersion    = 1
 )
@@ -83,9 +83,22 @@ const (
 const PromptSourceNone = "none"
 
 // ExecPrompt is the prompt an exec command is shown at, which no device
-// sent: the target's name and "$ " (srv1$ uname -s). The text file and the
-// echo show it; the record's prompt fields stay empty.
-func ExecPrompt(target string) string { return target + "$ " }
+// sent: the target's name and "$ " (srv1$ uname -s), or for a root command
+// (--sudo) "# " (srv1# systemctl restart nginx). The text file, the echo,
+// and --live show it; the record's prompt fields stay empty.
+func ExecPrompt(target string, root bool) string {
+	if root {
+		return target + "# "
+	}
+	return target + "$ "
+}
+
+// PrivilegeSudo is a root command's privilege: the record's and the audit
+// event's, absent for any other command (EXAMPLES chapter 96).
+const PrivilegeSudo = "sudo"
+
+// Root says whether the record's command is a root command (--sudo).
+func (r *CommandRecord) Root() bool { return r.Privilege == PrivilegeSudo }
 
 // Ran says whether an exec record's command ran: its channel opened and its
 // stderr, empty or not, came back.
@@ -261,11 +274,15 @@ type CommandRecord struct {
 	CommandCount   int             `json:"command_count"`
 	CommandKind    string          `json:"command_kind"`
 	Command        string          `json:"command"`
-	Status         string          `json:"status"`
-	Output         string          `json:"output"`
-	OutputEncoding string          `json:"output_encoding"`
-	OutputBytes    int64           `json:"output_bytes"`
-	OutputSHA256   string          `json:"output_sha256"`
+	// Privilege is "sudo" for a root command (--sudo), sent on its exec
+	// channel under sudo; absent for any other. Command stays the command
+	// as written.
+	Privilege      string `json:"privilege,omitempty"`
+	Status         string `json:"status"`
+	Output         string `json:"output"`
+	OutputEncoding string `json:"output_encoding"`
+	OutputBytes    int64  `json:"output_bytes"`
+	OutputSHA256   string `json:"output_sha256"`
 	// The exec channel's outcome, null on a shell record. ExitStatus is the
 	// command's exit status, null when none came back; ExitSignal the
 	// signal that ended it, "unnamed" where the transport names none, or

@@ -363,7 +363,7 @@ func renderInspection(out io.Writer, format string, r records.PlanReport, socket
 		if list, ok := r.Plan.TargetCommands[pt.TargetID]; ok {
 			fmt.Fprintf(&b, "  commands: %s\n", joinCommands(list))
 		} else if list, ok := r.Plan.PlatformCommands[pt.Device.Platform]; ok {
-			fmt.Fprintf(&b, "  commands: %s\n", strings.Join(list, "; "))
+			fmt.Fprintf(&b, "  commands: %s\n", joinCommands(list))
 		}
 		for _, f := range t.Findings {
 			fmt.Fprintf(&b, "  finding: %s %s %s\n", f.Severity, f.Code, f.Message)

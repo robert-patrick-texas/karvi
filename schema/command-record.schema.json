@@ -254,6 +254,11 @@
     "command": {
       "type": "string"
     },
+    "privilege": {
+      "enum": [
+        "sudo"
+      ]
+    },
     "status": {
       "enum": [
         "success",

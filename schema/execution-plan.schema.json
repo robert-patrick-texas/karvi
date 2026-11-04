@@ -154,16 +154,16 @@
     },
     "execution_plan": {
       "type": "object", "additionalProperties": false,
-      "required": ["schema_version", "plan_id", "operator", "targets", "commands", "blind_returns", "blind", "expectations", "timeouts_ns", "max_bytes", "sleeps_ns", "session_init", "dispatch", "output", "sources", "configuration", "planning", "preparation"],
+      "required": ["schema_version", "plan_id", "operator", "targets", "commands", "blind_returns", "blind", "expectations", "timeouts_ns", "max_bytes", "sleeps_ns", "sudo", "session_init", "dispatch", "output", "sources", "configuration", "planning", "preparation"],
       "properties": {
-        "schema_version": {"const": 16},
+        "schema_version": {"const": 17},
         "plan_id": {"$ref": "#/$defs/identifier"},
         "plan_digest": {"$ref": "#/$defs/digest"},
         "operator": {"$ref": "#/$defs/operator"},
         "targets": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/execution_target"}},
         "commands": {"type": "array", "items": {"type": "string"}},
         "commands_files": {"type": "array", "items": {"type": "string"}},
-        "platform_commands": {"type": "object", "additionalProperties": {"type": "array", "minItems": 1, "items": {"type": "string"}}},
+        "platform_commands": {"type": "object", "additionalProperties": {"$ref": "#/$defs/command_list"}, "description": "Each platform's crun-commands list, for a crun that names no command (schema 7; a command list since 17)."},
         "target_commands": {"type": "object", "additionalProperties": {"$ref": "#/$defs/command_list"}},
         "platform_filters": {"type": "object", "additionalProperties": {"type": "array", "minItems": 1, "items": {"type": "string"}}},
         "platform_masks": {"type": "object", "additionalProperties": {"type": "array", "minItems": 1, "items": {"type": "string"}}},
@@ -173,6 +173,7 @@
         "timeouts_ns": {"type": "array", "items": {"type": "integer", "minimum": 0}},
         "max_bytes": {"type": "array", "items": {"type": "integer", "minimum": 0}},
         "sleeps_ns": {"type": "array", "items": {"type": "integer", "minimum": 0}, "description": "Each command's --sleep, waited before it is sent, in nanoseconds; 0 none; empty when no command has one (schema 16)."},
+        "sudo": {"type": "array", "items": {"type": "boolean"}, "description": "Each command's --sudo: true for a command sent under sudo on an exec channel; empty when no command has one (schema 17)."},
         "session_init": {"type": "object", "additionalProperties": {"$ref": "#/$defs/session_init_profile"}},
         "dispatch": {"$ref": "#/$defs/dispatch"},
         "output": {"$ref": "#/$defs/output"},
@@ -184,7 +185,7 @@
     },
     "command_list": {
       "type": "object", "additionalProperties": false,
-      "required": ["commands", "blind_returns", "blind", "expectations", "timeouts_ns", "max_bytes", "sleeps_ns"],
+      "required": ["commands", "blind_returns", "blind", "expectations", "timeouts_ns", "max_bytes", "sleeps_ns", "sudo"],
       "properties": {
         "commands": {"type": "array", "minItems": 1, "items": {"type": "string"}},
         "blind_returns": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 20}},
@@ -192,7 +193,8 @@
         "expectations": {"type": "array", "items": {"type": "array", "maxItems": 20, "items": {"$ref": "#/$defs/expectation"}}},
         "timeouts_ns": {"type": "array", "items": {"type": "integer", "minimum": 0}},
         "max_bytes": {"type": "array", "items": {"type": "integer", "minimum": 0}},
-        "sleeps_ns": {"type": "array", "items": {"type": "integer", "minimum": 0}}
+        "sleeps_ns": {"type": "array", "items": {"type": "integer", "minimum": 0}},
+        "sudo": {"type": "array", "items": {"type": "boolean"}}
       }
     },
     "config_value": {
@@ -215,7 +217,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["schema_version", "idempotency_key", "job_id", "operator", "client", "mode", "execution_domain", "priority", "plan_digest"],
       "properties": {
-        "schema_version": {"const": 16},
+        "schema_version": {"const": 17},
         "idempotency_key": {"type": "string"},
         "job_id": {"$ref": "#/$defs/identifier"},
         "operator": {"$ref": "#/$defs/operator"},

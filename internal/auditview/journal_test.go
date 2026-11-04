@@ -19,7 +19,7 @@ func TestRunReadsALargeEventWhole(t *testing.T) {
 		commands[i] = "ip prefix-list PL-CUST seq " + strconv.Itoa((i+1)*5) + " permit 192.0.2.0/24 le 32"
 	}
 	action, _ := json.Marshal(map[string]any{"mode": "cmd", "commands": commands})
-	event := `{"schema_version":2,"event_name":"cmd.start","operator":{"username":"jsmith"},"job_id":"261101-090100-00","action":` + string(action) + `}`
+	event := `{"schema_version":3,"event_name":"cmd.start","operator":{"username":"jsmith"},"job_id":"261101-090100-00","action":` + string(action) + `}`
 	if len(event) <= 4096 {
 		t.Fatalf("the event is %d bytes", len(event))
 	}

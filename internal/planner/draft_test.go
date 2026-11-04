@@ -3,6 +3,7 @@ package planner
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -168,7 +169,7 @@ func draftOptions(commands []string) DraftOptions {
 // moved.
 // Re-pinned at schema 16, sleeps_ns, each command's --sleep (EXAMPLES
 // chapter 95); nothing else moved.
-const goldenK03Draft = "c4316966394d50c7d55df3f53afe754af2dd80eb92a72aad0f19fcdc1fef99af"
+const goldenK03Draft = "3fc2667ad748ab670e4f12293d8a81a17228171116c6c39cee8eef9672078c4b"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)
@@ -368,6 +369,39 @@ func TestDraftRefusesSleepsOverTheDeviceTimeout(t *testing.T) {
 	draft, err := Draft(context.Background(), testConfig(t), operator, k03Set(t), draftOptions(plantest.Commands), plantest.DraftedAt)
 	if err != nil || draft.SleepsNS == nil || len(draft.SleepsNS) != 0 {
 		t.Fatalf("no sleep: %v %#v", err, draft.SleepsNS)
+	}
+}
+
+// TestDraftRefusesSudoOnAShellChannel: the client's plan refuses a --sudo
+// command for a target on a shell channel, naming the device and the
+// command's index, before any device is contacted; on an exec channel the
+// plan carries the flags, and with no --sudo an empty list (EXAMPLES
+// chapter 96).
+func TestDraftRefusesSudoOnAShellChannel(t *testing.T) {
+	n := len(plantest.Commands)
+	sudo := make([]bool, n)
+	sudo[n-1] = true
+	set := func() TargetSet {
+		s := k03Set(t)
+		for i := range s.Devices {
+			s.Devices[i].Platform = "srv"
+		}
+		return s
+	}
+	for _, tc := range []struct{ channel, code string }{{"exec", ""}, {"shell", "channel_shell_sudo_refused"}} {
+		opts := draftOptions(plantest.Commands)
+		opts.Sudo, opts.Transport = sudo, "native"
+		draft, err := Draft(context.Background(), testConfig(t, `platform.srv.driver="linux"`, `platform.srv.channel="`+tc.channel+`"`), operator, set(), opts, plantest.DraftedAt)
+		if errorcodes.Of(err) != tc.code || (err != nil && !strings.Contains(err.Error(), fmt.Sprintf(": command %d is a --sudo command", n))) {
+			t.Fatalf("%s: %v", tc.channel, err)
+		}
+		if err == nil && !reflect.DeepEqual(draft.Sudo, sudo) {
+			t.Fatalf("%s: sudo %v", tc.channel, draft.Sudo)
+		}
+	}
+	draft, err := Draft(context.Background(), testConfig(t), operator, k03Set(t), draftOptions(plantest.Commands), plantest.DraftedAt)
+	if err != nil || draft.Sudo == nil || len(draft.Sudo) != 0 {
+		t.Fatalf("no --sudo: %v %#v", err, draft.Sudo)
 	}
 }
 
@@ -604,8 +638,8 @@ func TestDraftPlatformCommands(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(draft.Commands) != 0 || len(draft.PlatformCommands) != 1 || len(draft.PlatformCommands["generic"]) != 2 {
-		t.Fatalf("lists: commands %q platform_commands %q", draft.Commands, draft.PlatformCommands)
+	if len(draft.Commands) != 0 || len(draft.PlatformCommands) != 1 || len(draft.PlatformCommands["generic"].Commands) != 2 {
+		t.Fatalf("lists: commands %q platform_commands %+v", draft.Commands, draft.PlatformCommands)
 	}
 	if err := draft.Validate(executionplan.Draft); err != nil {
 		t.Fatal(err)
@@ -627,7 +661,7 @@ func TestDraftPlatformCommands(t *testing.T) {
 	with.PlatformCommands = true
 	draft, err = Draft(context.Background(), testConfig(t), operator, k03Set(t), with, plantest.DraftedAt)
 	if err != nil || len(draft.PlatformCommands) != 0 || len(draft.Commands) != 1 || draft.Output.Collection != nil {
-		t.Fatalf("with a command: %v %q %q %+v", err, draft.Commands, draft.PlatformCommands, draft.Output.Collection)
+		t.Fatalf("with a command: %v %q %+v %+v", err, draft.Commands, draft.PlatformCommands, draft.Output.Collection)
 	}
 	// An explicit directory, relative to the working directory.
 	cfg = testConfig(t, `platform.generic.crun-commands=["show version"]`, "crun.directory=\"configs\"")

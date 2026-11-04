@@ -147,7 +147,7 @@ func TestLiveShowsAnExecCommandAtItsPrompt(t *testing.T) {
 		t.Fatalf("result %+v records %+v", res, recs)
 	}
 	got := live.text()
-	prompt := records.ExecPrompt(h.target.Device.CanonicalName) + "both\n"
+	prompt := records.ExecPrompt(h.target.Device.CanonicalName, false) + "both\n"
 	if !strings.HasPrefix(got, prompt) || !strings.Contains(got, "to stdout\n") || !strings.Contains(got, "to stderr\n") || len(got) != len(prompt)+len("to stdout\nto stderr\n") {
 		t.Fatalf("view %q", got)
 	}

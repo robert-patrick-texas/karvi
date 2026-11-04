@@ -1,9 +1,10 @@
 // Package commandfile is a commands file's line grammar, read and written.
 // A line is a statement sent to the device as written, unless it is one of
 // karvi's own: a --sleep line, waited before the next command (EXAMPLES
-// chapter 95). A job's rerun files are written in the same grammar, so that
-// --cf on them sends what was sent: each command's \r endings, and the
-// sleep before it (chapter 79, chapter 96).
+// chapter 95), or a --sudo line, a command run as root (chapter 96). A
+// job's rerun files are written in the same grammar, so that --cf on them
+// sends what was sent: each command's \r endings, the sleep before it, and
+// its --sudo (chapter 79, chapter 96).
 package commandfile
 
 import (
@@ -50,16 +51,33 @@ func SleepLine(line string) (time.Duration, bool, error) {
 	return d, true, nil
 }
 
+// SudoLine reports whether a commands-file line is a --sudo statement, and
+// its command: the line, spaces around it trimmed, is --sudo TEXT or
+// --sudo=TEXT, TEXT trimmed of the spaces around it. Any other line is
+// device text, but a line whose first word is --sudo with no command after
+// it is refused rather than sent (EXAMPLES chapter 96).
+func SudoLine(line string) (string, bool, error) {
+	rest, ok := strings.CutPrefix(strings.TrimSpace(line), "--sudo")
+	if !ok || (rest != "" && rest[0] != ' ' && rest[0] != '\t' && rest[0] != '=') {
+		return "", false, nil
+	}
+	text := strings.TrimSpace(strings.TrimPrefix(rest, "="))
+	if text == "" {
+		return "", false, fmt.Errorf("--sudo has no command; the line is --sudo TEXT")
+	}
+	return text, true, nil
+}
+
 // Text is a command list written as a commands file, one statement per
 // line: the sleep before a command as --sleep lines (sleepLines), then the
-// command, its blind returns written back as its trailing \r sequences, so
-// that the file read without --literal sends what was sent. returns and
-// sleeps are each empty or one entry per command. A command whose own text
-// ends in \r, or begins as a --sleep line does, both of which only --literal
-// sends, reads back as returns or as a sleep. The other declarations
-// (--timeout, --maxbytes, --expect, --blind) have no form in a file and stay
-// in the plan.
-func Text(commands []string, returns []int, sleeps []int64) []byte {
+// command, a root command as --sudo TEXT, its blind returns written back as
+// its trailing \r sequences, so that the file read without --literal sends
+// what was sent. returns, sleeps, and sudo are each empty or one entry per
+// command. A command whose own text ends in \r, or begins as a --sleep or
+// a --sudo line does, which only --literal sends, reads back as returns, a
+// sleep, or a root command. The other declarations (--timeout, --maxbytes,
+// --expect, --blind) have no form in a file and stay in the plan.
+func Text(commands []string, returns []int, sleeps []int64, sudo []bool) []byte {
 	var b strings.Builder
 	for i, c := range commands {
 		if i < len(sleeps) {
@@ -67,6 +85,9 @@ func Text(commands []string, returns []int, sleeps []int64) []byte {
 				b.WriteString(line)
 				b.WriteByte('\n')
 			}
+		}
+		if i < len(sudo) && sudo[i] {
+			b.WriteString("--sudo ")
 		}
 		b.WriteString(c)
 		if i < len(returns) {

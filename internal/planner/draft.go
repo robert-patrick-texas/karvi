@@ -86,8 +86,12 @@ type DraftOptions struct {
 	// command follows, and Draft refuses a device's total above a set
 	// execution.device-timeout.
 	Sleeps []int64
+	// Sudo is empty or one flag per command, true for a --sudo command; the
+	// plan refuses a true flag for a target whose channel is not exec
+	// (channel_shell_sudo_refused).
+	Sudo []bool
 	// TargetCommands, with a --cf folder on the line, builds each target's
-	// list in place of Commands and the six lists above, which are then
+	// list in place of Commands and the seven lists above, which are then
 	// empty; CommandFolders are the folders as given, for the refusals.
 	TargetCommands TargetCommands
 	CommandFolders []string
@@ -228,7 +232,7 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 			return executionplan.ExecutionPlan{}, err
 		}
 	}
-	var lists map[string][]string
+	var lists map[string]executionplan.CommandList
 	if opts.PlatformCommands && len(opts.Commands) == 0 && opts.TargetCommands == nil {
 		if lists, err = platformCommandLists(targets, cfg.NamedTables("platform")); err != nil {
 			return executionplan.ExecutionPlan{}, err
@@ -246,7 +250,7 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 		Commands: append([]string{}, opts.Commands...), CommandsFiles: commandsFiles, PlatformCommands: lists, TargetCommands: targetLists, PlatformFilters: filters, PlatformMasks: masks,
 		BlindReturns: append([]int{}, opts.BlindReturns...),
 		Blind:        append([]bool{}, opts.Blind...), Expectations: copyExpectations(opts.Expectations),
-		TimeoutsNS: append([]int64{}, opts.Timeouts...), MaxBytes: append([]int64{}, opts.MaxBytes...), SleepsNS: append([]int64{}, opts.Sleeps...),
+		TimeoutsNS: append([]int64{}, opts.Timeouts...), MaxBytes: append([]int64{}, opts.MaxBytes...), SleepsNS: append([]int64{}, opts.Sleeps...), Sudo: append([]bool{}, opts.Sudo...),
 		SessionInit:   map[string]executionplan.SessionInitProfile{},
 		Dispatch:      dispatchSettings(cfg, set, opts),
 		Output:        out,
@@ -433,10 +437,11 @@ func outputSettings(cfg configload.Snapshot, operator credentials.Operator, opts
 // platformCommandLists is the plan's list per platform for a crun that
 // names no command: each distinct target platform's
 // crun-commands from its definition (the built-in's, or a table's
-// replacing it). A platform without a list refuses the draft before any
-// device is contacted, naming the platform and its first device.
-func platformCommandLists(targets []executionplan.ExecutionTarget, tables map[string]map[string]any) (map[string][]string, error) {
-	lists := map[string][]string{}
+// replacing it), as a command list with no declarations, each entry device
+// text. A platform without a list refuses the draft before any device is
+// contacted, naming the platform and its first device.
+func platformCommandLists(targets []executionplan.ExecutionTarget, tables map[string]map[string]any) (map[string]executionplan.CommandList, error) {
+	lists := map[string]executionplan.CommandList{}
 	for _, t := range targets {
 		name := t.Device.Platform
 		if _, done := lists[name]; done {
@@ -446,7 +451,7 @@ func platformCommandLists(targets []executionplan.ExecutionTarget, tables map[st
 		if len(list) == 0 {
 			return nil, errorcodes.Errorf("crun_platform_commands_missing", "platform %s has no crun-commands list, so %s cannot be collected without --cmd or --cf; set [platform.%s] crun-commands", name, t.TargetID, name)
 		}
-		lists[name] = append([]string{}, list...)
+		lists[name] = executionplan.NewCommandList(append([]string{}, list...))
 	}
 	return lists, nil
 }

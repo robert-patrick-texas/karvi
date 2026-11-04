@@ -16,7 +16,8 @@ import (
 // ExecConnection is karvi's connection to an exec device: the handshake,
 // the host-key policy, and authentication as Dial's, the keepalives once
 // authenticated, and a session channel per command, each running one exec
-// request with no PTY and standard input at its end.
+// request with no PTY and standard input at its end, or open for a root
+// command's password.
 type ExecConnection struct {
 	c *connection
 }
@@ -45,11 +46,12 @@ func (e *ExecConnection) Close() error {
 	return nil
 }
 
-// Start opens a session channel and runs the command on it. A device that
-// refuses the channel or the exec request on a live connection is
-// ssh_session_channel_refused; a connection gone is the keepalive's code
-// or command_session_lost.
-func (e *ExecConnection) Start(command string) (devsession.ExecChannel, error) {
+// Start opens a session channel and runs the command on it, with input its
+// standard input left open (the channel's Input) and without it at its
+// end. A device that refuses the channel or the exec request on a live
+// connection is ssh_session_channel_refused; a connection gone is the
+// keepalive's code or command_session_lost.
+func (e *ExecConnection) Start(command string, input bool) (devsession.ExecChannel, error) {
 	e.c.mu.Lock()
 	client, lost := e.c.client, e.c.lost
 	e.c.mu.Unlock()
@@ -67,12 +69,19 @@ func (e *ExecConnection) Start(command string) (devsession.ExecChannel, error) {
 		}
 		return nil, e.lost(err)
 	}
-	stdout, err := session.StdoutPipe()
+	var stdin io.WriteCloser
+	if input {
+		stdin, err = session.StdinPipe()
+	}
+	var stdout io.Reader
+	if err == nil {
+		stdout, err = session.StdoutPipe()
+	}
 	if err == nil {
 		var stderr io.Reader
 		if stderr, err = session.StderrPipe(); err == nil {
 			if err = session.Start(command); err == nil {
-				return &execChannel{e: e, session: session, stdout: noting{stdout, e.c}, stderr: noting{stderr, e.c}}, nil
+				return &execChannel{e: e, session: session, stdin: stdin, stdout: noting{stdout, e.c}, stderr: noting{stderr, e.c}}, nil
 			}
 		}
 	}
@@ -137,11 +146,13 @@ func (n noting) Read(b []byte) (int, error) {
 type execChannel struct {
 	e              *ExecConnection
 	session        *ssh.Session
+	stdin          io.WriteCloser // nil: the input at its end
 	stdout, stderr io.Reader
 }
 
-func (x *execChannel) Stdout() io.Reader { return x.stdout }
-func (x *execChannel) Stderr() io.Reader { return x.stderr }
+func (x *execChannel) Stdout() io.Reader     { return x.stdout }
+func (x *execChannel) Stderr() io.Reader     { return x.stderr }
+func (x *execChannel) Input() io.WriteCloser { return x.stdin }
 
 // Wait is x/crypto's account of the end: an exit status, or a signal's
 // name (whose status x/crypto makes up, 128 and the number, and which is

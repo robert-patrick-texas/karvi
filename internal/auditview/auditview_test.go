@@ -99,8 +99,8 @@ func entry(event string) string {
 }
 
 const (
-	commandEvent = `{"schema_version":2,"event_name":"run.command","outcome":"device_error","operator":{"username":"netops.test"},"loginuser":"netops","job_id":"261017-143818-00","device":{"id":"d","canonical_name":"fake-iosxe","platform":"cisco_ios"},"action":{"command":"snmp-server community <removed> RO"}}`
-	loginEvent   = `{"schema_version":2,"event_name":"login.start","operator":{"username":"netops"},"login_id":"261017-143825-00","device":{"id":"d","canonical_name":"fake-iosxe","platform":"cisco_ios"},"action":{}}`
+	commandEvent = `{"schema_version":3,"event_name":"run.command","outcome":"device_error","operator":{"username":"netops.test"},"loginuser":"netops","job_id":"261017-143818-00","device":{"id":"d","canonical_name":"fake-iosxe","platform":"cisco_ios"},"action":{"command":"snmp-server community <removed> RO"}}`
+	loginEvent   = `{"schema_version":3,"event_name":"login.start","operator":{"username":"netops"},"login_id":"261017-143825-00","device":{"id":"d","canonical_name":"fake-iosxe","platform":"cisco_ios"},"action":{}}`
 )
 
 // TestDecode: an event's cells, a login's ID in place of a job's, and every
@@ -122,7 +122,7 @@ func TestDecode(t *testing.T) {
 		"event not JSON":   `{"KARVI_AUDIT_JSON":"{"}`,
 		"audit schema 1":   entry(`{"schema_version":1,"event_name":"run.started"}`),
 		"audit schema 7":   entry(`{"schema_version":7,"event_name":"test"}`),
-		"a field mistyped": entry(`{"schema_version":2,"event_name":"run.start","operator":"netops"}`),
+		"a field mistyped": entry(`{"schema_version":3,"event_name":"run.start","operator":"netops"}`),
 	} {
 		if _, ok := Decode([]byte(line)); ok {
 			t.Errorf("%s: read", name)
@@ -333,7 +333,7 @@ func TestRun(t *testing.T) {
 	if code != 0 || len(lines) != 3 || !strings.HasPrefix(lines[0], "JOB-ID") || !strings.Contains(lines[1], "netops.test/netops") || strings.Contains(out, "\x1b") {
 		t.Errorf("rows: %d %q", code, out)
 	}
-	if errs != "karvi-audit: 1 event not shown: not audit schema 2\n" {
+	if errs != "karvi-audit: 1 event not shown: not audit schema 3\n" {
 		t.Errorf("count: %q", errs)
 	}
 	got, _ := os.ReadFile(argsFile)
@@ -355,7 +355,7 @@ func TestRun(t *testing.T) {
 	}
 
 	fakeJournalctl(t, []string{`{"MESSAGE":"old"}`, `{"MESSAGE":"old"}`}, "", 0, "")
-	if code, out, errs := runFiles(t); code != 0 || out != "" || errs != "karvi-audit: 2 events not shown: not audit schema 2\n" {
+	if code, out, errs := runFiles(t); code != 0 || out != "" || errs != "karvi-audit: 2 events not shown: not audit schema 3\n" {
 		t.Errorf("none readable: %d %q %q", code, out, errs)
 	}
 

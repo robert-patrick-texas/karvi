@@ -398,21 +398,33 @@ type execConn struct {
 
 var _ devsession.ExecConn = (*execConn)(nil)
 
-// Start runs the command in a client of the master.
-func (c *execConn) Start(command string) (devsession.ExecChannel, error) {
+// Start runs the command in a client of the master: with -n, its standard
+// input at its end, or, with input, a pipe left open (the channel's
+// Input).
+func (c *execConn) Start(command string, input bool) (devsession.ExecChannel, error) {
 	select {
 	case <-c.m.done:
 		return nil, c.m.failure(true)
 	default:
 	}
 	c.m.lines.begin()
-	cmd := exec.Command(c.m.binary, "-F", "none", "-S", c.m.socket,
+	args := []string{"-F", "none", "-S", c.m.socket,
 		"-o", "ControlMaster=no",
 		"-o", "ProxyCommand=false",
 		"-o", "LogLevel=QUIET",
-		"-o", "BatchMode=yes",
-		"-n", "-T", "--", c.m.address, command)
+		"-o", "BatchMode=yes"}
+	if !input {
+		args = append(args, "-n")
+	}
+	cmd := exec.Command(c.m.binary, append(args, "-T", "--", c.m.address, command)...)
 	cmd.Env = c.m.env
+	var stdin io.WriteCloser
+	if input {
+		var err error
+		if stdin, err = cmd.StdinPipe(); err != nil {
+			return nil, fmt.Errorf("command_session_stdin_pipe_failed: stdin pipe: %w", err)
+		}
+	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("command_session_stdout_pipe_failed: stdout pipe: %w", err)
@@ -424,7 +436,7 @@ func (c *execConn) Start(command string) (devsession.ExecChannel, error) {
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("command_session_start_failed: start OpenSSH: %w", err)
 	}
-	return &execClient{m: c.m, cmd: cmd, stdout: stdout, stderr: stderr}, nil
+	return &execClient{m: c.m, cmd: cmd, stdin: stdin, stdout: stdout, stderr: stderr}, nil
 }
 
 // Close ends the master.
@@ -437,14 +449,16 @@ func (c *execConn) Close() error {
 type execClient struct {
 	m              *execMaster
 	cmd            *exec.Cmd
+	stdin          io.WriteCloser // nil: -n, the input at its end
 	stdout, stderr io.Reader
 
 	waitOnce sync.Once
 	waitErr  error
 }
 
-func (x *execClient) Stdout() io.Reader { return x.stdout }
-func (x *execClient) Stderr() io.Reader { return x.stderr }
+func (x *execClient) Stdout() io.Reader     { return x.stdout }
+func (x *execClient) Stderr() io.Reader     { return x.stderr }
+func (x *execClient) Input() io.WriteCloser { return x.stdin }
 
 // exited waits for the client once, for Wait and Stop alike.
 func (x *execClient) exited() error {

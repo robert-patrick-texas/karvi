@@ -84,6 +84,7 @@ Active failure causes.
 | `capacity_root_unusable` | permission | 9 | no | The shared capacity root cannot be leased in by this operator: the sticky bit on another operator's directory, a directory or lock file closed to the operator, a link at a lock's or the devices folder's name, a server ledger that does not decode, a filesystem with no free inodes, or a root absent whose parent is absent or closed to the operator. Under `auto` the private fallback is taken with a warning naming the cause; a named root is refused. |
 | `channel_exec_declaration_refused` | usage | 4 | no | A command for a target on an exec channel carries a declaration that answers a terminal: a blind send (`--blind`, `--blind-return`, or a trailing `\r`) or an `--expect`. An exec channel has no terminal and no prompt; refused at planning, and by the daemon's plan check, naming the target and the command's index. `--literal` is accepted. |
 | `channel_exec_over_telnet` | dependency | 8 | no | A target's platform asks for an exec channel and its transport is telnet, which has none; refused at planning, naming both. |
+| `channel_shell_sudo_refused` | usage | 4 | no | A `--sudo` command is for a target whose platform runs it on a shell channel: `--sudo` reaches a platform on the exec channel alone (the shell form is not built). Refused at planning, and by the daemon's plan check, naming the target and the command's index. |
 | `cli_command_ambiguous` | usage | 4 | no | The command word prefix matches more than one command; the message names every candidate. |
 | `cli_command_near_miss` | usage | 4 | no | The first word, taken as a device (`karvi DEVICE`), is no inventory name and one slip from a command word of four letters or more: a letter added, dropped, or changed, or two neighbours swapped, ignoring case; the message names the command word. Refused before any lookup or claim. |
 | `cli_command_text_missing` | usage | 4 | no | `command` or `run` has neither freeform text nor an explicit command. |
@@ -506,7 +507,7 @@ Active failure causes.
 | `private_directory_not_writable` | permission | 9 | no | The state root, its logs subtree, or a private karvi directory cannot be written by the operator. |
 | `private_directory_owner_mismatch` | permission | 9 | no | The socket or state subtree, or the control-path root, is owned by another user. |
 | `private_directory_owner_uninspectable` | permission | 9 | no | The owner of a private karvi directory cannot be read. |
-| `privilege_failed` | device | 107 | no | Entering the platform's privileged mode fails. |
+| `privilege_failed` | device | 107 | no | Entering privileged mode fails: the platform's enable step, or sudo refusing a `--sudo` command's password (it asks a second time; the command does not run). |
 | `record_activity_type_invalid` | internal | 1 | no | A command record's activity type is not `run` or `command`. |
 | `record_channel_invalid` | internal | 1 | no | A command record's channel is not `shell` or `exec`, or a shell record carries an exec command's exit or stderr. |
 | `record_command_kind_invalid` | internal | 1 | no | A command record's command kind is not `requested` or `session_init`. |

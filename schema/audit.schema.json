@@ -9,7 +9,7 @@
     "severity", "operator", "process", "action", "policy", "result", "source",
     "details"],
   "properties": {
-    "schema_version": {"const": 2},
+    "schema_version": {"const": 3},
     "event_id": {"type": "string"},
     "event_name": {"type": "string",
       "pattern": "^((cmd|run|crun)\\.(start|command|cancel|end)|crun\\.after|login\\.(start|end))$"},
@@ -73,6 +73,7 @@
         "command_kind": {"type": "string"},
         "command": {"type": "string", "description": "A device command event's statement as sent."},
         "commands": {"type": "array", "items": {"type": "string"}, "description": "A job's statements in order, on its start alone."},
+        "privilege": {"enum": ["sudo"], "description": "A device command event's for a root command (--sudo); absent for any other (schema 3)."},
         "plan_id": {"type": "string"}
       }
     },

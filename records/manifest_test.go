@@ -131,7 +131,7 @@ func TestManifestInitialStatesByTargetList(t *testing.T) {
 	draft := plantest.DraftPlan()
 	draft.Commands = []string{}
 	list := func(commands ...string) executionplan.CommandList {
-		return executionplan.CommandList{Commands: commands, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]executionplan.Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}, SleepsNS: []int64{}}
+		return executionplan.CommandList{Commands: commands, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]executionplan.Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}, SleepsNS: []int64{}, Sudo: []bool{}}
 	}
 	draft.TargetCommands = map[string]executionplan.CommandList{}
 	for i, x := range draft.Targets {

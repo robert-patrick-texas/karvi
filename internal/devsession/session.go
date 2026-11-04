@@ -759,12 +759,17 @@ func (s *Session) write(text string) error {
 	return err
 }
 
-// writeSecret writes the secret and a return without keeping a copy; a live
-// view is given it first, which holds one to keep it off the screen until
-// the device's end.
+// writeSecret writes the secret and a return to the device's stream.
 func (s *Session) writeSecret(secret []byte) error {
-	if s.opts.Live != nil {
-		s.opts.Live.Secret(secret)
+	return writeSecretLine(s.stream, s.opts.Live, secret)
+}
+
+// writeSecretLine writes the secret and a line end to w in one write,
+// without keeping a copy; a live view is given it first, which holds one to
+// keep it off the screen until the device's end.
+func writeSecretLine(w io.Writer, live platform.Live, secret []byte) error {
+	if live != nil {
+		live.Secret(secret)
 	}
 	line := make([]byte, 0, len(secret)+1)
 	line = append(line, secret...)
@@ -774,7 +779,7 @@ func (s *Session) writeSecret(secret []byte) error {
 			line[i] = 0
 		}
 	}()
-	_, err := s.stream.Write(line)
+	_, err := w.Write(line)
 	return err
 }
 

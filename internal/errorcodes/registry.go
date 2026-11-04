@@ -216,6 +216,7 @@ var entries = []Entry{
 	failure("timeout_over_device_timeout", "usage", exitUsage, false, "A command's `--timeout` is above a set `execution.device-timeout`, which bounds the device's whole list; refused at planning, naming both values and the `--set execution.device-timeout=…` that raises the ceiling. At the default 0 there is no ceiling."),
 	failure("sleep_over_device_timeout", "usage", exitUsage, false, "A device's `--sleep` total is above a set `execution.device-timeout`, which bounds the device's whole list and which the sleeps, waited in full, would outlast; refused at planning, naming both values and the `--set execution.device-timeout=…` that raises the ceiling. At the default 0 there is no ceiling."),
 	failure("maxbytes_over_job_limit", "usage", exitUsage, false, "A command's `--maxbytes` is above `output.max-job-bytes`, which bounds the job's whole output; refused at planning, naming both values and the `--set output.max-job-bytes=…` that raises the limit."),
+	failure("channel_shell_sudo_refused", "usage", exitUsage, false, "A `--sudo` command is for a target whose platform runs it on a shell channel: `--sudo` reaches a platform on the exec channel alone (the shell form is not built). Refused at planning, and by the daemon's plan check, naming the target and the command's index."),
 	failure("channel_exec_declaration_refused", "usage", exitUsage, false, "A command for a target on an exec channel carries a declaration that answers a terminal: a blind send (`--blind`, `--blind-return`, or a trailing `\\r`) or an `--expect`. An exec channel has no terminal and no prompt; refused at planning, and by the daemon's plan check, naming the target and the command's index. `--literal` is accepted."),
 	failure("native_platform_not_qualified", "dependency", exitDep, false, "The native transport does not admit the target's platform driver."),
 	failure("daemon_resolution_not_allowed", "policy", exitPerm, false, "A target has daemon address authority while `name.allow-daemon-resolution` is false."),
@@ -615,7 +616,7 @@ var entries = []Entry{
 	failure("host_key_trust_store_entry_invalid", "permission", exitHost, false, "A matching trust-store entry contains key data that is not valid base64."),
 
 	// Transports, devices, daemon, IPC.
-	failure("privilege_failed", "device", exitDevice, false, "Entering the platform's privileged mode fails."),
+	failure("privilege_failed", "device", exitDevice, false, "Entering privileged mode fails: the platform's enable step, or sudo refusing a `--sudo` command's password (it asks a second time; the command does not run)."),
 	failure("telnet_paging_command_failed", "device", exitDevice, false, "A Telnet paging-disable command does not return to the prompt."),
 	failure("transport_executable_not_executable", "dependency", exitDep, false, "A configured transport executable has no execute permission."),
 	failure("transport_executable_not_regular", "dependency", exitDep, false, "A configured transport executable is not a regular file."),

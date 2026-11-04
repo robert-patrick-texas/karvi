@@ -120,7 +120,7 @@ func (d *driver) Prepare(ctx context.Context) error {
 			return err
 		}
 		d.auth = conn
-		d.exec = devsession.OpenExec(conn, devsession.ExecOptions{Definition: d.req.Definition, MaxOutputBytes: d.f.MaxOutputBytes, Spool: d.f.Spool.ForRequest(d.req), InFlightBytes: d.req.InFlightBytes, Debug: d.f.Debug, Live: d.req.Live})
+		d.exec = devsession.OpenExec(conn, devsession.ExecOptions{Definition: d.req.Definition, MaxOutputBytes: d.f.MaxOutputBytes, Spool: d.f.Spool.ForRequest(d.req), InFlightBytes: d.req.InFlightBytes, Debug: d.f.Debug, Live: d.req.Live, SudoPassword: d.req.EnablePassword})
 		d.debugf("native SSH session ready target=%q channel=exec", host)
 		return nil
 	}

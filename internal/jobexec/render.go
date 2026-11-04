@@ -369,7 +369,7 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 		// terminal` or `end`.
 		prompt := rec.PromptBefore
 		if rec.Channel == records.ChannelExec {
-			prompt = records.ExecPrompt(target)
+			prompt = records.ExecPrompt(target, rec.Root())
 		} else if prompt == "" {
 			promptTarget := values.Target
 			if promptTarget == "" {

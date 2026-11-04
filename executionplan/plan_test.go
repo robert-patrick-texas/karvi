@@ -19,9 +19,9 @@ const (
 	// The schema number is in every stage's digest, so the three pins move
 	// at each plan schema bump and with a field added under an unreleased
 	// one; goldenFinal also binds the job ID through the package reference.
-	goldenDraft    = "4fab6a1e6e1f17a9d27d123973cb4f793fbc472c3f97570326abc24ed50c907d"
-	goldenPrepared = "7a9d44f78291a94149ae5d4952b7a850924e49a96674a2931f7d780b6c6f65da"
-	goldenFinal    = "e51ec4ac9eb46d4f5bb8dc1fadc0d432f7a8b7ee656ee13746c289c068408158"
+	goldenDraft    = "763ee4e73202becf25768fe7da4e89373eec4a830d654de2d804938f09e9bcd1"
+	goldenPrepared = "0898cc9ea0c807ea2d8b2c7c9e127e30f536a9cb317204d836d821e9abdf8c6c"
+	goldenFinal    = "a146fa19731857f84c759252c0b86e10ba32f450bba2505ec079f8a831c6f7c3"
 )
 
 var fixtureCommands = []string{"show clock", "show version", "show ip interface brief", "show running-config | include hostname"}
@@ -33,7 +33,7 @@ func fixtureDraftPlan(t *testing.T) ExecutionPlan {
 		Operator:     Operator{Username: "netops", UID: 1000, PrimaryGID: 1000, Groups: []string{"netops"}},
 		Targets:      []ExecutionTarget{fixtureDirect(t), fixtureInventory(t), fixtureDaemonDraft(t)},
 		Commands:     fixtureCommands,
-		BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}, SleepsNS: []int64{},
+		BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}, SleepsNS: []int64{}, Sudo: []bool{},
 		SessionInit: map[string]SessionInitProfile{},
 		Dispatch:    DispatchSettings{Mode: DispatchSerial, Width: 1, DispatchOrder: OrderDefault},
 		Output:      OutputSettings{Format: FormatText, Follow: true, Root: "/tmp/karvi/jobs"},
@@ -526,9 +526,9 @@ func TestIncorporatePreparationCopiesTheSelectedSource(t *testing.T) {
 // the collection sub-block is validated.
 func TestPlatformCommands(t *testing.T) {
 	base := fixtureDraftPlan(t)
-	lists := map[string][]string{}
+	lists := map[string]CommandList{}
 	for _, t := range base.Targets {
-		lists[t.Device.Platform] = []string{"show running-config", "show version"}
+		lists[t.Device.Platform] = NewCommandList([]string{"show running-config", "show version"})
 	}
 	one := ""
 	for name := range lists {
@@ -552,7 +552,7 @@ func TestPlatformCommands(t *testing.T) {
 	}
 	// A target whose platform has no list, with no commands to fall back on.
 	q := p
-	q.PlatformCommands = map[string][]string{"no-such-platform": {"show version"}}
+	q.PlatformCommands = map[string]CommandList{"no-such-platform": NewCommandList([]string{"show version"})}
 	if err := q.Validate(Draft); err == nil || !strings.Contains(err.Error(), "has no list") {
 		t.Fatalf("a target without a list: %v", err)
 	}
@@ -564,8 +564,8 @@ func TestPlatformCommands(t *testing.T) {
 	}
 	// An empty list is refused.
 	e := p
-	e.PlatformCommands = map[string][]string{one: {}}
-	if err := e.Validate(Draft); err == nil || !strings.Contains(err.Error(), "empty list") {
+	e.PlatformCommands = map[string]CommandList{one: NewCommandList([]string{})}
+	if err := e.Validate(Draft); err == nil || !strings.Contains(err.Error(), "platform_commands."+one+".commands: at least one command is required") {
 		t.Fatalf("an empty list: %v", err)
 	}
 	// The collection sub-block.
@@ -613,7 +613,7 @@ func TestPlatformCommands(t *testing.T) {
 func TestTargetCommands(t *testing.T) {
 	base := fixtureDraftPlan(t)
 	empty := func(commands ...string) CommandList {
-		return CommandList{Commands: commands, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}, SleepsNS: []int64{}}
+		return CommandList{Commands: commands, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}, SleepsNS: []int64{}, Sudo: []bool{}}
 	}
 	withLists := func() ExecutionPlan {
 		p := base

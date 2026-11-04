@@ -47,8 +47,10 @@ import (
 // become commands_files, every --cf's base name, and target_commands, each
 // target's list under a --cf folder (EXAMPLES chapter 79); 16 sleeps_ns,
 // each command's --sleep before it, on the plan and on each command list
-// (EXAMPLES chapter 95).
-const SchemaVersion = 16
+// (EXAMPLES chapter 95); 17 sudo, each command's --sudo, on the plan and on
+// each command list, and the platform lists as command lists (EXAMPLES
+// chapter 96).
+const SchemaVersion = 17
 
 // Mode is the requested execution mode of a job.
 type Mode string
@@ -127,13 +129,14 @@ type ExecutionPlan struct {
 	// from, in the order given, - for standard input, for the scoreboard
 	// (schema 15); empty when every command was given on the line.
 	CommandsFiles []string `json:"commands_files,omitempty"`
-	// PlatformCommands is a command list per platform (schema 7): a crun
-	// that names no command sends
-	// each device its platform's list. A target points at its list by its
-	// device's platform, and every target's platform has a list when
-	// Commands is empty. The blind and expect declarations belong to
-	// Commands alone.
-	PlatformCommands map[string][]string `json:"platform_commands,omitempty"`
+	// PlatformCommands is a command list per platform (schema 7; a command
+	// list since 17): a crun that names no command sends each device its
+	// platform's list. A target points at its list by its device's
+	// platform, and every target's platform has a list when Commands is
+	// empty. The list's declarations are empty: a crun-commands entry is
+	// device text (EXAMPLES chapter 96 gives it the file line's statements
+	// later).
+	PlatformCommands map[string]CommandList `json:"platform_commands,omitempty"`
 	// TargetCommands is a command list per target (schema 15), by target
 	// ID: a run with a --cf folder on its line sends each target the
 	// line's commands in the order written, the folder's file for the
@@ -159,6 +162,7 @@ type ExecutionPlan struct {
 	TimeoutsNS    []int64                       `json:"timeouts_ns"`
 	MaxBytes      []int64                       `json:"max_bytes"`
 	SleepsNS      []int64                       `json:"sleeps_ns"`
+	Sudo          []bool                        `json:"sudo"`
 	SessionInit   map[string]SessionInitProfile `json:"session_init"`
 	Dispatch      DispatchSettings              `json:"dispatch"`
 	Output        OutputSettings                `json:"output"`
@@ -202,6 +206,12 @@ type ExecutionPlan struct {
 // timeout and job limit above them; the plan refuses only a length that does
 // not match the commands or a negative entry, so the daemon accepts what the
 // client accepted.
+//
+// Root commands: Sudo is empty or one flag per command, true for a --sudo
+// command, which the exec session sends under sudo (EXAMPLES chapter 96).
+// It is under plan_digest. The plan refuses a length that does not match
+// the commands and a true flag for a target whose channel is not exec
+// (channel_shell_sudo_refused).
 const (
 	BlindReturnsMax = 20
 	ExpectationsMax = 20
@@ -316,10 +326,11 @@ var CollectionWords = []string{"crun", "run", "command"}
 func (o OutputSettings) Crun() bool { return o.Collection != nil && o.Collection.Word == "crun" }
 
 // CommandList is one list of device commands with each command's
-// declarations: the six lists parallel to Commands, each empty when no
+// declarations: the seven lists parallel to Commands, each empty when no
 // command has one or one entry per command, as the plan's own fields are
 // (validateBlindSends, validateCommandBounds). The plan's own list is one;
-// each target of a run with a --cf folder has its own (TargetCommands).
+// each target of a run with a --cf folder has its own (TargetCommands), and
+// each platform of a crun that names no command (PlatformCommands).
 type CommandList struct {
 	Commands     []string        `json:"commands"`
 	BlindReturns []int           `json:"blind_returns"`
@@ -328,22 +339,29 @@ type CommandList struct {
 	TimeoutsNS   []int64         `json:"timeouts_ns"`
 	MaxBytes     []int64         `json:"max_bytes"`
 	SleepsNS     []int64         `json:"sleeps_ns"`
+	Sudo         []bool          `json:"sudo"`
 }
 
-// ownList is the plan's own list: Commands and its six fields.
+// NewCommandList is a list of commands with no declarations: each of its
+// lists present and empty.
+func NewCommandList(commands []string) CommandList {
+	return CommandList{Commands: commands, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}, SleepsNS: []int64{}, Sudo: []bool{}}
+}
+
+// ownList is the plan's own list: Commands and its seven fields.
 func (p *ExecutionPlan) ownList() CommandList {
-	return CommandList{Commands: p.Commands, BlindReturns: p.BlindReturns, Blind: p.Blind, Expectations: p.Expectations, TimeoutsNS: p.TimeoutsNS, MaxBytes: p.MaxBytes, SleepsNS: p.SleepsNS}
+	return CommandList{Commands: p.Commands, BlindReturns: p.BlindReturns, Blind: p.Blind, Expectations: p.Expectations, TimeoutsNS: p.TimeoutsNS, MaxBytes: p.MaxBytes, SleepsNS: p.SleepsNS, Sudo: p.Sudo}
 }
 
 // ListFor is the command list target runs: its own when the plan carries
-// one per target, else its platform's when the plan holds one (with no
-// declarations), else the plan's.
+// one per target, else its platform's when the plan holds one, else the
+// plan's.
 func (p *ExecutionPlan) ListFor(t *ExecutionTarget) CommandList {
 	if list, ok := p.TargetCommands[t.TargetID]; ok {
 		return list
 	}
 	if list, ok := p.PlatformCommands[t.Device.Platform]; ok {
-		return CommandList{Commands: list, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}, SleepsNS: []int64{}}
+		return list
 	}
 	return p.ownList()
 }
@@ -359,8 +377,8 @@ func (p *ExecutionPlan) CommandsFor(t *ExecutionTarget) []string {
 func (p *ExecutionPlan) CommandCount() int {
 	n := len(p.Commands)
 	for _, list := range p.PlatformCommands {
-		if len(list) > n {
-			n = len(list)
+		if len(list.Commands) > n {
+			n = len(list.Commands)
 		}
 	}
 	for _, list := range p.TargetCommands {
@@ -525,15 +543,8 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 	if err := p.validateTargetCommands(); err != nil {
 		return err
 	}
-	for name, list := range p.PlatformCommands {
-		if len(list) == 0 {
-			return planInvalid("platform_commands", "platform %s has an empty list", name)
-		}
-		for i, c := range list {
-			if strings.ContainsRune(c, 0) {
-				return planInvalid("platform_commands", "platform %s command %d contains a NUL byte", name, i+1)
-			}
-		}
+	if err := p.validatePlatformCommands(); err != nil {
+		return err
 	}
 	if len(p.Commands) == 0 && len(p.TargetCommands) == 0 {
 		for _, t := range p.Targets {
@@ -578,14 +589,13 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 			return planInvalid("output.collection.suffix", "%q %s", c.Suffix, problem)
 		}
 	}
-	own := p.ownList()
-	if err := own.validateBlindSends(""); err != nil {
-		return err
-	}
-	if err := own.validateCommandBounds(""); err != nil {
+	if err := p.ownList().validate(""); err != nil {
 		return err
 	}
 	if err := p.validateExecDeclarations(); err != nil {
+		return err
+	}
+	if err := p.validateShellSudo(); err != nil {
 		return err
 	}
 	if err := p.validateSessionInit(); err != nil {
@@ -694,6 +704,52 @@ func (p *ExecutionPlan) validateExecDeclarations() error {
 	return nil
 }
 
+// validateShellSudo refuses a root command (--sudo) for a target whose
+// channel is not exec: the shell form is not built (EXAMPLES chapter 96,
+// issue 1). The client refuses it at planning and the daemon's check
+// refuses a plan that carries it, naming the target and the command's
+// index.
+func (p *ExecutionPlan) validateShellSudo() error {
+	for _, t := range p.Targets {
+		if t.Channel == ChannelExec {
+			continue
+		}
+		list := p.ListFor(&t)
+		for i, root := range list.Sudo {
+			if root {
+				return fmt.Errorf("channel_shell_sudo_refused: %s: command %d is a --sudo command, and the target's platform runs it on a shell channel, which --sudo does not reach; use --cmd for it or a platform on the exec channel", t.Device.CanonicalName, i+1)
+			}
+		}
+	}
+	return nil
+}
+
+// validatePlatformCommands checks the lists per platform: each list's
+// commands present and free of NUL, its declarations under the plan's own
+// rules.
+func (p *ExecutionPlan) validatePlatformCommands() error {
+	names := make([]string, 0, len(p.PlatformCommands))
+	for name := range p.PlatformCommands {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		list, at := p.PlatformCommands[name], "platform_commands."+name+"."
+		if len(list.Commands) == 0 {
+			return planInvalid(at+"commands", "at least one command is required")
+		}
+		for i, c := range list.Commands {
+			if strings.ContainsRune(c, 0) {
+				return planInvalid(at+"commands", "command %d contains a NUL byte", i+1)
+			}
+		}
+		if err := list.validate(at); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // validateTargetCommands checks the lists per target: present for every
 // target or for none, none for a target the plan does not list, and with
 // them neither Commands nor platform lists; each list's commands present
@@ -730,12 +786,33 @@ func (p *ExecutionPlan) validateTargetCommands() error {
 				return planInvalid(at+"commands", "command %d contains a NUL byte", i+1)
 			}
 		}
-		if err := list.validateBlindSends(at); err != nil {
+		if err := list.validate(at); err != nil {
 			return err
 		}
-		if err := list.validateCommandBounds(at); err != nil {
-			return err
-		}
+	}
+	return nil
+}
+
+// validate checks a list's declarations: validateBlindSends,
+// validateCommandBounds, and validateSudo.
+func (l CommandList) validate(at string) error {
+	if err := l.validateBlindSends(at); err != nil {
+		return err
+	}
+	if err := l.validateCommandBounds(at); err != nil {
+		return err
+	}
+	return l.validateSudo(at)
+}
+
+// validateSudo checks the root commands' flags: present, empty or one per
+// command. at prefixes the field named.
+func (l CommandList) validateSudo(at string) error {
+	if l.Sudo == nil {
+		return planInvalid(at+"sudo", "must be present (empty allowed)")
+	}
+	if len(l.Sudo) != 0 && len(l.Sudo) != len(l.Commands) {
+		return planInvalid(at+"sudo", "%d entries for %d commands; empty or one per command", len(l.Sudo), len(l.Commands))
 	}
 	return nil
 }

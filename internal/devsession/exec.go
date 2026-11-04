@@ -18,8 +18,9 @@ import (
 // The exec channel's session. A device whose platform's channel is exec has
 // one connection for its command list, ready once it has authenticated, and
 // each command runs on an exec channel of its own, in order, without a pty
-// and with standard input at its end. There is no prompt, privilege step,
-// paging command, or exit command, and nothing carries between commands.
+// and with standard input at its end, but for a root command's password
+// (sudo.go). There is no prompt, privilege step, paging command, or exit
+// command, and nothing carries between commands.
 // Each stream settles as a shell's response does (settle.go): to memory up
 // to the spool threshold and then to a spool of its own, the limit counting
 // the two together; the platform's failure patterns are searched in both,
@@ -30,11 +31,12 @@ import (
 
 // ExecConn is one connection that runs commands on exec channels.
 type ExecConn interface {
-	// Start opens an exec channel and starts the command on it. Its error
-	// carries the transport's code: ssh_session_channel_refused for a
-	// device that refuses the channel, the connection's own when it is
-	// gone.
-	Start(command string) (ExecChannel, error)
+	// Start opens an exec channel and starts the command on it, its
+	// standard input at its end, or with input left open for the channel's
+	// Input. Its error carries the transport's code:
+	// ssh_session_channel_refused for a device that refuses the channel, the
+	// connection's own when it is gone.
+	Start(command string, input bool) (ExecChannel, error)
 	Close() error
 }
 
@@ -42,6 +44,9 @@ type ExecConn interface {
 type ExecChannel interface {
 	Stdout() io.Reader
 	Stderr() io.Reader
+	// Input is the command's standard input when Start left it open, nil
+	// when it did not; closing it ends the input.
+	Input() io.WriteCloser
 	// Wait returns how the command ended, once both streams have been read
 	// to their end: its exit status, nil when none came back, and the
 	// signal's name ("unnamed" where the transport names none, "" for
@@ -61,6 +66,10 @@ type ExecOptions struct {
 	InFlightBytes  *atomic.Int64
 	Debug          func(string)
 	Live           platform.Live // every byte of both streams, as settled (--live)
+	// SudoPassword delivers the password a root command's sudo asks for
+	// (the request's EnablePassword); nil sends sudo -n (EXAMPLES chapter
+	// 96). It reaches the command's input alone: no sink, Live, or Debug.
+	SudoPassword func(func([]byte) error) error
 }
 
 // ExecSession runs a device's commands on exec channels of its connection.
@@ -137,7 +146,16 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 	s.sent++
 	index, reused := s.sent, s.sent > 1
 	s.debugf("device session exec start sha256=%s bytes=%d index=%d", tag, len(command.Text), index)
-	ch, err := s.conn.Start(command.Text)
+	// A root command's prompt is its own, so that its sudo's prompt is
+	// told from anything the command writes.
+	wire, prompt := command.Text, ""
+	if command.Sudo {
+		if s.opts.SudoPassword != nil {
+			prompt = sudoPrompt()
+		}
+		wire = sudoWire(command.Text, prompt)
+	}
+	ch, err := s.conn.Start(wire, prompt != "")
 	if err != nil {
 		s.fail()
 		result := codedFailure(started, err)
@@ -207,8 +225,24 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 		return notices
 	}
 	result := platform.Result{ConnectionReused: &reused, StartedAt: started, Exec: &platform.ExecResult{}}
-	// handOver gives the result what each stream settled.
+	// A root command's sudo: its prompt taken out of stderr before the
+	// sinks and Live see it, the password written at the first, the input
+	// closed then or at a second, which is the refusal.
+	var filter *sudoFilter
+	if prompt != "" {
+		filter = newSudoFilter(prompt)
+	}
+	// handOver gives the result what each stream settled, a tail the
+	// filter held first: on a command given up it was no prompt either.
 	handOver := func() {
+		if filter != nil {
+			if held := filter.end(); len(held) > 0 {
+				if s.opts.Live != nil {
+					s.opts.Live.Write(held)
+				}
+				_ = sinks[1].write(held)
+			}
+		}
 		var out platform.Result
 		sinks[0].output(&out)
 		result.Output, result.Spool = out.Output, out.Spool
@@ -217,38 +251,98 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 		result.Exec.Stderr, result.Exec.StderrSpool = errOut.Output, errOut.Spool
 	}
 
+	input := ch.Input()
+	var inputOnce sync.Once
+	closeInput := func() {
+		if input != nil {
+			inputOnce.Do(func() { _ = input.Close() })
+		}
+	}
+	defer closeInput()
+	refused := false
+	answer := func() {
+		result.Exec.SudoPrompts++
+		if result.Exec.SudoPrompts > 1 {
+			refused = true
+			closeInput()
+			return
+		}
+		if input == nil {
+			return
+		}
+		// The password reaches the input alone, as the shell's enable
+		// secret reaches its stream: an error here names no byte of it, and
+		// the command's end says what came of it.
+		var werr error
+		if err := s.opts.SudoPassword(func(secret []byte) error {
+			werr = writeSecretLine(input, s.opts.Live, secret)
+			return nil
+		}); err != nil && werr == nil {
+			werr = err
+		}
+		closeInput()
+		if werr != nil {
+			s.debugf("device session sudo password not written sha256=%s error=%q", tag, errorcodes.Text(werr))
+		}
+	}
+	// settle hands a stream's bytes to Live and its sink; a write the limit
+	// or the spool refused stops the command.
+	settle := func(stream int, data []byte) error {
+		if len(data) == 0 {
+			return nil
+		}
+		if s.opts.Live != nil {
+			s.opts.Live.Write(data)
+		}
+		return sinks[stream].write(data)
+	}
+	refusedWrite := func(werr error) platform.Result {
+		result.Notices = stop()
+		result.EndedAt = time.Now()
+		var passed *limitError
+		if errors.As(werr, &passed) {
+			handOver()
+			result.ErrorCode, result.ErrorCategory, result.External = "output_limit_exceeded", "output", true
+			result.Err = fmt.Errorf("command output exceeded %d bytes%s across stdout and stderr, %d observed; the command was stopped", limit, platform.Named(limitSource), passed.observed)
+		} else {
+			sinks[0].discard()
+			sinks[1].discard()
+			result.ErrorCode, result.ErrorCategory = "output_spool_write_failed", "output"
+			result.Err = errors.New(errorcodes.Message(werr))
+		}
+		s.debugf("device session exec failed sha256=%s code=%s output_bytes=%d", tag, result.ErrorCode, shared)
+		return result
+	}
+
 	var readErr error
 	for open := 2; open > 0; {
 		select {
 		case c := <-chunks:
 			if c.err != nil {
+				if c.stream == 1 && filter != nil {
+					// The held tail was no prompt.
+					if werr := settle(1, filter.end()); werr != nil {
+						return refusedWrite(werr)
+					}
+				}
 				open--
 				if !errors.Is(c.err, io.EOF) && readErr == nil {
 					readErr = c.err
 				}
 				continue
 			}
-			if s.opts.Live != nil {
-				s.opts.Live.Write(c.data)
+			data := c.data
+			if c.stream == 1 && filter != nil {
+				var prompts int
+				data, prompts = filter.write(data)
+				for range prompts {
+					answer()
+				}
 			}
-			werr := sinks[c.stream].write(c.data)
+			werr := settle(c.stream, data)
 			settledOne[c.stream] <- struct{}{}
 			if werr != nil {
-				result.Notices = stop()
-				result.EndedAt = time.Now()
-				var passed *limitError
-				if errors.As(werr, &passed) {
-					handOver()
-					result.ErrorCode, result.ErrorCategory, result.External = "output_limit_exceeded", "output", true
-					result.Err = fmt.Errorf("command output exceeded %d bytes%s across stdout and stderr, %d observed; the command was stopped", limit, platform.Named(limitSource), passed.observed)
-				} else {
-					sinks[0].discard()
-					sinks[1].discard()
-					result.ErrorCode, result.ErrorCategory = "output_spool_write_failed", "output"
-					result.Err = errors.New(errorcodes.Message(werr))
-				}
-				s.debugf("device session exec failed sha256=%s code=%s output_bytes=%d", tag, result.ErrorCode, shared)
-				return result
+				return refusedWrite(werr)
 			}
 		case <-deadline.C:
 			result.ErrorCode, result.Err = "command_timeout", fmt.Errorf("command timed out after %s%s; the command was stopped and its channel closed", timeout, platform.Named(command.TimeoutSource))
@@ -308,6 +402,10 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 	}
 	result.Exec.ExitStatus, result.Exec.ExitSignal = x.status, x.signal
 	switch {
+	case refused:
+		// sudo asked again after the password: it refused it, and the
+		// command did not run. This outranks the exit status sudo gave.
+		result.ErrorCode, result.Err = "privilege_failed", errors.New("sudo asked for the password a second time, refusing the one given; the input was closed and the command did not run")
 	case x.signal != "":
 		result.ErrorCode, result.Err = "command_exit_signal", fmt.Errorf("ended by signal %s", x.signal)
 	case x.status == nil:

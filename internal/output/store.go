@@ -325,9 +325,9 @@ func (s *Store) Paths() Paths { return s.paths }
 
 // WriteCommands writes the job folder's copies of what each device is
 // sent, each a --cf file for a rerun (EXAMPLES chapter 79) in the commands
-// file's grammar (commandfile.Text: the \r endings and the sleeps written
-// back, chapter 96): commands.txt
-// for the plan's one list, commands.PLATFORM.txt for each platform's, and
+// file's grammar (commandfile.Text: the \r endings, the sleeps, and the
+// root commands written back, chapter 96): commands.txt for the plan's one
+// list, commands.PLATFORM.txt for each platform's, and
 // commands/NAME for each target's, NAME as a --cf folder's files are named
 // (FileName). Nothing is written when commands.txt is switched off, and
 // Paths names commands.txt only when it is written, the plan having one
@@ -338,11 +338,11 @@ func (s *Store) WriteCommands(plan *executionplan.ExecutionPlan) error {
 	}
 	if len(plan.Commands) == 0 {
 		s.paths.CommandsText = ""
-	} else if err := atomicBytes(s.paths.CommandsText, commandfile.Text(plan.Commands, plan.BlindReturns, plan.SleepsNS), osutil.OutputFileMode); err != nil {
+	} else if err := atomicBytes(s.paths.CommandsText, commandfile.Text(plan.Commands, plan.BlindReturns, plan.SleepsNS, plan.Sudo), osutil.OutputFileMode); err != nil {
 		return err
 	}
-	for name, commands := range plan.PlatformCommands {
-		if err := atomicBytes(filepath.Join(s.paths.Root, "commands."+name+".txt"), commandfile.Text(commands, nil, nil), osutil.OutputFileMode); err != nil {
+	for name, list := range plan.PlatformCommands {
+		if err := atomicBytes(filepath.Join(s.paths.Root, "commands."+name+".txt"), commandfile.Text(list.Commands, list.BlindReturns, list.SleepsNS, list.Sudo), osutil.OutputFileMode); err != nil {
 			return err
 		}
 	}
@@ -356,7 +356,7 @@ func (s *Store) WriteCommands(plan *executionplan.ExecutionPlan) error {
 	for i := range plan.Targets {
 		t := &plan.Targets[i]
 		list := plan.TargetCommands[t.TargetID]
-		if err := atomicBytes(filepath.Join(dir, FileName(t.Device.CanonicalName, s.crop)), commandfile.Text(list.Commands, list.BlindReturns, list.SleepsNS), osutil.OutputFileMode); err != nil {
+		if err := atomicBytes(filepath.Join(dir, FileName(t.Device.CanonicalName, s.crop)), commandfile.Text(list.Commands, list.BlindReturns, list.SleepsNS, list.Sudo), osutil.OutputFileMode); err != nil {
 			return err
 		}
 	}
@@ -882,9 +882,14 @@ func (s *Store) writeCollectionBlock(cf *collectionFile, name string, r *records
 		}
 	}
 	// Under crun.mask the marker's statement is masked by the device's
-	// platform's list, as the audit masks it.
+	// platform's list, as the audit masks it; a root command's is marked as
+	// a commands file writes it (! --sudo TEXT).
 	masks := s.masks[r.Platform]
-	if _, err := cf.w.WriteString("! " + platform.Mask(masks, r.Command) + "\n"); err != nil {
+	marker := "! "
+	if r.Root() {
+		marker += "--sudo "
+	}
+	if _, err := cf.w.WriteString(marker + platform.Mask(masks, r.Command) + "\n"); err != nil {
 		return err
 	}
 	// The platform's drop list, between the answer and the file (12.19

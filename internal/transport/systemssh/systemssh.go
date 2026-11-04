@@ -202,7 +202,7 @@ func (d *Driver) prepareExec(ctx context.Context) error {
 		return err
 	}
 	d.master = master
-	d.exec = devsession.OpenExec(&execConn{m: master}, devsession.ExecOptions{Definition: d.req.Definition, MaxOutputBytes: d.f.MaxOutputBytes, Spool: d.f.Spool.ForRequest(d.req), InFlightBytes: d.req.InFlightBytes, Debug: d.f.Debug, Live: d.req.Live})
+	d.exec = devsession.OpenExec(&execConn{m: master}, devsession.ExecOptions{Definition: d.req.Definition, MaxOutputBytes: d.f.MaxOutputBytes, Spool: d.f.Spool.ForRequest(d.req), InFlightBytes: d.req.InFlightBytes, Debug: d.f.Debug, Live: d.req.Live, SudoPassword: d.req.EnablePassword})
 	d.debugf("system SSH exec master ready pid=%d socket=%s auth=%q", master.cmd.Process.Pid, master.socket, master.lines.Method())
 	return nil
 }

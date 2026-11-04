@@ -379,8 +379,9 @@ func TestNoticesLeaveInSequence(t *testing.T) {
 
 // TestWriteCommands: the job folder's copies of what each device is sent
 // (EXAMPLES chapter 79), each a --cf file, one statement per line with its
-// blind returns written back as trailing \r and the sleep before it as a
-// --sleep line (chapter 96): commands.txt for one list,
+// blind returns written back as trailing \r, the sleep before it as a
+// --sleep line, and a root command as --sudo TEXT (chapter 96):
+// commands.txt for one list,
 // commands.PLATFORM.txt per platform, commands/NAME per target (NAME as a
 // --cf folder's, cropped); Paths names commands.txt only when it is
 // written, and nothing is written when commands.txt is switched off.
@@ -404,14 +405,14 @@ func TestWriteCommands(t *testing.T) {
 		return s
 	}
 	one := create("one", FileSet{})
-	if err := one.WriteCommands(&executionplan.ExecutionPlan{Commands: []string{"copy running-config startup-config", "show clock", "reload"}, BlindReturns: []int{1, 0, 2}, SleepsNS: []int64{0, int64(2 * time.Second), 0}}); err != nil {
+	if err := one.WriteCommands(&executionplan.ExecutionPlan{Commands: []string{"copy running-config startup-config", "show clock", "reload", "systemctl restart nginx"}, BlindReturns: []int{1, 0, 2, 0}, SleepsNS: []int64{0, int64(2 * time.Second), 0, 0}, Sudo: []bool{false, false, false, true}}); err != nil {
 		t.Fatal(err)
 	}
-	if got := read(one.Paths().CommandsText); got != "copy running-config startup-config\\r\n--sleep 2s\nshow clock\nreload\\r\\r\n" {
+	if got := read(one.Paths().CommandsText); got != "copy running-config startup-config\\r\n--sleep 2s\nshow clock\nreload\\r\\r\n--sudo systemctl restart nginx\n" {
 		t.Fatalf("one list: %q", got)
 	}
 	platforms := create("platforms", FileSet{})
-	if err := platforms.WriteCommands(&executionplan.ExecutionPlan{PlatformCommands: map[string][]string{"cisco_ios": {"show running-config", "show version"}, "juniper_junos": {"show configuration"}}}); err != nil {
+	if err := platforms.WriteCommands(&executionplan.ExecutionPlan{PlatformCommands: map[string]executionplan.CommandList{"cisco_ios": executionplan.NewCommandList([]string{"show running-config", "show version"}), "juniper_junos": executionplan.NewCommandList([]string{"show configuration"})}}); err != nil {
 		t.Fatal(err)
 	}
 	if got := read(filepath.Join(dir, "platforms", "commands.cisco_ios.txt")); got != "show running-config\nshow version\n" {
@@ -431,7 +432,7 @@ func TestWriteCommands(t *testing.T) {
 		Targets: []executionplan.ExecutionTarget{target("a", "core-nyc-01.example.net"), target("b", "10.1.2.3")},
 		TargetCommands: map[string]executionplan.CommandList{
 			"a": {Commands: []string{"show clock", "copy running-config startup-config"}, BlindReturns: []int{0, 1}, SleepsNS: []int64{0, int64(90 * time.Second)}},
-			"b": {Commands: []string{"show version"}},
+			"b": {Commands: []string{"show version", "iptables-save"}, Sudo: []bool{false, true}},
 		},
 	}
 	if err := targets.WriteCommands(plan); err != nil {
@@ -440,7 +441,7 @@ func TestWriteCommands(t *testing.T) {
 	if got := read(filepath.Join(dir, "targets", "commands", "core-nyc-01")); got != "show clock\n--sleep 1m30s\ncopy running-config startup-config\\r\n" {
 		t.Fatalf("core-nyc-01: %q", got)
 	}
-	if got := read(filepath.Join(dir, "targets", "commands", "10-1-2-3")); got != "show version\n" {
+	if got := read(filepath.Join(dir, "targets", "commands", "10-1-2-3")); got != "show version\n--sudo iptables-save\n" {
 		t.Fatalf("10-1-2-3: %q", got)
 	}
 	if targets.Paths().CommandsText != "" {
@@ -547,9 +548,9 @@ func TestCollectionFiles(t *testing.T) {
 }
 
 // TestCollectionExecBlocks: under exec a block is the marker, stdout, then
-// stderr; a non-zero exit leaves its error text in the block and the file
-// is replaced, the status staying in the record; a command ended by a
-// signal keeps the previous file.
+// stderr, a root command's marker ! --sudo TEXT; a non-zero exit leaves its
+// error text in the block and the file is replaced, the status staying in
+// the record; a command ended by a signal keeps the previous file.
 func TestCollectionExecBlocks(t *testing.T) {
 	dir := t.TempDir()
 	coll := filepath.Join(dir, "crun")
@@ -575,17 +576,19 @@ func TestCollectionExecBlocks(t *testing.T) {
 		return r
 	}
 	zero, one := 0, 1
+	root := rec("s1", "systemctl list-unit-files", "command_exit_nonzero", "", "System has not been booted with systemd as init system (PID 1). Can't operate.\n", 3, &one, nil)
+	root.Privilege = records.PrivilegeSudo
 	for _, r := range []*records.CommandRecord{
 		rec("s1", "uname -snrm", "", "Linux s1 6.8.0 x86_64\n", "", 1, &zero, nil),
 		rec("s1", "both", "", "to stdout\n", "to stderr", 2, &zero, nil),
-		rec("s1", "systemctl list-unit-files", "command_exit_nonzero", "", "System has not been booted with systemd as init system (PID 1). Can't operate.\n", 3, &one, nil),
+		root,
 	} {
 		if _, err := appendRecord(s, r); err != nil {
 			t.Fatal(err)
 		}
 	}
 	s.EndDevice("s1")
-	want := "! uname -snrm\nLinux s1 6.8.0 x86_64\n\n! both\nto stdout\nto stderr\n\n! systemctl list-unit-files\nSystem has not been booted with systemd as init system (PID 1). Can't operate.\n"
+	want := "! uname -snrm\nLinux s1 6.8.0 x86_64\n\n! both\nto stdout\nto stderr\n\n! --sudo systemctl list-unit-files\nSystem has not been booted with systemd as init system (PID 1). Can't operate.\n"
 	if got, err := os.ReadFile(filepath.Join(coll, "s1")); err != nil || string(got) != want {
 		t.Fatalf("s1: %q %v", got, err)
 	}

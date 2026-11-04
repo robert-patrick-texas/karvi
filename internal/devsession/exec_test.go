@@ -40,7 +40,7 @@ type fakeRun struct {
 
 func code(n int) *int { return &n }
 
-func (f *fakeExec) Start(command string) (ExecChannel, error) {
+func (f *fakeExec) Start(command string, _ bool) (ExecChannel, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.startErr != nil {
@@ -77,8 +77,9 @@ type fakeChannel struct {
 	stop           func()
 }
 
-func (c *fakeChannel) Stdout() io.Reader { return c.stdout }
-func (c *fakeChannel) Stderr() io.Reader { return c.stderr }
+func (c *fakeChannel) Stdout() io.Reader     { return c.stdout }
+func (c *fakeChannel) Input() io.WriteCloser { return nil }
+func (c *fakeChannel) Stderr() io.Reader     { return c.stderr }
 func (c *fakeChannel) Wait() (*int, string, error) {
 	return c.run.status, c.run.signal, c.run.waitErr
 }

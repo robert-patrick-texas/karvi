@@ -116,7 +116,7 @@ func WriteTextBlock(w io.Writer, r *records.CommandRecord, src Source) error {
 	first := r.PromptBefore + r.Command
 	sent := r.PromptBefore != ""
 	if r.Channel == records.ChannelExec {
-		first, sent = records.ExecPrompt(r.Device.CanonicalName)+r.Command, r.Ran()
+		first, sent = records.ExecPrompt(r.Device.CanonicalName, r.Root())+r.Command, r.Ran()
 	}
 	if !sent {
 		first = "! not sent: " + r.Command

@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -37,8 +38,9 @@ func TestAuditIdentity(t *testing.T) {
 // TestCommandEvent: a device command's event is <kind>.command under the
 // record's job ID, a cmd's as a run's, with the device, the operator's login user, the
 // kind as its mode, the statement as sent, and the process that wrote it, as
-// the job's other events name it; the sink stamps the audit's schema
-// version, and the line keeps to the published schema.
+// the job's other events name it, and a root command's privilege (sudo),
+// absent for any other; the sink stamps the audit's schema version, and the
+// lines keep to the published schema.
 func TestCommandEvent(t *testing.T) {
 	home := t.TempDir()
 	file := filepath.Join(home, "audit.jsonl")
@@ -51,12 +53,21 @@ func TestCommandEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 	e := &DeviceExecutor{opts: Options{Config: cfg, Audit: sink, Kind: "cmd", Operator: credentials.Operator{Username: "tester", UID: 1001, LoginUser: "tester.login"}}}
-	e.afterRecord(records.CommandRecord{RecordID: "r1", JobID: "261017-101500-00", ActivityID: "261017-101500-00", ActivityType: "command", Command: "show clock", Status: "success", Operator: records.Operator{Username: "tester", UID: 1001}, Device: records.DeviceProjection{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe"}, Platform: "cisco_ios"}, output.Source{})
+	rec := records.CommandRecord{RecordID: "r1", JobID: "261017-101500-00", ActivityID: "261017-101500-00", ActivityType: "command", Command: "show clock", Status: "success", Operator: records.Operator{Username: "tester", UID: 1001}, Device: records.DeviceProjection{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe"}, Platform: "cisco_ios"}
+	e.afterRecord(rec, output.Source{})
+	root := rec
+	root.RecordID, root.Command, root.Privilege, root.Platform = "r2", "systemctl restart nginx", records.PrivilegeSudo, "linux"
+	e.afterRecord(root, output.Source{})
 	sink.Close()
-	data, err := os.ReadFile(file)
+	all, err := os.ReadFile(file)
 	if err != nil {
 		t.Fatal(err)
 	}
+	lines := bytes.Split(bytes.TrimSuffix(all, []byte("\n")), []byte("\n"))
+	if len(lines) != 2 {
+		t.Fatalf("events %s", all)
+	}
+	data := lines[0]
 	var line struct {
 		SchemaVersion int                  `json:"schema_version"`
 		EventName     string               `json:"event_name"`
@@ -72,8 +83,14 @@ func TestCommandEvent(t *testing.T) {
 	if line.SchemaVersion != records.AuditSchemaVersion || line.Process["pid"] != float64(os.Getpid()) {
 		t.Fatalf("schema_version %d, process %v", line.SchemaVersion, line.Process)
 	}
-	if line.EventName != "cmd.command" || line.JobID != "261017-101500-00" || line.LoginUser != "tester.login" || line.Action["mode"] != "cmd" || line.Action["command"] != "show clock" || line.Device == nil || *line.Device != (records.AuditDevice{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe", Platform: "cisco_ios"}) {
+	if _, ok := line.Action["privilege"]; ok || line.EventName != "cmd.command" || line.JobID != "261017-101500-00" || line.LoginUser != "tester.login" || line.Action["mode"] != "cmd" || line.Action["command"] != "show clock" || line.Device == nil || *line.Device != (records.AuditDevice{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe", Platform: "cisco_ios"}) {
 		t.Fatalf("event %s", data)
 	}
-	canarytest.SchemaParityLines(t, "../../schema/audit.schema.json", data)
+	var rootLine struct {
+		Action map[string]any `json:"action"`
+	}
+	if err := json.Unmarshal(lines[1], &rootLine); err != nil || rootLine.Action["privilege"] != "sudo" || rootLine.Action["command"] != "systemctl restart nginx" {
+		t.Fatalf("root command's event %s (%v)", lines[1], err)
+	}
+	canarytest.SchemaParityLines(t, "../../schema/audit.schema.json", all)
 }

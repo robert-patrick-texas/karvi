@@ -211,10 +211,13 @@ func (d *Definition) Validate() error {
 }
 
 type OpenRequest struct {
-	Address        string
-	Port           uint16
-	Username       string
-	Password       func(func([]byte) error) error
+	Address  string
+	Port     uint16
+	Username string
+	Password func(func([]byte) error) error
+	// EnablePassword delivers the enable secret a shell session's privilege
+	// step sends, and on an exec channel the password a --sudo command's
+	// sudo asks for (EXAMPLES chapter 96); nil for none.
 	EnablePassword func(func([]byte) error) error
 	// Keys are the private key files the credential offers, in order, by
 	// path: the connecting process reads each at the connection. A request
@@ -289,6 +292,10 @@ const (
 // too. Over telnet a declared timeout replaces telnet.read-timeout. MaxBytes
 // is the command's own byte limit (--maxbytes), 0 for the session's; Limit
 // resolves the two.
+//
+// Sudo runs the command as root (--sudo), on an exec channel alone: the
+// session sends it under sudo with the password the request carries, or
+// with none (EXAMPLES chapter 96). Text stays the command as written.
 type Command struct {
 	Text          string
 	Timeout       time.Duration
@@ -297,6 +304,7 @@ type Command struct {
 	Blind         bool
 	BlindReturns  int
 	Expectations  []Expectation
+	Sudo          bool
 }
 
 // The sources of a command's own bounds, as the messages name them.
@@ -391,11 +399,14 @@ type Result struct {
 // Output or Spool): stderr, in memory or in its own spool, and how the
 // command ended. ExitStatus is nil when no status came back; ExitSignal is
 // the signal's name, "unnamed" where the transport names none, "" for none.
+// SudoPrompts counts a root command's sudo prompts, taken out of stderr: 0
+// none (no password, or none asked), 1 answered, 2 refused.
 type ExecResult struct {
 	Stderr      []byte
 	StderrSpool *Spool
 	ExitStatus  *int
 	ExitSignal  string
+	SudoPrompts int
 }
 
 // SetupLine is one statement of karvi's own session set-up (the escalate
