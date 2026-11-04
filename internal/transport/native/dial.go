@@ -249,6 +249,9 @@ func (c *connection) open() error {
 		_ = raw.Close()
 		return c.handshakeError(target, req.Port, err)
 	}
+	if m, ok := sshConn.(ssh.AlgorithmsConnMetadata); ok {
+		c.debugf("native SSH connection negotiated target=%q address=%s %s", req.Host, target, negotiated(m.Algorithms()))
+	}
 	client := ssh.NewClient(sshConn, channels, requests)
 	c.mu.Lock()
 	c.client = client
@@ -486,6 +489,29 @@ func xcryptoImplements(kind sshalgorithms.Kind, name string) bool {
 		return slices.Contains(config.MACs, name)
 	}
 	return false
+}
+
+// negotiated names the algorithms a completed handshake chose, for the debug
+// line after it (EXAMPLES chapter 94): the key exchange, the host-key
+// algorithm, the cipher, and the MAC. A cipher or MAC whose two directions
+// differ is written to-device/from-device, and an AEAD cipher's MAC, which
+// x/crypto leaves empty, is <implicit>, as OpenSSH's -v writes it. A failed
+// handshake returns no connection, so it names none; a device's choice is the
+// same at every connection, so its next completed one names it.
+func negotiated(a ssh.NegotiatedAlgorithms) string {
+	pair := func(toDevice, fromDevice string) string {
+		if toDevice == fromDevice {
+			return toDevice
+		}
+		return toDevice + "/" + fromDevice
+	}
+	mac := func(d ssh.DirectionAlgorithms) string {
+		if d.MAC == "" {
+			return "<implicit>"
+		}
+		return d.MAC
+	}
+	return fmt.Sprintf("kex=%s hostkey=%s cipher=%s mac=%s", a.KeyExchange, a.HostKey, pair(a.Write.Cipher, a.Read.Cipher), pair(mac(a.Write), mac(a.Read)))
 }
 
 func (c *connection) handshakeError(target string, port int, err error) error {

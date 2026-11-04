@@ -20347,3 +20347,117 @@ packages). The full battery runs at the end of the session's second section.
 The evidence is kept beside the tree (`release-design-evidence/stdin-device-chapter-93/`:
 `ex93.sh` and its output on the lab build and on the released 0.39.0, and the
 k03 run).
+
+## 94. The negotiated SSH algorithms in `--debug` (2026-11-03)
+
+Operators on the production network reported that `run` against three
+Catalyst switches failed at times and worked at others, with the same
+command, device, and credential (the report renamed: devices, addresses, and
+user fictional):
+
+```text
+$ k r -t=switch1 -c="show clock"
+! switch1 [192.0.2.56] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+karvi: target=switch1 status=connection_error error=native_session_open_failed: SSH handshake with 192.0.2.56:22: ssh: handshake failed: cipher: message authentication failed
+! exit=101 elapsed=262ms artifacts=…
+
+$ k r -t=switch1 -c="show clock"
+! switch1 [192.0.2.56] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+13:31:48.974 EST Tue Nov 3 2026
+! exit=0 elapsed=2.55s artifacts=…
+```
+
+The two other switches failed with `ssh: invalid packet length, packet too
+large`; four runs of eleven failed. Read against the vendored x/crypto, a
+failure comes after the device's host-key signature verified and after both
+sides sent `NEWKEYS`: the device's first encrypted packet does not decrypt, so
+the two sides agreed on the exchange hash and derived different keys. The two
+messages are one fault through two ciphers: AES-GCM's tag check
+(`cipher.go`'s `aead.Open`), and a cipher that encrypts the length field,
+where wrong keys give a random length. What changes from one connection to
+the next is the key exchange's random values alone, the mark of a shared
+secret one side encodes otherwise for some values. karvi's `kex` list puts
+`ecdh-sha2-nistp521` before the 384 and 256 curves, where OpenSSH and
+x/crypto put 256 first, so a switch without curve25519 likely meets karvi on a
+key exchange other clients do not choose; but `--debug` named only what karvi
+offered, not what was chosen. On the operator's word, as recommended, the
+native transport names its choice.
+
+**What it gains.** One `--debug` run names the key exchange, host-key
+algorithm, cipher, and MAC a device and karvi use, which is the question an
+intermittent failure after the key exchange asks first, and what a vendor case
+needs. It waits on nothing: x/crypto keeps the choice on the connection
+(`AlgorithmsConnMetadata`).
+
+**The rule, as agreed.** After a completed handshake, one line: `native SSH
+connection negotiated target=… address=… kex=… hostkey=… cipher=… mac=…`; an
+AEAD cipher's MAC, which x/crypto leaves empty, is `<implicit>`, as OpenSSH's
+`-v` writes it; a cipher or MAC whose two directions differ is
+`to-device/from-device`, one name when they agree. A failed handshake prints
+none: x/crypto returns no connection, and a device's choice is the same at
+every connection, so its next completed one names what the failed one used.
+The system transport is unchanged.
+
+**The executed example.** The lab build against `karvi-fake-device` limited
+to the lists named (`ex94.sh`; debug lines other than the new one left out):
+
+```text
+== a device offering ecdh-sha2-nistp521 and AES-GCM (fake: -kex ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256 -ciphers aes256-gcm@openssh.com,aes256-ctr)
+$ karvi --debug command --transport native --address 127.0.0.1 --port $PORT --pi router1 show clock
+exit 0
+19:50:50 2026-11-03 DEBUG native SSH connection negotiated target="router1" address=127.0.0.1:46739 kex=ecdh-sha2-nistp521 hostkey=ssh-ed25519 cipher=aes256-gcm@openssh.com mac=<implicit>
+
+== a device offering AES-CTR and plain HMACs (fake: -kex ecdh-sha2-nistp256 -ciphers aes256-ctr -macs hmac-sha2-512,hmac-sha2-256)
+$ karvi --debug command --transport native --address 127.0.0.1 --port $PORT --pi router1 show clock
+exit 0
+19:50:50 2026-11-03 DEBUG native SSH connection negotiated target="router1" address=127.0.0.1:38379 kex=ecdh-sha2-nistp256 hostkey=ssh-ed25519 cipher=aes256-ctr mac=hmac-sha2-512
+
+== a device with no cipher in common (fake: -ciphers aes128-cbc)
+$ karvi --debug command --transport native --address 127.0.0.1 --port $PORT --pi router1 show clock
+exit 110
+(no negotiated line)
+ssh_algorithm_negotiation_failed: command failed for name:router1
+```
+
+The first device offers the three curves, and karvi chooses P-521, its own
+first in common. A device whose directions differ is
+not in the fake (it offers one list for both); `TestNegotiatedDirections`
+covers the form.
+
+**What it leaves.** The fault's key exchange is the operators' to find on the
+production network: `--set 'ssh-algorithms.kex=["NAME"]'` before the command
+word pins one, and twenty runs of each of `ecdh-sha2-nistp521`,
+`ecdh-sha2-nistp384`, `ecdh-sha2-nistp256`, and
+`diffie-hellman-group14-sha256` against each switch tell which fails; a key
+exchange failing half its runs leaves twenty clean ones about one chance in a
+million. The same pin over `--transport system` tells a device fault, which
+OpenSSH meets as well (`Corrupted MAC on input`, `message authentication code
+incorrect`, `Bad packet length`), from x/crypto's. Whether the default `kex`
+order should put the 256 curve first, as OpenSSH does, waits on that result;
+until then, an `[ssh-algorithms-profile.NAME]` for the switches leaves the
+faulty key exchange out. [`docs/SSH-TROUBLE.md`](SSH-TROUBLE.md) section 3
+carries the recipe.
+
+**Not taken.** The device's offer read from the wire, its `KEXINIT` in clear
+before the keys change, and x/crypto's choice repeated in karvi: it would name
+a failed handshake's choice, at the price of a second negotiation to keep in
+step with x/crypto's. x/crypto's `AuthCallback`, which sees the choice before
+authentication and so would name it on an authentication failure too, where it
+does not matter, at the price of a second path, since a server that accepts
+`none` never calls it.
+OpenSSH's log level raised under `--debug` for the system transport: its
+`debug1` lines name the choice, but karvi classifies OpenSSH's standard error
+at `VERBOSE`. The choice in the command record: not asked; the debug line is
+the operator's when wanted. An automatic retry of the handshake: it would hide
+a device fault that half the connections meet.
+
+**Checks.** `TestDialNamesTheNegotiatedAlgorithms` against the fake (GCM,
+CTR with a plain MAC, and a handshake that fails naming none) and
+`TestNegotiatedDirections`; gofmt, `go vet ./...`, `make generated-clean`, the
+whole tree's `go test` (73 packages), and the full battery on both sections:
+`scripts/verify-release.sh` in a copy of the tree, so that its build left the
+released `bin/` as it was (the Go tests, the race tests, and every suite,
+k03's new cases among them), passed in 11 minutes, the host clean after it.
+
+The evidence is kept beside the tree (`release-design-evidence/negotiated-debug-chapter-94/`:
+`ex94.sh` and its output on the lab build, and the session's battery).

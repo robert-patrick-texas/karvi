@@ -17,6 +17,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/hostkey"
 	"github.com/robert-patrick-texas/karvi/internal/sshalgorithms"
 	"github.com/robert-patrick-texas/karvi/platform"
+	"golang.org/x/crypto/ssh"
 )
 
 func startFake(t *testing.T, opts fakedevice.Options) *fakedevice.Server {
@@ -474,5 +475,60 @@ func TestDialAlgorithmLists(t *testing.T) {
 		if errorcodes.Of(err) != c.code || !strings.Contains(err.Error(), c.detail) {
 			t.Fatalf("%s: %v", c.name, err)
 		}
+	}
+}
+
+// TestDialNamesTheNegotiatedAlgorithms: the debug line after the handshake
+// names the key exchange, host-key algorithm, cipher, and MAC both sides use
+// (EXAMPLES chapter 94), an AEAD cipher's MAC as <implicit>; a handshake that
+// fails names none.
+func TestDialNamesTheNegotiatedAlgorithms(t *testing.T) {
+	absent := filepath.Join(t.TempDir(), "absent")
+	for _, c := range []struct {
+		name   string
+		device fakedevice.Options
+		want   string
+	}{
+		{"GCM", fakedevice.Options{KeyExchanges: []string{"ecdh-sha2-nistp256"}, Ciphers: []string{"aes256-gcm@openssh.com"}}, "kex=ecdh-sha2-nistp256 hostkey=ssh-ed25519 cipher=aes256-gcm@openssh.com mac=<implicit>"},
+		{"CTR", fakedevice.Options{KeyExchanges: []string{"ecdh-sha2-nistp521"}, Ciphers: []string{"aes256-ctr"}, MACs: []string{"hmac-sha2-256"}}, "kex=ecdh-sha2-nistp521 hostkey=ssh-ed25519 cipher=aes256-ctr mac=hmac-sha2-256"},
+		{"no cipher in common", fakedevice.Options{Ciphers: []string{"aes128-cbc"}}, ""},
+	} {
+		srv := startFake(t, c.device)
+		req := dialRequest(srv, hostkey.Insecure, absent)
+		var lines []string
+		req.Debug = func(line string) { lines = append(lines, line) }
+		s, err := Dial(context.Background(), req)
+		if err == nil {
+			s.(devsession.Aborter).Abort() // no logout grace: the line is all the test reads
+		}
+		var got []string
+		for _, line := range lines {
+			if strings.HasPrefix(line, "native SSH connection negotiated ") {
+				got = append(got, line)
+			}
+		}
+		if c.want == "" {
+			if err == nil || len(got) != 0 {
+				t.Errorf("%s: err %v, negotiated lines %q; want a failure and none", c.name, err, got)
+			}
+			continue
+		}
+		want := fmt.Sprintf("native SSH connection negotiated target=%q address=127.0.0.1:%d %s", "fake-iosxe", srv.Port(), c.want)
+		if err != nil || len(got) != 1 || got[0] != want {
+			t.Errorf("%s: err %v, negotiated lines %q, want %q", c.name, err, got, want)
+		}
+	}
+}
+
+// TestNegotiatedDirections: a cipher or MAC whose directions differ is
+// written to-device/from-device, and an empty MAC is <implicit>.
+func TestNegotiatedDirections(t *testing.T) {
+	got := negotiated(ssh.NegotiatedAlgorithms{
+		KeyExchange: "curve25519-sha256", HostKey: "rsa-sha2-512",
+		Write: ssh.DirectionAlgorithms{Cipher: "aes256-ctr", MAC: "hmac-sha2-256"},
+		Read:  ssh.DirectionAlgorithms{Cipher: "aes256-gcm@openssh.com"},
+	})
+	if want := "kex=curve25519-sha256 hostkey=rsa-sha2-512 cipher=aes256-ctr/aes256-gcm@openssh.com mac=hmac-sha2-256/<implicit>"; got != want {
+		t.Errorf("got  %q\nwant %q", got, want)
 	}
 }

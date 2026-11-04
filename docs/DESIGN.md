@@ -1528,6 +1528,22 @@ list's source chosen apart; `/etc/ssh/ssh_config` read under the setting
 ([`docs/EXAMPLES.md`, chapter
 54](EXAMPLES.md#54-the-transports-own-ssh-algorithm-lists-2026-10-10)).
 
+**`--debug` names what the native handshake chose.** Once its handshake
+completes, the native transport writes `native SSH connection negotiated`
+with the key exchange, the host-key algorithm, the cipher, and the MAC (`kex=`,
+`hostkey=`, `cipher=`, `mac=`), from x/crypto's own record of them; an AEAD
+cipher's MAC is `<implicit>`, as OpenSSH's `-v` writes it, and a cipher or MAC
+whose directions differ is `to-device/from-device`. A failed handshake names
+none: the device's choice is the same at every connection, so a completed one
+names what a failed one used. The system transport is unchanged; OpenSSH at
+`-vvv` names its choice ([`docs/SSH-TROUBLE.md`](SSH-TROUBLE.md), section 1).
+*Why:* the line before named only karvi's offer, and an intermittent failure
+just after the key exchange turns on what was chosen. *Not taken:* the
+device's offer read from the wire and x/crypto's choice repeated in karvi,
+which would name a failed handshake's; OpenSSH's log level raised under
+`--debug`, which changes the standard error karvi classifies; the line in the
+command record ([`docs/EXAMPLES.md`, chapter 94](EXAMPLES.md#94-the-negotiated-ssh-algorithms-in---debug-2026-11-03)).
+
 ## 7. The plan, the daemon, and the credential channel
 
 **The client plans; the daemon validates and executes.** The client owns

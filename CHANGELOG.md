@@ -25,6 +25,17 @@
   may not give `-` to `--target` or `--tl`, and `job list --target -` is
   refused (`target_source_stdin_invalid`), its `--target` being a filter of
   jobs. A device named `-` is reached through a target file alone.
+- **`--debug` names the SSH algorithms the native transport negotiated.** Once
+  its handshake completes, the native transport writes `native SSH connection
+  negotiated target=… address=… kex=… hostkey=… cipher=… mac=…`: the key
+  exchange, host-key algorithm, cipher, and MAC both sides use, an AEAD
+  cipher's MAC as `<implicit>`, as OpenSSH's `-v` writes it, and a cipher or
+  MAC whose two directions differ as `to-device/from-device`. The line before
+  it names only what karvi offered. A handshake that fails names none; a
+  device chooses the same at every connection, so its next completed one
+  names it. The system transport is unchanged.
+  [`docs/SSH-TROUBLE.md`](docs/SSH-TROUBLE.md) section 3 adds how to find the
+  key exchange at fault in a failure only some connections meet.
 
 ## 0.39.0 - 2026-11-02
 

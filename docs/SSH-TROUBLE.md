@@ -106,7 +106,16 @@ method that authenticated; and it detects the prompt, a missing one being
 none. `native` is karvi's own x/crypto connection, another SSH stack altogether:
 when it reaches the prompt and `system` does not, the difference is OpenSSH's or
 the generated configuration's, and a plain `ssh -vvv` beside `ssh -vvv -F` a
-copy of karvi's configuration finds the setting. `--set
+copy of karvi's configuration finds the setting. Under `--debug`, `native` names
+what its handshake chose once it completes: `native SSH connection negotiated
+target=… address=… kex=… hostkey=… cipher=… mac=…`. A handshake that fails
+names none, but a device chooses the same at every connection, so a completed
+one names what a failed one used. A failure that only some connections meet,
+`cipher: message authentication failed` or `invalid packet length` just after
+the key exchange, is the device and karvi deriving different keys: `--set
+'ssh-algorithms.kex=["NAME"]'` before the command word pins one key exchange,
+and twenty runs of each candidate tell the one at fault ([`docs/EXAMPLES.md`,
+chapter 94](EXAMPLES.md#94-the-negotiated-ssh-algorithms-in---debug-2026-11-03)). `--set
 'ssh-algorithms.source="transport"'` takes karvi's key exchange, cipher, and MAC
 lists out of the comparison: a device that connects under it and fails without
 is refused by karvi's lists, and the failure's `karvi offered` against `the
