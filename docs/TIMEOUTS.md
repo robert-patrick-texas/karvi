@@ -25,6 +25,7 @@ grace).
 | `execution.command-timeout` (`KARVI__EXECUTION__COMMAND_TIMEOUT`) | 120s | 1s–12h | each requested command |
 | `[session-init.NAME] command-timeout` | unset: `execution.command-timeout` | | each command of that session-init profile |
 | `--timeout DURATION`, a declaration on one requested command | unset: `execution.command-timeout` | 1s–12h, when parsed; at most a set `execution.device-timeout`, at planning (`timeout_over_device_timeout`); refused on a blind command (`timeout_with_blind`) | that command, in place of `execution.command-timeout` and over telnet of `telnet.read-timeout` too |
+| `--sleep DURATION`, a source in the command order | none | 1s–12h, when parsed; the device's total at most a set `execution.device-timeout`, at planning (`sleep_over_device_timeout`) | the wait before the next requested command, under what remains of `execution.device-timeout`; a cancel ends it ([`docs/COMMAND-SESSION.md`](COMMAND-SESSION.md#sleeps-between-commands)) |
 | `execution.device-timeout` (`KARVI__EXECUTION__DEVICE_TIMEOUT`) | 0s (unbounded) | 0, or 1s–168h | one device's whole command list, the session-init profile and the requested commands, from the prepared session |
 | `ssh.server-alive-interval` (`KARVI__SSH__SERVER_ALIVE_INTERVAL`), `ssh.server-alive-count-max` (`KARVI__SSH__SERVER_ALIVE_COUNT_MAX`) | 15s, 3 | 0 disables, else 1s–10m; 1–100 | `system`: OpenSSH `ServerAliveInterval` (whole seconds, rounded up) and `ServerAliveCountMax` |
 | `native-ssh.keepalive-interval` (`KARVI__NATIVE_SSH__KEEPALIVE_INTERVAL`), `native-ssh.keepalive-count-max` (`KARVI__NATIVE_SSH__KEEPALIVE_COUNT_MAX`) | 15s, 3 | 0 disables, else 1s–10m; 1–100 | `native`: karvi's `keepalive@openssh.com` requests |
@@ -43,9 +44,10 @@ The invocation's values bound its job on every path. A job runs under its
 client's configuration, which reaches the daemon in the plan's `configuration`
 block, so every key on this page, the connect and handshake timeouts and the
 keepalives among them, is the invocation's; the plan carries each command's
-`--timeout` in `timeouts_ns` (0 for the key's), and the daemon's own values for
-these keys bound no job. A daemon's plan check refuses a negative or miscounted
-`timeouts_ns`; the client's load has checked every key's range.
+`--timeout` in `timeouts_ns` (0 for the key's) and its `--sleep` in `sleeps_ns`
+(0 none), and the daemon's own values for these keys bound no job. A daemon's
+plan check refuses a negative or miscounted `timeouts_ns` or `sleeps_ns`; the
+client's load has checked every key's range.
 
 ## 2. How the values relate
 

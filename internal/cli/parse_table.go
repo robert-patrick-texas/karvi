@@ -38,6 +38,7 @@ const (
 	roleTargetInput         // --tf, --tfr, --site, --device-group, --all: other target inputs
 	roleCmd                 // --cmd: explicit device command
 	roleCf                  // --cf: commands file
+	roleSleep               // --sleep: a wait before the next command, a source in the order
 	roleDeclaration         // --expect, --blind, --blind-return, --timeout, --maxbytes: attach to the preceding --cmd
 )
 
@@ -127,6 +128,7 @@ var (
 	optOrder   = enumOpt("order", "default", "sorted", "shuffle", "random") // sets dispatch.order through the lock-aware flag layer
 	optCmd     = valueOpt("cmd", "TEXT", "command", "c").repeatable().as(roleCmd)
 	optCf      = valueOpt("cf", "PATH|-").as(roleCf)
+	optSleep   = durationOpt("sleep").repeatable().as(roleSleep)
 	// --platform names the platform definition the activity's devices run
 	// as, in login, command, and run alike; selecting inventory devices by
 	// their platform is --select-platform, a target input at its position
@@ -333,7 +335,7 @@ var commandTable = []*command{
 	{path: "login", word: "login", aliases: []string{"l"}, shape: shapePlain, maxPos: -1, help: func() string { return loginHelp },
 		options: []*option{optPlatform, optPI, optPN, optPR, optPJ, optPA, optPL, optPS, optPG, optTarget, optTf, optTfr, optExclude, optSite, optGroup, optSelectPlatform, optAll, optOrder, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optRecord, optSSHOption, optQuiet, optDebug, optIPv4, optIPv6, optPing, optNoPing, optNoCredh, optAddrAuthority, optHelp}},
 	{path: "command", word: "command", aliases: []string{"cmd", "c"}, shape: shapeFreeformDevice, help: func() string { return commandHelp },
-		options: []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optCf, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPL, optPS, optPG, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optFormat, optEcho, optLive, optBorder, optNoBorder, optQuiet, optDebug, optContinue, optExpect, optBlind, optBlindReturn, optTimeout, optMaxBytes, optBlindWait, optLiteral, optNof, optOf, optCd, optFs, optIPv4, optIPv6, optPing, optNoPing, optNoCredh, optAddrAuthority, optHelp}},
+		options: []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optCf, optSleep, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPL, optPS, optPG, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optFormat, optEcho, optLive, optBorder, optNoBorder, optQuiet, optDebug, optContinue, optExpect, optBlind, optBlindReturn, optTimeout, optMaxBytes, optBlindWait, optLiteral, optNof, optOf, optCd, optFs, optIPv4, optIPv6, optPing, optNoPing, optNoCredh, optAddrAuthority, optHelp}},
 	{path: "run", word: "run", aliases: []string{"r"}, shape: shapeFreeform, help: runHelpText, options: runOptions},
 	// stream, s, or -, reads a run line by line from standard input: the
 	// lines carry run's options and the commands; the word itself takes
@@ -401,4 +403,4 @@ func lookupCommand(path string) *command {
 }
 
 // runOptions is run's option slice, shared with crun.
-var runOptions = []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optCf, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPL, optPS, optPG, optDispatch, optDP, optDW, optDS, optWorkers, optStartWidth, optMaxWidth, optHaltCount, optHaltPercent, optGateCount, optGatePercent, optWaveDelay, optContinue, optExpect, optBlind, optBlindReturn, optTimeout, optMaxBytes, optBlindWait, optLiteral, optTransport, optHostKeyPolicy, optKnownHosts, optAddress, optFormat, optEcho, optLive, optBorder, optNoBorder, optNoDaemon, optNof, optOf, optCd, optFs, optDetach, optFollow, optDryRun, optExercise, optDebug, optIPv4, optIPv6, optPing, optNoPing, optNoCredh, optAddrAuthorityRun, optHelp}
+var runOptions = []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optCf, optSleep, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPL, optPS, optPG, optDispatch, optDP, optDW, optDS, optWorkers, optStartWidth, optMaxWidth, optHaltCount, optHaltPercent, optGateCount, optGatePercent, optWaveDelay, optContinue, optExpect, optBlind, optBlindReturn, optTimeout, optMaxBytes, optBlindWait, optLiteral, optTransport, optHostKeyPolicy, optKnownHosts, optAddress, optFormat, optEcho, optLive, optBorder, optNoBorder, optNoDaemon, optNof, optOf, optCd, optFs, optDetach, optFollow, optDryRun, optExercise, optDebug, optIPv4, optIPv6, optPing, optNoPing, optNoCredh, optAddrAuthorityRun, optHelp}

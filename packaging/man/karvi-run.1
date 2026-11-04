@@ -79,6 +79,15 @@ file's (a device without one refuses the
 run)
 .TP
 \fB\-\-cmd\fR \fIand\fR \fB\-\-cf\fR \fImix\fR, \fIsent\fR \fIin\fR \fIthe\fR \fIorder\fR \fIgiven.\fR
+.TP
+\fB\-\-sleep\fR \fIDURATION\fR
+Wait DURATION (1s..12h) before the next
+command, once the one before it returns;
+repeatable, in the order given, a command
+after the last; a \-\-cf line that is \-\-sleep
+DURATION alone is the same; the sleeps'
+total not above a set
+execution.device\-timeout
 .PP
 A command ending in \er sequences is sent without them, followed by that
 many carriage returns before the prompt is read (a [confirm] answer), and is
@@ -111,7 +120,8 @@ sets the lock\-aware execution.blind\-wait)
 .TP
 \fB\-\-literal\fR
 Send every command as written; no \er
-interpretation; a RESPONSE is always as written
+interpretation, a \-\-cf line of \-\-sleep sent as
+text; a RESPONSE is always as written
 .SS "A command's own bounds (each attaches to the \-\-cmd written right before it, never after a \-\-cf, or to the one freeform command; at most one of each per command)"
 .TP
 \fB\-\-timeout\fR \fIDURATION\fR

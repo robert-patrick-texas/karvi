@@ -29,8 +29,8 @@ remove them: \-\-cmd "show clock". A line leaving text no option takes is
 dropped. Any other line is one command, sent as written, quotes and all; \er
 at its end is read as \-\-cmd reads it, and a line of \er alone sends a blank
 line. The targets and options stay from one job to the next, and so do the
-commands given in option form (\-\-cmd, \-c, \-\-command, \-\-cf); a command given
-as a bare line is the job's alone. \-\-expect, \-\-blind, \-\-blind\-return,
+commands given in option form (\-\-cmd, \-c, \-\-command, \-\-cf, \-\-sleep); a
+command given as a bare line is the job's alone. \-\-expect, \-\-blind, \-\-blind\-return,
 \-\-timeout, and \-\-maxbytes lines attach to the command before them, a \-\-cmd
 or a bare line; one after a \-\-cf line is dropped. A job's commands go in the
 order typed, and a \-\-cf folder is read as each job is planned. \-\-cf, \-\-tf,

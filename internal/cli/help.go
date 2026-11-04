@@ -75,8 +75,8 @@ remove them: --cmd "show clock". A line leaving text no option takes is
 dropped. Any other line is one command, sent as written, quotes and all; \r
 at its end is read as --cmd reads it, and a line of \r alone sends a blank
 line. The targets and options stay from one job to the next, and so do the
-commands given in option form (--cmd, -c, --command, --cf); a command given
-as a bare line is the job's alone. --expect, --blind, --blind-return,
+commands given in option form (--cmd, -c, --command, --cf, --sleep); a
+command given as a bare line is the job's alone. --expect, --blind, --blind-return,
 --timeout, and --maxbytes lines attach to the command before them, a --cmd
 or a bare line; one after a --cf line is dropped. A job's commands go in the
 order typed, and a --cf folder is read as each job is planned. --cf, --tf,
@@ -232,6 +232,13 @@ Device commands (one form per invocation):
                                  folder sends the device its own file,
                                  DIR/NAME, NAME its collection file's
   --cmd and --cf mix, sent in the order given.
+  --sleep DURATION               Wait DURATION (1s..12h) before the next
+                                 command, once the one before it returns;
+                                 repeatable, in the order given, a command
+                                 after the last; a --cf line that is --sleep
+                                 DURATION alone is the same; the sleeps'
+                                 total not above a set
+                                 execution.device-timeout
   A command ending in \r sequences is sent without them, followed by that
   many carriage returns before the prompt is read (a [confirm] answer), and is
   blind; nothing else in the text is interpreted.
@@ -256,7 +263,8 @@ or --expect, not both):
                                  place of the command timeout (0 does not wait;
                                  sets the lock-aware execution.blind-wait)
   --literal                      Send every command as written; no \r
-                                 interpretation; a RESPONSE is always as written
+                                 interpretation, a --cf line of --sleep sent as
+                                 text; a RESPONSE is always as written
 
 ` + commandBoundsHelp + `
 Options:
@@ -408,6 +416,13 @@ Device commands (one form per invocation):
                                  file's (a device without one refuses the
                                  run)
   --cmd and --cf mix, sent in the order given.
+  --sleep DURATION               Wait DURATION (1s..12h) before the next
+                                 command, once the one before it returns;
+                                 repeatable, in the order given, a command
+                                 after the last; a --cf line that is --sleep
+                                 DURATION alone is the same; the sleeps'
+                                 total not above a set
+                                 execution.device-timeout
   A command ending in \r sequences is sent without them, followed by that
   many carriage returns before the prompt is read (a [confirm] answer), and is
   blind; nothing else in the text is interpreted.
@@ -432,7 +447,8 @@ or --expect, not both):
                                  place of the command timeout (0 does not wait;
                                  sets the lock-aware execution.blind-wait)
   --literal                      Send every command as written; no \r
-                                 interpretation; a RESPONSE is always as written
+                                 interpretation, a --cf line of --sleep sent as
+                                 text; a RESPONSE is always as written
 
 ` + commandBoundsHelp + `
 Platform:

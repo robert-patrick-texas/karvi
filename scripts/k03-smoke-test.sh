@@ -205,6 +205,23 @@ piped f17 0 '# c\nlocalhost\n127.0.0.1\n' -- command - show clock;     order f17
 piped f18 4 '127.0.0.1\n' -- run --no-daemon -t=- --tf - show clock;     code f18 stdin_source_repeated; nothing_sent f18
 run f19 4 -- job list --target -;                                          code f19 target_source_stdin_invalid
 
+echo "== sleep between commands"
+# --sleep waits before the next command (EXAMPLES chapter 95), on the command
+# line and as a --cf line alone; --literal sends the line as text; a sleep
+# with no command after it, a declaration after it, a line beginning --sleep
+# that is not one, and sleeps above the device timeout are refused, nothing
+# sent.
+printf 'show clock\n--sleep 1s\nshow users\n' >"$TMP/sleep.txt"
+printf 'show clock\n--sleep soon\nshow users\n' >"$TMP/sleep-bad.txt"
+t0=$(date +%s%N)
+run s1 0 -- command 127.0.0.1 --cmd "show version" --sleep 1s --cf "$TMP/sleep.txt"; sent s1 "show version" "show clock" "show users"
+t1=$(date +%s%N); [ $(((t1 - t0) / 1000000)) -ge 2000 ] || fail "s1: took $(((t1 - t0) / 1000000))ms, the sleeps are 2s"
+run s2 0 -- command 127.0.0.1 --literal --cf "$TMP/sleep.txt";              sent s2 "show clock" "--sleep 1s" "show users"
+run s3 4 -- command 127.0.0.1 --cmd "show clock" --sleep 1s;                code s3 sleep_without_command; nothing_sent s3
+run s4 4 -- command 127.0.0.1 --cmd "show clock" --sleep 1s --timeout 5s --cmd "show users"; code s4 declaration_after_sleep; nothing_sent s4
+run s5 4 -- command 127.0.0.1 --cf "$TMP/sleep-bad.txt";                    code s5 commands_file_sleep_invalid; nothing_sent s5
+run s6 4 -- --set 'execution.device-timeout="5s"' command 127.0.0.1 --cmd "show clock" --sleep 3s --sleep 3s --cmd "show users"; code s6 sleep_over_device_timeout; nothing_sent s6
+
 echo "== output folder layout and permissions"
 # A fresh state root: created subtrees, the day-folder layout, and the modes
 # of folders and files karvi creates, independent of the umask.

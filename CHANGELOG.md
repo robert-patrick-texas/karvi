@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- **Breaking: `--sleep DURATION` waits before the next command; execution
+  plan 16.** `command`, `run`, and `crun` take `--sleep` (1s..12h) as a command
+  source in the order written, beside `--cmd` and `--cf`, and a commands-file
+  line that is `--sleep DURATION` alone is the same statement, where it was
+  device text (`--literal` still sends it as written). The sleep is waited once
+  the command before it returns; sleeps in a row add up; a stream line takes
+  it too. Refused before any connection: a sleep with no command after it
+  (`sleep_without_command`), a declaration after one
+  (`declaration_after_sleep`), a file line beginning `--sleep` that is not one
+  (`commands_file_sleep_invalid`), and a device's sleeps above a set
+  `execution.device-timeout` (`sleep_over_device_timeout`). The plan carries
+  `sleeps_ns`; `--dry-run` names each sleep, and `--debug` writes `device
+  sleep` as each begins. [`docs/COMMAND-SESSION.md`](docs/COMMAND-SESSION.md)
+  has the rules.
 - **The device-qualification script's parity rows pass on a device, and the
   runbook gives the run on the production network.** D1, D2, and D4 compared
   four streams of which the first was the device's first contact, whose first

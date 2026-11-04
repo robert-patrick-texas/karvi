@@ -324,6 +324,9 @@ func renderInspection(out io.Writer, format string, r records.PlanReport, socket
 		fmt.Fprintf(&b, "finding: %s %s %s\n", f.Severity, f.Code, f.Message)
 	}
 	fmt.Fprintf(&b, "commands: %d\n", r.Counts.Commands)
+	if sleeps := describeSleeps(r.Plan.SleepsNS); sleeps != "" {
+		fmt.Fprintf(&b, "sleeps: %s\n", sleeps)
+	}
 	fmt.Fprintf(&b, "dispatch: %s order=%s\n", dispatchLine, r.Plan.Dispatch.DispatchOrder)
 	if c := r.Plan.Output.Collection; c != nil {
 		suffix := ""
@@ -358,7 +361,7 @@ func renderInspection(out io.Writer, format string, r records.PlanReport, socket
 		// or its platform's under a crun: shown per device, since the
 		// lists differ.
 		if list, ok := r.Plan.TargetCommands[pt.TargetID]; ok {
-			fmt.Fprintf(&b, "  commands: %s\n", strings.Join(list.Commands, "; "))
+			fmt.Fprintf(&b, "  commands: %s\n", joinCommands(list))
 		} else if list, ok := r.Plan.PlatformCommands[pt.Device.Platform]; ok {
 			fmt.Fprintf(&b, "  commands: %s\n", strings.Join(list, "; "))
 		}
@@ -402,4 +405,29 @@ func displayNone(value string) string {
 		return "none"
 	}
 	return value
+}
+
+// describeSleeps names each --sleep of the plan's list by the command it is
+// waited before, "" when none has one (EXAMPLES chapter 95).
+func describeSleeps(sleeps []int64) string {
+	var parts []string
+	for i, ns := range sleeps {
+		if ns > 0 {
+			parts = append(parts, fmt.Sprintf("%s before command %d", time.Duration(ns), i+1))
+		}
+	}
+	return strings.Join(parts, "; ")
+}
+
+// joinCommands is a device's own list as the report shows it: its commands
+// in order, each --sleep in its place.
+func joinCommands(list executionplan.CommandList) string {
+	parts := make([]string, 0, len(list.Commands))
+	for i, c := range list.Commands {
+		if i < len(list.SleepsNS) && list.SleepsNS[i] > 0 {
+			parts = append(parts, "--sleep "+time.Duration(list.SleepsNS[i]).String())
+		}
+		parts = append(parts, c)
+	}
+	return strings.Join(parts, "; ")
 }

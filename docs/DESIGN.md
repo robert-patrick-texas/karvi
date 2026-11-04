@@ -1269,6 +1269,29 @@ the device ceiling; a declared limit raising the job limit; `--maxbytes` above 1
 GiB before the record holds output of several GiB; a record field for the
 bounds; one list of objects in the plan.
 
+**`--sleep` waits before the next command.** `--sleep DURATION` (1s..12h) is a
+command source in the order written, beside `--cmd` and `--cf`, and a
+commands-file line that is `--sleep DURATION` alone is the same statement
+(`--literal` sends it as text). It is waited after the command before it
+returns, before the next is sent; sleeps in a row add up; it is no command and
+has no record. One with no command after it, a declaration after one, a file
+line beginning `--sleep` that is not one, and a device's total above a set
+`execution.device-timeout` are refused before any connection; the deadline and
+a cancel end a sleep, and the command after it is then recorded as either
+records an unsent command. The plan carries `sleeps_ns`, one entry per command
+or empty, 0 none, as `timeouts_ns` is (execution plan 16). *Why:* a change
+waits for its own effect before reading it (a peer cleared, a link brought up),
+and IOS XE has no sleep of its own; a wait inside one session keeps one login,
+one record, and in a run each device's own timing. The file line is the
+option's own text, so that a line not taken as a sleep reaches IOS as `%
+Invalid input`, never as a comment skipped while the next command runs early.
+*Not taken:* a declaration on the `--cmd` before it (it could not follow a
+`--cf` or stand in a file); `--cmd '\r' --blind-wait`, which sends a keystroke;
+the device's own sleep (IOS has none); a comment-form file line (`!karvi
+sleep`); the names pause, wait, and delay (a keypress, `--blind-wait`,
+`--wave-delay`); a record per sleep. [`docs/EXAMPLES.md`, chapter
+95](EXAMPLES.md#95-a-sleep-between-commands-2026-11-03).
+
 **The native transport is karvi's own SSH connection.** An x/crypto dial with
 karvi's host-key callback, a PTY and shell, the password read inside the
 authentication callbacks at authentication time. No subprocess, no

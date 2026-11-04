@@ -210,6 +210,37 @@ no `--timeout` (its wait is `execution.blind-wait`); a timeout above a set
 at planning ([`docs/TIMEOUTS.md`](TIMEOUTS.md),
 [`docs/OPERATIONS.md`](OPERATIONS.md#long-commands-a-copy-and-a-show-tech)).
 
+## Sleeps between commands
+
+`--sleep DURATION` waits before the next command: it is a command source in
+the order written, as `--cmd` and `--cf` are, and the wait begins once the
+command before it has returned its prompt (or, before the first command, once
+the session is prepared). In a commands file, a line that is `--sleep
+DURATION` alone, or `--sleep=DURATION`, spaces around it allowed, is the same
+statement; every other line is device text as before, and `--literal` sends
+the line as written. This clears a peer, waits a minute, and reads the result:
+
+```bash
+karvi command router1 --cmd 'clear ip bgp 192.0.2.1 soft' --sleep 1m --cmd 'show ip bgp summary'
+```
+
+and so does a file holding the three lines `clear ip bgp 192.0.2.1 soft`,
+`--sleep 1m`, and `show ip bgp summary`. A sleep is 1s..12h; sleeps in a row
+add up; a sleep is no command and has no record, and `--debug` writes `device
+sleep target=… index=… total=… sleep=…` as each begins. Each is refused before
+any connection: one with no command after it (`sleep_without_command`), a
+declaration written after one (`declaration_after_sleep`; it belongs right
+after its `--cmd`), a file line whose first word is `--sleep` and is not the
+statement (`commands_file_sleep_invalid`, naming the file and line, so a
+mistyped sleep never reaches the device as text), and freeform text beside one
+(`cli_command_text_mixed`). The sleeps count against `execution.device-timeout`:
+their total above a set one is refused at planning (`sleep_over_device_timeout`),
+and the deadline ends a sleep, the next command then not sent
+(`device_timeout`); a cancel ends a sleep at once. A sleep longer than the
+device's own idle limit (IOS `exec-timeout`, 10 minutes by default) loses the
+session: the transport's keepalives are not input, so the device logs the
+session out and the next command fails on it.
+
 ## Prompt detection
 
 The session renders the received bytes as the terminal showed them

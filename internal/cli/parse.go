@@ -2,6 +2,7 @@ package cli
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"sort"
 	"strconv"
@@ -43,11 +44,13 @@ type Declaration struct {
 }
 
 // CommandSource is one source of device commands in command-line order: a
-// --cmd, or the one joined freeform command, its text in Value; or a --cf,
-// File set and its path or - in Value. The device commands are the sources'
-// in this order (commandPlan).
+// --cmd, or the one joined freeform command, its text in Value; a --cf,
+// File set and its path or - in Value; or a --sleep, Sleep set and its
+// duration in Value, waited before the next command (EXAMPLES chapter 95).
+// The device commands are the sources' in this order (commandPlan).
 type CommandSource struct {
 	File  bool
+	Sleep bool
 	Value string
 }
 
@@ -58,7 +61,7 @@ type Invocation struct {
 	Path         string // "login", "daemon stop", ...; "" when only global options were given
 	Help         bool   // help was requested at some position; Path names the level
 	Targets      []TargetInput
-	Sources      []CommandSource // --cmd and --cf in order, or the one joined freeform command
+	Sources      []CommandSource // --cmd, --cf, and --sleep in order, or the one joined freeform command
 	Freeform     bool            // Sources is the freeform text's one command
 	Declarations []Declaration
 	Positional   []string // plain commands: positional arguments (login: none; devices are Targets)
@@ -374,6 +377,11 @@ func (p *parser) apply(o *option, value string) (bool, error) {
 		inv.Sources = append(inv.Sources, CommandSource{Value: value})
 	case roleCf:
 		inv.Sources = append(inv.Sources, CommandSource{File: true, Value: value})
+	case roleSleep:
+		if _, err := sleepDuration(value); err != nil {
+			return false, errorcodes.Errorf("cli_option_value_invalid", "--sleep %s", err)
+		}
+		inv.Sources = append(inv.Sources, CommandSource{Sleep: true, Value: value})
 	case roleDeclaration:
 		if o == optExpect {
 			if err := checkExpect(value); err != nil {
@@ -451,6 +459,22 @@ func checkDeclaredBound(o *option, value string) error {
 	return nil
 }
 
+// sleepMin and sleepMax bound one --sleep, --timeout's range (EXAMPLES
+// chapter 95).
+const (
+	sleepMin = time.Second
+	sleepMax = 12 * time.Hour
+)
+
+// sleepDuration is a --sleep value's duration: Go's form, 1s..12h.
+func sleepDuration(value string) (time.Duration, error) {
+	d, err := time.ParseDuration(strings.TrimSpace(value))
+	if err != nil || d < sleepMin || d > sleepMax {
+		return 0, fmt.Errorf("takes a duration of 1s..12h (30s, 5m, 1h30m), not %q", value)
+	}
+	return d, nil
+}
+
 // splitExpect divides an --expect value into PATTERN and RESPONSE at its
 // first "=" outside a bracket class and not escaped, so "[=]" (and "\=")
 // keeps a literal "=" in the pattern and the response keeps every later
@@ -489,8 +513,9 @@ func splitExpect(value string) (pattern, response string, ok bool) {
 // source it has no command and is refused rather than attached to the first,
 // so a reader never guesses; after a --cf it is refused, though a --cmd
 // stands further back, since it would read as the file's and a file line
-// takes \r at its end (EXAMPLES chapter 79). A file's lines carry none. The
-// message says where to write the declaration.
+// takes \r at its end (EXAMPLES chapter 79); after a --sleep it is refused
+// too, since it would read as the sleep's (EXAMPLES chapter 95). A file's
+// lines carry none. The message says where to write the declaration.
 func (p *parser) placeDeclarations() error {
 	inv := p.inv
 	for i := range inv.Declarations {
@@ -502,6 +527,8 @@ func (p *parser) placeDeclarations() error {
 			return errorcodes.Errorf("declaration_before_command", "--%s is given before the first --cmd; write it after the command it belongs to", d.Option)
 		case inv.Sources[d.Command-1].File:
 			return errorcodes.Errorf("declaration_with_commands_file", "--%s follows --cf; write it after its --cmd (a file line takes \\r at its end)", d.Option)
+		case inv.Sources[d.Command-1].Sleep:
+			return errorcodes.Errorf("declaration_after_sleep", "--%s follows --sleep; write it right after its --cmd, before the --sleep", d.Option)
 		}
 	}
 	return nil
@@ -832,7 +859,7 @@ func (p *parser) parseFreeform(cmd *command, args []string, deviceFirst bool) er
 	explicit := len(inv.Sources) > 0
 	switch {
 	case explicit && len(free) > 0:
-		return errorcodes.Errorf("cli_command_text_mixed", "freeform text %q cannot be combined with --cmd or --cf", strings.Join(free, " "))
+		return errorcodes.Errorf("cli_command_text_mixed", "freeform text %q cannot be combined with --cmd, --cf, or --sleep", strings.Join(free, " "))
 	case deviceFirst && len(inv.Targets) == 0:
 		return errorcodes.Errorf("cli_device_missing", "%s requires a device: DEVICE, --target, or another target input", cmd.path)
 	case !explicit && len(free) == 0 && !cmd.textOptional:

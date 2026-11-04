@@ -148,7 +148,7 @@ func (d *streamDraft) purgeTargets() {
 
 // streamCommandRole says an option belongs to the draft's commands.
 func streamCommandRole(r optRole) bool {
-	return r == roleCmd || r == roleCf || r == roleDeclaration
+	return r == roleCmd || r == roleCf || r == roleSleep || r == roleDeclaration
 }
 
 // commandStream is the stream word's handler. A terminal's lines come

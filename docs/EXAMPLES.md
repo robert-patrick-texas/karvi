@@ -20546,3 +20546,140 @@ exit 0 each, the host clean after; `make generated-clean`; the tree's
 conversion with the links checked. The evidence beside the tree, in the same
 folder: `production-result-renamed.txt` (the operators' loop and the switch's
 lists, renamed), `ex94-outcome.sh` and its output.
+
+## 95. A sleep between commands (2026-11-03)
+
+The operator asked for a scripting syntax to pause before the next command
+statement. A change often waits for its own effect before reading it: a BGP
+peer cleared, then its summary a minute later. IOS XE's command line has no
+sleep, so the wait was two karvi runs with a shell `sleep` between them: two
+logins, two records, and in a run the slowest device setting everyone's wait.
+On the operator's word, as recommended, karvi has one statement, `sleep`, in
+two spellings of one grammar.
+
+**What it gains.** A wait inside one session: one login, one record, and in a
+parallel run each device's own timing. It waits on nothing: the plan carries
+one more list parallel to the commands, as it carries each command's
+`--timeout`, and the executor waits before the command that list marks.
+
+**The rule, as agreed.**
+
+- On the command line, `--sleep DURATION` is a command source in the order
+  written, beside `--cmd` and `--cf`, on `command`, `run`, and `crun`, and a
+  stream line. In a commands file, a line that is `--sleep DURATION` alone
+  (or `--sleep=DURATION`, spaces around it allowed) is the same statement;
+  every other line is device text as before, and `--literal` sends the line as
+  written.
+- The sleep begins once the command before it has returned its prompt (or the
+  session is prepared, before the first command), and the next command is sent
+  when it ends; sleeps in a row add up. It is no command: it has no record, and
+  `--debug` writes `device sleep target=… index=… total=… sleep=…`.
+- A sleep is 1s..12h, `--timeout`'s range. A device's total above a set
+  `execution.device-timeout` is refused at planning; the deadline ends a sleep,
+  the next command then not sent (`device_timeout`), and a cancel ends it at
+  once.
+- Refused before any connection: a sleep with no command after it
+  (`sleep_without_command`), a declaration after one
+  (`declaration_after_sleep`), a file line beginning `--sleep` that is not one
+  (`commands_file_sleep_invalid`), the total over the device timeout
+  (`sleep_over_device_timeout`), and freeform text beside one
+  (`cli_command_text_mixed`).
+- The name is `sleep`: pause suggests a keypress, and wait and delay are
+  `--blind-wait`'s and `--wave-delay`'s. The file line is the option's own
+  text, so that a line not taken as a sleep fails loudly: IOS answers `%
+  Invalid input`, where a comment form such as `!karvi sleep 60s` would be
+  skipped by the device and the next command run early, in the middle of a
+  change.
+
+**The executed examples.** The lab build against `karvi-fake-device` over the
+native transport (`ex95.sh`; the debug lines other than the command and sleep
+lines left out, and their fields `sha256=` and `maxbytes=`; `post.txt` is
+`clear counters\r`, `--sleep 3s`, `show clock`, its `\r` the blind return that
+answers the `[confirm]`; `plain.txt` is `show version`, `--sleep 3s`, `show
+clock`; `typo.txt` is `show clock`, `--sleep 3`, `show users`):
+
+```text
+== a --sleep between two --cmd
+$ karvi --debug command --transport native --address 127.0.0.1 --port $PORT --pi router1 --cmd show version --sleep 3s --cmd show clock
+exit 0, 3.6s
+DEBUG device command start target="router1" index=1 total=2 bytes=12 command="show version" timeout=20s blind=false blind_returns=0
+DEBUG device sleep target="router1" index=2 total=2 sleep=3s
+DEBUG device command start target="router1" index=2 total=2 bytes=10 command="show clock" timeout=20s blind=false blind_returns=0
+
+== a --sleep line in a --cf file
+$ karvi --debug command --transport native --address 127.0.0.1 --port $PORT --pi router1 --cf $TMP/post.txt
+exit 0, 3.6s
+DEBUG device command start target="router1" index=1 total=2 bytes=14 command="clear counters" timeout=10s blind=true blind_returns=1
+DEBUG device sleep target="router1" index=2 total=2 sleep=3s
+DEBUG device command start target="router1" index=2 total=2 bytes=10 command="show clock" timeout=20s blind=false blind_returns=0
+
+== --literal sends the line as text
+$ karvi command --transport native --address 127.0.0.1 --port $PORT --pi router1 --literal --cf $TMP/plain.txt
+exit 107, 0.8s
+device_command_error: command failed for name:router1
+     ^
+% Invalid input detected at '^' marker.
+karvi: target=router1 status=not_attempted_prior_command_failure command=3/3
+
+== the refusals, each exit 4 in no time, nothing sent
+sleep_without_command: a --sleep of 3s comes after the last command; a sleep waits before the next command, so put one after it or remove the sleep
+declaration_after_sleep: --timeout follows --sleep; write it right after its --cmd, before the --sleep
+commands_file_sleep_invalid: commands file $TMP/typo.txt line 2: --sleep takes a duration of 1s..12h (30s, 5m, 1h30m), not "3"; the line is --sleep DURATION alone
+sleep_over_device_timeout: the --sleep total 6s is above execution.device-timeout 5s, the bound on the device's whole list; shorten the sleeps or raise the ceiling with --set execution.device-timeout=6s
+cli_command_text_mixed: freeform text "show clock" cannot be combined with --cmd, --cf, or --sleep
+```
+
+The same script on the released 0.39.0 (`ex95-released-0390.out`): `--sleep`
+is `cli_option_unknown: unknown option --sleep in command`, and `post.txt`'s
+second line goes to the device as a command, `command="--sleep 3s"`, which
+answers `% Invalid input` and leaves `show clock` not attempted. A `--dry-run`
+on the lab build names each sleep by the command it precedes, `run --dry-run
+--no-daemon --target 127.0.0.1 --cmd 'clear ip bgp 192.0.2.1 soft' --sleep 1m
+--cmd 'show ip bgp summary' --cf post.txt` (its sleep 20s) giving:
+
+```text
+commands: 4
+sleeps: 1m0s before command 2; 20s before command 4
+```
+
+**What changed.** The parser's `CommandSource` holds a sleep beside `--cmd`
+and `--cf`; `commandPlan` turns the sleeps and the file lines into the list
+parallel to the commands; the plan carries it as `sleeps_ns`, on the plan and
+on each device's own list under a `--cf` folder, and the plan check refuses a
+miscounted or negative one (execution plan 16; the plan report stays 4, since
+it refers to the plan's schema); the planner refuses the total over the
+device timeout; the executor waits before the command, its cancel and
+device-timeout checks after the wait unchanged, so the command after a sleep
+they end is recorded as they record any unsent command. A commands-file line
+`--sleep …` was device text and is now the statement: breaking, as the
+CHANGELOG says.
+
+**Not taken.** A declaration on the `--cmd` before it, as `--timeout` is: it
+could not follow a `--cf` or stand in a file. A blind send held open,
+`--cmd '\r' --blind-wait 60s`: it sends a keystroke. The device's own sleep:
+IOS has none (a Linux device's shell has, within the command timeout). Two
+runs with a shell `sleep`: today's workaround, which the statement replaces.
+A comment form in files (`!karvi sleep`): skipped silently where it is not
+read. A record per sleep: the command records carry their times, and the
+debug line names each sleep. A sleep allowed after the last command: it
+would only hold the session open. A cap below `--timeout`'s 12h: the device
+timeout is the site's ceiling, and a device's idle limit the caution
+[`docs/COMMAND-SESSION.md`](COMMAND-SESSION.md#sleeps-between-commands)
+names (IOS `exec-timeout`, 10 minutes by default, which the transport's
+keepalives do not reset).
+
+**Checks.** Two sections: the plan and the executor (`sleeps_ns`, schema 16,
+the executor's wait and its cut by the device deadline and by a cancel, the
+planner's total; the four pinned digests moved by the version and the field
+alone, the former digests returning with both set back), and the command line
+(the option, the file lines, the refusals, the dry-run text, help and man
+pages, the codes, k03's new cases `s1` to `s6`); gofmt, `go vet ./...`, `make
+generated-clean`, and the whole tree's `go test` (73 packages) on each; and the
+full battery on both: `scripts/verify-release.sh` in a copy of the tree, so
+that its build left the released `bin/` as it was (the Go tests, the race
+tests, and every suite, k03's new cases among them), passed in 11 minutes, the
+host clean after it.
+
+The evidence is kept beside the tree (`release-design-evidence/sleep-chapter-95/`:
+`ex95.sh` and its output on the lab build and on the released 0.39.0, each
+section's patch and test log, k03's output, and the battery's log).
