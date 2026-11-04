@@ -70,6 +70,17 @@ func SudoLine(line string) (string, bool, error) {
 	return text, true, nil
 }
 
+// Statement is a command as karvi writes it back: a root command as its
+// --sudo statement, --sudo TEXT, any other as its text. The rerun files, a
+// collection's marker, the dry run's lists, and karvi-audit's rows write a
+// root command so (EXAMPLES chapter 96).
+func Statement(text string, root bool) string {
+	if root {
+		return "--sudo " + text
+	}
+	return text
+}
+
 // List is a command list built statement by statement in the order
 // written: the commands, the sleep waited before each, and each one's root
 // flag. A sleep waits before the next command added, the sleeps in a row
@@ -166,10 +177,7 @@ func Text(commands []string, returns []int, sleeps []int64, sudo []bool) []byte 
 				b.WriteByte('\n')
 			}
 		}
-		if i < len(sudo) && sudo[i] {
-			b.WriteString("--sudo ")
-		}
-		b.WriteString(c)
+		b.WriteString(Statement(c, i < len(sudo) && sudo[i]))
 		if i < len(returns) {
 			b.WriteString(strings.Repeat(`\r`, returns[i]))
 		}

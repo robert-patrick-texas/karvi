@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/robert-patrick-texas/karvi/internal/audit"
+	"github.com/robert-patrick-texas/karvi/internal/commandfile"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
@@ -96,6 +97,9 @@ func Decode(line []byte) (Row, bool) {
 	if r.Device != nil {
 		row.Device = r.Device.CanonicalName
 	}
-	row.Command, _ = r.Action["command"].(string)
+	// A root command's row is its --sudo statement (EXAMPLES chapter 96).
+	command, _ := r.Action["command"].(string)
+	privilege, _ := r.Action["privilege"].(string)
+	row.Command = commandfile.Statement(command, privilege == records.PrivilegeSudo)
 	return row, true
 }

@@ -131,6 +131,20 @@ func TestSudoLine(t *testing.T) {
 // --sudo line as a root command, any other line as text; literal adds every
 // line as text; a refused line carries its code and the line's fault alone;
 // the lists are empty when no command has a sleep or is root.
+// TestStatement: a root command written back is its --sudo statement, and
+// SudoLine reads it back to the command; any other is its text.
+func TestStatement(t *testing.T) {
+	if got := Statement("systemctl restart nginx", true); got != "--sudo systemctl restart nginx" {
+		t.Errorf("root: %q", got)
+	}
+	if text, ok, err := SudoLine(Statement("id -u", true)); err != nil || !ok || text != "id -u" {
+		t.Errorf("read back: %q %v %v", text, ok, err)
+	}
+	if got := Statement("whoami", false); got != "whoami" {
+		t.Errorf("login user's: %q", got)
+	}
+}
+
 func TestListReadsTheGrammar(t *testing.T) {
 	var l List
 	for _, line := range []string{"uptime", "--sleep 5s", "--sleep=1s", "--sudo systemctl restart nginx", "--sudoers"} {

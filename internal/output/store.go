@@ -885,11 +885,7 @@ func (s *Store) writeCollectionBlock(cf *collectionFile, name string, r *records
 	// platform's list, as the audit masks it; a root command's is marked as
 	// a commands file writes it (! --sudo TEXT).
 	masks := s.masks[r.Platform]
-	marker := "! "
-	if r.Root() {
-		marker += "--sudo "
-	}
-	if _, err := cf.w.WriteString(marker + platform.Mask(masks, r.Command) + "\n"); err != nil {
+	if _, err := cf.w.WriteString("! " + commandfile.Statement(platform.Mask(masks, r.Command), r.Root()) + "\n"); err != nil {
 		return err
 	}
 	// The platform's drop list, between the answer and the file (12.19

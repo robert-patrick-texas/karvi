@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/robert-patrick-texas/karvi/internal/commandfile"
 	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/platform"
 	"github.com/robert-patrick-texas/karvi/records"
@@ -111,7 +112,8 @@ func WriteTextHeader(w io.Writer, r *records.CommandRecord, stamp Timestamp) err
 //
 // An exec command was typed at no prompt: its first line is the inferred
 // one (srv1$ uname -s), then stdout, then stderr, their interleaving lost;
-// one that did not run is `! not sent:` as on a shell.
+// one that did not run is `! not sent:` as on a shell, a root command's
+// with its --sudo (`! not sent: --sudo whoami`, commandfile.Statement).
 func WriteTextBlock(w io.Writer, r *records.CommandRecord, src Source) error {
 	first := r.PromptBefore + r.Command
 	sent := r.PromptBefore != ""
@@ -119,7 +121,7 @@ func WriteTextBlock(w io.Writer, r *records.CommandRecord, src Source) error {
 		first, sent = records.ExecPrompt(r.Device.CanonicalName, r.Root())+r.Command, r.Ran()
 	}
 	if !sent {
-		first = "! not sent: " + r.Command
+		first = "! not sent: " + commandfile.Statement(r.Command, r.Root())
 	}
 	if _, err := io.WriteString(w, first+"\n"); err != nil {
 		return err

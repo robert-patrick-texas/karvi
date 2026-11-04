@@ -100,16 +100,21 @@ func entry(event string) string {
 
 const (
 	commandEvent = `{"schema_version":3,"event_name":"run.command","outcome":"device_error","operator":{"username":"netops.test"},"loginuser":"netops","job_id":"261017-143818-00","device":{"id":"d","canonical_name":"fake-iosxe","platform":"cisco_ios"},"action":{"command":"snmp-server community <removed> RO"}}`
+	rootEvent    = `{"schema_version":3,"event_name":"cmd.command","outcome":"success","operator":{"username":"netops"},"job_id":"261104-154031-00","device":{"id":"d","canonical_name":"srv1","platform":"linux"},"action":{"command":"whoami","privilege":"sudo"}}`
 	loginEvent   = `{"schema_version":3,"event_name":"login.start","operator":{"username":"netops"},"login_id":"261017-143825-00","device":{"id":"d","canonical_name":"fake-iosxe","platform":"cisco_ios"},"action":{}}`
 )
 
-// TestDecode: an event's cells, a login's ID in place of a job's, and every
-// entry the reader cannot read.
+// TestDecode: an event's cells, a root command as its --sudo statement, a
+// login's ID in place of a job's, and every entry the reader cannot read.
 func TestDecode(t *testing.T) {
 	row, ok := Decode([]byte(entry(commandEvent)))
 	want := Row{ID: "261017-143818-00", Operator: "netops.test", LoginUser: "netops", Mode: "run", Event: "command", Outcome: "device_error", Device: "fake-iosxe", Command: "snmp-server community <removed> RO"}
 	if !ok || row != want {
 		t.Errorf("command: %v %+v", ok, row)
+	}
+	row, ok = Decode([]byte(entry(rootEvent)))
+	if !ok || row != (Row{ID: "261104-154031-00", Operator: "netops", Mode: "cmd", Event: "command", Outcome: "success", Device: "srv1", Command: "--sudo whoami"}) {
+		t.Errorf("root command: %v %+v", ok, row)
 	}
 	row, ok = Decode([]byte(entry(loginEvent)))
 	if !ok || row != (Row{ID: "261017-143825-00", Operator: "netops", Mode: "login", Event: "start", Device: "fake-iosxe"}) {

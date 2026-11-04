@@ -12,6 +12,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/executionplan"
+	"github.com/robert-patrick-texas/karvi/internal/commandfile"
 	"github.com/robert-patrick-texas/karvi/internal/daemon"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
@@ -460,10 +461,7 @@ func joinCommands(list executionplan.CommandList) string {
 		if i < len(list.SleepsNS) && list.SleepsNS[i] > 0 {
 			parts = append(parts, "--sleep "+time.Duration(list.SleepsNS[i]).String())
 		}
-		if i < len(list.Sudo) && list.Sudo[i] {
-			c = "--sudo " + c
-		}
-		parts = append(parts, c)
+		parts = append(parts, commandfile.Statement(c, i < len(list.Sudo) && list.Sudo[i]))
 	}
 	return strings.Join(parts, "; ")
 }
