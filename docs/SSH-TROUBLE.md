@@ -110,18 +110,35 @@ copy of karvi's configuration finds the setting. Under `--debug`, `native` names
 what its handshake chose once it completes: `native SSH connection negotiated
 target=… address=… kex=… hostkey=… cipher=… mac=…`. A handshake that fails
 names none, but a device chooses the same at every connection, so a completed
-one names what a failed one used. A failure that only some connections meet,
-`cipher: message authentication failed` or `invalid packet length` just after
-the key exchange, is the device and karvi deriving different keys: `--set
-'ssh-algorithms.kex=["NAME"]'` before the command word pins one key exchange,
-and twenty runs of each candidate tell the one at fault ([`docs/EXAMPLES.md`,
-chapter 94](EXAMPLES.md#94-the-negotiated-ssh-algorithms-in---debug-2026-11-03)). `--set
-'ssh-algorithms.source="transport"'` takes karvi's key exchange, cipher, and MAC
-lists out of the comparison: a device that connects under it and fails without
-is refused by karvi's lists, and the failure's `karvi offered` against `the
-device offered` names the list.
+one names what a failed one used. `--set 'ssh-algorithms.source="transport"'`
+takes karvi's key exchange, cipher, and MAC lists out of the comparison: a
+device that connects under it and fails without is refused by karvi's lists,
+and the failure's `karvi offered` against `the device offered` names the list.
 [`docs/COMMAND-TROUBLESHOOTING.md`](COMMAND-TROUBLESHOOTING.md) reads a
 command's capture.
+
+A failure that only some connections meet, `cipher: message authentication
+failed` or `invalid packet length` just after the key exchange, is the device
+and karvi deriving different keys under one key exchange. The candidates are
+the key exchanges both hold, in karvi's order from the first, which is the one
+the negotiated line names: `--set 'ssh-algorithms.kex=["NAME"]'` before the
+command word pins one, and twenty runs of each tell the one at fault. Catalyst
+9300 switches on IOS XE 26.1.2 failed about a third of their connections under
+`mlkem768x25519-sha256`, which karvi and the switch both put first, and one on
+26.2.1 none. Over `system` the
+same holds where the host's OpenSSH implements it (OpenSSH 10; 9.6 does not, and
+offers the next in common). Until a switch moves to a release without the fault,
+a profile its map rule selects leaves the key exchange out on both transports
+([`docs/EXAMPLES.md`, chapter 94](EXAMPLES.md#94-the-negotiated-ssh-algorithms-in---debug-2026-11-03)):
+
+```toml
+[ssh-algorithms-profile.iosxe-26-1]
+kex = ["curve25519-sha256", "curve25519-sha256@libssh.org", "ecdh-sha2-nistp521", "ecdh-sha2-nistp384", "ecdh-sha2-nistp256"]
+
+[[ssh-algorithms-map]]
+profile = "iosxe-26-1"
+device-group = "iosxe-26-1"   # or name, address-cidr, site, platform
+```
 
 ## 4. On the device
 

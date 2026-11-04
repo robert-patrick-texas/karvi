@@ -20461,3 +20461,88 @@ k03's new cases among them), passed in 11 minutes, the host clean after it.
 
 The evidence is kept beside the tree (`release-design-evidence/negotiated-debug-chapter-94/`:
 `ex94.sh` and its output on the lab build, and the session's battery).
+
+**The outcome on the production network (2026-11-03).** The operators pinned
+the two key exchanges the switch prefers, twenty runs each against one switch
+on IOS XE 26.1.2 (the report renamed: the switch is switch1 here):
+
+```text
+$ for kex in mlkem768x25519-sha256 curve25519-sha256; do … k --set "ssh-algorithms.kex=[\"$kex\"]" r -t=switch1 -c="show clock" … done
+mlkem768x25519-sha256 ok=13 failed=7
+curve25519-sha256 ok=20 failed=0
+```
+
+The switch's `show ip ssh` lists `mlkem768x25519-sha256` first, then
+`curve25519-sha256` and the three ECDH curves, and karvi's `kex` list puts it
+first as well: every connection on karvi's defaults used it. The suspect named
+above was wrong: the switches hold curve25519, and the four pins the recipe
+named left out both key exchanges they prefer. The fault is the switch's
+ML-KEM hybrid: seven runs of twenty here, four of eleven in the report, about
+a third, where twenty clean runs of curve25519 at that rate come about once in
+five thousand. x/crypto encodes the hybrid's shared secret as a string in both
+the exchange hash and the key derivation (`mlkem.go`, after
+draft-kampanakis-curdle-ssh-pq-ke-05); the switch's signature over the hash
+verifies, so the switch derives other keys from that secret for some of its
+values. A switch on IOS XE 26.2.1 met no failure, and the production network
+is moving its switches to that release.
+
+The system transport met no failure on the operators' hosts for another
+reason: karvi offers what the host's `ssh` implements, and OpenSSH 9.6
+(Ubuntu 24.04) has no ML-KEM, so it chose curve25519; pinned to ML-KEM it had
+nothing to offer and failed at once. OpenSSH 10.2 (Ubuntu 26.04) implements
+it, so there the system transport offers it first too, and meets the same
+fault on a switch still on 26.1.2.
+
+Until a switch moves, a site profile leaves the key exchange out for the
+devices its map rule selects, on both transports, and comes out with one
+deletion afterwards. The lab build against the fake offering the switch's key
+exchanges (`ex94-outcome.sh`; timestamps cut, `$CFG` a directory holding the
+profile and a rule `name = "switch*"`):
+
+```text
+== the fake offering the switch's key exchanges (fake: -kex mlkem768x25519-sha256,curve25519-sha256,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256 -ciphers aes256-gcm@openssh.com,aes256-ctr -macs hmac-sha2-512,hmac-sha2-256)
+
+== karvi's default lists
+$ karvi --debug command --transport native --address 127.0.0.1 --port $PORT --pi switch1 show clock
+exit 0
+DEBUG native SSH connection negotiated target="switch1" address=127.0.0.1:44459 kex=mlkem768x25519-sha256 hostkey=ssh-ed25519 cipher=aes256-gcm@openssh.com mac=<implicit>
+
+== the site profile, its map rule matching the device
+$ karvi --config $CFG --debug command --transport native --address 127.0.0.1 --port $PORT --pi switch1 show clock
+exit 0
+DEBUG native SSH connection negotiated target="switch1" address=127.0.0.1:44459 kex=curve25519-sha256 hostkey=ssh-ed25519 cipher=aes256-gcm@openssh.com mac=<implicit>
+
+== the site profile, its map rule matching another device
+$ karvi --config $CFG --debug command --transport native --address 127.0.0.1 --port $PORT --pi router1 show clock
+exit 0
+DEBUG native SSH connection negotiated target="router1" address=127.0.0.1:44459 kex=mlkem768x25519-sha256 hostkey=ssh-ed25519 cipher=aes256-gcm@openssh.com mac=<implicit>
+
+$ karvi --config $CFG config validate
+exit 0
+valid: true
+```
+
+**Agreed, on the operator's word as recommended.** karvi's default `kex`
+order is unchanged: ML-KEM first is OpenSSH 10's default as well, it keeps a
+recorded session from a later quantum attack, and a fault in one release that
+the next fixes is a site setting's to work around, not the default's. Nothing
+points at P-521, so the question above, whether P-256 should precede it, is
+closed with the order as it is. [`docs/SSH-TROUBLE.md`](SSH-TROUBLE.md)
+section 3's recipe pins the key exchanges a device and karvi hold in common,
+in karvi's order from the first, where it named four fixed ones, and carries
+the observation and the profile. A switch on 26.2.1 meeting the failure
+reopens it.
+
+**Not taken.** The default order changed to put curve25519 first: every
+device would give up the hybrid for one release's fault. A failed handshake
+retried on the next key exchange in common: it hides a device fault and
+doubles a failing connection's time. The switches' own lists (`ip ssh server
+algorithm kex` without the ML-KEM hybrid): it covers every client, OpenSSH
+10's among them, but it changes production devices, the network's call, and
+the upgrade under way takes its place.
+
+**Checks.** The example's three runs and `config validate` on the lab build,
+exit 0 each, the host clean after; `make generated-clean`; the tree's
+conversion with the links checked. The evidence beside the tree, in the same
+folder: `production-result-renamed.txt` (the operators' loop and the switch's
+lists, renamed), `ex94-outcome.sh` and its output.
