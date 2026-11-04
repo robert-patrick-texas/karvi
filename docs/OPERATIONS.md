@@ -2172,8 +2172,8 @@ or a heredoc it drives several jobs through one karvi. The rules:
   line typed during the job waits for the stream.
 - A line the parser refuses (`--typo`, a declaration before any command)
   is reported on standard error with its line number and dropped; the
-  draft stands. `--cf`, `--tf`, and `--tfr` may not name `-` in any
-  spelling: standard input is the stream.
+  draft stands. `--cf`, `--tf`, `--tfr`, `--target`, and `--tl` may not
+  name `-` in any spelling: standard input is the stream.
 - The exit is the last executed job's, 0 when none ran. A read failure,
   or a line over the reader's 1 MiB limit, ends the stream with
   `stream_input_read_failed` (exit 1) naming the line. Each job is a

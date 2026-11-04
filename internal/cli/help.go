@@ -80,7 +80,7 @@ as a bare line is the job's alone. --expect, --blind, --blind-return,
 --timeout, and --maxbytes lines attach to the command before them, a --cmd
 or a bare line; one after a --cf line is dropped. A job's commands go in the
 order typed, and a --cf folder is read as each job is planned. --cf, --tf,
-and --tfr may not name -: standard input is the stream.
+--tfr, --target, and --tl may not name -: standard input is the stream.
 
 Directives, each a whole line, one dash or two:
   --go, --sendit                 Execute the draft as run; the bare-line
@@ -198,11 +198,13 @@ const commandHelp = `Usage:
 Target inputs (command-line order is kept; command connects to the first
 device of the assembled set):
   DEVICE                         Positional device: the first positional word,
-                                 unless a target input precedes it
+                                 unless a target input precedes it; - reads
+                                 stdin as --tf - does
   --target DEVICE, --host, --t   Repeatable inventory or direct target, or glob
+                                 (- reads stdin, one per line, as --tf - does)
   --tl LIST                      Targets in one argument, separated by commas
                                  or whitespace (quote a whitespace list); each
-                                 is a --target at this position
+                                 is a --target at this position, - reading stdin
   --tf FILE|PATH|-               Target file, or the files directly in a
                                  folder; - reads stdin
   --tfr PATH                     Target file, or a folder and its subfolders
@@ -373,9 +375,10 @@ func runHelpText() string {
 Target inputs (at least one; command-line order is kept, the first occurrence
 of a name keeps its position, names are lowercase):
   --target NAME, --host, --t     Repeatable inventory or direct target, or glob
+                                 (- reads stdin, one per line, as --tf - does)
   --tl LIST                      Targets in one argument, separated by commas
                                  or whitespace (quote a whitespace list); each
-                                 is a --target at this position
+                                 is a --target at this position, - reading stdin
   --tf FILE|PATH|-               Target file, or the files directly in a
                                  folder; - reads stdin
   --tfr PATH                     Target file, or a folder and its subfolders
@@ -550,8 +553,10 @@ set. Options may appear before or after the device; -- makes a later argument
 beginning with a dash a device.
 
 Target inputs (command-line order is kept):
-  DEVICE                         Positional device, repeatable
+  DEVICE                         Positional device, repeatable; - reads stdin
+                                 as --tf - does
   --target DEVICE, --host, --t   Repeatable inventory or direct target, or glob
+                                 (- reads stdin, one per line, as --tf - does)
   --tf FILE|PATH|-               Target file, or the files directly in a
                                  folder; - reads stdin
   --tfr PATH                     Target file, or a folder and its subfolders

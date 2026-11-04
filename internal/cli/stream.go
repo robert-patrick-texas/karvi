@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/robert-patrick-texas/karvi/internal/app"
@@ -420,8 +421,10 @@ func streamLoop(ctx context.Context, next func() (string, error), g globalOption
 // resolved through run's option table as Parse resolves it (a full name, an
 // alias, or a prefix naming one option): role is the option's, which says
 // whether it belongs to the draft's commands (--cmd and its aliases, --cf,
-// and the five declarations; streamCommandRole) or is a target input, and stdinOption names the option when a --cf, --tf,
-// or --tfr line gives - as its value, which the stream cannot serve;
+// and the five declarations; streamCommandRole) or is a target input, and
+// stdinOption names the option when a --cf, --tf, --tfr, or --target line
+// gives - as its value, or a --tl line names - among its names, which the
+// stream cannot serve;
 // detached is the refusal of an option whose value attaches with = alone
 // (--of) given text after a space. A word the table does not resolve is an
 // option line for the probe to refuse.
@@ -451,7 +454,10 @@ func streamOptionArgs(text string) (args []string, role optRole, stdinOption str
 		if hasInline {
 			value = inline
 		}
-		if value == "-" && (o == optCf || o == optTf || o == optTfr) {
+		switch {
+		case value == "-" && (o == optCf || o == optTf || o == optTfr),
+			o == optTarget && stdinDevice(value),
+			o == optTl && slices.Contains(targetListNames(value), "-"):
 			stdinOption = "--" + o.name
 		}
 		if o.kind == kindOptional && valued {

@@ -15,6 +15,16 @@
   gains section 10, for the operators on the production network: the run at a
   glance, the rows never run on a production device, every command that
   reaches the device, and what to bring back.
+- **Breaking: a device of `-` reads standard input.** `-t -`, `-t=-`,
+  `--target -`, and `--host -`, a `-` among `--tl`'s names (`-tl -`,
+  `-tl=r1,-`), and `-` as the positional device of `command` and `login` read
+  the devices from standard input, one per line, as `--tf -` does, at their
+  place on the line, so an operator who types `-t` and `-tl` by habit pipes a
+  list without changing to `--tf -`. Standard input is still read by one input
+  (`stdin_source_repeated`, whose message names the new forms), a stream line
+  may not give `-` to `--target` or `--tl`, and `job list --target -` is
+  refused (`target_source_stdin_invalid`), its `--target` being a filter of
+  jobs. A device named `-` is reached through a target file alone.
 
 ## 0.39.0 - 2026-11-02
 

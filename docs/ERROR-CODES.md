@@ -571,7 +571,7 @@ Active failure causes.
 | `ssh_process_failed` | connection | 110 | no | Unclassified. OpenSSH exits with an error whose diagnostic matches no specific cause. |
 | `ssh_session_channel_refused` | connection | 110 | no | The SSH server refuses to open a session channel; this is never an authentication failure. |
 | `state_tree_create_failed` | permission | 9 | no | Unclassified. The logs, socket, state, jobs, or transcripts subtree cannot be created or is not acceptable without a more specific code. |
-| `stdin_source_repeated` | usage | 4 | no | More than one input reads standard input: `--cf -` or `--tf -` given twice, or the two together. |
+| `stdin_source_repeated` | usage | 4 | no | More than one input reads standard input: two of `--cf -`, `--tf -`, and a device of `-` (`--target -`, a `-` among `--tl`'s names, or the positional device of `command` or `login`). |
 | `stream_input_read_failed` | internal | 1 | no | In stream mode, standard input fails to read or a line exceeds the reader's 1 MiB limit. |
 | `tabular_comment_prefix_invalid` | inventory | 5 | no | A tabular source uses a comment prefix other than `#`. |
 | `tabular_delimiter_invalid` | inventory | 5 | no | A tabular source delimiter is not one valid character. |
@@ -590,7 +590,7 @@ Active failure causes.
 | `target_source_missing` | inventory | 5 | no | A `--tf` or `--tfr` file or folder does not exist. |
 | `target_source_permission_denied` | inventory | 5 | no | A `--tf` or `--tfr` file or folder cannot be read for lack of permission. |
 | `target_source_special_file` | inventory | 5 | no | A `--tf` or `--tfr` path or folder entry is a named pipe, socket, or device file. |
-| `target_source_stdin_invalid` | usage | 4 | no | `--tfr -` is given; only `--tf -` reads standard input. |
+| `target_source_stdin_invalid` | usage | 4 | no | `--tfr -` is given, where `--tf -` reads standard input; or `job list --target -`, whose `--target` filters the jobs and reads no standard input. |
 | `target_source_unreadable` | inventory | 5 | no | A `--tf` or `--tfr` file or folder fails to read for another reason. |
 | `telnet_connection_failed` | connection | 110 | yes | The Telnet TCP connection cannot be established. |
 | `telnet_login_prompt` | connection | 110 | no | The Telnet login exchange does not reach the expected username, password, or command prompt. |

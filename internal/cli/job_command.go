@@ -45,6 +45,11 @@ func jobList(inv *Invocation, streams app.IO) int {
 	}
 	var targets []string
 	for _, t := range inv.Targets {
+		// --target - reads standard input where devices are targeted
+		// (stdinDevice); job list's --target filters jobs and reads none.
+		if t.Kind == optTf.name {
+			return g.usageError(streams.Stderr, "target_source_stdin_invalid", "job list --target - is not accepted; job list's --target filters the jobs by device and reads no standard input")
+		}
 		targets = append(targets, t.Value)
 	}
 	if err := app.CheckJobListTargets(targets); err != nil {

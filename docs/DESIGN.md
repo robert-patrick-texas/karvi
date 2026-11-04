@@ -138,6 +138,22 @@ and manifest record target inputs and never a list.
 *Why:* the operator's most typed values; nothing after the parser changes.
 *Not taken:* aliases (an alias still takes a value); a list kind in the plan.
 
+**A device of `-` reads standard input.** `-` as the value of `--target`
+(`--host`, `-t`), as a `--tl` name, alone or among others, or as the positional
+device of `command` and `login`, reads the devices from standard input, one per
+line, as `--tf -` does: the parser records it as a `--tf -` at its position.
+Standard input is still read by one input (`stdin_source_repeated`), a stream
+line may not give `-` to `--target` or `--tl`, and `job list --target -` is
+refused (`target_source_stdin_invalid`), since that `--target` filters jobs.
+`karvi -` stays the stream, and a device named `-` is reached through a target
+file alone.
+*Why:* operators type `-t` and `-tl` by habit and pipe their lists; one
+recorded kind leaves every reader of `--tf -` as it was.
+*Not taken:* `-` only as a whole `--tl` value (a list's names are each a
+`--target`); a kind of its own in the parse; `job list` reading its filters
+from standard input ([`docs/EXAMPLES.md`, chapter
+93](EXAMPLES.md#93-standard-input-as-a-device-2026-11-03)).
+
 **Declarations attach backwards.** `--expect`, `--blind`, `--blind-return`,
 `--timeout`, and `--maxbytes` attach to the command source written right
 before them, which must be a `--cmd`, or to the one freeform command; an option

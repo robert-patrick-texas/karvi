@@ -917,6 +917,13 @@ func TestMainParserDiagnostics(t *testing.T) {
 		{[]string{"command", "r1", "--cmd", `clear counters\r`, "--expect", `confirm\]=`}, "expect_with_blind_return"},
 		{[]string{"command", "r1", "--cmd", `reload\r`, "--blind-return", "1"}, "blind_return_conflict"},
 		{[]string{"run", "--target", "r1", "--cf", "-", "--tf", "-"}, "stdin_source_repeated"},
+		{[]string{"run", "-t", "-", "--cf", "-"}, "stdin_source_repeated"},
+		{[]string{"run", "-t=-", "--tf", "-", "show", "clock"}, "stdin_source_repeated"},
+		{[]string{"run", "--tl", "r1,-", "--host", "-", "show", "clock"}, "stdin_source_repeated"},
+		{[]string{"command", "-", "--cf", "-"}, "stdin_source_repeated"},
+		{[]string{"login", "-", "-t", "-"}, "stdin_source_repeated"},
+		{[]string{"job", "list", "--target", "-"}, "target_source_stdin_invalid"},
+		{[]string{"job", "list", "-t=-"}, "target_source_stdin_invalid"},
 		{[]string{"run", "--no-daemon", "show", "clock"}, "inventory_positive_selector_missing"},
 		{[]string{"--debug", "--debug-show-secrets", "login", "--record", "r1"}, "record_debug_show_secrets_conflict"},
 		{[]string{"daemon", "stop", "--grace", "--force"}, "daemon_stop_options_conflict"},
@@ -1402,6 +1409,48 @@ func TestCommandBoundDeclarations(t *testing.T) {
 // --target is, a name the selector grammar refuses named with --tl; and
 // --dp, --dw, --ds stand for --dispatch parallel, wave, serial, the last on
 // the line winning, as --pi stands for --platform.
+// TestParseStdinDevice covers a device of "-" (EXAMPLES chapter 93): at
+// --target and its aliases, in either spelling, as a --tl name alone or
+// among others, and as the positional device of command and login, it is a
+// --tf - at its position; a name holding a dash stays a name, and "-" as the
+// first word stays the stream.
+func TestParseStdinDevice(t *testing.T) {
+	for _, r := range []struct {
+		args    []string
+		targets []string
+	}{
+		{[]string{"run", "-t", "-", "show", "clock"}, []string{"tf=-"}},
+		{[]string{"run", "-t=-", "show", "clock"}, []string{"tf=-"}},
+		{[]string{"run", "--target", "-", "show", "clock"}, []string{"tf=-"}},
+		{[]string{"run", "--host=-", "show", "clock"}, []string{"tf=-"}},
+		{[]string{"run", "-tl", "-", "show", "clock"}, []string{"tf=-"}},
+		{[]string{"run", "-tl=-", "show", "clock"}, []string{"tf=-"}},
+		{[]string{"run", "--tl", "r1,-,r2", "show", "clock"}, []string{"target=r1", "tf=-", "target=r2"}},
+		{[]string{"run", "--target", "r1", "-t", "-", "--target", "r2", "show", "clock"}, []string{"target=r1", "tf=-", "target=r2"}},
+		{[]string{"run", "--tl", "r-1,r2-", "show", "clock"}, []string{"target=r-1", "target=r2-"}},
+		{[]string{"crun", "-t", "-"}, []string{"tf=-"}},
+		{[]string{"command", "-", "show", "clock"}, []string{"tf=-"}},
+		{[]string{"command", "-t", "-", "show", "clock"}, []string{"tf=-"}},
+		{[]string{"command", "-tl=-", "show", "clock"}, []string{"tf=-"}},
+		{[]string{"command", "--", "-", "show", "clock"}, []string{"tf=-"}},
+		{[]string{"login", "-"}, []string{"tf=-"}},
+		{[]string{"login", "-t", "-"}, []string{"tf=-"}},
+		{[]string{"login", "--", "-"}, []string{"tf=-"}},
+	} {
+		inv, err := Parse(r.args)
+		if err != nil {
+			t.Errorf("%q: %v", r.args, err)
+			continue
+		}
+		if got := targetValues(inv); !reflect.DeepEqual(got, r.targets) {
+			t.Errorf("%q: targets %q, want %q", r.args, got, r.targets)
+		}
+	}
+	if inv, err := Parse([]string{"-"}); err != nil || inv.Path != "stream" || len(inv.Targets) != 0 {
+		t.Errorf("karvi -: %+v %v, want the stream", inv, err)
+	}
+}
+
 func TestParseTargetListAndDispatchShortcuts(t *testing.T) {
 	rows := []struct {
 		args     []string

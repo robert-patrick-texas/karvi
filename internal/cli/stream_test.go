@@ -111,7 +111,8 @@ func TestStreamLoopEndsOnEOFAndCancel(t *testing.T) {
 // --purge-targets every target input, each by a prefix from --purge-c and
 // --purge-t, one dash or two; --purge and --purge- are refused as naming
 // both; --go with no command left prints a notice; --cf, --tf, and --tfr
-// naming - are refused in every spelling; --exit leaves as --end does.
+// naming -, --target -, and a - among --tl's names are refused in every
+// spelling; --exit leaves as --end does.
 func TestStreamLoopKeptCommandsAndPurges(t *testing.T) {
 	var runs [][]string
 	execute := func(_ int, argv []string) int {
@@ -147,6 +148,8 @@ func TestStreamLoopKeptCommandsAndPurges(t *testing.T) {
 		"--tf=-",
 		"--cf -",
 		"--tfr -",
+		"--target -",
+		"--tl r5,-",
 		"show clock",
 		"--purge-targ",
 		"--go",
@@ -177,7 +180,9 @@ func TestStreamLoopKeptCommandsAndPurges(t *testing.T) {
 		"stream line 25: standard input is the stream; --tf - is not accepted\n" +
 		"stream line 26: standard input is the stream; --cf - is not accepted\n" +
 		"stream line 27: standard input is the stream; --tfr - is not accepted\n" +
-		"stream line 32: nothing to send\n"
+		"stream line 28: standard input is the stream; --target - is not accepted\n" +
+		"stream line 29: standard input is the stream; --tl - is not accepted\n" +
+		"stream line 34: nothing to send\n"
 	if stderr.String() != wantErr {
 		t.Errorf("stderr:\n%s\nwant:\n%s", stderr.String(), wantErr)
 	}
@@ -392,7 +397,13 @@ func TestStreamOptionArgs(t *testing.T) {
 		{"--tf=-", []string{"--tf=-"}, false, "--tf", ""},
 		{"--tfr -", []string{"--tfr", "-"}, false, "--tfr", ""},
 		{"--typo -", []string{"--typo", "-"}, false, "", ""},
-		{"--t -", []string{"--t", "-"}, false, "", ""},
+		{"--t -", []string{"--t", "-"}, false, "--target", ""},
+		{"--target -", []string{"--target", "-"}, false, "--target", ""},
+		{"--host=-", []string{"--host=-"}, false, "--target", ""},
+		{"--tl -", []string{"--tl", "-"}, false, "--tl", ""},
+		{"--tl r1,-", []string{"--tl", "r1,-"}, false, "--tl", ""},
+		{"--tl r1,r-2", []string{"--tl", "r1,r-2"}, false, "", ""},
+		{"--target r-1", []string{"--target", "r-1"}, false, "", ""},
 		{"--of", []string{"--of"}, false, "", ""},
 		{"--of=/tmp/x", []string{"--of=/tmp/x"}, false, "", ""},
 		{"--of=/tmp/a b", []string{"--of=/tmp/a b"}, false, "", ""},

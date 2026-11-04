@@ -22,11 +22,12 @@ karvi\-run \- run commands against an explicit scope
 .TP
 \fB\-\-target\fR \fINAME\fR, \fB\-\-host\fR, \fB\-\-t\fR
 Repeatable inventory or direct target, or glob
+(\- reads stdin, one per line, as \-\-tf \- does)
 .TP
 \fB\-\-tl\fR \fILIST\fR
 Targets in one argument, separated by commas
 or whitespace (quote a whitespace list); each
-is a \-\-target at this position
+is a \-\-target at this position, \- reading stdin
 .TP
 \fB\-\-tf\fR \fIFILE|PATH|\-\fR
 Target file, or the files directly in a

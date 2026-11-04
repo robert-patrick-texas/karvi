@@ -26,7 +26,8 @@ import (
 
 // checkTargetSources refuses, before the read, what the target inputs'
 // sources cannot be on their own: standard input read by more than one input
-// (--cf - and --tf - among them), and --tfr -.
+// (--cf -, and --tf - or a device of "-", which the parser records as a --tf
+// -), and --tfr -.
 func checkTargetSources(inv *Invocation, w io.Writer) (int, bool) {
 	stdinUses := 0
 	for _, s := range inv.Sources {
@@ -47,7 +48,7 @@ func checkTargetSources(inv *Invocation, w io.Writer) (int, bool) {
 		}
 	}
 	if stdinUses > 1 {
-		return inv.Global.usageError(w, "stdin_source_repeated", "standard input may be read by one input: one --cf - or one --tf -"), false
+		return inv.Global.usageError(w, "stdin_source_repeated", "standard input may be read by one input: one --cf -, --tf -, --target -, --tl -, or device -"), false
 	}
 	return 0, true
 }

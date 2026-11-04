@@ -188,8 +188,22 @@ mkfifo "$TMP/hosts/queue"
 run f12 5 -- run --no-daemon --tf "$TMP/hosts" show clock;                code f12 target_source_special_file
 rm -f "$TMP/hosts/queue"
 run f13 4 -- run --no-daemon --tfr - show clock;                          code f13 target_source_stdin_invalid
-printf '127.0.0.1\n' | HOME=$TMP/home NETUSER=u NETPASS=p "$KARVI" "${G[@]}" run --no-daemon --tf - show clock >"$TMP/out" 2>"$TMP/err" || fail "f14: --tf - exit $?"
-order f14 127.0.0.1
+piped() { # piped NAME WANT INPUT -- ARGS...  run with INPUT on standard input
+  local name=$1 want=$2 input=$3; shift 4
+  : >"$FAKE.log"
+  set +e
+  printf '%b' "$input" | HOME=$TMP/home NETUSER=u NETPASS=p "$KARVI" "${G[@]}" "$@" >"$TMP/out" 2>"$TMP/err"
+  rc=$?
+  set -e
+  [ "$rc" -eq "$want" ] || fail "$name: exit $rc, want $want; stderr: $(head -1 "$TMP/err")"
+}
+piped f14 0 '127.0.0.1\n' -- run --no-daemon --tf - show clock;          order f14 127.0.0.1
+# A device of - reads standard input as --tf - does, at its position.
+piped f15 0 '127.0.0.1\n' -- run --no-daemon -t - show clock;            order f15 127.0.0.1
+piped f16 0 'localhost\n' -- run --no-daemon -tl=127.0.0.1,- show clock; order f16 127.0.0.1 localhost
+piped f17 0 '# c\nlocalhost\n127.0.0.1\n' -- command - show clock;     order f17 localhost
+piped f18 4 '127.0.0.1\n' -- run --no-daemon -t=- --tf - show clock;     code f18 stdin_source_repeated; nothing_sent f18
+run f19 4 -- job list --target -;                                          code f19 target_source_stdin_invalid
 
 echo "== output folder layout and permissions"
 # A fresh state root: created subtrees, the day-folder layout, and the modes

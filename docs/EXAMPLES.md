@@ -20238,3 +20238,112 @@ container install, the release notes and their check, the push, the site, the
 GitHub release, the published check, and in `v0390-chapter-92/` this chapter's
 example, its blocks, and the scripts that cut and assemble them;
 `review-fixes-2026-11-01/` S31's check and wave 12's battery).
+
+## 93. Standard input as a device (2026-11-03)
+
+Operators on the production network asked that `-` mean standard input where
+they name a device: they type `-t` and `-tl` by habit, and to pipe a list of
+targets they had to change to `-tf -`. On the operator's word, a device of `-`
+reads standard input, one device per line, as `--tf -` does, in every
+spelling: `-t -`, `-t=-`, `--target -`, `--host -`, a `-` among `--tl`'s names
+(`-tl -`, `-tl=-`, `-tl=r1,-`), and, at the operator's addition, the positional
+device of `command`, which is `login`'s too, so both take it.
+`-t=device`, `-tl=list,of,devices`, and `-tf=-` are unchanged.
+
+**What it gains.** A piped list reaches a run, a command, or a login by the
+options the operators already type, and lands where they put it on the line.
+It waits on nothing: the parser records a device of `-` as a `--tf -` at its
+position, so the reading, the one-reader rule, the empty-source rule, the
+plan, the manifest, and watch's TARGET column are `--tf -`'s, unchanged.
+
+**The rule, as restated for the operator's concurrence.**
+
+- `-` as a device reads standard input, one device per line, exactly as
+  `--tf -` does (blank lines, and lines beginning with `#` or `!`, are
+  skipped), at its place on the line: `-t`/`--target`/`--host`, a `-` in
+  `-tl` alone or among names, and the positional device of `command` and
+  `login`.
+- Standard input is read once per line: a second `-` among these, `--tf -`,
+  and `--cf -` is `stdin_source_repeated`; a stream line giving `-` to
+  `--target` or `--tl` is dropped, as `--tf -` is.
+- `job list --target -` is `target_source_stdin_invalid`: that `--target`
+  filters jobs and reads no standard input.
+
+One point the restatement carried was not so: it named the shortcut's form,
+`karvi - show clock`, among the positional devices, but `-` as the first word
+is already the stream (`stream, s, -`), and stays so; the parser test pins it.
+
+**The executed example.** The lab build of the change against the k03 suite's
+fake system transport and settings (`ex93.sh`; the insecure policy's warning
+lines left out, the work folder written `$TMP`):
+
+```text
+$ printf '127.0.0.1\n' | karvi run --no-daemon -t - show clock
+! 127.0.0.1 [127.0.0.1] platform=generic user=u backend=builtin-env-fallback transport=system
+ok
+! exit=0 elapsed=273ms artifacts=$TMP/state/jobs/261103/261103-194455-00
+
+$ printf 'localhost\n' | karvi run --no-daemon -tl=127.0.0.1,- show clock
+! 127.0.0.1 [127.0.0.1] platform=generic user=u backend=builtin-env-fallback transport=system
+ok
+
+! localhost [127.0.0.1] platform=generic user=u backend=builtin-env-fallback transport=system
+ok
+! exit=0 elapsed=506ms artifacts=$TMP/state/jobs/261103/261103-194455-01
+
+$ printf '# lab\nlocalhost\n127.0.0.1\n' | karvi command - show clock
+! localhost [127.0.0.1] platform=generic user=u backend=builtin-env-fallback transport=system
+ok
+! exit=0 elapsed=264ms artifacts=$TMP/state/jobs/261103/261103-194455-02
+
+$ printf '127.0.0.1\n' | karvi run --no-daemon -t=- --tf - show clock
+stdin_source_repeated: standard input may be read by one input: one --cf -, --tf -, --target -, --tl -, or device -
+exit 4
+
+$ karvi job list --target -
+target_source_stdin_invalid: job list --target - is not accepted; job list's --target filters the jobs by device and reads no standard input
+exit 4
+
+$ printf -- '--target -\n--tl r1,-\n--end\n' | karvi stream
+stream line 1: standard input is the stream; --target - is not accepted
+stream line 2: standard input is the stream; --tl - is not accepted
+```
+
+The list's `-` takes the place it holds (`127.0.0.1` first, then standard
+input's `localhost`), and `command` connects to the first device of the set,
+the comment line skipped. The released 0.39.0, given the first three lines,
+looked `-` up as a name: `dns_nxdomain: 1 of 1 targets failed address
+resolution: name:- (lookup -: no such host (-))`, exit 7.
+
+**What changed.** The parser's `addTarget` and `positionalDevice` record a
+device of `-` as a `--tf -` (`stdinDevice`, `stdinTargetInput`), so a `--tl`
+name, which `addTarget` takes one at a time, follows; `--tl`'s split is one
+function the stream's check reads too (`targetListNames`). `job list` refuses
+the recorded `--tf -` before its filters. The one-reader message names the new
+forms; the stream drops a `--target -` line and a `--tl` line with a `-` name.
+The help of `command`, `run`, `crun`, `login`, and `stream`, their manual
+pages, the two codes' causes, the stream rule in
+[`docs/OPERATIONS.md`](OPERATIONS.md), and the rule in
+[`docs/DESIGN.md`](DESIGN.md) follow. A device named `-` is reached through a
+target file alone, so the CHANGELOG entry is Breaking.
+
+**Not taken.** `-` only as a whole `--tl` value: each list name is already a
+`--target` at the list's position, so the plainer rule is that each name may
+be `-`. A target kind of its own for the parse: the recorded `--tf -` keeps
+every reader unchanged, and the invocation's own record still shows the option
+as typed. `job list` reading its filters from standard input: not asked, and
+its `--target` is no target input. The shortcut: `-` as the first word is the
+stream.
+
+**Checks.** `go test ./internal/cli/` with the new parser test (seventeen
+spellings and modes, and `karvi -` the stream), seven refusal rows, and the
+stream's rows (`--t -`, which was a device named `-`, is now the stream's
+refusal); the k03 suite against the lab build with five new cases (f15 to f19:
+`-t -`, `-tl=127.0.0.1,-`, `command -`, `-t=-` beside `--tf -`, and
+`job list --target -`), f14 moved onto the same `piped` helper; then gofmt,
+`go vet ./...`, `make generated-clean`, and the whole tree's `go test` (73
+packages). The full battery runs at the end of the session's second section.
+
+The evidence is kept beside the tree (`release-design-evidence/stdin-device-chapter-93/`:
+`ex93.sh` and its output on the lab build and on the released 0.39.0, and the
+k03 run).

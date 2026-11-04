@@ -346,11 +346,11 @@ func (p *parser) apply(o *option, value string) (bool, error) {
 			return false, err
 		}
 	case roleTargetList:
-		// --tl LIST: each name is a --target at the list's position. Commas
-		// and whitespace separate, in any mix; an empty list is refused as an
-		// empty --target is, and a name the selector grammar refuses is
-		// named with --tl.
-		names := strings.FieldsFunc(value, func(r rune) bool { return r == ',' || unicode.IsSpace(r) })
+		// --tl LIST: each name is a --target at the list's position, so a
+		// "-" among them reads standard input there. An empty list is
+		// refused as an empty --target is, and a name the selector grammar
+		// refuses is named with --tl.
+		names := targetListNames(value)
 		if len(names) == 0 {
 			return false, errorcodes.Errorf("cli_device_empty", "--%s requires at least one device name", o.name)
 		}
@@ -507,11 +507,33 @@ func (p *parser) placeDeclarations() error {
 	return nil
 }
 
+// targetListNames splits a --tl value into its names: commas and whitespace
+// separate, in any mix.
+func targetListNames(value string) []string {
+	return strings.FieldsFunc(value, func(r rune) bool { return r == ',' || unicode.IsSpace(r) })
+}
+
+// stdinDevice reports whether a device value is "-": standard input, one
+// device per line, read as --tf - reads it and recorded as a --tf - at the
+// device's position (EXAMPLES chapter 93). It is the value of --target and
+// its aliases, a --tl name, and the positional device of command and login.
+func stdinDevice(value string) bool { return strings.TrimSpace(value) == "-" }
+
+// stdinTargetInput is the target input a "-" device gives.
+func stdinTargetInput(positional bool) TargetInput {
+	return TargetInput{Kind: optTf.name, Value: "-", Positional: positional}
+}
+
 // addTarget records value as a --target input at this position, for
 // --target itself and for each name of a --tl list: an empty name and a
 // selector the shared grammar does not compile are refused at parse time,
-// the message naming the option that carried the name.
+// the message naming the option that carried the name; "-" reads standard
+// input (stdinDevice).
 func (p *parser) addTarget(o *option, value string) error {
+	if stdinDevice(value) {
+		p.inv.Targets = append(p.inv.Targets, stdinTargetInput(false))
+		return nil
+	}
 	if strings.TrimSpace(value) == "" {
 		return errorcodes.Errorf("cli_device_empty", "--%s requires a nonempty device name", o.name)
 	}
@@ -522,7 +544,14 @@ func (p *parser) addTarget(o *option, value string) error {
 	return nil
 }
 
+// positionalDevice records the positional device of command, login, and the
+// shortcut as a --target at its position; "-" reads standard input
+// (stdinDevice).
 func (p *parser) positionalDevice(value string) error {
+	if stdinDevice(value) {
+		p.inv.Targets = append(p.inv.Targets, stdinTargetInput(true))
+		return nil
+	}
 	if strings.TrimSpace(value) == "" {
 		return errorcodes.Errorf("cli_device_empty", "the device name must not be empty")
 	}
