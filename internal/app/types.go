@@ -51,6 +51,7 @@ type CommandOptions struct {
 	Expectations     [][]executionplan.Expectation // empty, or one expect-and-send list per command
 	Timeouts         []int64                       // empty, or one --timeout per command in nanoseconds, 0 the job's
 	MaxBytes         []int64                       // empty, or one --maxbytes per command, 0 the job's
+	Sleeps           []int64                       // empty, or the --sleep before each command in nanoseconds, 0 none
 	Format           string
 	Echo             bool
 	DynamicBorder    bool
@@ -81,6 +82,7 @@ type RunOptions struct {
 	Expectations       [][]executionplan.Expectation // empty, or one expect-and-send list per command
 	Timeouts           []int64                       // empty, or one --timeout per command in nanoseconds, 0 the job's
 	MaxBytes           []int64                       // empty, or one --maxbytes per command, 0 the job's
+	Sleeps             []int64                       // empty, or the --sleep before each command in nanoseconds, 0 none
 	PlatformCommands   bool                          // crun with no command: each device its platform's crun-commands (12.9)
 	Collection         string                        // crun, or run given --cd: the word; the plan carries the collection directory and word
 	Suffix             string                        // --fs: the collection file names' suffix

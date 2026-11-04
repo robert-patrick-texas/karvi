@@ -85,8 +85,13 @@ type Options struct {
 	// execution.command-timeout (a blind command keeps its blind wait) and
 	// a limit output.max-command-bytes, each named as --timeout or
 	// --maxbytes in its message.
-	TimeoutsNS     []int64
-	MaxBytes       []int64
+	TimeoutsNS []int64
+	MaxBytes   []int64
+	// SleepsNS is the --sleep before each requested command, one entry per
+	// command or empty, 0 none: waited after the previous command (or the
+	// session's preparation) before the command is sent (EXAMPLES
+	// chapter 95).
+	SleepsNS       []int64
 	CandidateCount int     // command: size of the ordered target set
 	DispatchOrder  string  // recorded order name
 	ShuffleKey     *string // shuffle and random only
@@ -577,6 +582,13 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 		}
 	}
 	for i, st := range seq.steps {
+		// A --sleep is waited before its command: the cancel and the
+		// device deadline end it early, and the checks after it then record
+		// the command as they record any command they stop.
+		if st.sleep > 0 && ctx.Err() == nil && !deviceExpired() {
+			e.debugf("device sleep target=%q index=%d total=%d sleep=%s", d.CanonicalName, st.index+1, st.count, st.sleep)
+			sleepUntil(ctx, deviceDeadline, st.sleep)
+		}
 		if ctx.Err() != nil {
 			status, code, cause := cancelStatus(ctx)
 			notAttempted(i, status, cause)
@@ -962,6 +974,25 @@ type step struct {
 	blind   bool
 	returns int
 	expect  []platform.Expectation
+	// sleep is the --sleep waited before the command is sent, 0 none;
+	// session-init commands have none.
+	sleep time.Duration
+}
+
+// sleepUntil waits d, or until ctx ends or the device deadline (zero for
+// none) passes, whichever comes first.
+func sleepUntil(ctx context.Context, deadline time.Time, d time.Duration) {
+	if !deadline.IsZero() {
+		if left := time.Until(deadline); left < d {
+			d = left
+		}
+	}
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+	case <-ctx.Done():
+	}
 }
 
 // operation is the error operation of a command that was sent or stopped.
@@ -1000,7 +1031,8 @@ type deviceSequence struct {
 // followed by the requested commands:
 // each profile command's timeout is the profile's, else the job's
 // execution.command-timeout; a requested command's is its --timeout, else
-// the job's, and its byte limit its --maxbytes, else the job's.
+// the job's, its byte limit its --maxbytes, else the job's, and its sleep
+// its --sleep, else none.
 func (e *DeviceExecutor) sequence(t executionplan.ExecutionTarget) deviceSequence {
 	seq := deviceSequence{profile: t.SessionInitProfile, known: true}
 	if seq.profile == "" {
@@ -1022,7 +1054,7 @@ func (e *DeviceExecutor) sequence(t executionplan.ExecutionTarget) deviceSequenc
 	// The device's list: its own when the plan carries one per target, its
 	// platform's when the plan carries lists per platform (with no
 	// declarations), else the plan's commands with theirs.
-	list := executionplan.CommandList{Commands: e.opts.Commands, BlindReturns: e.opts.BlindReturns, Blind: e.opts.Blind, Expectations: e.opts.Expectations, TimeoutsNS: e.opts.TimeoutsNS, MaxBytes: e.opts.MaxBytes}
+	list := executionplan.CommandList{Commands: e.opts.Commands, BlindReturns: e.opts.BlindReturns, Blind: e.opts.Blind, Expectations: e.opts.Expectations, TimeoutsNS: e.opts.TimeoutsNS, MaxBytes: e.opts.MaxBytes, SleepsNS: e.opts.SleepsNS}
 	if own, ok := e.opts.TargetCommands[t.TargetID]; ok {
 		list = own
 	} else if commands, ok := e.opts.PlatformCommands[t.Device.Platform]; ok {
@@ -1035,6 +1067,9 @@ func (e *DeviceExecutor) sequence(t executionplan.ExecutionTarget) deviceSequenc
 		}
 		if i < len(list.MaxBytes) {
 			st.maxBytes = list.MaxBytes[i]
+		}
+		if i < len(list.SleepsNS) {
+			st.sleep = time.Duration(list.SleepsNS[i])
 		}
 		if i < len(list.BlindReturns) {
 			st.returns = list.BlindReturns[i]

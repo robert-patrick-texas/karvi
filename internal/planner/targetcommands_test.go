@@ -23,7 +23,7 @@ func TestTargetCommandLists(t *testing.T) {
 		return executionplan.ExecutionTarget{TargetID: id, Device: executionplan.DeviceProjection{CanonicalName: name}}
 	}
 	list := func(commands ...string) executionplan.CommandList {
-		return executionplan.CommandList{Commands: commands, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]executionplan.Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}}
+		return executionplan.CommandList{Commands: commands, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]executionplan.Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}, SleepsNS: []int64{}}
 	}
 	var asked []string
 	files := map[string]executionplan.CommandList{"core-nyc-01": list("show clock"), "10-1-2-3": list("show version")}
@@ -84,7 +84,7 @@ func TestDraftCarriesTargetLists(t *testing.T) {
 	opts := draftOptions(nil)
 	opts.CommandFolders = []string{"lists"}
 	opts.TargetCommands = func(name string) (executionplan.CommandList, error) {
-		return executionplan.CommandList{Commands: []string{"show clock", "show " + name}, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]executionplan.Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}}, nil
+		return executionplan.CommandList{Commands: []string{"show clock", "show " + name}, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]executionplan.Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}, SleepsNS: []int64{}}, nil
 	}
 	draft, err := Draft(context.Background(), cfg, operator, k03Set(t), opts, plantest.DraftedAt)
 	if err != nil {

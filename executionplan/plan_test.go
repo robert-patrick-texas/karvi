@@ -19,9 +19,9 @@ const (
 	// The schema number is in every stage's digest, so the three pins move
 	// at each plan schema bump and with a field added under an unreleased
 	// one; goldenFinal also binds the job ID through the package reference.
-	goldenDraft    = "ce797cf942ededa77c995ff1a7ab648c3cd8a3467507fc12fb44eb7ec9c3dda7"
-	goldenPrepared = "b713991323e8ff90804038e93d6e1440dbe8a190943807b6b95af3a02048c2a6"
-	goldenFinal    = "f37c04aa649a54880903c6b75c95f7058e038612eeda8c8414cf251867b40315"
+	goldenDraft    = "4fab6a1e6e1f17a9d27d123973cb4f793fbc472c3f97570326abc24ed50c907d"
+	goldenPrepared = "7a9d44f78291a94149ae5d4952b7a850924e49a96674a2931f7d780b6c6f65da"
+	goldenFinal    = "e51ec4ac9eb46d4f5bb8dc1fadc0d432f7a8b7ee656ee13746c289c068408158"
 )
 
 var fixtureCommands = []string{"show clock", "show version", "show ip interface brief", "show running-config | include hostname"}
@@ -33,7 +33,7 @@ func fixtureDraftPlan(t *testing.T) ExecutionPlan {
 		Operator:     Operator{Username: "netops", UID: 1000, PrimaryGID: 1000, Groups: []string{"netops"}},
 		Targets:      []ExecutionTarget{fixtureDirect(t), fixtureInventory(t), fixtureDaemonDraft(t)},
 		Commands:     fixtureCommands,
-		BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{},
+		BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}, SleepsNS: []int64{},
 		SessionInit: map[string]SessionInitProfile{},
 		Dispatch:    DispatchSettings{Mode: DispatchSerial, Width: 1, DispatchOrder: OrderDefault},
 		Output:      OutputSettings{Format: FormatText, Follow: true, Root: "/tmp/karvi/jobs"},
@@ -258,6 +258,9 @@ func TestPlanValidationVectors(t *testing.T) {
 		{"nil max bytes", func(p *ExecutionPlan) { p.MaxBytes = nil }, "execution_plan_invalid: max_bytes: must be present"},
 		{"max bytes long", func(p *ExecutionPlan) { p.MaxBytes = []int64{0, 0, 0, 0, 0} }, "execution_plan_invalid: max_bytes: 5 entries for 4 commands"},
 		{"max bytes negative", func(p *ExecutionPlan) { p.MaxBytes = []int64{0, 0, 0, -2048} }, "execution_plan_invalid: max_bytes: command 4: -2048 must not be negative"},
+		{"nil sleeps", func(p *ExecutionPlan) { p.SleepsNS = nil }, "execution_plan_invalid: sleeps_ns: must be present"},
+		{"sleeps short", func(p *ExecutionPlan) { p.SleepsNS = []int64{0, 1} }, "execution_plan_invalid: sleeps_ns: 2 entries for 4 commands"},
+		{"sleep negative", func(p *ExecutionPlan) { p.SleepsNS = []int64{0, 0, -1, 0} }, "execution_plan_invalid: sleeps_ns: command 3: -1 must not be negative"},
 		{"nil blind", func(p *ExecutionPlan) { p.Blind = nil }, "execution_plan_invalid: blind: must be present"},
 		{"blind short", func(p *ExecutionPlan) { p.Blind = []bool{true} }, "execution_plan_invalid: blind: 1 entries for 4 commands"},
 		{"returns without flags", func(p *ExecutionPlan) { p.BlindReturns = []int{0, 1, 0, 0} }, "execution_plan_invalid: blind: command 2: 1 blind returns require the flag"},
@@ -610,7 +613,7 @@ func TestPlatformCommands(t *testing.T) {
 func TestTargetCommands(t *testing.T) {
 	base := fixtureDraftPlan(t)
 	empty := func(commands ...string) CommandList {
-		return CommandList{Commands: commands, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}}
+		return CommandList{Commands: commands, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}, SleepsNS: []int64{}}
 	}
 	withLists := func() ExecutionPlan {
 		p := base

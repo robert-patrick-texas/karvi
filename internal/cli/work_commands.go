@@ -477,7 +477,7 @@ func commandPlan(inv *Invocation, streams app.IO) (commandSet, int, bool) {
 		if err != nil {
 			return executionplan.CommandList{}, err
 		}
-		return executionplan.CommandList{Commands: commands, BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, TimeoutsNS: decl.timeouts, MaxBytes: decl.maxBytes}, nil
+		return executionplan.CommandList{Commands: commands, BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, TimeoutsNS: decl.timeouts, MaxBytes: decl.maxBytes, SleepsNS: []int64{}}, nil
 	}
 	return commandSet{perTarget: perTarget, folders: folders}, 0, true
 }

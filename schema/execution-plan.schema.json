@@ -154,9 +154,9 @@
     },
     "execution_plan": {
       "type": "object", "additionalProperties": false,
-      "required": ["schema_version", "plan_id", "operator", "targets", "commands", "blind_returns", "blind", "expectations", "timeouts_ns", "max_bytes", "session_init", "dispatch", "output", "sources", "configuration", "planning", "preparation"],
+      "required": ["schema_version", "plan_id", "operator", "targets", "commands", "blind_returns", "blind", "expectations", "timeouts_ns", "max_bytes", "sleeps_ns", "session_init", "dispatch", "output", "sources", "configuration", "planning", "preparation"],
       "properties": {
-        "schema_version": {"const": 15},
+        "schema_version": {"const": 16},
         "plan_id": {"$ref": "#/$defs/identifier"},
         "plan_digest": {"$ref": "#/$defs/digest"},
         "operator": {"$ref": "#/$defs/operator"},
@@ -172,6 +172,7 @@
         "expectations": {"type": "array", "items": {"type": "array", "maxItems": 20, "items": {"$ref": "#/$defs/expectation"}}},
         "timeouts_ns": {"type": "array", "items": {"type": "integer", "minimum": 0}},
         "max_bytes": {"type": "array", "items": {"type": "integer", "minimum": 0}},
+        "sleeps_ns": {"type": "array", "items": {"type": "integer", "minimum": 0}, "description": "Each command's --sleep, waited before it is sent, in nanoseconds; 0 none; empty when no command has one (schema 16)."},
         "session_init": {"type": "object", "additionalProperties": {"$ref": "#/$defs/session_init_profile"}},
         "dispatch": {"$ref": "#/$defs/dispatch"},
         "output": {"$ref": "#/$defs/output"},
@@ -183,14 +184,15 @@
     },
     "command_list": {
       "type": "object", "additionalProperties": false,
-      "required": ["commands", "blind_returns", "blind", "expectations", "timeouts_ns", "max_bytes"],
+      "required": ["commands", "blind_returns", "blind", "expectations", "timeouts_ns", "max_bytes", "sleeps_ns"],
       "properties": {
         "commands": {"type": "array", "minItems": 1, "items": {"type": "string"}},
         "blind_returns": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 20}},
         "blind": {"type": "array", "items": {"type": "boolean"}},
         "expectations": {"type": "array", "items": {"type": "array", "maxItems": 20, "items": {"$ref": "#/$defs/expectation"}}},
         "timeouts_ns": {"type": "array", "items": {"type": "integer", "minimum": 0}},
-        "max_bytes": {"type": "array", "items": {"type": "integer", "minimum": 0}}
+        "max_bytes": {"type": "array", "items": {"type": "integer", "minimum": 0}},
+        "sleeps_ns": {"type": "array", "items": {"type": "integer", "minimum": 0}}
       }
     },
     "config_value": {
@@ -213,7 +215,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["schema_version", "idempotency_key", "job_id", "operator", "client", "mode", "execution_domain", "priority", "plan_digest"],
       "properties": {
-        "schema_version": {"const": 15},
+        "schema_version": {"const": 16},
         "idempotency_key": {"type": "string"},
         "job_id": {"$ref": "#/$defs/identifier"},
         "operator": {"$ref": "#/$defs/operator"},

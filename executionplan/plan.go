@@ -45,8 +45,10 @@ import (
 // removed from the plan and the header, read only by checks against the same
 // message, and, without another bump (15 was unreleased), commands_file
 // become commands_files, every --cf's base name, and target_commands, each
-// target's list under a --cf folder (EXAMPLES chapter 79).
-const SchemaVersion = 15
+// target's list under a --cf folder (EXAMPLES chapter 79); 16 sleeps_ns,
+// each command's --sleep before it, on the plan and on each command list
+// (EXAMPLES chapter 95).
+const SchemaVersion = 16
 
 // Mode is the requested execution mode of a job.
 type Mode string
@@ -156,6 +158,7 @@ type ExecutionPlan struct {
 	Expectations  [][]Expectation               `json:"expectations"`
 	TimeoutsNS    []int64                       `json:"timeouts_ns"`
 	MaxBytes      []int64                       `json:"max_bytes"`
+	SleepsNS      []int64                       `json:"sleeps_ns"`
 	SessionInit   map[string]SessionInitProfile `json:"session_init"`
 	Dispatch      DispatchSettings              `json:"dispatch"`
 	Output        OutputSettings                `json:"output"`
@@ -192,10 +195,13 @@ type ExecutionPlan struct {
 // A command's own bounds: TimeoutsNS and MaxBytes are each empty or one
 // entry per command, --timeout in nanoseconds and --maxbytes in bytes, 0
 // the job's value (execution.command-timeout, output.max-command-bytes).
-// Both are under plan_digest. The client checked each value's range, a
-// timeout on a blind command, and the device timeout and job limit above
-// them; the plan refuses only a length that does not match the commands or
-// a negative entry, so the daemon accepts what the client accepted.
+// SleepsNS is empty or one entry per command, the --sleep waited before that
+// command is sent, in nanoseconds, 0 none (EXAMPLES chapter 95). All three
+// are under plan_digest. The client checked each value's range, a timeout
+// on a blind command, a sleep with no command after it, and the device
+// timeout and job limit above them; the plan refuses only a length that does
+// not match the commands or a negative entry, so the daemon accepts what the
+// client accepted.
 const (
 	BlindReturnsMax = 20
 	ExpectationsMax = 20
@@ -310,7 +316,7 @@ var CollectionWords = []string{"crun", "run", "command"}
 func (o OutputSettings) Crun() bool { return o.Collection != nil && o.Collection.Word == "crun" }
 
 // CommandList is one list of device commands with each command's
-// declarations: the five lists parallel to Commands, each empty when no
+// declarations: the six lists parallel to Commands, each empty when no
 // command has one or one entry per command, as the plan's own fields are
 // (validateBlindSends, validateCommandBounds). The plan's own list is one;
 // each target of a run with a --cf folder has its own (TargetCommands).
@@ -321,11 +327,12 @@ type CommandList struct {
 	Expectations [][]Expectation `json:"expectations"`
 	TimeoutsNS   []int64         `json:"timeouts_ns"`
 	MaxBytes     []int64         `json:"max_bytes"`
+	SleepsNS     []int64         `json:"sleeps_ns"`
 }
 
-// ownList is the plan's own list: Commands and its five fields.
+// ownList is the plan's own list: Commands and its six fields.
 func (p *ExecutionPlan) ownList() CommandList {
-	return CommandList{Commands: p.Commands, BlindReturns: p.BlindReturns, Blind: p.Blind, Expectations: p.Expectations, TimeoutsNS: p.TimeoutsNS, MaxBytes: p.MaxBytes}
+	return CommandList{Commands: p.Commands, BlindReturns: p.BlindReturns, Blind: p.Blind, Expectations: p.Expectations, TimeoutsNS: p.TimeoutsNS, MaxBytes: p.MaxBytes, SleepsNS: p.SleepsNS}
 }
 
 // ListFor is the command list target runs: its own when the plan carries
@@ -336,7 +343,7 @@ func (p *ExecutionPlan) ListFor(t *ExecutionTarget) CommandList {
 		return list
 	}
 	if list, ok := p.PlatformCommands[t.Device.Platform]; ok {
-		return CommandList{Commands: list, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}}
+		return CommandList{Commands: list, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}, SleepsNS: []int64{}}
 	}
 	return p.ownList()
 }
@@ -794,15 +801,16 @@ func (l CommandList) validateBlindSends(at string) error {
 	return nil
 }
 
-// validateCommandBounds checks each command's own bounds: each list present,
-// empty or one entry per command, and no entry negative (0 is the job's
-// value). The ranges, the blind conflict, the device timeout, and the job
-// limit are the client's to check. at prefixes each field named.
+// validateCommandBounds checks each command's own bounds and its sleep:
+// each list present, empty or one entry per command, and no entry negative
+// (0 is the job's value, or no sleep). The ranges, the blind conflict, a
+// sleep with no command after it, the device timeout, and the job limit are
+// the client's to check. at prefixes each field named.
 func (l CommandList) validateCommandBounds(at string) error {
 	for _, f := range []struct {
 		field string
 		list  []int64
-	}{{"timeouts_ns", l.TimeoutsNS}, {"max_bytes", l.MaxBytes}} {
+	}{{"timeouts_ns", l.TimeoutsNS}, {"max_bytes", l.MaxBytes}, {"sleeps_ns", l.SleepsNS}} {
 		if f.list == nil {
 			return planInvalid(at+f.field, "must be present (empty allowed)")
 		}
@@ -811,7 +819,7 @@ func (l CommandList) validateCommandBounds(at string) error {
 		}
 		for i, v := range f.list {
 			if v < 0 {
-				return planInvalid(at+f.field, "command %d: %d must not be negative (0 is the job's value)", i+1, v)
+				return planInvalid(at+f.field, "command %d: %d must not be negative (0 is the job's value, or no sleep)", i+1, v)
 			}
 		}
 	}

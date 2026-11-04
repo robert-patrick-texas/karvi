@@ -119,7 +119,7 @@ func DraftPlan() executionplan.ExecutionPlan {
 		Operator:     executionplan.Operator{Username: "netops", UID: 1000, PrimaryGID: 1000, Groups: []string{"netops"}},
 		Targets:      []executionplan.ExecutionTarget{DirectTarget(), InventoryTarget(), DaemonTarget()},
 		Commands:     append([]string{}, Commands...),
-		BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]executionplan.Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{},
+		BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]executionplan.Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}, SleepsNS: []int64{},
 		SessionInit: map[string]executionplan.SessionInitProfile{},
 		Dispatch:    executionplan.DispatchSettings{Mode: executionplan.DispatchSerial, Width: 1, DispatchOrder: executionplan.OrderDefault},
 		Output:      executionplan.OutputSettings{Format: executionplan.FormatText, Follow: true, Root: "/tmp/karvi/jobs"},

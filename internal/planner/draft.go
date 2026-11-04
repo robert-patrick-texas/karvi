@@ -81,8 +81,13 @@ type DraftOptions struct {
 	// limit above output.max-job-bytes.
 	Timeouts []int64
 	MaxBytes []int64
+	// Sleeps is empty or one entry per command, the --sleep waited before
+	// it in nanoseconds, 0 none; the parser checked each range and that a
+	// command follows, and Draft refuses a device's total above a set
+	// execution.device-timeout.
+	Sleeps []int64
 	// TargetCommands, with a --cf folder on the line, builds each target's
-	// list in place of Commands and the five lists above, which are then
+	// list in place of Commands and the six lists above, which are then
 	// empty; CommandFolders are the folders as given, for the refusals.
 	TargetCommands TargetCommands
 	CommandFolders []string
@@ -125,7 +130,7 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 	if opts.ActivityType == "" {
 		opts.ActivityType = "run"
 	}
-	if err := checkCommandBounds(cfg, opts.Timeouts, opts.MaxBytes); err != nil {
+	if err := checkCommandBounds(cfg, opts.Timeouts, opts.MaxBytes, opts.Sleeps); err != nil {
 		return executionplan.ExecutionPlan{}, err
 	}
 	// The platforms first: inventory validation
@@ -241,7 +246,7 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 		Commands: append([]string{}, opts.Commands...), CommandsFiles: commandsFiles, PlatformCommands: lists, TargetCommands: targetLists, PlatformFilters: filters, PlatformMasks: masks,
 		BlindReturns: append([]int{}, opts.BlindReturns...),
 		Blind:        append([]bool{}, opts.Blind...), Expectations: copyExpectations(opts.Expectations),
-		TimeoutsNS: append([]int64{}, opts.Timeouts...), MaxBytes: append([]int64{}, opts.MaxBytes...),
+		TimeoutsNS: append([]int64{}, opts.Timeouts...), MaxBytes: append([]int64{}, opts.MaxBytes...), SleepsNS: append([]int64{}, opts.Sleeps...),
 		SessionInit:   map[string]executionplan.SessionInitProfile{},
 		Dispatch:      dispatchSettings(cfg, set, opts),
 		Output:        out,
@@ -260,15 +265,24 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 // site set for it: a --timeout above a set execution.device-timeout (0 is no
 // ceiling), which the device's whole list could never give it, and a
 // --maxbytes above output.max-job-bytes, as the configuration refuses a
-// command limit above the job's. Each names both values and the --set that
-// raises the ceiling, so a ceiling is raised in the open, never by a
-// declaration.
-func checkCommandBounds(cfg configload.Snapshot, timeouts, maxBytes []int64) error {
+// command limit above the job's; and the --sleep total above a set
+// execution.device-timeout, which the list could never outlast, since every
+// sleep is waited in full (EXAMPLES chapter 95). Each names both values and
+// the --set that raises the ceiling, so a ceiling is raised in the open,
+// never by a declaration.
+func checkCommandBounds(cfg configload.Snapshot, timeouts, maxBytes, sleeps []int64) error {
 	if ceiling := cfg.Duration("execution.device-timeout"); ceiling > 0 {
 		for i, ns := range timeouts {
 			if d := time.Duration(ns); d > ceiling {
 				return errorcodes.Errorf("timeout_over_device_timeout", "command %d: --timeout %s is above execution.device-timeout %s, the bound on the device's whole list; lower the --timeout or raise the ceiling with --set execution.device-timeout=%s", i+1, d, ceiling, d)
 			}
+		}
+		var total time.Duration
+		for _, ns := range sleeps {
+			total += time.Duration(ns)
+		}
+		if total > ceiling {
+			return errorcodes.Errorf("sleep_over_device_timeout", "the --sleep total %s is above execution.device-timeout %s, the bound on the device's whole list; shorten the sleeps or raise the ceiling with --set execution.device-timeout=%s", total, ceiling, total)
 		}
 	}
 	limit := cfg.Int64("output.max-job-bytes")

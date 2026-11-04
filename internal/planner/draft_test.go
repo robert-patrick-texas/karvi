@@ -166,7 +166,9 @@ func draftOptions(commands []string) DraftOptions {
 // Re-pinned when platform-resolution.default took cisco_ios (EXAMPLES
 // chapter 86): the configuration block's value and its digest; nothing else
 // moved.
-const goldenK03Draft = "d75e2efe3d3d804c5f11b2a78f286e7c1b59d872a8d765ea019e1fbb4c67fccd"
+// Re-pinned at schema 16, sleeps_ns, each command's --sleep (EXAMPLES
+// chapter 95); nothing else moved.
+const goldenK03Draft = "c4316966394d50c7d55df3f53afe754af2dd80eb92a72aad0f19fcdc1fef99af"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)
@@ -331,6 +333,41 @@ func TestDraftCommandBounds(t *testing.T) {
 		if err == nil && (!reflect.DeepEqual(draft.TimeoutsNS, append([]int64{}, tc.timeouts...)) || !reflect.DeepEqual(draft.MaxBytes, append([]int64{}, tc.maxBytes...))) {
 			t.Errorf("%s: timeouts %v maxbytes %v", tc.name, draft.TimeoutsNS, draft.MaxBytes)
 		}
+	}
+}
+
+// TestDraftRefusesSleepsOverTheDeviceTimeout: the sleeps are waited in
+// full, so their total above a set execution.device-timeout is refused at
+// planning; at the ceiling, or with none, the plan carries them (EXAMPLES
+// chapter 95).
+func TestDraftRefusesSleepsOverTheDeviceTimeout(t *testing.T) {
+	n := len(plantest.Commands)
+	sleeps := make([]int64, n)
+	sleeps[1], sleeps[n-1] = int64(20*time.Minute), int64(25*time.Minute)
+	for _, tc := range []struct {
+		name string
+		sets []string
+		code string
+		text string
+	}{
+		{"no ceiling", nil, "", ""},
+		{"at the device timeout", []string{`execution.device-timeout="45m"`}, "", ""},
+		{"above the device timeout", []string{`execution.device-timeout="30m"`}, "sleep_over_device_timeout", "the --sleep total 45m0s is above execution.device-timeout 30m0s, the bound on the device's whole list; shorten the sleeps or raise the ceiling with --set execution.device-timeout=45m0s"},
+	} {
+		opts := draftOptions(plantest.Commands)
+		opts.Sleeps = sleeps
+		draft, err := Draft(context.Background(), testConfig(t, tc.sets...), operator, k03Set(t), opts, plantest.DraftedAt)
+		if errorcodes.Of(err) != tc.code || (err != nil && err.Error() != tc.code+": "+tc.text) {
+			t.Errorf("%s: %v, want %s: %s", tc.name, err, tc.code, tc.text)
+			continue
+		}
+		if err == nil && !reflect.DeepEqual(draft.SleepsNS, sleeps) {
+			t.Errorf("%s: sleeps %v", tc.name, draft.SleepsNS)
+		}
+	}
+	draft, err := Draft(context.Background(), testConfig(t), operator, k03Set(t), draftOptions(plantest.Commands), plantest.DraftedAt)
+	if err != nil || draft.SleepsNS == nil || len(draft.SleepsNS) != 0 {
+		t.Fatalf("no sleep: %v %#v", err, draft.SleepsNS)
 	}
 }
 

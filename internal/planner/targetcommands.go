@@ -68,7 +68,7 @@ func targetCommandLists(cfg configload.Snapshot, targets []executionplan.Executi
 		} else if err != nil {
 			return nil, err
 		}
-		if err := checkCommandBounds(cfg, list.TimeoutsNS, list.MaxBytes); err != nil {
+		if err := checkCommandBounds(cfg, list.TimeoutsNS, list.MaxBytes, list.SleepsNS); err != nil {
 			return nil, err
 		}
 		lists[t.TargetID] = list
