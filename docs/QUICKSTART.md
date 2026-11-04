@@ -42,7 +42,10 @@ returns to the shell ([`docs/OPERATIONS.md` "The credential
 prompts"](OPERATIONS.md#the-credential-prompts)). A `linux` server takes the
 operator's own keys instead ([`docs/OPERATIONS.md`, "The platform's fallback
 and the operator's
-keys"](OPERATIONS.md#the-platforms-fallback-and-the-operators-keys)).
+keys"](OPERATIONS.md#the-platforms-fallback-and-the-operators-keys)), and
+`NETSUDO` for a command run as root, `--sudo TEXT` ([`docs/OPERATIONS.md`,
+"Root commands and their
+password"](OPERATIONS.md#root-commands-and-their-password)).
 
 ## Login
 

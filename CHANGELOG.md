@@ -2,6 +2,63 @@
 
 ## Unreleased
 
+- **Breaking: `--sudo TEXT` runs a command as root on the exec channel;
+  execution plan 17, audit schema 3.** `command`, `run`, and `crun` take
+  `--sudo TEXT` (`--sudo=TEXT`), a command source in the order written beside
+  `--cmd`, `--cf`, and `--sleep`, written as a `--cmd` is, `--timeout` and
+  `--maxbytes` after it its own; a commands-file line `--sudo TEXT` is the same
+  statement, where it was device text (`--literal` still sends it as written),
+  and so is a stream line. It reaches a platform on the exec channel alone: a
+  target on a shell is refused at planning, `channel_shell_sudo_refused` (new),
+  and a file line `--sudo` with no command, `commands_file_sudo_invalid` (new);
+  a blank `--sudo` is `cli_option_value_invalid`. The command is sent as `sudo
+  -S -p 'karvi-sudo-<16 hex>:' -- TEXT`, with no `sh -c`, so a server's rules
+  match it and its log names it; the password is written once, at the prompt,
+  and the input closed; without one it is `sudo -n -- TEXT`. The prompt is
+  removed from the recorded stderr in both forms `sudo` writes it, classic
+  `sudo`'s and sudo-rs's; a second prompt is `privilege_failed`, its
+  description widened. The password is the answering backend's enable field
+  (blank: none), or the fallback's `NETSUDO`, else `NETENABLE` under `netvars`,
+  else none, never asked at the terminal; `NETSUDO` is read, and a server's
+  enable field carried to the daemon, only for a device with a `--sudo`
+  command, and `requires-enable` on a platform on the exec channel requires it
+  of those devices alone. The record adds `privilege: "sudo"`, as the audit's
+  action does (audit schema 2 -> 3); the plan carries a `sudo` flag per command,
+  its platform lists taking a device list's shape (plan 16 -> 17). A root
+  command is shown at `srv1#` in the text display, `--echo`,
+  `output.TARGET.txt`, and `--live`, one not sent as `! not sent: --sudo TEXT`;
+  its collection marker is `! --sudo TEXT`, and the rerun files and
+  `karvi-audit`'s rows write it as `--sudo TEXT`. `--dry-run` names the root commands
+  (`sudo: commands 2, 3`) and each device's source (`sudo: password from
+  NETSUDO`, `sudo: none, sudo -n`), the JSON report as
+  `credential_binding.sudo`; `--debug` adds `sudo=password|none` to a command's
+  start and `device sudo answered`. `NETSUDO` joins the variables the daemon's
+  `daemon_environment_secret_variable` names and the `crun.after` hook's
+  environment drops. `karvi-fake-device`'s Linux persona plays `sudo` in both
+  forms (`-sudo-rs` for sudo-rs's), `-sudo-asks` making it want `-enable`, and
+  answers `whoami` and `id -u`. [`docs/COMMAND-SESSION.md`, "Root commands on an exec
+  channel"](docs/COMMAND-SESSION.md#root-commands-on-an-exec-channel) has the
+  rules, and [`docs/OPERATIONS.md`, "Root commands and their
+  password"](docs/OPERATIONS.md#root-commands-and-their-password) the sources.
+- **A line's one `--cmd` or `--sudo` takes the words after it; after `--cmd --`
+  or `--sudo --` every word is the command.** `karvi command srv1 --sudo
+  systemctl restart nginx` is one root command, as the freeform command's words
+  are one command, every word after the first the command's; `--cmd show ip
+  interface brief` alike. After `--cmd --` or `--sudo --` every word to the
+  line's end is the command, a dash among them (`--sudo -- journalctl -u
+  nginx`), and that form may end a line of other commands. Unquoted words beside
+  another command stay `cli_command_text_mixed`, its message now `freeform text
+  "…" joins only a line's one --cmd or --sudo, right after its value; quote each
+  command`, and an unknown option right after a command's first word says
+  `for the command's own option write --sudo -- TEXT, or quote the command`.
+  [`docs/COMMAND-SESSION.md`, "Grammar"](docs/COMMAND-SESSION.md#grammar).
+- **Breaking: a platform's `crun-commands` entries are read as commands-file
+  lines.** An entry `--sleep DURATION` or `--sudo TEXT` is the statement, where
+  it was device text; a malformed one is `commands_file_sleep_invalid` or
+  `commands_file_sudo_invalid` naming `platform P crun-commands entry N`, and a
+  trailing sleep or a sleep total over `execution.device-timeout` is refused
+  naming the platform. An entry's trailing `\r` stays its text, as before, and
+  `--literal` sends every entry as written.
 - **Breaking: the command record has no `command_sha256`; command record
   5.** Each record's `command_sha256`, the SHA-256 of its `command`, was read
   by nothing in karvi, and the record holds the command itself; a tool that

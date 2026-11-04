@@ -108,7 +108,7 @@ at the first resolution that reaches the backend.
 | `credkey` | the inventory row's `credkeyref` ([section 5](#5-keys-and-pins-credkey-and-credkeyref)); also the row's label in evidence | a literal |
 | `username` | the login name; blank means the operator's own name, after the backend's `transform` | trimmed; or `env:NAME` ([section 6](#6-secrets-in-the-environment-instead-of-the-file)) |
 | `password` | the login password; may be blank ([section 4](#4-how-a-row-is-chosen)) | **kept exactly as written**; or `env:NAME` |
-| `enable_password` | the enable password; may be blank | **kept exactly as written**; or `env:NAME` |
+| `enable_password` | the enable password, and on a server on the exec channel a `--sudo` command's `sudo` password; may be blank | **kept exactly as written**; or `env:NAME` |
 
 **Headers.** In header mode a column is found under its field's own name,
 the name with hyphens (`enable-password`), or a header named by
@@ -168,7 +168,7 @@ value but a variable's name ([section
    | Code (exit 6) | The selected row |
    |---|---|
    | `credential_password_missing` | has no password, which a row always needs (a row holds no key) |
-   | `credential_enable_missing` | has no enable password and the device's platform sets `requires-enable = true` |
+   | `credential_enable_missing` | has no enable password and the device's platform sets `requires-enable = true` (on the exec channel, for a device with a `--sudo` command alone) |
    | `credential_incomplete` | yields no username after the transforms |
    | `credential_env_missing` | has an `env:NAME` cell whose variable is unset or empty ([section 6](#6-secrets-in-the-environment-instead-of-the-file)) |
 
@@ -304,9 +304,13 @@ variable names, which the operator-keyed `env` backend cannot be.
 - **A blank cell names no variable.** A blank `username` is the operator's own
   name, after the backend's `transform`; a blank `password` is
   `credential_password_missing` ([section 4](#4-how-a-row-is-chosen)). A cell
-  reads `NETUSER`, `NETPASS`, or `NETENABLE` only as `env:NETUSER`,
-  `env:NETPASS`, or `env:NETENABLE`; otherwise the platform's fallback reads
-  them, when no backend answers.
+  reads `NETUSER`, `NETPASS`, `NETENABLE`, or `NETSUDO` only as
+  `env:NETUSER`, `env:NETPASS`, `env:NETENABLE`, or `env:NETSUDO`; otherwise
+  the platform's fallback reads them, when no backend answers. A blank
+  `enable_password` on a server's row is no `sudo` password: its `--sudo`
+  commands are sent as `sudo -n`, and `NETSUDO` does not fill it
+  ([`docs/OPERATIONS.md`, "Root commands and their
+  password"](OPERATIONS.md#root-commands-and-their-password)).
 - **The environment is the client's,** the `karvi` that plans the run; a run
   through the daemon reads the variable before the job is sent. A credential
   helper's value for the name, where one ran, is read in place of the

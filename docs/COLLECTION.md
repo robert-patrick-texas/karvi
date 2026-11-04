@@ -34,7 +34,8 @@ karvi crun --all --dry-run                         # each device's list, no devi
   NUL, or control character (`crun_suffix_invalid`). Two devices that
   would share a file name are refused at planning.
 - **The content** is each command's output under a marker line
-  `! COMMAND`, a blank line before every marker but the first, and nothing
+  `! COMMAND` (a root command's `! --sudo COMMAND`), a blank line before
+  every marker but the first, and nothing
   else: no header, no prompt, no sent statement, no timestamp, no error
   line. A rejected statement's block is the device's own error text.
 - **Replacement only on success.** The file is written as a hidden
@@ -55,7 +56,11 @@ karvi crun --all --dry-run                         # each device's list, no devi
   own file in it ([`docs/OPERATIONS.md`, "A command list per
   device"](OPERATIONS.md#a-command-list-per-device)); with none, each device
   is sent its platform's `crun-commands` list, and a device whose platform has
-  no list is refused at planning. The job folder holds `commands.PLATFORM.txt`
+  no list is refused at planning. The list's entries are read as a commands
+  file's lines: an entry `--sleep DURATION` or `--sudo TEXT` is the statement,
+  one malformed refused at planning naming the platform and the entry
+  (`commands_file_sleep_invalid`, `commands_file_sudo_invalid`), and
+  `--literal` sends every entry as written. The job folder holds `commands.PLATFORM.txt`
   per list sent, and `commands/NAME` per device beside a `--cf` folder.
 - **The collection never writes over its own lists.** A `--cf` folder that is
   the collection directory, with or without `--fs`, or a `--cf` file that is a
@@ -196,10 +201,12 @@ status. The two differ in one more way: the shell's last line before a prompt
 loses its trailing blanks (`ip -br address` pads its columns), so a server
 moved between `linux` and `linux_shell` shows that one line in its next diff.
 
-A command that needs root is written `sudo -n …` in a site's list, which fails
-cleanly with `sudo`'s message where a password would be asked. The
-distribution's own state (the package list, the firewall rules) is a site's
-list on an alias:
+A command that needs root is an entry `--sudo TEXT`, run through the server's
+`sudo` with the password the device's credential gives, or as `sudo -n` with
+none ([`docs/OPERATIONS.md`, "Root commands and their
+password"](OPERATIONS.md#root-commands-and-their-password)); its block's marker
+is `! --sudo TEXT`. The distribution's own state (the package list, the
+firewall rules) is a site's list on an alias:
 
 ```toml
 [platform.debian]
@@ -211,7 +218,7 @@ crun-commands = [
   "ip route show table all",
   "systemctl list-unit-files --state=enabled --no-pager --no-legend",
   "dpkg-query -W -f '${Package} ${Version}\\n'",
-  "sudo -n nft list ruleset",
+  "--sudo nft list ruleset",
 ]
 ```
 
@@ -519,7 +526,7 @@ reads the replaced files' names on standard input, one per line, sorted
 | `KARVI_EXIT` | the run's exit code |
 
 Beside them it has the operator's environment, without `NETUSER`, `NETPASS`,
-and `NETENABLE`.
+`NETENABLE`, and `NETSUDO`.
 
 Its output, both streams, goes to karvi's stderr after the display, so a
 `--format jsonl` stdout stays records. A hook that cannot start, exits

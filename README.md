@@ -105,8 +105,10 @@ karvi command --address 192.0.2.10 --target router1 --cmd 'show clock'
 karvi options end where the device command text begins: an option goes before
 the device or between the device and the text, and every word from the text's
 first on reaches the device unchanged, a karvi option name, `-4`, or `-h` among
-them. The words form one device command; several commands take repeated
-`--cmd` or `--cf`, sent in the order written. The first line below sends `show
+them. The words form one device command, and so do the words after a line's
+one `--cmd` or `--sudo` (every word after `--cmd --` or `--sudo --`, a dash
+among them); several commands take repeated, quoted `--cmd` or `--sudo`, or
+`--cf`, sent in the order written. The first line below sends `show
 clock` with `--echo` on; the second sends one command, `show clock --echo`:
 
 ```bash
@@ -146,7 +148,15 @@ server on the built-in `linux` platform takes an exec channel per command
 instead, on one connection per device (on `system` an OpenSSH ControlMaster of
 karvi's own), each command's exit status its verdict, with stdout and stderr
 apart ([`docs/COMMAND-SESSION.md`, "The exec
-channel"](docs/COMMAND-SESSION.md#the-exec-channel)).
+channel"](docs/COMMAND-SESSION.md#the-exec-channel)). There a command that
+needs root is `--sudo TEXT`, run through the server's own `sudo` with the
+password the device's credential gives, or none
+([`docs/COMMAND-SESSION.md`, "Root commands on an exec
+channel"](docs/COMMAND-SESSION.md#root-commands-on-an-exec-channel)):
+
+```bash
+karvi command srv1 --cmd 'systemctl is-active nginx' --sudo 'systemctl restart nginx'
+```
 
 ## Prompt and command echo
 

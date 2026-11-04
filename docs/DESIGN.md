@@ -78,11 +78,24 @@ pflag.
 word; in `run`, at the first positional word. After that karvi recognises no
 option, no abbreviation, no `--`, and no help flag: every remaining argument
 reaches the device unchanged, `-4` and `-h` included. Freeform forms exactly
-one device command; several commands take repeated `--cmd` or `--cf`, and
-mixing freeform with either is refused. *Why:* the earlier parser
+one device command, and so do the words right after the value of a line's one
+`--cmd` or `--sudo`; after `--cmd --` or `--sudo --` every word to the line's
+end is that command, which may end a line of others. Several commands
+otherwise take repeated, quoted `--cmd` and `--sudo`, or `--cf`, and freeform
+beside them is refused (`cli_command_text_mixed`); an unknown option right
+after a command's first word names both fixes. *Why:* the earlier parser
 captured karvi options inside device text, so `traceroute -4 host` lost its
-`-4` and a trailing `-h` printed help. *Not taken:* recognising options after
-positional words.
+`-4` and a trailing `-h` printed help; the words after a lone `--cmd` or
+`--sudo` read as the freeform command's and a commands-file line's do, and a
+command's own option right after its first word cannot be told from karvi's
+without `--`, since the parser never sees the shell's quotes (`--cmd uptime
+--timeout 5s` keeps its declaration; [`docs/EXAMPLES.md`, chapter
+96](EXAMPLES.md#96-root-commands-on-the-exec-channel-2026-11-04)). *Not taken:*
+recognising options after positional words; a dash word after a command's
+first word read as the command's (`-c`, `-h`, and `-4` are karvi's, and an
+option karvi adds later would change such a line); a one-letter option there
+refused (`karvi r -cmd df -c free -c "uname -a"` is three commands, and `--sudo
+sh -c '…'` unquoted two, the second the login user's).
 
 **Spelling.** One or two leading dashes are equivalent, `=` attaches a value
 in either form, and aliases match exactly (`--target`/`--host`/`-t`,
@@ -776,10 +789,15 @@ platform, read from the platform the device actually runs as. When optional,
 resolution uses a secret if one is resolved, never prompts for one, and never
 fails for its absence; the session's one attempt then decides. A login
 resolves none on any platform: it asks for none, refuses no credential
-without one, reads no `NETENABLE`, and drops one a backend holds. *Why:* many
+without one, reads no `NETENABLE`, and drops one a backend holds. On the exec
+channel the field is a root command's `sudo` password alone (section 5): a
+device with a `--sudo` command carries it, and `requires-enable` requires it of
+that device, `credential_enable_missing` at planning and never a prompt; a
+device without one carries none, as a login. *Why:* many
 organisations deliver privilege 15 at login or configure enable without a
 secret; a login's operator types `enable` at the device, so nothing of the
-login would send the secret.
+login would send the secret; on exec nothing but `sudo` sends it, and a
+secret no command uses would only travel to the daemon.
 
 **The askpass broker answers the username and the password alone.** Over
 `system`, OpenSSH's questions reach karvi's askpass broker, which answers the
@@ -921,8 +939,10 @@ network built-ins and `generic` are `["netvars", "prompt"]`, `linux` and
 `linux_shell` `["keys"]`, a platform that leaves the field unset `["netvars",
 "prompt"]`, and an empty list no fallback; a site that lets the variables serve
 its servers writes `[platform.linux] fallback = ["netvars", "keys"]`. For a
-Linux server the enable field is the `sudo` password. Whether keys are offered
-is the credential's, and `ssh.pubkey-authentication` is removed: a credential
+server on the exec channel the enable field is a `--sudo` command's password;
+a fallback that answered, by whichever word, reads `NETSUDO` for it, then
+`NETENABLE` where the list holds `netvars`. Whether keys are offered is the
+credential's, and `ssh.pubkey-authentication` is removed: a credential
 with a key offers it, one without offers none, and a server whose credential
 has no password needs none. *Why:* the production fleet needs all four forms,
 and a backend's rows already map a credential to devices; a key's bytes copied
@@ -972,8 +992,7 @@ goal ([`ROADMAP.md`](../ROADMAP.md), "The key that authenticated"). The
 `Include` of the operator's `~/.ssh/config` (`ssh.include-user-config`) stays:
 OpenSSH adds that file's `IdentityFile` lines after karvi's even under
 `IdentitiesOnly`, so a key of the operator's own configuration may be offered
-once karvi's are refused. No `sudo` support is added with the first build: a
-command written `sudo -n …` runs as written. *Why:* each key offered spends one
+once karvi's are refused. *Why:* each key offered spends one
 of the server's authentication attempts (`MaxAuthTries`, 6 by default) and the
 first authorized key offered is the one that logs in, so the order is the
 operator's choice, defaulting to the strongest and fastest first; a key whose
@@ -1133,9 +1152,11 @@ usable: the rest stop unless `--continue-device-on-error`.
 together, and each stream is spooled past the threshold on its own; at the limit
 the command is stopped as at a timeout, the record is `output_limit_exceeded`
 with the first limit bytes across the two streams, and the connection serves the
-next command under the device-error policy. `--sudo` reaches a shell too: karvi
-types `sudo -p '<prompt>' -- sh -c '<command>'` without `-S`, so `sudo` reads
-the terminal with its echo off, and answers after the prompt as on exec. *Why:*
+next command under the device-error policy. `--sudo` reaches the exec channel
+alone: a target on a shell is refused at planning,
+`channel_shell_sudo_refused`, by the client and by the daemon's plan check, and
+the shell's form (`sudo -p` without `-S`, `sudo` reading the terminal with its
+echo off) is not built ([`ROADMAP.md`](../ROADMAP.md), Later). *Why:*
 a channel without a terminal has nothing to page, escalate, or log out of; a
 declaration that answers a terminal cannot be honoured, and one dropped would
 let the operator believe a confirmation was answered; on a shell a timeout
@@ -1159,28 +1180,55 @@ follows paging; then the requested commands. *Why:* scrapligo's escalation loop
 sent a wrong secret nine times; the contract fixes one attempt. *Not taken:*
 loading patterns from scrapligo's assets at run time.
 
-**`sudo` on an exec channel is declared, and its password follows its own
-prompt.** The first build adds nothing: a command written `sudo -n …` runs as
-written, and a refused one records `command_exit_nonzero` with `sudo`'s
-message in its stderr. Later, with the password credentials, `--sudo` attaches
-to the `--cmd` it follows, as `--expect` does, and the command runs as `sudo -S
--p 'karvi-sudo-<16 hex>:' -- sh -c '<the command>'`, the prompt random per
-command; the record keeps the command as written and adds `privilege: "sudo"`;
-a run-wide spelling for command files is settled when built. The password is
-written once and only after that prompt appears on stderr, the prompt is
-removed from the recorded stderr, and a second appearance (a wrong password)
-closes the input and records `privilege_failed`. The password is the
-credential's enable field, then `NETSUDO`, then `NETENABLE` where the
-platform's `fallback` holds `netvars`; with none the command runs under `sudo
--n` and never waits. The shell channel answers a `sudo` prompt with `--expect`
-as before. *Why:* over exec `sudo -n` already fails cleanly; `-S -p` gives a
-prompt karvi chooses and prints it only when `sudo` asks, while a password
-written before it reaches the command whenever `sudo` needs none (no password
-required, or a ticket cached), as `printf SECRET | sudo -S cat` printed it.
-*Not taken:* a password written to the input blindly; recognising and
-rewriting a `sudo` the operator wrote (`sudo`'s own prompt is set by each site
-and translated); a pty for `sudo`'s prompt (the streams merge and the terminal
-returns); `SUDO_ASKPASS` (a program on every server).
+**A root command is a command source, and its password follows its own
+prompt.** `--sudo TEXT` is one command run as root, a source in the order
+written beside `--cmd`, `--cf`, and `--sleep`, repeatable, written as a
+`--cmd` is (section 2's boundary), `--timeout` and `--maxbytes` after it its
+own; a commands-file line, a stream line, and a `crun-commands` entry `--sudo
+TEXT` are the same
+statement, and one with no command is refused (`commands_file_sudo_invalid`,
+naming the file and line, or the platform and entry). It reaches the exec
+channel alone (above). The command runs as `sudo -S -p 'karvi-sudo-<16 hex>:' --
+TEXT`, the prompt random per command and the input open; when the prompt
+appears on stderr the session writes the password and a line end once and
+closes the input. Without a password it runs as `sudo -n -- TEXT`, the input at
+its end, and never waits. The prompt is recognised by its token in both forms
+`sudo` writes (classic `sudo`'s, verbatim and without a line end; sudo-rs's,
+Ubuntu 26.04's, `[sudo: PROMPT] Password: ` and a line end) and removed from
+stderr whole, with one line end directly after it where `sudo` wrote one (every
+sudo-rs prompt; a classic second prompt, at the input's end); a second prompt
+is `privilege_failed`, the command not run. The password is chosen in the
+client by the source that answered the credential: a backend's enable field as
+it is, blank being none (no variable fills it, chapter 56's rule; a row names
+one, `env:NETSUDO`); the fallback's `NETSUDO`, else `NETENABLE` where it holds
+`netvars`, else none. `NETSUDO` is read only for a device with a `--sudo`
+command, and nothing prompts for it. The record keeps the command as written
+and adds `privilege: "sudo"`, as the audit's action does (audit schema 3);
+execution plan 17 carries a `sudo` flag per command on each command list, the
+plan's and the platforms' alike. The display shows a root command at `srv1#`,
+a collection's marker is `! --sudo TEXT`, the rerun files write `--sudo TEXT`,
+and the dry run names each device's source (`sudo: password from NETSUDO`,
+`sudo: none, sudo -n`). *Why:* a statement of its own cannot attach to the
+wrong command, and reads the same on the line, in a file, and in a stream
+([`docs/EXAMPLES.md`, chapter
+96](EXAMPLES.md#96-root-commands-on-the-exec-channel-2026-11-04)); without `sh
+-c` the server's rules match the command and its log names it, where both
+`sudo`s refused `sh -c 'id -u'` under a rule for `id`; a pipe or a `;` after the
+first command runs as the login user, as `sudo TEXT` typed at a prompt does;
+`-S -p` gives a prompt karvi chooses and prints it only when `sudo` asks, while
+a password written before it reaches the command whenever `sudo` needs none, as
+`printf SECRET | sudo -S cat` printed it; the source that answered the
+credential is the one the site set for the device. The caution: where a
+password is held and `sudo` asks none (`NOPASSWD`), the input stays open, so a
+command that reads it waits to its command timeout. *Not taken:* `--sudo` as a
+flag after its `--cmd` (two spellings, and attachment to the wrong command); a
+run-wide `--sudo-all`; `--sudo` covering a `--cf`; `sh -c`; a password written
+to the input blindly; recognising and rewriting a `sudo` the operator wrote
+(`sudo`'s own prompt is set by each site and translated); a pty for `sudo`'s
+prompt (the streams merge and the terminal returns); `SUDO_ASKPASS` (a program
+on every server); `NETSUDO` filling a backend's blank; a separate sudo field in
+the stores; a terminal prompt for the password; a record field or notice for
+"no password"; a `sudo -n true` probe.
 
 **A session-init profile is chosen by the client and carried in the plan.**
 `[session-init.NAME]` profiles (commands, `on-error` of `fail-device` or
@@ -1324,12 +1372,17 @@ command, a large one, silence, reload, configuration mode, a syntax error). The
 Linux persona (`-persona linux`) answers exec channels from a fixed table (the
 collection list; `fail N` on stderr with exit N; `both` on each stream; `big`
 and `bigerr` for the two spools; `slow`, ended by a `KILL` request and recorded
-as left running when its channel closes; `signal TERM`; `nostatus`; `sudo -n id
--u`, or `a password is required` under an option; an unknown command `sh: 1:
-NAME: not found`, exit 127), sends a command's status or signal before its
-end of output (OpenSSH's client closes a channel as soon as its output ends,
-and x/crypto answers that close at once and sends nothing after it, where
-`sshd` still sends the status), logs in by key (`-authorized-keys PATH`), by
+as left running when its channel closes; `signal TERM`; `nostatus`; `whoami`
+and `id -u`, the login user's, uid 1000; an unknown command `sh: 1: NAME: not
+found`, exit 127) and a `sudo` before any of them: every root command run as
+under `NOPASSWD`, or under `-sudo-asks` a password wanted (`-enable`, else the
+login password), `sudo -n` refused and `sudo -S` prompting on stderr, in
+classic `sudo`'s words or, under `-sudo-rs`, sudo-rs's, by the bytes both write
+on Ubuntu 26.04 ([`docs/EXAMPLES.md`, chapter
+96](EXAMPLES.md#96-root-commands-on-the-exec-channel-2026-11-04)); it sends a
+command's status or signal before its end of output (OpenSSH's client closes a
+channel as soon as its output ends, and x/crypto answers that close at once
+and sends nothing after it, where `sshd` still sends the status), logs in by key (`-authorized-keys PATH`), by
 password, and later by a key and then a password (`PartialSuccessError`), and
 has a shell for `linux_shell` (`netops@fake:~$`, bash's decorations under an
 option). Both record every line or exec request received, every pty request,
@@ -1661,15 +1714,15 @@ in the plan, bounded as any plan by `daemon.max-ipc-frame-bytes`, whose refusal
 gives the request's size over the bound: the plan is about 900 bytes a target
 before its list, so 2,500 targets of 40-line lists come to about 9 MB.
 `--dry-run` shows each target's list. The job folder keeps what each device was
-sent as `--cf` lines, each command's `\r` returns written back and the sleep
-before it as `--sleep` lines: `commands.txt`
-for one list, `commands.PLATFORM.txt` per platform, and `commands/NAME` per
-target, so `--tf failed-devices.txt --cf commands` from the job folder reruns
+sent as `--cf` lines, each command's `\r` returns written back, the sleep
+before it as `--sleep` lines, and a root command as `--sudo TEXT`:
+`commands.txt` for one list, `commands.PLATFORM.txt` per platform, and
+`commands/NAME` per target, so `--tf failed-devices.txt --cf commands` from the job folder reruns
 the failures with their own lists; an `--expect`, a `--blind` without returns, a
 `--timeout`, or a `--maxbytes` has no form in a file and is the plan's alone. A
 copy is read without `--literal`, so a command whose own text ends in `\r`,
-or is a `--sleep` line's, which only `--literal` sends, reads back as returns
-or a sleep. The summary names
+or is a `--sleep` or `--sudo` line's, which only `--literal` sends, reads back
+as returns or the statement. The summary names
 `commands.txt` only when it is written; the job's audit `start` lists the
 statements only when every device is sent one list, its count the longest
 list's, and each device's command events name what it was sent. In a stream, a
@@ -1767,8 +1820,8 @@ transport packages. *Why:* nothing may hold a secret outside a job's lifetime.
 `daemon serve` an explicit environment built by the one filter the system
 transport applies to its `ssh` children (`HOME`, `USER`, `LOGNAME`, `PATH`,
 `security.child-environment-allowlist`, plus every `KARVI__*` variable, `TZ`,
-`TMPDIR`); a daemon that finds `NETUSER`, `NETPASS`, or `NETENABLE` in its
-own environment writes one notice per name and does not refuse. *Why:* one
+`TMPDIR`); a daemon that finds `NETUSER`, `NETPASS`, `NETENABLE`, or
+`NETSUDO` in its own environment writes one notice per name and does not refuse. *Why:* one
 filter cannot drift into two; the daemon has not read the built-in variables
 since planning moved to the client. *Not taken:* a deny-list; re-executing
 with a scrubbed environment; refusing to start.
@@ -2291,7 +2344,10 @@ exec record a null `stderr` says the command did not run (its channel never
 opened, or the device refused its exec request: a not-attempted record, a
 connection that failed first, `ssh_session_channel_refused` on either
 transport), an empty one that it ran and wrote nothing there; the text file and
-the echo show `! not sent:` by it. Exec output is recorded as the program wrote
+the echo show `! not sent:` by it (a root command's `! not sent: --sudo TEXT`).
+A root command's record adds `privilege:
+"sudo"` and keeps its command as written, its stderr without `sudo`'s prompt
+(section 5). Exec output is recorded as the program wrote
 it, with no terminal between to render. Exit 0 is `success` whatever stderr
 holds; a non-zero exit is `device_error` with `command_exit_nonzero`, a signal
 `command_exit_signal`, and a channel closed without a status on a live
@@ -2711,9 +2767,11 @@ the configuration last, each portable, answered without root, and stable while
 nothing changes; there is no built-in `crun-filters`. Under exec a block is the
 `! COMMAND` marker, then stdout, then stderr; a non-zero exit leaves its error
 text in the block and the file is replaced, as a rejected statement's is, the
-exit status staying in the record. A command that needs root is written `sudo
--n …` in a site's list until `--sudo` is built, when a list entry's way of
-declaring it is settled. Distribution-specific state (the package list, the
+exit status staying in the record. A command that needs root is a list entry
+`--sudo TEXT`, its block's marker `! --sudo TEXT`: the entries are read as a
+commands file's lines, `--sleep` and `--sudo` the statements (`--literal`
+sends every entry as written), a malformed one refused naming the platform and
+the entry. Distribution-specific state (the package list, the
 firewall rules) is a site's alias list. *Why:* with no list, `crun --all` over
 a fleet with servers refused every server at planning; two collections of the
 list seconds apart were identical, and the hostname (`uname -n`), the IPv6 and
@@ -2738,7 +2796,7 @@ executable run once when the summary is written, in the collection directory,
 with the replaced files' names on stdin and the counts in its environment,
 bounded by `crun.after-timeout`; two example hooks ship (a git commit and a
 diff mail). The hook has the operator's shell environment without the device
-credentials `NETUSER`, `NETPASS`, and `NETENABLE`. *Why:* the client has the
+credentials `NETUSER`, `NETPASS`, `NETENABLE`, and `NETSUDO`. *Why:* the client has the
 operator's shell environment (git identity, mail transport) while the daemon
 has the user manager's; git and mail are a site's choices; a device password
 the hook has no use for would reach every process it starts. *Not taken:* a

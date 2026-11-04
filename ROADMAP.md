@@ -98,21 +98,22 @@ None chosen: the operator names the next item, from "Later" or anew.
   holding device or operator data or both, and a JSON store, a device-keyed
   one honouring a pin through the keyed capability; in the shared tabular
   reader, an explicit mapping outranking a field's own header.
-- **`sudo` on an exec channel: `--sudo` and `NETSUDO`.** A command over the
-  exec channel that needs `sudo` runs only as written, `sudo -n …`, and a
-  refused one records `command_exit_nonzero` with `sudo`'s message; nothing
-  reads `NETSUDO`. The design is recorded ([`docs/DESIGN.md`, section
-  5](docs/DESIGN.md#5-transports-and-the-device-session)): `--sudo` attaches to
-  the `--cmd` it follows and runs it as `sudo -S -p 'karvi-sudo-<16 hex>:' --
-  sh -c '<the command>'`, the password written once and only after that prompt
-  appears on standard error, a second appearance `privilege_failed`; the
-  password is the credential's enable field, then `NETSUDO`, then `NETENABLE`
-  where the platform's fallback holds `netvars`, and with none the command runs
-  under `sudo -n` and never waits. The questions: the run-wide spelling for
-  command files; and whether `NETSUDO` and `NETENABLE` fill a backend's blank
-  field, which the `NET*` variables never do for a device a backend answered
-  ([`docs/EXAMPLES.md`, chapter
-  56](docs/EXAMPLES.md#56-the-credential-helper-2026-10-11)).
+- **karvi's statements in session-init profiles.** A `[session-init.NAME]`
+  profile's commands are device text: an entry `--sudo …` or `--sleep …`
+  reaches the device as written and fails there under the profile's
+  `on-error`. A later profile may take karvi's statements and declarations,
+  `--sudo`, `--sleep`, `--expect`, and the others, as a commands file's lines
+  do ([`docs/EXAMPLES.md`, chapter
+  96](docs/EXAMPLES.md#96-root-commands-on-the-exec-channel-2026-11-04), issue
+  6).
+- **`--sudo` on a shell channel.** `--sudo` reaches the exec channel alone; a
+  target on a shell, `linux_shell` among them, is refused at planning
+  (`channel_shell_sudo_refused`). The shell's form types `sudo -p '<prompt>' --
+  TEXT` without `-S`, so `sudo` reads the terminal with its echo off, and
+  answers after the prompt as on exec (chapter 24, issue 8). Built when
+  operators need `sudo` in a `linux_shell` session, it may revisit chapter 96's
+  issues 1 to 4: the refusal, the statement, the password's sources, and the
+  wire.
 - **The key that authenticated.** A record names the method that
   authenticated its session (`credential.auth`) and not which of the
   credential's keys the server accepted. OpenSSH names the key at `DEBUG1`

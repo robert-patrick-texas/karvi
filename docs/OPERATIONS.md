@@ -416,7 +416,7 @@ and delivers them per job over the credential socket.
 
 A daemon started another way, `karvi daemon start --foreground` or a service
 unit, keeps whatever environment its starter gave it. When that environment
-holds `NETUSER`, `NETPASS`, or `NETENABLE`, the daemon writes one
+holds `NETUSER`, `NETPASS`, `NETENABLE`, or `NETSUDO`, the daemon writes one
 `daemon_environment_secret_variable` line per name to its log, naming the
 variable and never its value; start it from a shell or unit without them.
 A variable the daemon needs from the shell, an agent socket for example,
@@ -613,8 +613,8 @@ signal `command_exit_signal`, and a channel closed without a status
 `command_exit_missing`; each is a device error, so the device's later
 commands are not attempted unless `--continue-device-on-error`, and a command
 that may fail on purpose says so (`grep … || true`). A command that needs root
-is written `sudo -n …`: where `sudo` wants a password it is refused at once,
-`command_exit_nonzero` with `sudo`'s message in `stderr`, and never waits.
+is `--sudo TEXT` ([root commands and their
+password](#root-commands-and-their-password)).
 
 **A command given up.** At its command timeout, a cancel, or the output limit,
 `native` asks the server to end the command before closing its channel.
@@ -645,6 +645,60 @@ DEBUG control_socket_abandoned_removed: removed the abandoned control socket /ho
 A server is qualified by the rows of
 [`docs/DEVICE-QUALIFICATION-RUNBOOK.md`, section
 9](DEVICE-QUALIFICATION-RUNBOOK.md#9-a-production-server).
+
+## Root commands and their password
+
+`--sudo TEXT` runs one command as root on a server, through its own `sudo`,
+where the platform runs on the exec channel; it is a command source as `--cmd`
+is, and a commands-file line, a stream line, and a `crun-commands` entry
+`--sudo TEXT` are the same
+([`docs/COMMAND-SESSION.md`](COMMAND-SESSION.md#root-commands-on-an-exec-channel)
+has the rules, the wire, and the display). Its password is chosen at planning
+for each device with a `--sudo` command, by the source that answered the
+device's credential:
+
+- **A backend answered:** its enable field, as it is. A blank field is no
+  password: the command is sent as `sudo -n`, and neither `NETSUDO` nor
+  `NETENABLE` fills it (a backend's row is the site's word for the device). A
+  row that should take a variable names it: `env:NETSUDO` in a CSV or Vault
+  field, `enable-var-template = "NETSUDO"` in an `env` backend.
+- **The platform's fallback answered,** by whichever word: `NETSUDO`, else
+  `NETENABLE` where the fallback holds `netvars`, else none. Under `linux`'s
+  `["keys"]` a server reached by the operator's keys takes `NETSUDO` alone. An
+  empty variable is unset, as `netvars` reads one.
+- **Nothing asks** for it at the terminal, whatever the fallback holds.
+- **Only a `--sudo` device carries it.** `NETSUDO` is read, and a server's
+  enable field carried to the daemon, only for a device with a `--sudo`
+  command; for any other server on the exec channel a backend's enable field
+  is dropped at planning and `NETENABLE` is not read, as for a login.
+- **`requires-enable = true`** on a platform on the exec channel requires the
+  password of a device with a `--sudo` command, at planning, and nothing of a
+  device without one:
+
+  ```text
+  credential_enable_missing: client planning: 1 of 1 targets failed credential resolution: name:srv1 (the platform requires an enable password, sudo's for a --sudo command, and none was found; policy=default backend=builtin-env-fallback)
+  ```
+
+The dry run names the root commands and each device's source, never a value:
+
+```text
+commands: 3
+sleeps: 5s before command 3
+sudo: commands 2, 3
+- name:srv1: planned
+  credential: bound ID (policy=default backend=builtin-env-fallback user=netops; value not displayed)
+  sudo: password from NETSUDO (value not displayed)
+```
+
+The other sources read `sudo: password from NETENABLE (value not displayed)`,
+`sudo: password from the enable field (backend=site-creds; value not
+displayed)`, and `sudo: none, sudo -n`; the JSON report's
+`credential_binding.sudo` names the same. Without a password a `sudo` whose
+rules want one refuses at once, `command_exit_nonzero` with its message in
+`stderr`; a wrong one is `privilege_failed`. A server's rules may name the
+command: karvi sends `sudo -- TEXT` with no `sh -c`, so a `NOPASSWD` rule for
+`/usr/bin/id` runs `--sudo 'id -u'` with no password, where `sudo` would see
+`sh` in `sh -c 'id -u'` and refuse it.
 
 ## Configuration macros
 
@@ -734,7 +788,9 @@ config_lock_violation: crun.directory takes %region%: write blocked by lock "cru
 When no backend of the policy answers for a device, its platform's
 `fallback` says what follows, in order: `netvars` reads `NETUSER`, `NETPASS`,
 and `NETENABLE` (the credential helper's values where it set them, else the
-process environment's: [the credential helper](#the-credential-helper)); `keys`
+process environment's: [the credential helper](#the-credential-helper)), and
+`NETSUDO` for a `--sudo` command ([root
+commands](#root-commands-and-their-password)); `keys`
 is the operator's login name and own keys; `prompt` asks at the terminal ([the
 credential prompts](#the-credential-prompts)).
 The network built-ins and `generic` are `["netvars", "prompt"]`, `linux` and
@@ -897,8 +953,10 @@ enable-var-template = "KARVI_%operator%_ENABLE_PASSWORD"
 
 The fallback's `NETUSER`, `NETPASS`, and `NETENABLE` are read without a
 backend, after the policy's backends, where the platform's fallback holds
-`netvars` ([the platform's fallback](#the-platforms-fallback-and-the-operators-keys));
-an `env` backend is how a site names variables of its own.
+`netvars` ([the platform's fallback](#the-platforms-fallback-and-the-operators-keys)),
+and `NETSUDO` for a `--sudo` device whose fallback answered ([root
+commands](#root-commands-and-their-password)); an `env` backend is how a site
+names variables of its own.
 
 ## The Vault backend
 
@@ -1584,12 +1642,12 @@ Relationships worth knowing:
 - **A rerun needs `failed-devices.txt` and the commands together**
   (`karvi run --tf …/failed-devices.txt --cf …/commands.txt`, or `--cf
   …/commands` beside a `--cf` folder). Each command's `\r` returns are
-  written back, and the sleep before it as `--sleep` lines, so the copy is
-  read without `--literal`; an `--expect`, a
+  written back, the sleep before it as `--sleep` lines, and a root command as
+  `--sudo TEXT`, so the copy is read without `--literal`; an `--expect`, a
   `--blind` without returns, a `--timeout`, or a `--maxbytes` has no form in
   a file and stays in `manifest.json`'s plan, and a command whose own text
-  ends in `\r`, or is a `--sleep` line's, which only `--literal` sends, reads
-  back as returns or a sleep.
+  ends in `\r`, or is a `--sleep` or `--sudo` line's, which only `--literal`
+  sends, reads back as returns or the statement.
 - **`summary.json` has no key: every folder holds it.** It is written
   when the job is accepted, naming the job's devices, and again whole at
   the job's end with the result, the counts, the causes, and each
@@ -2266,7 +2324,8 @@ JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      D
 
 The columns stand at fixed widths, so a followed trail stays in line: JOB-ID,
 OPERATOR (`OPERATOR/LOGINUSER` under `sudo`), MODE, EVENT, OUTCOME, DEVICE, and
-the statement. At a terminal the line is cut with `…` to its width; to a pipe
+the statement, a root command's as its `--sudo TEXT` (the event's
+`action.privilege` is `sudo`). At a terminal the line is cut with `…` to its width; to a pipe
 or a file nothing is cut. OUTCOME is green for work done, orange for work not
 done or cut short, red for a failure; the colour goes to a terminal and through
 a pipe (`karvi-audit | less -R`), never into a file, and `--nocolor` or

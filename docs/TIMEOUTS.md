@@ -24,7 +24,7 @@ grace).
 | `execution.enable-timeout` (`KARVI__EXECUTION__ENABLE_TIMEOUT`) | 10s | 1s–5m | one privilege level's whole step, from the escalate command to that level's prompt |
 | `execution.command-timeout` (`KARVI__EXECUTION__COMMAND_TIMEOUT`) | 120s | 1s–12h | each requested command |
 | `[session-init.NAME] command-timeout` | unset: `execution.command-timeout` | | each command of that session-init profile |
-| `--timeout DURATION`, a declaration on one requested command | unset: `execution.command-timeout` | 1s–12h, when parsed; at most a set `execution.device-timeout`, at planning (`timeout_over_device_timeout`); refused on a blind command (`timeout_with_blind`) | that command, in place of `execution.command-timeout` and over telnet of `telnet.read-timeout` too |
+| `--timeout DURATION`, a declaration on one requested command (a `--cmd` or a `--sudo`) | unset: `execution.command-timeout` | 1s–12h, when parsed; at most a set `execution.device-timeout`, at planning (`timeout_over_device_timeout`); refused on a blind command (`timeout_with_blind`) | that command, in place of `execution.command-timeout` and over telnet of `telnet.read-timeout` too |
 | `--sleep DURATION`, a source in the command order | none | 1s–12h, when parsed; the device's total at most a set `execution.device-timeout`, at planning (`sleep_over_device_timeout`) | the wait before the next requested command, under what remains of `execution.device-timeout`; a cancel ends it ([`docs/COMMAND-SESSION.md`](COMMAND-SESSION.md#sleeps-between-commands)) |
 | `execution.device-timeout` (`KARVI__EXECUTION__DEVICE_TIMEOUT`) | 0s (unbounded) | 0, or 1s–168h | one device's whole command list, the session-init profile and the requested commands, from the prepared session |
 | `ssh.server-alive-interval` (`KARVI__SSH__SERVER_ALIVE_INTERVAL`), `ssh.server-alive-count-max` (`KARVI__SSH__SERVER_ALIVE_COUNT_MAX`) | 15s, 3 | 0 disables, else 1s–10m; 1–100 | `system`: OpenSSH `ServerAliveInterval` (whole seconds, rounded up) and `ServerAliveCountMax` |
@@ -34,8 +34,11 @@ grace).
 
 None of these keys but `execution.blind-wait` has a command-line option; each
 is set for one invocation with `--set KEY=VALUE` before the mode. One command
-takes its own timeout with `--timeout` after its `--cmd`, the rest of the list
-keeping the key's. Every range
+takes its own timeout with `--timeout` after its `--cmd` or `--sudo`, the rest
+of the list keeping the key's. A root command's `sudo` and its password are
+inside its command timeout: a command that reads its input where `sudo` asked
+for no password waits to it ([`docs/COMMAND-SESSION.md`, "Root commands on an
+exec channel"](COMMAND-SESSION.md#root-commands-on-an-exec-channel)). Every range
 in the table is enforced when the configuration loads
 (`config_value_out_of_range`), and `execution.blind-wait`'s again when the plan
 is drafted (`execution_plan_invalid`).

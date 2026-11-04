@@ -23,6 +23,33 @@ in it, `DIR/NAME`, NAME its collection file's
 karvi command router1 --cmd 'show clock' --cf checks.txt --cmd 'show users'
 ```
 
+`--sudo TEXT` and `--sleep DURATION` are sources in the same order: a command
+run as root where the platform runs on the exec channel ([root
+commands](#root-commands-on-an-exec-channel)), and a wait before the next
+command ([sleeps](#sleeps-between-commands)).
+
+A line's one `--cmd` or `--sudo` may take its command unquoted: the words
+right after its value, to the line's end, join it with one space each, as the
+freeform command's words do, every word after the first the command's, a
+karvi option's name among them. The shell's quotes are gone by then, so a
+command whose own words need quotes is quoted whole. A command's own option right after its first word would be read as
+karvi's, so after `--cmd --` or `--sudo --` every word to the line's end is
+the command; that form may also end a line of other commands:
+
+```bash
+karvi command srv1 --sudo systemctl restart nginx
+karvi command srv1 --cmd 'systemctl is-active nginx' --sudo -- journalctl -u nginx -n 20
+```
+
+Options go before such a command (`--timeout 60s --sudo systemctl restart
+nginx`). Unquoted words beside another command, without `--`, are refused
+(`cli_command_text_mixed`), and an unknown option right after a command's first
+word names both fixes:
+
+```text
+cli_option_unknown: unknown option -u in command; for the command's own option write --sudo -- TEXT, or quote the command
+```
+
 `--target` and `--host` are target synonyms. `--address` aliases
 `--management-address`; neither address option supplies the required target:
 
@@ -124,7 +151,10 @@ command, both from the platform definition:
    `not_attempted_session_init_failure`. Under `continue` the device goes
    on and its first requested record carries the notice
    `session_init_command_failed` naming the profile, the command's index,
-   and the code.
+   and the code. A profile's commands are device text alone: an entry
+   `--sudo …` or `--sleep …` reaches the device as written and fails there
+   (on a server `sh: 1: --sudo: not found`, exit 127), under the profile's
+   `on-error`.
 
 Then the requested commands, then the definition's `exit-commands` at close.
 
@@ -147,6 +177,8 @@ resolve target/address/credential/transport/platform definition
   -> for each requested command:           (execution.device-timeout over the whole list)
        open an exec channel and start the command
          system: one ssh -S client of the master, LogLevel QUIET, ProxyCommand false
+         --sudo: sudo -S -p PROMPT -- TEXT, the password at the prompt;
+                 sudo -n -- TEXT without one
        read stdout and stderr, each spooled past the threshold on its own
        wait for the exit status or signal   (its command timeout, from the channel's opening)
        emit one command record
@@ -155,7 +187,8 @@ resolve target/address/credential/transport/platform definition
             native closes its connection
 ```
 
-There is no first prompt, no privilege step, no paging command, and no exit
+There is no first prompt, no privilege step but a root command's own `sudo`
+([below](#root-commands-on-an-exec-channel)), no paging command, and no exit
 command, and nothing carries from one command to the next (`cd`, variables,
 `umask`): the remote shell is not interactive. Blind sends, `\r` endings,
 `--blind-return`, and `--expect` are refused at planning for an exec target
@@ -241,6 +274,94 @@ device's own idle limit (IOS `exec-timeout`, 10 minutes by default) loses the
 session: the transport's keepalives are not input, so the device logs the
 session out and the next command fails on it.
 
+## Root commands on an exec channel
+
+`--sudo TEXT` runs one command as root through the server's `sudo`: a command
+source in the order written, as `--cmd`, `--cf`, and `--sleep` are,
+repeatable, on `command`, `run`, and `crun`, and a stream line. Its text is
+written as a `--cmd`'s: quoted, or unquoted as the line's one command, or after
+`--sudo --` ([the grammar](#grammar)); `--timeout` and `--maxbytes` written after
+a quoted one are its own. In a commands file, a line `--sudo TEXT` or `--sudo=TEXT`, spaces
+around it trimmed, is the same statement, and `--literal` sends every line as
+written. This checks a service as the login user, restarts it as root, and
+checks it again:
+
+```bash
+karvi command srv1 --cmd 'systemctl is-active nginx' --sudo 'systemctl restart nginx' --cmd 'systemctl is-active nginx'
+```
+
+`--sudo` reaches a target whose platform runs on the exec channel (`linux`,
+or a `[platform.NAME]` table on its base): a target on a shell channel, every
+network platform and `linux_shell` among them, is refused at planning,
+`channel_shell_sudo_refused`, naming the target and the command's index (the
+shell's form is not built: [`ROADMAP.md`](../ROADMAP.md), Later). Refused before
+any connection too: unquoted words beside another command
+(`cli_command_text_mixed`), a blank `--sudo` (`cli_option_value_invalid`), and
+a file line whose first word is `--sudo` with no command after it
+(`commands_file_sudo_invalid`, naming the file and line).
+
+**The password** is chosen per device at planning, by the source that
+answered its credential: a backend's enable field, as it is (blank, none: a
+variable never fills it, and a row names one as `env:NETSUDO`); the platform's
+fallback, `NETSUDO`, else `NETENABLE` where the fallback holds `netvars`, else
+none. Nothing asks at the terminal. `NETSUDO` is read, and an exec device's
+enable field carried to the session, only for a device with a `--sudo`
+command; a platform on the exec channel with `requires-enable` requires the
+password of those devices alone (`credential_enable_missing`). The sources are
+[`docs/OPERATIONS.md`](OPERATIONS.md#root-commands-and-their-password)'s.
+
+**On the wire** the command is `sudo -S -p 'karvi-sudo-<16 hex>:' -- TEXT`, the
+prompt random per command and the input left open: when the prompt appears on
+stderr, karvi writes the password and a line end once and closes the input.
+Without a password it is `sudo -n -- TEXT`, the input at its end, and a `sudo`
+whose rules want one refuses at once, `command_exit_nonzero` with its message
+in stderr (`sudo: a password is required`; sudo-rs, Ubuntu 26.04's `sudo`,
+`sudo: interactive authentication is required`). There is no `sh -c`: the
+server's rules match the command and its log names it, and the rest of the
+line after the first command, a `;`, a pipe, or a redirect, runs as the login
+user, as `sudo TEXT` typed at a prompt does (`--sudo 'whoami; whoami'` prints
+`root`, then the login user). A whole line as root is `--sudo "sh -c '…'"`, which
+the rules must allow for `sh`. Written unquoted, `--sudo sh -c '…'` is two
+commands: `-c` is `--cmd`'s alias and begins the next, which runs as the login
+user (the dry run counts both, and the display shows the second at `srv1$`).
+
+**The prompt** is removed from the recorded stderr in both forms `sudo` writes
+it: classic `sudo`'s, the prompt as given, and sudo-rs's, `[sudo: PROMPT]
+Password: ` and its line end. A second prompt says `sudo` refused the
+password: the input is closed, the command did not run, and the record is
+`privilege_failed`, `sudo`'s own lines in its stderr:
+
+```text
+privilege_failed: sudo asked for the password a second time, refusing the one given; the input was closed and the command did not run
+```
+
+**What shows it.** A root command is shown at `srv1#`, where a command of the
+login user is at `srv1$`: in the text display, `--echo`, `output.TARGET.txt`,
+and `--live`, and one not sent is `! not sent: --sudo TEXT`. Its record keeps
+the command as written and adds `privilege: "sudo"`, as the audit's action
+does, and `karvi-audit`'s row shows `--sudo TEXT`; a collection's marker is `!
+--sudo TEXT`; a job's rerun files write it back as `--sudo TEXT`. The dry run names the root
+commands and each device's password source:
+
+```text
+commands: 3
+sudo: commands 2, 3
+- name:srv1: planned
+  credential: bound ID (policy=default backend=builtin-env-fallback user=netops; value not displayed)
+  sudo: password from NETSUDO (value not displayed)
+```
+
+or `sudo: password from the enable field (backend=NAME; value not displayed)`,
+or `sudo: none, sudo -n`. `--debug` adds `sudo=password` or `sudo=none` to
+the command's start line, and `device sudo answered target=… index=…` once
+the password was written.
+
+**A caution.** Where a password is held and `sudo` asks for none (a
+`NOPASSWD` rule, or a ticket still valid), the input stays open: a command that
+reads its input with no file named (`head -c1`, `cat`, a script that asks)
+waits for it to its command timeout. Name its input, or bound it with
+`--timeout`.
+
 ## Prompt detection
 
 The session renders the received bytes as the terminal showed them
@@ -304,6 +425,8 @@ ls: cannot access '/nonexistent': No such file or directory
 karvi: target=srv1 status=device_error error=command_exit_nonzero: exited 2
 ```
 
+A root command is shown at `srv1#` (`srv1# systemctl restart nginx`).
+
 The command record persists `promptbefore`, `prompt`, `prompt_source`, and
 `prompt_observed`; an exec record's are empty, `none`, and false, and it carries
 `channel`, `exit_status`, `exit_signal`, and `stderr` with its encoding, count,
@@ -358,10 +481,11 @@ command's `karvi: target=…` line on a line of its own after the device's
 bytes; the records, the job's files, and the audit are those of the same
 command without `--live`, which the plan does not carry, so its digest is the
 same. The exact value of each secret the session writes (the enable secret, a
-telnet password) is shown `<removed>`, found even when the device echoes it in
-two pieces; escape sequences follow `output.ansi`, as the text display's do. An
-exec target echoes nothing, so each command is shown at the prompt `--echo`
-shows it at (`srv1$ uname -a`), its stdout and stderr as they arrive. `--quiet`
+telnet password, a root command's `sudo` password) is shown `<removed>`, found
+even when the device echoes it in two pieces; escape sequences follow
+`output.ansi`, as the text display's do. An exec target echoes nothing, so
+each command is shown at the prompt `--echo` shows it at (`srv1$ uname -a`, a
+root command's `srv1#`), its stdout and stderr as they arrive. `--quiet`
 drops the header and the footer. Beside `--live`, the options that shape the
 display it replaces are refused (`live_option_conflict`): `--format jsonl` or
 `json`, `--echo`, `--border`, and `--noborder`; a configured echo or border is
@@ -380,9 +504,10 @@ Debug lines come in three families, one prefix each:
   and its source, the credential backend and device username, the SSH
   algorithm lists with the profile and rule that selected them, the
   capacity admission, the connection opening and ready, each command's
-  start (index, hash, size, blind flags, expectation count) and completion
-  (status, code, output bytes, elapsed, prompt source), and how the
-  session ended.
+  start (index, hash, size, blind flags, expectation count, and a root
+  command's `sudo=password` or `sudo=none`) and completion (status, code,
+  output bytes, elapsed, prompt source), each sleep, a root command's
+  password written (`device sudo answered`), and how the session ended.
 - `system SSH command session …`, `system SSH exec master …`, or `native SSH
   connection …` (the transport): the binary or implementation, the address
   and port, the host-key policy and identity, the process ID or the shell's

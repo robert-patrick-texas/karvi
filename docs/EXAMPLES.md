@@ -20683,3 +20683,276 @@ host clean after it.
 The evidence is kept beside the tree (`release-design-evidence/sleep-chapter-95/`:
 `ex95.sh` and its output on the lab build and on the released 0.39.0, each
 section's patch and test log, k03's output, and the battery's log).
+
+## 96. Root commands on the exec channel (2026-11-04)
+
+The operator asked which capability to build next, measured against the tools
+operators use beside karvi; grouped output came first in the recommendation,
+`sudo` second, and the operator chose `sudo` on the exec channel. Until now a
+server's command that needed root was written `sudo -n …`: it ran where the
+server's rules wanted no password and was refused at once, `sudo: a password
+is required`, everywhere else. DESIGN section 5 held a sketch from chapter 24
+(a `--sudo` flag attached to the `--cmd` before it, the command run through `sh
+-c`) and ROADMAP its open questions. The session settled six issues, one at a
+time, each on the operator's word, and built them in seven sections.
+
+**What it gains.** A root command with a password in the same session as the
+rest of the list: one login, one record per command, the password never on a
+command line or in a file, and the record saying the command ran as root. The
+server's own rules keep their meaning: a rule for one command matches it, and
+the server's log names it.
+
+**The rule, as agreed.**
+
+1. **The exec channel alone.** `--sudo` reaches a target whose platform runs on
+   the exec channel (`linux` and the tables on its base); a target on a shell,
+   `linux_shell` and every network platform, is refused at planning,
+   `channel_shell_sudo_refused`, naming the target and the command's index, by
+   the client and by the daemon's plan check. The shell's form, `sudo -p`
+   without `-S` on the terminal, waits in ROADMAP.
+2. **A command source, on the operator's proposal.** "Why not use `--sudo` in
+   place of `--cmd`, such that `--sudo` leads the statement in all methods":
+   `--sudo TEXT` is one command run as root, in the order written beside
+   `--cmd`, `--cf`, and `--sleep`, repeatable, quoted as a `--cmd`'s (its
+   words unquoted too, later in the session: below), its `--timeout` and
+   `--maxbytes` after it. A commands-file line, a stream line,
+   and a `crun-commands` entry `--sudo TEXT` are the same statement, and the
+   entries are now read by the file-line rule, so a `--sleep` entry is a sleep
+   there too (breaking). A line `--sudo` with no command is
+   `commands_file_sudo_invalid`; `--literal` sends every line as written.
+3. **The password, by the source that answered the credential.** A backend's
+   enable field as it is, blank being none (no variable fills a backend's
+   blank, chapter 56's rule; a row names `env:NETSUDO`); the fallback's
+   `NETSUDO`, else `NETENABLE` where it holds `netvars`, else none. Nothing
+   asks at the terminal. `NETSUDO` is read, and a server's enable field
+   carried to the daemon, only for a device with a `--sudo` command, and
+   `requires-enable` on the exec channel requires it of those alone (the
+   operator agreed this reading in section 5: an empty `NETSUDO` is unset).
+4. **The wire and the record.** `sudo -S -p 'karvi-sudo-<16 hex>:' -- TEXT`, the
+   password written once at the prompt and the input closed; `sudo -n --
+   TEXT` with none. No `sh -c`: the operator asked why the record's
+   `command_sha256` was needed, and with nothing reading it the digest went
+   (command record 5); in the same review, both `sudo`s refused `sh -c 'id
+   -u'` under a `NOPASSWD` rule for `id`, so the wrapper that the sketch
+   carried would defeat every per-command rule. The prompt is recognised by
+   its token in both forms `sudo` writes and removed from stderr; a second
+   prompt is `privilege_failed`. The record adds `privilege: "sudo"`, the
+   audit's action too (audit schema 3, agreed in section 3); the display shows
+   `srv1#`; the collection's marker is `! --sudo TEXT`.
+5. **The rerun files** write each sleep as `--sleep DURATION` before its command
+   (chapter 95's files had dropped them) and each root command as `--sudo
+   TEXT`; the other declarations stay the plan's.
+6. **Session-init profiles stay device text** for now. The operator: "a future
+   iteration may allow `--sudo`, `--sleep`, `--expect` and other karvi
+   capabilities in the session-init profile for devices, and some of these
+   decisions may need to be revisited when operators insist on using sudo
+   within a `linux_shell` interactive environment": two ROADMAP items.
+
+**What `sudo` writes, executed first.** Before the wire was fixed, both
+`sudo`s of Ubuntu 26.04 were run without a terminal, the input a pipe, in a
+container with no network (`ex96-sudo-container.sh`, `ex96d-stderr.sh`,
+`ex96e-unseen.sh`): sudo-rs 0.2.13, the release's `sudo`, writes `[sudo:
+PROMPT] Password: ` and a line end once its read ends; classic `sudo` 1.9.17p2
+writes the prompt as given and no line end, the command's own stderr following
+it directly. A wrong password then the input's end gives a second prompt in
+both, and exit 1. The removal rule takes one line end directly after a prompt
+where `sudo` wrote one (every sudo-rs prompt, a classic second prompt), so a
+command whose stderr begins with a blank line keeps it. `karvi-fake-device`
+plays both forms by these bytes (`-sudo-rs`, `-sudo-asks`).
+
+**The executed examples.** The lab build of the last section against the fake's
+Linux persona over the native transport (`ex96.sh`, `ex96-lab-s7.out`; its
+`sudo` wants the password `en`):
+
+```text
+== a password from NETSUDO, classic sudo's prompt
+$ NETSUDO=en karvi command srv1 --echo --cmd whoami --sudo whoami --sudo id\ -u
+exit 0
+srv1$ whoami
+netops
+srv1# whoami
+root
+srv1# id -u
+0
+-- the records (command, privilege, exit_status, stderr)
+{"command":"whoami","privilege":"(absent)","exit_status":0,"stderr":""}
+{"command":"whoami","privilege":"sudo","exit_status":0,"stderr":""}
+{"command":"id -u","privilege":"sudo","exit_status":0,"stderr":""}
+-- commands.txt, the rerun file
+  whoami
+  --sudo whoami
+  --sudo id -u
+
+== --debug's lines (fields sha256 and maxbytes left out)
+DEBUG device command start target="srv1" index=1 total=2 bytes=6 command="whoami" timeout=20s blind=false blind_returns=0 expectations=[]
+DEBUG device command start target="srv1" index=2 total=2 bytes=6 command="whoami" timeout=20s blind=false blind_returns=0 expectations=[] sudo=password
+DEBUG device sudo answered target="srv1" index=2
+
+== no password: sudo -n, refused by a sudo that wants one
+$ karvi command srv1 --sudo whoami
+exit 107
+sudo: a password is required
+karvi: target=srv1 status=device_error error=command_exit_nonzero: exited 1
+
+== a wrong password: sudo asks again
+$ NETSUDO=wrong karvi command srv1 --sudo whoami
+exit 107
+Sorry, try again.
+sudo: no password was provided
+sudo: 1 incorrect password attempt
+karvi: target=srv1 status=device_error error=privilege_failed: sudo asked for the password a second time, refusing the one given; the input was closed and the command did not run
+
+== the refusals, each exit 4 before any connection
+channel_shell_sudo_refused: router1: command 1 is a --sudo command, and the target's platform runs it on a shell channel, which --sudo does not reach; use --cmd for it or a platform on the exec channel
+cli_command_text_mixed: freeform text "restart nginx" joins only a line's one --cmd or --sudo, right after its value; quote each command
+cli_option_unknown: unknown option -u in command; for the command's own option write --sudo -- TEXT, or quote the command
+cli_option_value_invalid: --sudo has no command; it takes the command to run as root, --sudo TEXT
+commands_file_sudo_invalid: commands file $TMP/bare.txt line 2: --sudo has no command; the line is --sudo TEXT
+```
+
+Under sudo-rs's prompt the display and the records are the same, the stderr
+empty; under `NOPASSWD` with a password held, `sudo=password` and no `device
+sudo answered`, since `sudo` asked nothing. The same script on the released
+0.39.0 (`ex96-released-0390.out`): `--sudo` is `cli_option_unknown`, and a
+file line `--sudo whoami` reaches the server as text, `sh: 1: --sudo: not
+found`, exit 127: an older karvi given a newer file fails safe. A session-init
+profile's entry `--sudo whoami` does the same today, under its `on-error`
+(`ex96h-session-init.sh`). The dry run (`ex96g-dryrun-text.sh`) names the root
+commands and each device's source:
+
+```text
+commands: 3
+sleeps: 5s before command 3
+sudo: commands 2, 3
+- name:127.0.0.1: planned
+  credential: bound ID (policy=default backend=builtin-env-fallback user=netops; value not displayed)
+  sudo: password from NETSUDO (value not displayed)
+```
+
+with `sudo: password from NETENABLE`, `sudo: password from the enable field
+(backend=site-creds; …)` for a CSV row's field, and `sudo: none, sudo -n` for
+neither variable or a row's blank field.
+
+**Against the real thing, once.** The lab build in an Ubuntu 26.04 container
+with OpenSSH and both `sudo`s, `--network none`, the device user `alice` with
+every command as root on her password and `id` and `head` without one, over
+`127.0.0.1` on both transports (`ex96-karvi-container.sh`, its image
+`ct/Dockerfile`, removed after the run). Every case answered alike on `native`
+and `system`:
+
+| Case | sudo-rs | classic `sudo` |
+|---|---|---|
+| `--sudo whoami`, `NETSUDO` right | `root`, stderr empty | the same |
+| `--sudo whoami`, none | `interactive authentication is required` | `a password is required` |
+| `--sudo whoami`, wrong | `privilege_failed` | the same |
+| `--sudo 'id -u'` (`NOPASSWD`), none | `0` | the same |
+| `--sudo 'whoami; whoami'` | `root`, `alice` | the same |
+| `--sudo "sh -c 'whoami; whoami'"` | `root`, `root` | the same |
+| `--sudo 'head -c1'` (`NOPASSWD`), a password held | `command_timeout` at 3s | the same |
+
+The wrong password's records hold `sudo`'s own lines and no prompt (`sudo:
+Authentication failed, try again.` / `sudo: Authentication required but not
+attempted`; `Sorry, try again.` / `sudo: no password was provided` / `sudo: 1
+incorrect password attempt`). The fifth row is the rule of the wire: only the
+first command is `sudo`'s. The last is the caution the documents carry.
+
+**Four more, on the operator's word.** The documents raised two open items,
+and one answer raised a question of the operator's:
+
+- **`karvi-audit`'s rows name the privilege.** The audit's action carried
+  `privilege: "sudo"`, but a row was built from the command alone, so the
+  login user's `whoami` and root's read alike. Agreed as recommended: a root
+  command's statement cell is its `--sudo TEXT`, as the collection marker, the
+  rerun files, and the dry run write it, all four now through one function
+  (`commandfile.Statement`):
+
+  ```text
+  261104-162716-00  netops  cmd  command success  srv1  whoami
+  261104-162716-00  netops  cmd  command success  srv1  --sudo whoami
+  261104-162716-00  netops  cmd  command success  srv1  --sudo id -u
+  ```
+
+- **A root command not sent keeps its mark.** Its text line was `! not sent:
+  whoami`, a sent one's `srv1# whoami`. Agreed as recommended: `! not sent:
+  --sudo whoami`, in `output.TARGET.txt` and the echo alike, through the same
+  function.
+- **The words of a lone `--cmd` or `--sudo`.** The operator: "given that
+  `cli_command_text_mixed` quotes every word after freeform text starts, can we
+  support `--sudo` freeform command text as it [is] done with `--cmd` freeform
+  command text?" Executed first: the freeform command's words are one command,
+  `srv1 systemctl restart nginx --echo` planning `systemctl restart nginx
+  --echo`; `--cmd systemctl restart nginx` and `--sudo systemctl restart nginx`
+  were both `cli_command_text_mixed`; a file line `--sudo systemctl restart
+  nginx` was one root command. (The quoting the operator saw is that rule:
+  karvi options end where the text begins.) Agreed as recommended, one rule for
+  both options: the words right after the value of a line's one `--cmd` or
+  `--sudo`, to the line's end, are that command; options go before it; beside
+  another command each is quoted.
+- **A dash after the first word.** Run on the built rule, a dash word right
+  after the command's first word was still karvi's: `--sudo id -u` and `--sudo
+  journalctl -u nginx` were `cli_option_unknown`, `--sudo df -h` printed the
+  help, `--sudo ping -4 192.0.2.1` took karvi's `-4`; `--sudo systemctl status
+  nginx --no-pager` was one command. The parser cannot read such a word as the
+  command's without taking `--cmd uptime --timeout 5s`'s declaration as text,
+  since it never sees the shell's quotes. Agreed as recommended: after `--cmd
+  --` or `--sudo --` every word to the line's end is the command, the `--`
+  karvi already reads before freeform text, and that form may end a line of
+  other commands; the unknown option after a first word names both fixes.
+
+```text
+$ NETSUDO=en karvi command srv1 --echo --sudo cat /etc/os-release
+srv1# cat /etc/os-release
+PRETTY_NAME="Ubuntu 24.04.1 LTS"
+…
+$ NETSUDO=en karvi command srv1 --echo --cmd whoami --sudo -- id -u
+srv1$ whoami
+netops
+srv1# id -u
+0
+```
+
+**What changed.** Nine sections, each committed on the operator's word: the
+rerun files' sleeps (the line grammar moved into `internal/commandfile`); the
+record's digest removed (command record 5); execution plan 17, the exec
+session's `sudo` (`internal/devsession/sudo.go`: the wire and the stderr
+filter), the record's `privilege`, and audit schema 3; the fake's `sudo` and
+the executor's tests end to end over both transports; the password
+(`NETSUDO`, the source per device, `credential_binding.sudo` in the plan
+report); the command line (the option, the file and stream lines, the
+`crun-commands` entries, the refusals, the dry-run text, help and man pages,
+k03's cases `u1` to `u7`); `karvi-audit`'s rows and the not-sent line
+(`commandfile.Statement`); the words of a lone command and of one after `--`
+(k03's `u4` and `u8` to `u11`, `c12b`); and these documents
+([`docs/COMMAND-SESSION.md`, "Root commands on an exec
+channel"](COMMAND-SESSION.md#root-commands-on-an-exec-channel),
+[`docs/OPERATIONS.md`, "Root commands and their
+password"](OPERATIONS.md#root-commands-and-their-password), DESIGN sections 2,
+4, 5, 7, 10, and 11, COLLECTION, the credential guides, ROADMAP, the CHANGELOG).
+
+**Not taken.** `--sudo` as a flag after its `--cmd`, chapter 24's form: two
+spellings, and a flag attached to the wrong command. A run-wide `--sudo-all`,
+and `--sudo` covering a `--cf`. `sh -c` around the command: it defeats the
+server's per-command rules. A password written to the input before `sudo`
+asks: it reaches the command wherever `sudo` needs none. `NETSUDO` filling a
+backend's blank field, and a separate sudo field in the stores. A terminal
+prompt for the password. A record field or notice for "no password", a new
+failure code, and a `sudo -n true` probe. The file-line rule in session-init
+profiles now, and a load-time refusal of a `--sudo` entry there. A dash word
+after a command's first word read as the command's: `-c`, `-h`, and `-4` are
+karvi's, and an option karvi adds later would change such a line. A one-letter
+option right after a one-word command refused, proposed for `--sudo sh -c
+'echo hi'`, which plans `sh` as root and `echo hi` as the login user since `-c`
+is `--cmd`'s alias: the operator answered with `karvi r -cmd df -c free -c
+"uname -a"`, three commands on 0.39.0 and on the lab build, which the refusal
+would have broken. The documents say instead to quote such a command whole,
+`--sudo "sh -c 'echo hi'"`, since the joined words lose the shell's quotes
+(`--sudo -- sh -c 'echo hi'` plans `sh -c echo hi`).
+
+**Checks.** gofmt, `go vet ./...`, `make generated-clean`, and the whole tree's
+`go test` (74 packages) on each code section, `-race` on the packages each
+touched; the native suite on each section's lab build from the third on; k03
+on the sixth and the last; the examples above on the last section's lab build
+and on the released 0.39.0. The evidence is kept beside the tree
+(`release-design-evidence/sudo-chapter-96/`: the decisions with every
+section's notes, the `ex96` scripts and their outputs, the container's, and
+each section's test logs).

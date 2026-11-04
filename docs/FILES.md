@@ -284,14 +284,16 @@ had; each but the summary has its switch, `output.files.*`, and `--nof` or
 | `summary.json` | none | the job's kind (`cmd`, `run`, or `crun`) and devices; written at the job's acceptance, and again whole at its end with the result, the counts, the exit, and each device's outcome |
 
 The three command copies are what each device was sent, as `--cf` lines, each
-command's `\r` returns written back and the sleep before it as `--sleep` lines
-(sleeps in a row as their sum, in parts of at most 12h), so a copy read without
-`--literal` sends what was sent, and `karvi run --tf J/failed-devices.txt --cf J/commands` reruns
-a folder's failures with their own lists. A file cannot hold an `--expect`, a
-`--blind` without returns, a `--timeout`, or a `--maxbytes`; `manifest.json`'s
-plan alone does. A command whose own text ends in `\r`, or is a `--sleep` line's,
-which only `--literal` sends, reads back as returns or a sleep. `summary.json`'s `paths` names `commands.txt` when
-it is written; the other copies are named by rule, as the output files are.
+command's `\r` returns written back, the sleep before it as `--sleep` lines
+(sleeps in a row as their sum, in parts of at most 12h), and a root command as
+`--sudo TEXT`, so a copy read without `--literal` sends what was sent, and
+`karvi run --tf J/failed-devices.txt --cf J/commands` reruns a folder's
+failures with their own lists. A file cannot hold an `--expect`, a `--blind`
+without returns, a `--timeout`, or a `--maxbytes`; `manifest.json`'s plan alone
+does. A command whose own text ends in `\r`, or is a `--sleep` or `--sudo`
+line's, which only `--literal` sends, reads back as returns or the statement.
+`summary.json`'s `paths` names `commands.txt` when it is written; the other
+copies are named by rule, as the output files are.
 
 ### 4.4 Transcripts and collection files
 
