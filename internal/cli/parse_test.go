@@ -629,7 +629,7 @@ func TestParseEveryCode(t *testing.T) {
 		"cli_device_missing":        {{"command", "--cmd", "show clock"}, {"command", "--address", "192.0.2.10", "--cmd", "show clock"}, {"login"}, {"login", "--address", "192.0.2.10"}, {"login", "--quiet"}},
 		"cli_device_empty":          {{"command", "", "show", "clock"}, {"command", " ", "show", "clock"}, {"command", "--target", "", "--cmd", "x"}, {"login", ""}, {"login", "--host", " "}, {"command", "--", "", "show"}},
 		"cli_command_text_missing":  {{"command", "r1"}, {"command", "--target", "r1"}, {"run", "--target", "r1"}, {"run"}},
-		"cli_command_text_mixed":    {{"command", "r1", "--cmd", "show clock", "show", "version"}, {"command", "--target", "r1", "--cf", "f", "show", "clock"}, {"run", "--target", "r1", "--cmd", "x", "show", "clock"}, {"command", "r1", "--cmd", "x", "--", "y"}},
+		"cli_command_text_mixed":    {{"command", "r1", "--cmd", "a", "--cmd", "show clock", "show", "version"}, {"command", "--target", "r1", "--cf", "f", "show", "clock"}, {"run", "--target", "r1", "--sleep", "5s", "--cmd", "x", "show", "clock"}, {"command", "r1", "--cmd", "x", "--", "y"}, {"command", "r1", "--cmd", "show", "--echo", "clock"}},
 		"cli_positional_missing":    {{"job", "cancel"}, {"job", "cancel", "--reason", "x"}, {"j", "c"}, {"job", "follow"}, {"j", "f", "--format", "jsonl"}},
 		"cli_positional_unexpected": {{"version", "extra"}, {"watch", "extra"}, {"daemon", "status", "extra"}, {"daemon", "stop", "now"}, {"job", "cancel", "a", "b"}, {"job", "follow", "a", "b"}, {"config", "generate", "a", "b"}, {"config", "validate", "--", "a", "b"}},
 		// Malformed selectors, reserved ^ and $, a bare !, and a ! in

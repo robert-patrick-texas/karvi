@@ -64,8 +64,8 @@ func TestSudoIsASourceInTheOrder(t *testing.T) {
 	}
 }
 
-// TestSudoRefusals: an unquoted --sudo command leaves freeform text, a
-// blank --sudo has no command, a declaration before the first --cmd or
+// TestSudoRefusals: an unquoted --sudo command beside another command
+// leaves freeform text, a blank --sudo has no command, a declaration before the first --cmd or
 // --sudo has none to attach to, and a file line --sudo with no command is
 // refused naming the file and the line, each before any connection
 // (EXAMPLES chapter 96).
@@ -75,8 +75,9 @@ func TestSudoRefusals(t *testing.T) {
 		code string
 		text string
 	}{
-		{[]string{"command", "srv1", "--sudo", "systemctl", "restart", "nginx"}, "cli_command_text_mixed", `freeform text "restart nginx" cannot be combined with --cmd, --sudo, --cf, or --sleep`},
-		{[]string{"run", "--target", "srv1", "--sudo", "systemctl", "restart", "nginx"}, "cli_command_text_mixed", `freeform text "restart nginx"`},
+		{[]string{"command", "srv1", "--cmd", "whoami", "--sudo", "systemctl", "restart", "nginx"}, "cli_command_text_mixed", `freeform text "restart nginx" joins only a line's one --cmd or --sudo, right after its value; quote each command`},
+		{[]string{"run", "--target", "srv1", "--sudo", "whoami", "--sudo", "systemctl", "restart", "nginx"}, "cli_command_text_mixed", `freeform text "restart nginx"`},
+		{[]string{"command", "srv1", "--sudo", "systemctl", "--echo", "restart", "nginx"}, "cli_command_text_mixed", `freeform text "restart nginx"`},
 		{[]string{"command", "srv1", "--sudo", ""}, "cli_option_value_invalid", "--sudo has no command; it takes the command to run as root, --sudo TEXT"},
 		{[]string{"run", "--target", "srv1", "--sudo=  "}, "cli_option_value_invalid", "--sudo has no command"},
 		{[]string{"run", "--target", "srv1", "--timeout", "5s", "--sudo", "id -u"}, "declaration_before_command", "--timeout is given before the first --cmd or --sudo"},
@@ -99,6 +100,65 @@ func TestSudoRefusals(t *testing.T) {
 		want := "commands_file_sudo_invalid: commands file " + path + " line 2: --sudo has no command; the line is --sudo TEXT\n"
 		if _, _, ok := commandPlan(inv, app.IO{Stdin: strings.NewReader(""), Stderr: &stderr}); ok || stderr.String() != want {
 			t.Errorf("%s: %q, want %q", name, stderr.String(), want)
+		}
+	}
+}
+
+// TestFreeformJoinsALoneCommand: the words right after the value of a
+// line's one --cmd or --sudo are that command's rest, as the freeform
+// command's words are: karvi's options before it are its own, and every word
+// after its first is the command's, an option's name among them.
+func TestFreeformJoinsALoneCommand(t *testing.T) {
+	for _, tc := range []struct {
+		args []string
+		want CommandSource
+		decl []Declaration
+	}{
+		{[]string{"command", "srv1", "--sudo", "systemctl", "restart", "nginx"}, CommandSource{Sudo: true, Value: "systemctl restart nginx"}, nil},
+		{[]string{"run", "--target", "srv1", "--sudo=systemctl", "restart", "nginx"}, CommandSource{Sudo: true, Value: "systemctl restart nginx"}, nil},
+		{[]string{"command", "srv1", "--sudo", "systemctl restart", "nginx"}, CommandSource{Sudo: true, Value: "systemctl restart nginx"}, nil},
+		{[]string{"command", "r1", "--cmd", "show", "ip", "interface", "brief"}, CommandSource{Value: "show ip interface brief"}, nil},
+		{[]string{"command", "srv1", "--timeout", "60s", "--sudo", "systemctl", "restart", "nginx"}, CommandSource{Sudo: true, Value: "systemctl restart nginx"}, []Declaration{{Option: "timeout", Value: "60s", Command: 1}}},
+		{[]string{"command", "srv1", "--sudo", "systemctl", "restart", "nginx", "--timeout", "60s"}, CommandSource{Sudo: true, Value: "systemctl restart nginx --timeout 60s"}, nil},
+		{[]string{"srv1", "--sudo", "systemctl", "restart", "nginx"}, CommandSource{Sudo: true, Value: "systemctl restart nginx"}, nil},
+		{[]string{"command", "srv1", "--sudo", "--", "journalctl", "-u", "nginx"}, CommandSource{Sudo: true, Value: "journalctl -u nginx"}, nil},
+		{[]string{"srv1", "--sudo", "--", "ss", "-tlnp"}, CommandSource{Sudo: true, Value: "ss -tlnp"}, nil},
+		{[]string{"command", "r1", "--cmd", "--", "show", "running-config", "|", "include", "--echo"}, CommandSource{Value: "show running-config | include --echo"}, nil},
+		{[]string{"command", "srv1", "--timeout", "60s", "--sudo", "--", "journalctl", "-u", "nginx"}, CommandSource{Sudo: true, Value: "journalctl -u nginx"}, []Declaration{{Option: "timeout", Value: "60s", Command: 1}}},
+	} {
+		inv, err := Parse(tc.args)
+		if err != nil {
+			t.Errorf("%q: %v", tc.args, err)
+			continue
+		}
+		if !inv.Freeform || !reflect.DeepEqual(inv.Sources, []CommandSource{tc.want}) || !reflect.DeepEqual(inv.Declarations, tc.decl) {
+			t.Errorf("%q: freeform %v sources %+v declarations %+v, want %+v %+v", tc.args, inv.Freeform, inv.Sources, inv.Declarations, tc.want, tc.decl)
+		}
+	}
+}
+
+// TestDashedCommandEndsTheLine: --sudo -- takes every word after it as the
+// last command of a line with others before it, each declaration attaching
+// backwards as written; with no word after -- it is refused, and a
+// command's own option right after its first word says how to send it.
+func TestDashedCommandEndsTheLine(t *testing.T) {
+	inv := mustParse(t, "command", "srv1", "--cmd", "systemctl is-active nginx", "--timeout", "5s", "--sudo", "--", "systemctl", "restart", "nginx", "--no-block")
+	want := []CommandSource{{Value: "systemctl is-active nginx"}, {Sudo: true, Value: "systemctl restart nginx --no-block"}}
+	if inv.Freeform || !reflect.DeepEqual(inv.Sources, want) || !reflect.DeepEqual(inv.Declarations, []Declaration{{Option: "timeout", Value: "5s", Command: 1}}) {
+		t.Fatalf("freeform %v sources %+v declarations %+v", inv.Freeform, inv.Sources, inv.Declarations)
+	}
+	for _, tc := range []struct {
+		args []string
+		code string
+		text string
+	}{
+		{[]string{"command", "srv1", "--sudo", "--"}, "cli_option_value_invalid", "--sudo -- has no command after it; the words after -- are its command"},
+		{[]string{"command", "srv1", "--sudo", "id", "-u"}, "cli_option_unknown", "unknown option -u in command; for the command's own option write --sudo -- TEXT, or quote the command"},
+		{[]string{"run", "--target", "srv1", "--cmd", "ls", "-la"}, "cli_option_unknown", "write --cmd -- TEXT, or quote the command"},
+	} {
+		_, err := Parse(tc.args)
+		if errorcodes.Of(err) != tc.code || !strings.Contains(err.Error(), tc.text) {
+			t.Errorf("%q: %v, want %s containing %q", tc.args, err, tc.code, tc.text)
 		}
 	}
 }

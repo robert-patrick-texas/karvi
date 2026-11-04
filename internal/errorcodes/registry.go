@@ -676,7 +676,7 @@ var entries = []Entry{
 	failure("cli_device_missing", "usage", exitUsage, false, "`login` or `command` has no target input (device, `--target`, `--tf`, `--tfr`, `--site`, `--device-group`, or `--all`)."),
 	failure("cli_device_empty", "usage", exitUsage, false, "A device name is empty or blank."),
 	failure("cli_command_text_missing", "usage", exitUsage, false, "`command` or `run` has neither freeform text nor an explicit command."),
-	failure("cli_command_text_mixed", "usage", exitUsage, false, "Freeform text is combined with `--cmd`, `--sudo`, `--cf`, or `--sleep`; a `--cmd` or `--sudo` value of several words is quoted as one argument."),
+	failure("cli_command_text_mixed", "usage", exitUsage, false, "Freeform text is combined with more than one command source, a `--cf`, or a `--sleep`, or does not begin right after a lone `--cmd`'s or `--sudo`'s value; the words after the value of a line's one `--cmd` or `--sudo` are its command, and a line of several commands quotes each."),
 	failure("cli_positional_unexpected", "usage", exitUsage, false, "A command that accepts no or a limited number of positional arguments receives more."),
 	failure("cli_positional_missing", "usage", exitUsage, false, "A command that requires a positional argument receives none (`job cancel JOB-ID`, `job follow JOB-ID`)."),
 	failure("cli_option_unavailable", "usage", exitUsage, false, "An option, or a combination of options, that is specified but this executable does not implement yet."),

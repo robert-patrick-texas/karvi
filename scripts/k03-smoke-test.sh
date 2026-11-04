@@ -226,20 +226,32 @@ echo "== root commands"
 # --sudo TEXT is a command source run as root (EXAMPLES chapter 96), on a
 # platform on the exec channel alone: on this device's shell channel it is
 # refused at planning, from the command line and as a --cf line alike;
-# --literal sends the line as text; an unquoted --sudo command, a blank one,
-# and a --cf line --sudo with no command are refused, nothing sent; a dry run
-# on linux lists the root commands and the device's password source.
+# --literal sends the line as text; a lone --sudo's unquoted words are its
+# command, refused here as u1's; unquoted words beside another command, a
+# blank --sudo, and a --cf line --sudo with no command are refused, nothing
+# sent; a dry run on linux lists the root commands and the device's password
+# source, the lone --sudo's words one root command, and after --sudo -- every
+# word the root command; a command's own option right after its first word
+# is refused, naming both fixes.
 printf 'show clock\n--sudo id -u\n' >"$TMP/sudo.txt"
 printf 'show clock\n--sudo\n' >"$TMP/sudo-bare.txt"
 run u1 4 -- command 127.0.0.1 --cmd "show clock" --sudo "id -u";           code u1 channel_shell_sudo_refused; nothing_sent u1
 run u2 4 -- command 127.0.0.1 --cf "$TMP/sudo.txt";                        code u2 channel_shell_sudo_refused; nothing_sent u2
 run u3 0 -- command 127.0.0.1 --literal --cf "$TMP/sudo.txt";              sent u3 "show clock" "--sudo id -u"
-run u4 4 -- command 127.0.0.1 --sudo systemctl restart nginx;              code u4 cli_command_text_mixed; mentions u4 'freeform text "restart nginx"'; nothing_sent u4
+run u4 4 -- command 127.0.0.1 --sudo systemctl restart nginx;              code u4 channel_shell_sudo_refused; mentions u4 'command 1 is a --sudo command'; nothing_sent u4
+run u8 4 -- command 127.0.0.1 --cmd whoami --sudo systemctl restart nginx; code u8 cli_command_text_mixed; mentions u8 'freeform text "restart nginx" joins only'; nothing_sent u8
 run u5 4 -- command 127.0.0.1 --sudo "";                                   code u5 cli_option_value_invalid; nothing_sent u5
 run u6 4 -- command 127.0.0.1 --cf "$TMP/sudo-bare.txt";                   code u6 commands_file_sudo_invalid; nothing_sent u6
 run u7 0 -- --set 'platform.linux.fallback=["netvars"]' run --dry-run --no-daemon --platform linux --target 127.0.0.1 --cmd uptime --sudo "systemctl restart nginx"; nothing_sent u7
 grep -qx 'sudo: commands 2' "$TMP/out" || fail "u7: no top sudo line"
 grep -qx '  sudo: none, sudo -n' "$TMP/out" || fail "u7: no device sudo line"
+run u9 0 -- --set 'platform.linux.fallback=["netvars"]' run --dry-run --no-daemon --platform linux --target 127.0.0.1 --sudo systemctl restart nginx; nothing_sent u9
+grep -qx 'commands: 1' "$TMP/out" || fail "u9: not one command"
+grep -qx 'sudo: commands 1' "$TMP/out" || fail "u9: not one root command"
+run u10 0 -- --set 'platform.linux.fallback=["netvars"]' run --dry-run --no-daemon --platform linux --target 127.0.0.1 --cmd uptime --sudo -- journalctl -u nginx; nothing_sent u10
+grep -qx 'commands: 2' "$TMP/out" || fail "u10: not two commands"
+grep -qx 'sudo: commands 2' "$TMP/out" || fail "u10: the dashed command is not root"
+run u11 4 -- command 127.0.0.1 --sudo id -u;                               code u11 cli_option_unknown; mentions u11 'write --sudo -- TEXT, or quote the command'; nothing_sent u11
 
 echo "== output folder layout and permissions"
 # A fresh state root: created subtrees, the day-folder layout, and the modes
@@ -371,7 +383,8 @@ run c8 4 -- command 127.0.0.1 --format xml show clock; code c8 cli_option_value_
 run c9 4 -- command --cmd "show clock";             code c9 cli_device_missing
 run c10 4 -- command "" show clock;                 code c10 cli_device_empty
 run c11 4 -- command 127.0.0.1;                     code c11 cli_command_text_missing
-run c12 4 -- command 127.0.0.1 --cmd x show clock;  code c12 cli_command_text_mixed
+run c12 4 -- command 127.0.0.1 --cmd x --cmd y show clock; code c12 cli_command_text_mixed
+run c12b 0 -- command 127.0.0.1 --cmd show clock;   sent c12b "show clock"
 run c13 4 -- version extra;                         code c13 cli_positional_unexpected
 run c14 4 -- command 127.0.0.1 --tfr - show clock;  code c14 target_source_stdin_invalid
 run c15 4 -- command 127.0.0.1 --port 70000 show clock; code c15 port_out_of_range

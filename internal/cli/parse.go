@@ -812,10 +812,20 @@ func visibleWords(cmds []*command) []string {
 // parseFreeform parses a freeform command line. Options are recognized
 // until freeform text begins. In command mode the first positional word is
 // the device when no target input precedes it; otherwise it begins freeform.
+// Freeform text that begins right after the value of the line's one --cmd
+// or --sudo is that command's rest: the value and the words join, one
+// command, as the freeform command's words do; after --cmd -- or --sudo --
+// every word to the line's end is that command, an option's name or a
+// dash among them, so a command's own option may follow its first word
+// (EXAMPLES chapter 96).
 func (p *parser) parseFreeform(cmd *command, args []string, deviceFirst bool) error {
 	inv := p.inv
 	p.args = args
 	var free []string
+	// freeAt is where the freeform text began, afterSource the word after
+	// the last --cmd's or --sudo's value, source that option's name; text
+	// after a bare -- joins nothing.
+	freeAt, afterSource, source := -1, -2, ""
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		if arg == "--" {
@@ -832,12 +842,34 @@ func (p *parser) parseFreeform(cmd *command, args []string, deviceFirst bool) er
 		if isOptionArg(arg) {
 			o, value, err := p.takeOption(cmd.options, cmd.path, &i)
 			if err != nil {
+				// A command's own option right after its first word is
+				// read as karvi's: say how to send it.
+				if i == afterSource && errorcodes.Of(err) == "cli_option_unknown" {
+					return errorcodes.Errorf("cli_option_unknown", "%s; for the command's own option write --%s -- TEXT, or quote the command", errorcodes.Message(err), source)
+				}
 				return err
+			}
+			command := o.role == roleCmd || o.role == roleSudo
+			dashed := command && value == "--" && args[i] == "--"
+			if dashed {
+				if i+1 >= len(args) {
+					return errorcodes.Errorf("cli_option_value_invalid", "--%s -- has no command after it; the words after -- are its command", o.name)
+				}
+				value, i = strings.Join(args[i+1:], " "), len(args)
 			}
 			if done, err := p.apply(o, value); err != nil {
 				return err
 			} else if done {
 				return nil
+			}
+			if command {
+				afterSource, source = i+1, o.name
+			}
+			if dashed {
+				// The line's one command takes every declaration, as the
+				// freeform command does; after another, each attaches
+				// backwards as written.
+				inv.Freeform = len(inv.Sources) == 1
 			}
 			continue
 		}
@@ -847,13 +879,17 @@ func (p *parser) parseFreeform(cmd *command, args []string, deviceFirst bool) er
 			}
 			continue
 		}
-		free = args[i:]
+		free, freeAt = args[i:], i
 		break
+	}
+	if len(free) > 0 && len(inv.Sources) == 1 && freeAt == afterSource {
+		inv.Sources[0].Value = strings.Join(append([]string{inv.Sources[0].Value}, free...), " ")
+		inv.Freeform, free = true, nil
 	}
 	explicit := len(inv.Sources) > 0
 	switch {
 	case explicit && len(free) > 0:
-		return errorcodes.Errorf("cli_command_text_mixed", "freeform text %q cannot be combined with --cmd, --sudo, --cf, or --sleep", strings.Join(free, " "))
+		return errorcodes.Errorf("cli_command_text_mixed", "freeform text %q joins only a line's one --cmd or --sudo, right after its value; quote each command", strings.Join(free, " "))
 	case deviceFirst && len(inv.Targets) == 0:
 		return errorcodes.Errorf("cli_device_missing", "%s requires a device: DEVICE, --target, or another target input", cmd.path)
 	case !explicit && len(free) == 0 && !cmd.textOptional:

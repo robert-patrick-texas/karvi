@@ -78,7 +78,7 @@ func TestSleepRefusals(t *testing.T) {
 		{[]string{"run", "--target", "r1", "--cmd", "a", "--sleep", "13h", "--cmd", "b"}, "cli_option_value_invalid", "not \"13h\""},
 		{[]string{"run", "--target", "r1", "--cmd", "a", "--sleep", "soon", "--cmd", "b"}, "cli_option_value_invalid", ""},
 		{[]string{"run", "--target", "r1", "--cmd", "a", "--sleep", "5s", "--timeout", "10s", "--cmd", "b"}, "declaration_after_sleep", "--timeout follows --sleep; write it right after its --cmd, before the --sleep"},
-		{[]string{"command", "r1", "--sleep", "5s", "show", "clock"}, "cli_command_text_mixed", `freeform text "show clock" cannot be combined with --cmd, --sudo, --cf, or --sleep`},
+		{[]string{"command", "r1", "--sleep", "5s", "show", "clock"}, "cli_command_text_mixed", `freeform text "show clock" joins only a line's one --cmd or --sudo, right after its value; quote each command`},
 	} {
 		_, err := Parse(tc.args)
 		if errorcodes.Of(err) != tc.code || !strings.Contains(err.Error(), tc.text) {

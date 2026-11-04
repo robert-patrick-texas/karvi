@@ -88,7 +88,7 @@ Active failure causes.
 | `cli_command_ambiguous` | usage | 4 | no | The command word prefix matches more than one command; the message names every candidate. |
 | `cli_command_near_miss` | usage | 4 | no | The first word, taken as a device (`karvi DEVICE`), is no inventory name and one slip from a command word of four letters or more: a letter added, dropped, or changed, or two neighbours swapped, ignoring case; the message names the command word. Refused before any lookup or claim. |
 | `cli_command_text_missing` | usage | 4 | no | `command` or `run` has neither freeform text nor an explicit command. |
-| `cli_command_text_mixed` | usage | 4 | no | Freeform text is combined with `--cmd`, `--sudo`, `--cf`, or `--sleep`; a `--cmd` or `--sudo` value of several words is quoted as one argument. |
+| `cli_command_text_mixed` | usage | 4 | no | Freeform text is combined with more than one command source, a `--cf`, or a `--sleep`, or does not begin right after a lone `--cmd`'s or `--sudo`'s value; the words after the value of a line's one `--cmd` or `--sudo` are its command, and a line of several commands quotes each. |
 | `cli_command_unknown` | usage | 4 | no | The first word is neither a command nor a target: it matches no command and is a pattern rather than a plain name, or, taken as a device (`karvi DEVICE`), DNS says the name does not exist. |
 | `cli_device_empty` | usage | 4 | no | A device name is empty or blank. |
 | `cli_device_missing` | usage | 4 | no | `login` or `command` has no target input (device, `--target`, `--tf`, `--tfr`, `--site`, `--device-group`, or `--all`). |

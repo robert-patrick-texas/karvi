@@ -240,6 +240,8 @@ Device commands (one form per invocation):
                                  folder sends the device its own file,
                                  DIR/NAME, NAME its collection file's
   --cmd, --sudo, and --cf mix, sent in the order given.
+  A lone --cmd or --sudo takes the words after it, to the line's end;
+  after --cmd -- or --sudo --, every word to the line's end is the command.
   --sleep DURATION               Wait DURATION (1s..12h) before the next
                                  command, once the one before it returns;
                                  repeatable, in the order given, a command
@@ -433,6 +435,8 @@ Device commands (one form per invocation):
                                  file's (a device without one refuses the
                                  run)
   --cmd, --sudo, and --cf mix, sent in the order given.
+  A lone --cmd or --sudo takes the words after it, to the line's end;
+  after --cmd -- or --sudo --, every word to the line's end is the command.
   --sleep DURATION               Wait DURATION (1s..12h) before the next
                                  command, once the one before it returns;
                                  repeatable, in the order given, a command
