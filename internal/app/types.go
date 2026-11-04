@@ -86,6 +86,7 @@ type RunOptions struct {
 	Sleeps             []int64                       // empty, or the --sleep before each command in nanoseconds, 0 none
 	Sudo               []bool                        // empty, or one flag per command, true for a --sudo command
 	PlatformCommands   bool                          // crun with no command: each device its platform's crun-commands (12.9)
+	Literal            bool                          // crun with no command: --literal, each crun-commands entry sent as written
 	Collection         string                        // crun, or run given --cd: the word; the plan carries the collection directory and word
 	Suffix             string                        // --fs: the collection file names' suffix
 	Transport          string

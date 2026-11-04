@@ -10,6 +10,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/executionplan"
+	"github.com/robert-patrick-texas/karvi/internal/commandfile"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
@@ -59,6 +60,10 @@ type DraftOptions struct {
 	// takes its platforms' crun-filters; another word's does neither.
 	PlatformCommands bool
 	Collection       string
+	// Literal, with PlatformCommands, sends each crun-commands entry as
+	// written (--literal), where an entry is otherwise read as a --cf
+	// file's line is: a --sleep or --sudo line the statement.
+	Literal bool
 	// Suffix is --fs, carried in the collection sub-block and appended to
 	// each device's collection file name.
 	Suffix string
@@ -234,7 +239,7 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 	}
 	var lists map[string]executionplan.CommandList
 	if opts.PlatformCommands && len(opts.Commands) == 0 && opts.TargetCommands == nil {
-		if lists, err = platformCommandLists(targets, cfg.NamedTables("platform")); err != nil {
+		if lists, err = platformCommandLists(cfg, targets, opts.Literal); err != nil {
 			return executionplan.ExecutionPlan{}, err
 		}
 	}
@@ -437,21 +442,41 @@ func outputSettings(cfg configload.Snapshot, operator credentials.Operator, opts
 // platformCommandLists is the plan's list per platform for a crun that
 // names no command: each distinct target platform's
 // crun-commands from its definition (the built-in's, or a table's
-// replacing it), as a command list with no declarations, each entry device
-// text. A platform without a list refuses the draft before any device is
-// contacted, naming the platform and its first device.
-func platformCommandLists(targets []executionplan.ExecutionTarget, tables map[string]map[string]any) (map[string]executionplan.CommandList, error) {
+// replacing it), each entry read as a --cf file's line is (a --sleep or
+// --sudo line the statement, any other entry device text; literal sends
+// every entry as written; EXAMPLES chapter 96), with no other
+// declarations: a trailing \r is the entry's text. A platform without a
+// list refuses the draft before any device is contacted, naming the
+// platform and its first device; so does an entry refused as a file line
+// is, naming the platform and the entry, a sleep with no entry after it,
+// and a sleep total above a set execution.device-timeout.
+func platformCommandLists(cfg configload.Snapshot, targets []executionplan.ExecutionTarget, literal bool) (map[string]executionplan.CommandList, error) {
+	tables := cfg.NamedTables("platform")
 	lists := map[string]executionplan.CommandList{}
 	for _, t := range targets {
 		name := t.Device.Platform
 		if _, done := lists[name]; done {
 			continue
 		}
-		list := platform.Resolve(name, tables).CrunCommands
-		if len(list) == 0 {
+		entries := platform.Resolve(name, tables).CrunCommands
+		if len(entries) == 0 {
 			return nil, errorcodes.Errorf("crun_platform_commands_missing", "platform %s has no crun-commands list, so %s cannot be collected without --cmd or --cf; set [platform.%s] crun-commands", name, t.TargetID, name)
 		}
-		lists[name] = executionplan.NewCommandList(append([]string{}, list...))
+		var read commandfile.List
+		for i, entry := range entries {
+			if err := read.Line(entry, literal); err != nil {
+				return nil, errorcodes.Errorf(errorcodes.Of(err), "platform %s crun-commands entry %d: %s", name, i+1, errorcodes.Text(err))
+			}
+		}
+		if d := read.Pending(); d > 0 {
+			return nil, errorcodes.Errorf("sleep_without_command", "platform %s crun-commands: a --sleep of %s comes after the last entry; a sleep waits before the next command, so put one after it or remove the sleep", name, d)
+		}
+		list := executionplan.NewCommandList(read.Commands)
+		list.SleepsNS, list.Sudo = read.SleepsNS(), read.Sudo()
+		if err := checkCommandBounds(cfg, nil, nil, list.SleepsNS); err != nil {
+			return nil, errorcodes.Errorf(errorcodes.Of(err), "platform %s crun-commands: %s", name, errorcodes.Text(err))
+		}
+		lists[name] = list
 	}
 	return lists, nil
 }

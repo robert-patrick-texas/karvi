@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/daemon"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
@@ -327,6 +329,9 @@ func renderInspection(out io.Writer, format string, r records.PlanReport, socket
 	if sleeps := describeSleeps(r.Plan.SleepsNS); sleeps != "" {
 		fmt.Fprintf(&b, "sleeps: %s\n", sleeps)
 	}
+	if root := describeSudo(r.Plan.Sudo); root != "" {
+		fmt.Fprintf(&b, "sudo: commands %s\n", root)
+	}
 	fmt.Fprintf(&b, "dispatch: %s order=%s\n", dispatchLine, r.Plan.Dispatch.DispatchOrder)
 	if c := r.Plan.Output.Collection; c != nil {
 		suffix := ""
@@ -349,6 +354,9 @@ func renderInspection(out io.Writer, format string, r records.PlanReport, socket
 			// Each key offered, in order, with its fingerprint as read now.
 			for _, k := range t.CredentialBinding.Keys {
 				fmt.Fprintf(&b, "  key: %s %s\n", k.Path, k.Fingerprint)
+			}
+			if src := t.CredentialBinding.Sudo; src != "" {
+				fmt.Fprintf(&b, "  sudo: %s\n", describeSudoSource(src, t.CredentialBinding.Backend))
 			}
 		} else {
 			fmt.Fprintf(&b, "  credential: <%s>\n", t.CredentialBinding.Status)
@@ -419,13 +427,41 @@ func describeSleeps(sleeps []int64) string {
 	return strings.Join(parts, "; ")
 }
 
+// describeSudo lists the root commands of the plan's list by their place,
+// "2, 4", "" when none is (EXAMPLES chapter 96).
+func describeSudo(sudo []bool) string {
+	var parts []string
+	for i, root := range sudo {
+		if root {
+			parts = append(parts, strconv.Itoa(i+1))
+		}
+	}
+	return strings.Join(parts, ", ")
+}
+
+// describeSudoSource is a device's sudo line: where its --sudo password
+// comes from (credentials.Resolved.Sudo), the backend named for its enable
+// field, or none, which sends sudo -n (EXAMPLES chapter 96).
+func describeSudoSource(source, backend string) string {
+	switch source {
+	case credentials.SudoNone:
+		return "none, sudo -n"
+	case credentials.SudoEnable:
+		return fmt.Sprintf("password from the enable field (backend=%s; value not displayed)", backend)
+	}
+	return fmt.Sprintf("password from %s (value not displayed)", source)
+}
+
 // joinCommands is a device's own list as the report shows it: its commands
-// in order, each --sleep in its place.
+// in order, each --sleep in its place and each root command as its --sudo.
 func joinCommands(list executionplan.CommandList) string {
 	parts := make([]string, 0, len(list.Commands))
 	for i, c := range list.Commands {
 		if i < len(list.SleepsNS) && list.SleepsNS[i] > 0 {
 			parts = append(parts, "--sleep "+time.Duration(list.SleepsNS[i]).String())
+		}
+		if i < len(list.Sudo) && list.Sudo[i] {
+			c = "--sudo " + c
 		}
 		parts = append(parts, c)
 	}

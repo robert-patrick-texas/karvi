@@ -133,9 +133,9 @@ type ExecutionPlan struct {
 	// list since 17): a crun that names no command sends each device its
 	// platform's list. A target points at its list by its device's
 	// platform, and every target's platform has a list when Commands is
-	// empty. The list's declarations are empty: a crun-commands entry is
-	// device text (EXAMPLES chapter 96 gives it the file line's statements
-	// later).
+	// empty. An entry is read as a --cf file's line is, a --sleep or --sudo
+	// line the statement (EXAMPLES chapter 96), so the list carries sleeps
+	// and root flags; its other declarations are empty.
 	PlatformCommands map[string]CommandList `json:"platform_commands,omitempty"`
 	// TargetCommands is a command list per target (schema 15), by target
 	// ID: a run with a --cf folder on its line sends each target the

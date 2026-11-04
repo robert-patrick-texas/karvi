@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
 
 // SleepMin and SleepMax bound one --sleep, --timeout's range (EXAMPLES
@@ -66,6 +68,84 @@ func SudoLine(line string) (string, bool, error) {
 		return "", false, fmt.Errorf("--sudo has no command; the line is --sudo TEXT")
 	}
 	return text, true, nil
+}
+
+// List is a command list built statement by statement in the order
+// written: the commands, the sleep waited before each, and each one's root
+// flag. A sleep waits before the next command added, the sleeps in a row
+// adding up (EXAMPLES chapters 95 and 96). The command line's sources and
+// a platform's crun-commands entries are both read into one.
+type List struct {
+	Commands []string
+	sleeps   []int64 // nanoseconds before each command, 0 none
+	sudo     []bool
+	pending  time.Duration
+}
+
+// Sleep adds d to the wait before the next command.
+func (l *List) Sleep(d time.Duration) { l.pending += d }
+
+// Add appends a command, root for a --sudo one, the sleeps since the last
+// command waited before it.
+func (l *List) Add(text string, root bool) {
+	l.Commands, l.sleeps, l.sudo = append(l.Commands, text), append(l.sleeps, int64(l.pending)), append(l.sudo, root)
+	l.pending = 0
+}
+
+// Line adds one line by the grammar: a --sleep line's wait (SleepLine), a
+// --sudo line's root command (SudoLine), any other line device text as
+// written; literal adds every line as text. A line refused is
+// commands_file_sleep_invalid or commands_file_sudo_invalid, its message
+// the line's fault alone, for the caller to say where the line is.
+func (l *List) Line(line string, literal bool) error {
+	if literal {
+		l.Add(line, false)
+		return nil
+	}
+	d, ok, err := SleepLine(line)
+	if err != nil {
+		return errorcodes.Errorf("commands_file_sleep_invalid", "%v", err)
+	}
+	if ok {
+		l.Sleep(d)
+		return nil
+	}
+	text, ok, err := SudoLine(line)
+	if err != nil {
+		return errorcodes.Errorf("commands_file_sudo_invalid", "%v", err)
+	}
+	if ok {
+		l.Add(text, true)
+		return nil
+	}
+	l.Add(line, false)
+	return nil
+}
+
+// Pending is the wait no command has followed yet, which the caller
+// refuses once the list ends (sleep_without_command).
+func (l *List) Pending() time.Duration { return l.pending }
+
+// SleepsNS is the sleep before each command in nanoseconds, empty when no
+// command has one, as a plan's list carries it.
+func (l *List) SleepsNS() []int64 {
+	for _, ns := range l.sleeps {
+		if ns > 0 {
+			return l.sleeps
+		}
+	}
+	return []int64{}
+}
+
+// Sudo is each command's root flag, empty when none is root, as a plan's
+// list carries it.
+func (l *List) Sudo() []bool {
+	for _, root := range l.sudo {
+		if root {
+			return l.sudo
+		}
+	}
+	return []bool{}
 }
 
 // Text is a command list written as a commands file, one statement per

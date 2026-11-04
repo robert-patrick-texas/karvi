@@ -28,7 +28,8 @@ made it with setup shared, else <basedir>/crun, unless configured;
 succeeded, holding each command's output under a "! COMMAND" marker line
 and nothing else.
 With no command on the line each device is sent its platform's
-crun\-commands list (a platform without one refuses the run at planning);
+crun\-commands list (a platform without one refuses the run at planning),
+each entry read as a \-\-cf line is, a \-\-sleep or \-\-sudo entry the statement;
 a rejected statement does not stop the device's later commands. The job
 folder is written as for any run, without output.NAME.txt.
 A platform's crun\-filters (regular expressions) drop the output lines that
@@ -98,6 +99,15 @@ Positional words are joined with one space into one command.
 \fB\-\-cmd\fR \fITEXT\fR, \fB\-\-command\fR, \fB\-\-c\fR
 Separate command; repeatable
 .TP
+\fB\-\-sudo\fR \fITEXT\fR
+One command run as root by sudo, where the
+platform runs on the exec channel;
+repeatable, quoted as \-\-cmd's value; a \-\-cf
+line that is \-\-sudo TEXT is the same; the
+password is the credential's enable field
+or NETSUDO (else NETENABLE), or none, sent
+as sudo \-n
+.TP
 \fB\-\-cf\fR \fIPATH|\-\fR
 One command per line, sent as written;
 repeatable; a folder sends each device its
@@ -105,7 +115,7 @@ own file, DIR/NAME, NAME its collection
 file's (a device without one refuses the
 run)
 .TP
-\fB\-\-cmd\fR \fIand\fR \fB\-\-cf\fR \fImix\fR, \fIsent\fR \fIin\fR \fIthe\fR \fIorder\fR \fIgiven.\fR
+\fB\-\-cmd\fR, \fB\-\-sudo\fR, \fIand\fR \fB\-\-cf\fR \fImix\fR, \fIsent\fR \fIin\fR \fIthe\fR \fIorder\fR \fIgiven.\fR
 .TP
 \fB\-\-sleep\fR \fIDURATION\fR
 Wait DURATION (1s..12h) before the next
@@ -147,9 +157,10 @@ sets the lock\-aware execution.blind\-wait)
 .TP
 \fB\-\-literal\fR
 Send every command as written; no \er
-interpretation, a \-\-cf line of \-\-sleep sent as
-text; a RESPONSE is always as written
-.SS "A command's own bounds (each attaches to the \-\-cmd written right before it, never after a \-\-cf, or to the one freeform command; at most one of each per command)"
+interpretation, a \-\-cf line of \-\-sleep or
+\-\-sudo sent as text; a RESPONSE is always as
+written
+.SS "A command's own bounds (each attaches to the \-\-cmd or \-\-sudo written right before it, never after a \-\-cf, or to the one freeform command; at most one of each per command)"
 .TP
 \fB\-\-timeout\fR \fIDURATION\fR
 The command's timeout in place of

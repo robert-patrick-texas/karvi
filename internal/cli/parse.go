@@ -44,13 +44,16 @@ type Declaration struct {
 }
 
 // CommandSource is one source of device commands in command-line order: a
-// --cmd, or the one joined freeform command, its text in Value; a --cf,
-// File set and its path or - in Value; or a --sleep, Sleep set and its
-// duration in Value, waited before the next command (EXAMPLES chapter 95).
-// The device commands are the sources' in this order (commandPlan).
+// --cmd, or the one joined freeform command, its text in Value; a --sudo,
+// Sudo set and its text in Value, a command run as root (EXAMPLES chapter
+// 96); a --cf, File set and its path or - in Value; or a --sleep, Sleep
+// set and its duration in Value, waited before the next command (EXAMPLES
+// chapter 95). The device commands are the sources' in this order
+// (commandPlan).
 type CommandSource struct {
 	File  bool
 	Sleep bool
+	Sudo  bool
 	Value string
 }
 
@@ -61,7 +64,7 @@ type Invocation struct {
 	Path         string // "login", "daemon stop", ...; "" when only global options were given
 	Help         bool   // help was requested at some position; Path names the level
 	Targets      []TargetInput
-	Sources      []CommandSource // --cmd, --cf, and --sleep in order, or the one joined freeform command
+	Sources      []CommandSource // --cmd, --sudo, --cf, and --sleep in order, or the one joined freeform command
 	Freeform     bool            // Sources is the freeform text's one command
 	Declarations []Declaration
 	Positional   []string // plain commands: positional arguments (login: none; devices are Targets)
@@ -375,6 +378,13 @@ func (p *parser) apply(o *option, value string) (bool, error) {
 		}
 	case roleCmd:
 		inv.Sources = append(inv.Sources, CommandSource{Value: value})
+	case roleSudo:
+		// A blank --sudo would reach the device as sudo with no command;
+		// refused as a --sudo file line with none is.
+		if strings.TrimSpace(value) == "" {
+			return false, errorcodes.Errorf("cli_option_value_invalid", "--sudo has no command; it takes the command to run as root, --sudo TEXT")
+		}
+		inv.Sources = append(inv.Sources, CommandSource{Sudo: true, Value: value})
 	case roleCf:
 		inv.Sources = append(inv.Sources, CommandSource{File: true, Value: value})
 	case roleSleep:
@@ -493,7 +503,7 @@ func splitExpect(value string) (pattern, response string, ok bool) {
 
 // placeDeclarations applies the placement rule once the command sources are
 // known: each declaration attaches to the source written right before it,
-// which must be a --cmd, or in freeform to the one command. Before the first
+// which must be a --cmd or a --sudo, or in freeform to the one command. Before the first
 // source it has no command and is refused rather than attached to the first,
 // so a reader never guesses; after a --cf it is refused, though a --cmd
 // stands further back, since it would read as the file's and a file line
@@ -508,7 +518,7 @@ func (p *parser) placeDeclarations() error {
 		case inv.Freeform:
 			d.Command = 1
 		case d.Command == 0:
-			return errorcodes.Errorf("declaration_before_command", "--%s is given before the first --cmd; write it after the command it belongs to", d.Option)
+			return errorcodes.Errorf("declaration_before_command", "--%s is given before the first --cmd or --sudo; write it after the command it belongs to", d.Option)
 		case inv.Sources[d.Command-1].File:
 			return errorcodes.Errorf("declaration_with_commands_file", "--%s follows --cf; write it after its --cmd (a file line takes \\r at its end)", d.Option)
 		case inv.Sources[d.Command-1].Sleep:
@@ -843,7 +853,7 @@ func (p *parser) parseFreeform(cmd *command, args []string, deviceFirst bool) er
 	explicit := len(inv.Sources) > 0
 	switch {
 	case explicit && len(free) > 0:
-		return errorcodes.Errorf("cli_command_text_mixed", "freeform text %q cannot be combined with --cmd, --cf, or --sleep", strings.Join(free, " "))
+		return errorcodes.Errorf("cli_command_text_mixed", "freeform text %q cannot be combined with --cmd, --sudo, --cf, or --sleep", strings.Join(free, " "))
 	case deviceFirst && len(inv.Targets) == 0:
 		return errorcodes.Errorf("cli_device_missing", "%s requires a device: DEVICE, --target, or another target input", cmd.path)
 	case !explicit && len(free) == 0 && !cmd.textOptional:

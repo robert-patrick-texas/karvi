@@ -222,6 +222,25 @@ run s4 4 -- command 127.0.0.1 --cmd "show clock" --sleep 1s --timeout 5s --cmd "
 run s5 4 -- command 127.0.0.1 --cf "$TMP/sleep-bad.txt";                    code s5 commands_file_sleep_invalid; nothing_sent s5
 run s6 4 -- --set 'execution.device-timeout="5s"' command 127.0.0.1 --cmd "show clock" --sleep 3s --sleep 3s --cmd "show users"; code s6 sleep_over_device_timeout; nothing_sent s6
 
+echo "== root commands"
+# --sudo TEXT is a command source run as root (EXAMPLES chapter 96), on a
+# platform on the exec channel alone: on this device's shell channel it is
+# refused at planning, from the command line and as a --cf line alike;
+# --literal sends the line as text; an unquoted --sudo command, a blank one,
+# and a --cf line --sudo with no command are refused, nothing sent; a dry run
+# on linux lists the root commands and the device's password source.
+printf 'show clock\n--sudo id -u\n' >"$TMP/sudo.txt"
+printf 'show clock\n--sudo\n' >"$TMP/sudo-bare.txt"
+run u1 4 -- command 127.0.0.1 --cmd "show clock" --sudo "id -u";           code u1 channel_shell_sudo_refused; nothing_sent u1
+run u2 4 -- command 127.0.0.1 --cf "$TMP/sudo.txt";                        code u2 channel_shell_sudo_refused; nothing_sent u2
+run u3 0 -- command 127.0.0.1 --literal --cf "$TMP/sudo.txt";              sent u3 "show clock" "--sudo id -u"
+run u4 4 -- command 127.0.0.1 --sudo systemctl restart nginx;              code u4 cli_command_text_mixed; mentions u4 'freeform text "restart nginx"'; nothing_sent u4
+run u5 4 -- command 127.0.0.1 --sudo "";                                   code u5 cli_option_value_invalid; nothing_sent u5
+run u6 4 -- command 127.0.0.1 --cf "$TMP/sudo-bare.txt";                   code u6 commands_file_sudo_invalid; nothing_sent u6
+run u7 0 -- --set 'platform.linux.fallback=["netvars"]' run --dry-run --no-daemon --platform linux --target 127.0.0.1 --cmd uptime --sudo "systemctl restart nginx"; nothing_sent u7
+grep -qx 'sudo: commands 2' "$TMP/out" || fail "u7: no top sudo line"
+grep -qx '  sudo: none, sudo -n' "$TMP/out" || fail "u7: no device sudo line"
+
 echo "== output folder layout and permissions"
 # A fresh state root: created subtrees, the day-folder layout, and the modes
 # of folders and files karvi creates, independent of the umask.

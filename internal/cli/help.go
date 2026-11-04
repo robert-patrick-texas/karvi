@@ -35,9 +35,9 @@ const platformOptionHelp = `  --platform NAME                The platform the de
 
 // commandBoundsHelp is the per-command bounds, shared by command and run:
 // --timeout and --maxbytes are declarations in both.
-const commandBoundsHelp = `A command's own bounds (each attaches to the --cmd written right before it,
-never after a --cf, or to the one freeform command; at most one of each per
-command):
+const commandBoundsHelp = `A command's own bounds (each attaches to the --cmd or --sudo written right
+before it, never after a --cf, or to the one freeform command; at most one of
+each per command):
   --timeout DURATION             The command's timeout in place of
                                  execution.command-timeout, and over telnet of
                                  telnet.read-timeout (1s..12h); not on a blind
@@ -75,10 +75,11 @@ remove them: --cmd "show clock". A line leaving text no option takes is
 dropped. Any other line is one command, sent as written, quotes and all; \r
 at its end is read as --cmd reads it, and a line of \r alone sends a blank
 line. The targets and options stay from one job to the next, and so do the
-commands given in option form (--cmd, -c, --command, --cf, --sleep); a
-command given as a bare line is the job's alone. --expect, --blind, --blind-return,
---timeout, and --maxbytes lines attach to the command before them, a --cmd
-or a bare line; one after a --cf line is dropped. A job's commands go in the
+commands given in option form (--cmd, -c, --command, --sudo, --cf, --sleep;
+a --sudo line's value is one root command); a command given as a bare line
+is the job's alone. --expect, --blind, --blind-return, --timeout, and
+--maxbytes lines attach to the command before them, a --cmd, a --sudo, or a
+bare line; one after a --cf line is dropped. A job's commands go in the
 order typed, and a --cf folder is read as each job is planned. --cf, --tf,
 --tfr, --target, and --tl may not name -: standard input is the stream.
 
@@ -227,11 +228,18 @@ device of the assembled set):
 Device commands (one form per invocation):
   Positional words after the device are joined with one space into one command.
   --cmd TEXT, --command, --c     Separate command; repeatable
+  --sudo TEXT                    One command run as root by sudo, where the
+                                 platform runs on the exec channel;
+                                 repeatable, quoted as --cmd's value; a --cf
+                                 line that is --sudo TEXT is the same; the
+                                 password is the credential's enable field
+                                 or NETSUDO (else NETENABLE), or none, sent
+                                 as sudo -n
   --cf PATH|-                    One command per line, sent as written;
                                  repeatable; - reads standard input; a
                                  folder sends the device its own file,
                                  DIR/NAME, NAME its collection file's
-  --cmd and --cf mix, sent in the order given.
+  --cmd, --sudo, and --cf mix, sent in the order given.
   --sleep DURATION               Wait DURATION (1s..12h) before the next
                                  command, once the one before it returns;
                                  repeatable, in the order given, a command
@@ -263,8 +271,9 @@ or --expect, not both):
                                  place of the command timeout (0 does not wait;
                                  sets the lock-aware execution.blind-wait)
   --literal                      Send every command as written; no \r
-                                 interpretation, a --cf line of --sleep sent as
-                                 text; a RESPONSE is always as written
+                                 interpretation, a --cf line of --sleep or
+                                 --sudo sent as text; a RESPONSE is always as
+                                 written
 
 ` + commandBoundsHelp + `
 Options:
@@ -344,7 +353,8 @@ made it with setup shared, else <basedir>/crun, unless configured;
 succeeded, holding each command's output under a "! COMMAND" marker line
 and nothing else.
 With no command on the line each device is sent its platform's
-crun-commands list (a platform without one refuses the run at planning);
+crun-commands list (a platform without one refuses the run at planning),
+each entry read as a --cf line is, a --sleep or --sudo entry the statement;
 a rejected statement does not stop the device's later commands. The job
 folder is written as for any run, without output.NAME.txt.
 A platform's crun-filters (regular expressions) drop the output lines that
@@ -410,12 +420,19 @@ of a name keeps its position, names are lowercase):
 Device commands (one form per invocation):
   Positional words are joined with one space into one command.
   --cmd TEXT, --command, --c     Separate command; repeatable
+  --sudo TEXT                    One command run as root by sudo, where the
+                                 platform runs on the exec channel;
+                                 repeatable, quoted as --cmd's value; a --cf
+                                 line that is --sudo TEXT is the same; the
+                                 password is the credential's enable field
+                                 or NETSUDO (else NETENABLE), or none, sent
+                                 as sudo -n
   --cf PATH|-                    One command per line, sent as written;
                                  repeatable; a folder sends each device its
                                  own file, DIR/NAME, NAME its collection
                                  file's (a device without one refuses the
                                  run)
-  --cmd and --cf mix, sent in the order given.
+  --cmd, --sudo, and --cf mix, sent in the order given.
   --sleep DURATION               Wait DURATION (1s..12h) before the next
                                  command, once the one before it returns;
                                  repeatable, in the order given, a command
@@ -447,8 +464,9 @@ or --expect, not both):
                                  place of the command timeout (0 does not wait;
                                  sets the lock-aware execution.blind-wait)
   --literal                      Send every command as written; no \r
-                                 interpretation, a --cf line of --sleep sent as
-                                 text; a RESPONSE is always as written
+                                 interpretation, a --cf line of --sleep or
+                                 --sudo sent as text; a RESPONSE is always as
+                                 written
 
 ` + commandBoundsHelp + `
 Platform:

@@ -286,7 +286,7 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if format == "" {
 		format = "text"
 	}
-	result := app.ExecuteCommand(ctx, app.CommandOptions{Collection: collection.word, Suffix: collection.suffix, CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: set.commands, CommandsFiles: commandsFileNames(inv), TargetCommands: set.perTarget, CommandFolders: set.folders, BlindReturns: set.decl.returns, Blind: set.decl.blind, Expectations: set.decl.expect, Timeouts: set.decl.timeouts, MaxBytes: set.decl.maxBytes, Sleeps: set.decl.sleeps, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder), Live: inv.Flag(optLive), Shortcut: inv.shortcut()}, streams)
+	result := app.ExecuteCommand(ctx, app.CommandOptions{Collection: collection.word, Suffix: collection.suffix, CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: set.commands, CommandsFiles: commandsFileNames(inv), TargetCommands: set.perTarget, CommandFolders: set.folders, BlindReturns: set.decl.returns, Blind: set.decl.blind, Expectations: set.decl.expect, Timeouts: set.decl.timeouts, MaxBytes: set.decl.maxBytes, Sleeps: set.decl.sleeps, Sudo: set.decl.sudo, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder), Live: inv.Flag(optLive), Shortcut: inv.shortcut()}, streams)
 	collection.impliedDirectory(&result)
 	inv.Global.printResultError(result, streams.Stderr)
 	return result.ExitCode
@@ -386,8 +386,8 @@ func checkLiveRun(inv *Invocation, w io.Writer) (int, bool) {
 // interprets once and the plan carries: the blind returns, the tolerance
 // flags, and the
 // expect-and-send declarations, each command's own timeout and byte
-// limit (0 the job's), and the --sleep waited before it (0 none), each
-// empty when no command has any.
+// limit (0 the job's), the --sleep waited before it (0 none), and its
+// root flag (--sudo), each empty when no command has any.
 type declarations struct {
 	returns  []int
 	blind    []bool
@@ -395,6 +395,7 @@ type declarations struct {
 	timeouts []int64
 	maxBytes []int64
 	sleeps   []int64
+	sudo     []bool
 }
 
 // commandSet is a run's commands: one list for every target, the commands
@@ -411,10 +412,12 @@ type commandSet struct {
 // commandPlan returns the device commands in the order the command line
 // gives their sources, a --cmd its command and a --cf its file's lines
 // (EXAMPLES chapter 79), and their declarations after declarationLists. A
-// --sleep, or a file line that is one (commandfile.SleepLine; sent as written under
-// --literal), is no command: it is waited before the next command, the
-// sleeps in a row adding up, and one with no command after it is refused
-// (sleep_without_command; EXAMPLES chapter 95).
+// --sleep, or a file line that is one (commandfile.SleepLine; sent as
+// written under --literal), is no command: it is waited before the next
+// command, the sleeps in a row adding up, and one with no command after it
+// is refused (sleep_without_command; EXAMPLES chapter 95). A --sudo, or a
+// file line that is one (commandfile.SudoLine; sent as written under
+// --literal), is a root command (EXAMPLES chapter 96).
 // The parser has already ensured at least one source and placed every
 // declaration on the --cmd before it (or the freeform command), so a file's
 // lines carry none; each declaration's source is turned into its command's
@@ -442,37 +445,24 @@ func commandPlan(inv *Invocation, streams app.IO) (commandSet, int, bool) {
 	// build is the list for one name in the folders: the sources in order,
 	// a folder's file for the name in its place.
 	build := func(name string) ([]string, declarations, error) {
-		var commands []string
-		var sleeps []int64 // the sleep before each command
-		var pending time.Duration
-		add := func(c string) {
-			commands, sleeps, pending = append(commands, c), append(sleeps, int64(pending)), 0
-		}
+		var list commandfile.List
 		addLines := func(path string, lines []string) error {
 			for n, line := range lines {
-				if !literal {
-					d, ok, err := commandfile.SleepLine(line)
-					if err != nil {
-						return errorcodes.Errorf("commands_file_sleep_invalid", "commands file %s line %d: %v", path, n+1, err)
-					}
-					if ok {
-						pending += d
-						continue
-					}
+				if err := list.Line(line, literal); err != nil {
+					return errorcodes.Errorf(errorcodes.Of(err), "commands file %s line %d: %s", path, n+1, errorcodes.Text(err))
 				}
-				add(line)
 			}
 			return nil
 		}
 		at := make([]int, len(inv.Sources)) // each source's first command, one-based
 		for i, s := range inv.Sources {
-			at[i] = len(commands) + 1
+			at[i] = len(list.Commands) + 1
 			switch {
 			case s.Sleep:
 				d, _ := commandfile.SleepDuration(s.Value) // the parser checked it
-				pending += d
+				list.Sleep(d)
 			case !s.File:
-				add(s.Value)
+				list.Add(s.Value, s.Sudo)
 			case folder[i]:
 				path := filepath.Join(s.Value, name)
 				lines, err := loadCommandsFile(path, nil)
@@ -491,8 +481,8 @@ func commandPlan(inv *Invocation, streams app.IO) (commandSet, int, bool) {
 				}
 			}
 		}
-		if pending > 0 {
-			return nil, declarations{}, errorcodes.Errorf("sleep_without_command", "a --sleep of %s comes after the last command; a sleep waits before the next command, so put one after it or remove the sleep", pending)
+		if d := list.Pending(); d > 0 {
+			return nil, declarations{}, errorcodes.Errorf("sleep_without_command", "a --sleep of %s comes after the last command; a sleep waits before the next command, so put one after it or remove the sleep", d)
 		}
 		decls := make([]Declaration, len(inv.Declarations))
 		for i, d := range inv.Declarations {
@@ -501,15 +491,9 @@ func commandPlan(inv *Invocation, streams app.IO) (commandSet, int, bool) {
 			}
 			decls[i] = d
 		}
-		decl, err := declarationLists(commands, decls, literal)
-		decl.sleeps = []int64{}
-		for _, ns := range sleeps {
-			if ns > 0 {
-				decl.sleeps = sleeps
-				break
-			}
-		}
-		return commands, decl, err
+		decl, err := declarationLists(list.Commands, decls, literal)
+		decl.sleeps, decl.sudo = list.SleepsNS(), list.Sudo()
+		return list.Commands, decl, err
 	}
 	if len(folders) == 0 {
 		commands, decl, err := build("")
@@ -523,7 +507,7 @@ func commandPlan(inv *Invocation, streams app.IO) (commandSet, int, bool) {
 		if err != nil {
 			return executionplan.CommandList{}, err
 		}
-		return executionplan.CommandList{Commands: commands, BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, TimeoutsNS: decl.timeouts, MaxBytes: decl.maxBytes, SleepsNS: decl.sleeps, Sudo: []bool{}}, nil
+		return executionplan.CommandList{Commands: commands, BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, TimeoutsNS: decl.timeouts, MaxBytes: decl.maxBytes, SleepsNS: decl.sleeps, Sudo: decl.sudo}, nil
 	}
 	return commandSet{perTarget: perTarget, folders: folders}, 0, true
 }
@@ -756,13 +740,16 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	}
 	follow := !inv.Set(optFollow) || inv.Flag(optFollow)
 	echo, dynamicBorder, noBorder := inv.Flag(optEcho), inv.Flag(optBorder), inv.Flag(optNoBorder)
-	opts := app.RunOptions{CommonOptions: common, Follow: follow, Exercise: inv.Flag(optExercise), Detach: inv.Flag(optDetach), Targets: inputs, Excludes: inv.Strings(optExclude), ManagementAddress: address, Platform: inv.String(optPlatform), AddressAuthorities: authorities, Commands: set.commands, CommandsFiles: commandsFileNames(inv), TargetCommands: set.perTarget, CommandFolders: set.folders, BlindReturns: set.decl.returns, Blind: set.decl.blind, Expectations: set.decl.expect, Timeouts: set.decl.timeouts, MaxBytes: set.decl.maxBytes, Sleeps: set.decl.sleeps, Transport: inv.String(optTransport), Format: format, Echo: echo, DynamicBorder: dynamicBorder, NoBorder: noBorder, Live: inv.Flag(optLive)}
+	opts := app.RunOptions{CommonOptions: common, Follow: follow, Exercise: inv.Flag(optExercise), Detach: inv.Flag(optDetach), Targets: inputs, Excludes: inv.Strings(optExclude), ManagementAddress: address, Platform: inv.String(optPlatform), AddressAuthorities: authorities, Commands: set.commands, CommandsFiles: commandsFileNames(inv), TargetCommands: set.perTarget, CommandFolders: set.folders, BlindReturns: set.decl.returns, Blind: set.decl.blind, Expectations: set.decl.expect, Timeouts: set.decl.timeouts, MaxBytes: set.decl.maxBytes, Sleeps: set.decl.sleeps, Sudo: set.decl.sudo, Transport: inv.String(optTransport), Format: format, Echo: echo, DynamicBorder: dynamicBorder, NoBorder: noBorder, Live: inv.Flag(optLive)}
 	opts.Collection, opts.Suffix = collection.word, collection.suffix
 	if crun {
 		// With no command on the line, each device runs its platform's
 		// list; the word runs the device's whole list past a rejected
 		// statement through its flag-origin key (continueOptions).
 		opts.PlatformCommands = len(set.commands) == 0 && set.perTarget == nil
+		// The platform's entries are read as a --cf file's lines are,
+		// --literal sending them as written (EXAMPLES chapter 96).
+		opts.Literal = inv.Flag(optLiteral)
 	}
 	if inv.Flag(optDryRun) {
 		result := app.InspectRun(ctx, opts, !inv.Flag(optNoDaemon), read, streams)

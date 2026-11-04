@@ -27,11 +27,12 @@ import (
 // all, \r read as --cmd reads it. The draft has two parts, each in the order
 // typed: the options (targets among them) and the commands, which a job sends
 // in that order (EXAMPLES chapter 79). An option line whose word is --cmd,
-// --command, or --cf belongs to the commands and stays from one job to the
-// next, as the options do; a bare line is its job's alone; a line of one of the
-// five declarations (--expect, --blind, --blind-return, --timeout, --maxbytes)
-// joins the command before it, and is dropped after a --cf line, as run refuses
-// it there. The directives are whole lines, one dash or two alike: --go or
+// --command, --sudo, --cf, or --sleep belongs to the commands and stays from
+// one job to the next, as the options do (a --sudo line's value, the rest of
+// the line, is one root command; EXAMPLES chapter 96); a bare line is its
+// job's alone; a line of one of the five declarations (--expect, --blind,
+// --blind-return, --timeout, --maxbytes) joins the command before it, and is
+// dropped after a --cf line, as run refuses it there. The directives are whole lines, one dash or two alike: --go or
 // --sendit executes the draft and clears the bare-line commands (with nothing
 // to send, a notice and no job); --clear empties the bare-line commands alone;
 // --purge-commands empties every command and --purge-targets every target
@@ -148,7 +149,7 @@ func (d *streamDraft) purgeTargets() {
 
 // streamCommandRole says an option belongs to the draft's commands.
 func streamCommandRole(r optRole) bool {
-	return r == roleCmd || r == roleCf || r == roleSleep || r == roleDeclaration
+	return r == roleCmd || r == roleSudo || r == roleCf || r == roleSleep || r == roleDeclaration
 }
 
 // commandStream is the stream word's handler. A terminal's lines come
@@ -420,8 +421,9 @@ func streamLoop(ctx context.Context, next func() (string, error), g globalOption
 // whole (streamUnquote). The word is
 // resolved through run's option table as Parse resolves it (a full name, an
 // alias, or a prefix naming one option): role is the option's, which says
-// whether it belongs to the draft's commands (--cmd and its aliases, --cf,
-// and the five declarations; streamCommandRole) or is a target input, and
+// whether it belongs to the draft's commands (--cmd and its aliases,
+// --sudo, --cf, --sleep, and the five declarations; streamCommandRole) or is
+// a target input, and
 // stdinOption names the option when a --cf, --tf, --tfr, or --target line
 // gives - as its value, or a --tl line names - among its names, which the
 // stream cannot serve;

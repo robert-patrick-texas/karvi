@@ -7,36 +7,26 @@ import (
 )
 
 // read is the reader's half of the grammar, as the command line's --cf
-// reads a file without --literal: each --sleep line added to the sleep
-// before the next command, a --sudo line a root command, each other line a
-// command, its trailing \r sequences counted off.
+// reads a file without --literal (List.Line): each --sleep line added to
+// the sleep before the next command, a --sudo line a root command, each
+// other line a command, and then each command's trailing \r sequences
+// counted off, as the command line's declarations do.
 func read(t *testing.T, text string) (commands []string, returns []int, sleeps []int64, sudo []bool) {
 	t.Helper()
-	var pending time.Duration
+	var l List
 	for _, line := range strings.Split(strings.TrimSuffix(text, "\n"), "\n") {
-		d, ok, err := SleepLine(line)
-		if err != nil {
+		if err := l.Line(line, false); err != nil {
 			t.Fatalf("line %q: %v", line, err)
 		}
-		if ok {
-			pending += d
-			continue
-		}
-		root, isRoot, err := SudoLine(line)
-		if err != nil {
-			t.Fatalf("line %q: %v", line, err)
-		}
-		if isRoot {
-			line = root
-		}
-		n := 0
-		for strings.HasSuffix(line, `\r`) {
-			line, n = strings.TrimSuffix(line, `\r`), n+1
-		}
-		commands, returns, sleeps, sudo = append(commands, line), append(returns, n), append(sleeps, int64(pending)), append(sudo, isRoot)
-		pending = 0
 	}
-	return commands, returns, sleeps, sudo
+	for _, c := range l.Commands {
+		n := 0
+		for strings.HasSuffix(c, `\r`) {
+			c, n = strings.TrimSuffix(c, `\r`), n+1
+		}
+		commands, returns = append(commands, c), append(returns, n)
+	}
+	return commands, returns, l.sleeps, l.sudo
 }
 
 // TestTextReadsBackToTheList: a list written as a file reads back to the
@@ -132,6 +122,52 @@ func TestSudoLine(t *testing.T) {
 		text, ok, err := SudoLine(tc.line)
 		if text != tc.want || ok != tc.ok || (err != nil) != tc.err {
 			t.Errorf("%q: %q %t %v", tc.line, text, ok, err)
+		}
+	}
+}
+
+// TestListReadsTheGrammar: a List built line by line takes a --sleep line
+// as the wait before the next command, the sleeps in a row adding up, a
+// --sudo line as a root command, any other line as text; literal adds every
+// line as text; a refused line carries its code and the line's fault alone;
+// the lists are empty when no command has a sleep or is root.
+func TestListReadsTheGrammar(t *testing.T) {
+	var l List
+	for _, line := range []string{"uptime", "--sleep 5s", "--sleep=1s", "--sudo systemctl restart nginx", "--sudoers"} {
+		if err := l.Line(line, false); err != nil {
+			t.Fatalf("%q: %v", line, err)
+		}
+	}
+	l.Sleep(2 * time.Second)
+	l.Add("show clock", true)
+	if want := []string{"uptime", "systemctl restart nginx", "--sudoers", "show clock"}; strings.Join(l.Commands, "|") != strings.Join(want, "|") {
+		t.Fatalf("commands %q, want %q", l.Commands, want)
+	}
+	if got := l.SleepsNS(); len(got) != 4 || got[1] != int64(6*time.Second) || got[3] != int64(2*time.Second) || got[0] != 0 || got[2] != 0 {
+		t.Fatalf("sleeps %v", got)
+	}
+	if got := l.Sudo(); len(got) != 4 || got[0] || !got[1] || got[2] || !got[3] {
+		t.Fatalf("sudo %v", got)
+	}
+	if err := l.Line("--sleep 3s", false); err != nil || l.Pending() != 3*time.Second {
+		t.Fatalf("pending %s %v", l.Pending(), err)
+	}
+	var plain List
+	for _, line := range []string{"--sleep 5s", "--sudo id -u", "uptime"} {
+		if err := plain.Line(line, true); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(plain.Commands) != 3 || plain.Commands[1] != "--sudo id -u" || plain.Pending() != 0 || len(plain.SleepsNS()) != 0 || plain.SleepsNS() == nil || len(plain.Sudo()) != 0 || plain.Sudo() == nil {
+		t.Fatalf("literal: %q %v %v", plain.Commands, plain.SleepsNS(), plain.Sudo())
+	}
+	for line, want := range map[string]string{
+		"--sleep 3": `commands_file_sleep_invalid: --sleep takes a duration of 1s..12h (30s, 5m, 1h30m), not "3"; the line is --sleep DURATION alone`,
+		"--sudo":    "commands_file_sudo_invalid: --sudo has no command; the line is --sudo TEXT",
+	} {
+		var r List
+		if err := r.Line(line, false); err == nil || err.Error() != want || len(r.Commands) != 0 {
+			t.Errorf("%q: %v, want %q", line, err, want)
 		}
 	}
 }

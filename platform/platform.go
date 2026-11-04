@@ -57,7 +57,8 @@ type Definition struct {
 	PagingCommands []string `json:"paging_commands"`
 	// CrunCommands is the platform's collection list: what a crun that
 	// names no command on its command line sends to a device of this
-	// platform. The configuration first, then the
+	// platform, each entry read as a --cf file's line is (a --sleep or
+	// --sudo entry the statement). The configuration first, then the
 	// version; a site's [platform.NAME] crun-commands replaces the list
 	// whole. A platform without one (generic, linux) is refused at
 	// planning by a crun that relies on it.

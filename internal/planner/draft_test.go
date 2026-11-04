@@ -14,6 +14,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/executionplan/plantest"
+	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/internal/output"
@@ -402,6 +403,63 @@ func TestDraftRefusesSudoOnAShellChannel(t *testing.T) {
 	draft, err := Draft(context.Background(), testConfig(t), operator, k03Set(t), draftOptions(plantest.Commands), plantest.DraftedAt)
 	if err != nil || draft.Sudo == nil || len(draft.Sudo) != 0 {
 		t.Fatalf("no --sudo: %v %#v", err, draft.Sudo)
+	}
+}
+
+// TestDraftReadsCrunCommandsAsFileLines: a crun with no command reads each
+// crun-commands entry as a --cf file's line is (EXAMPLES chapter 96): a
+// --sleep entry waits before the next, a --sudo entry is a root command, a
+// trailing \r is the entry's text; --literal sends every entry as written;
+// an entry refused as a file line is, a sleep with no entry after it, and a
+// sleep total above a set execution.device-timeout are refused naming the
+// platform; a --sudo entry on a shell channel is the plan's refusal.
+func TestDraftReadsCrunCommandsAsFileLines(t *testing.T) {
+	set := func() TargetSet {
+		s := k03Set(t)
+		for i := range s.Devices {
+			s.Devices[i].Platform = "srv"
+		}
+		return s
+	}
+	cfg := func(entries string, more ...string) configload.Snapshot {
+		return testConfig(t, append([]string{`platform.srv.driver="linux"`, `platform.srv.channel="exec"`, `platform.srv.crun-commands=` + entries}, more...)...)
+	}
+	opts := draftOptions(nil)
+	opts.PlatformCommands, opts.Collection, opts.Transport = true, "crun", "native"
+	entries := `["uptime", "--sleep 5s", "--sudo iptables-save", "--sudo=id -u", "--sudoers", "show\\r"]`
+	draft, err := Draft(context.Background(), cfg(entries), operator, set(), opts, plantest.DraftedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	list := draft.PlatformCommands["srv"]
+	if want := []string{"uptime", "iptables-save", "id -u", "--sudoers", `show\r`}; !reflect.DeepEqual(list.Commands, want) {
+		t.Fatalf("commands %q, want %q", list.Commands, want)
+	}
+	if !reflect.DeepEqual(list.SleepsNS, []int64{0, int64(5 * time.Second), 0, 0, 0}) || !reflect.DeepEqual(list.Sudo, []bool{false, true, true, false, false}) || len(list.BlindReturns) != 0 {
+		t.Fatalf("sleeps %v sudo %v returns %v", list.SleepsNS, list.Sudo, list.BlindReturns)
+	}
+	literal := opts
+	literal.Literal = true
+	draft, err = Draft(context.Background(), cfg(entries), operator, set(), literal, plantest.DraftedAt)
+	if list := draft.PlatformCommands["srv"]; err != nil || len(list.Commands) != 6 || list.Commands[2] != "--sudo iptables-save" || len(list.SleepsNS) != 0 || len(list.Sudo) != 0 {
+		t.Fatalf("literal: %v %+v", err, list)
+	}
+	for _, tc := range []struct {
+		entries string
+		more    []string
+		code    string
+		text    string
+	}{
+		{`["uptime", "--sudo"]`, nil, "commands_file_sudo_invalid", "platform srv crun-commands entry 2: --sudo has no command; the line is --sudo TEXT"},
+		{`["--sleep 3", "uptime"]`, nil, "commands_file_sleep_invalid", `platform srv crun-commands entry 1: --sleep takes a duration of 1s..12h (30s, 5m, 1h30m), not "3"`},
+		{`["uptime", "--sleep 5s"]`, nil, "sleep_without_command", "platform srv crun-commands: a --sleep of 5s comes after the last entry"},
+		{`["--sleep 5s", "uptime"]`, []string{`execution.device-timeout="3s"`}, "sleep_over_device_timeout", "platform srv crun-commands: the --sleep total 5s is above execution.device-timeout 3s"},
+		{`["--sudo iptables-save"]`, []string{`platform.srv.channel="shell"`}, "channel_shell_sudo_refused", ": command 1 is a --sudo command"},
+	} {
+		_, err := Draft(context.Background(), cfg(tc.entries, tc.more...), operator, set(), opts, plantest.DraftedAt)
+		if errorcodes.Of(err) != tc.code || !strings.Contains(err.Error(), tc.text) {
+			t.Errorf("%s: %v, want %s containing %q", tc.entries, err, tc.code, tc.text)
+		}
 	}
 }
 
