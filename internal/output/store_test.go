@@ -379,7 +379,8 @@ func TestNoticesLeaveInSequence(t *testing.T) {
 
 // TestWriteCommands: the job folder's copies of what each device is sent
 // (EXAMPLES chapter 79), each a --cf file, one statement per line with its
-// blind returns written back as trailing \r: commands.txt for one list,
+// blind returns written back as trailing \r and the sleep before it as a
+// --sleep line (chapter 96): commands.txt for one list,
 // commands.PLATFORM.txt per platform, commands/NAME per target (NAME as a
 // --cf folder's, cropped); Paths names commands.txt only when it is
 // written, and nothing is written when commands.txt is switched off.
@@ -403,10 +404,10 @@ func TestWriteCommands(t *testing.T) {
 		return s
 	}
 	one := create("one", FileSet{})
-	if err := one.WriteCommands(&executionplan.ExecutionPlan{Commands: []string{"copy running-config startup-config", "show clock", "reload"}, BlindReturns: []int{1, 0, 2}}); err != nil {
+	if err := one.WriteCommands(&executionplan.ExecutionPlan{Commands: []string{"copy running-config startup-config", "show clock", "reload"}, BlindReturns: []int{1, 0, 2}, SleepsNS: []int64{0, int64(2 * time.Second), 0}}); err != nil {
 		t.Fatal(err)
 	}
-	if got := read(one.Paths().CommandsText); got != "copy running-config startup-config\\r\nshow clock\nreload\\r\\r\n" {
+	if got := read(one.Paths().CommandsText); got != "copy running-config startup-config\\r\n--sleep 2s\nshow clock\nreload\\r\\r\n" {
 		t.Fatalf("one list: %q", got)
 	}
 	platforms := create("platforms", FileSet{})
@@ -429,14 +430,14 @@ func TestWriteCommands(t *testing.T) {
 	plan := &executionplan.ExecutionPlan{
 		Targets: []executionplan.ExecutionTarget{target("a", "core-nyc-01.example.net"), target("b", "10.1.2.3")},
 		TargetCommands: map[string]executionplan.CommandList{
-			"a": {Commands: []string{"show clock", "copy running-config startup-config"}, BlindReturns: []int{0, 1}},
+			"a": {Commands: []string{"show clock", "copy running-config startup-config"}, BlindReturns: []int{0, 1}, SleepsNS: []int64{0, int64(90 * time.Second)}},
 			"b": {Commands: []string{"show version"}},
 		},
 	}
 	if err := targets.WriteCommands(plan); err != nil {
 		t.Fatal(err)
 	}
-	if got := read(filepath.Join(dir, "targets", "commands", "core-nyc-01")); got != "show clock\ncopy running-config startup-config\\r\n" {
+	if got := read(filepath.Join(dir, "targets", "commands", "core-nyc-01")); got != "show clock\n--sleep 1m30s\ncopy running-config startup-config\\r\n" {
 		t.Fatalf("core-nyc-01: %q", got)
 	}
 	if got := read(filepath.Join(dir, "targets", "commands", "10-1-2-3")); got != "show version\n" {

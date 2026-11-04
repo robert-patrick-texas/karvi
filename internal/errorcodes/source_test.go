@@ -229,8 +229,8 @@ func emittedCodes(t *testing.T) []emission {
 var detailFuncs = map[string]string{
 	"internal/buildinfo/build.go:readBuild":                               "the build ID's reading, reported under build_unreadable",
 	"internal/icmpgate/system.go:Probe":                                   "a pinger that cannot run, reported under icmp_capability_unavailable",
-	"internal/cli/parse.go:sleepDuration":                                 "a --sleep value outside 1s..12h, reported under cli_option_value_invalid or, from a commands-file line, commands_file_sleep_invalid",
-	"internal/cli/work_commands.go:sleepLine":                             "a commands-file --sleep line that is not one, reported under commands_file_sleep_invalid",
+	"internal/commandfile/commandfile.go:SleepDuration":                   "a --sleep value outside 1s..12h, reported under cli_option_value_invalid or, from a commands-file line, commands_file_sleep_invalid",
+	"internal/commandfile/commandfile.go:SleepLine":                       "a commands-file --sleep line that is not one, reported under commands_file_sleep_invalid",
 	"internal/osutil/shared.go:ReadRegularFile":                           "why a file in a shared tree is not read, shown in a scoreboard entry's ? row or under the caller's code (run_output_records_unreadable, capacity_admission_failed, capacity_root_unusable)",
 	"internal/osutil/shared.go:":                                          "ErrNotRegular, OpenRegularFile's refusal of an entry that is not a regular file, shown as ReadRegularFile's are or under run_output_records_unreadable",
 	"internal/output/store.go:readerOf":                                   "another entry at commands.jsonl's name when the store opens its reader, reported under output_store_create_failed",

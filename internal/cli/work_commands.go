@@ -17,6 +17,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/app"
+	"github.com/robert-patrick-texas/karvi/internal/commandfile"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/jobexec"
@@ -410,7 +411,7 @@ type commandSet struct {
 // commandPlan returns the device commands in the order the command line
 // gives their sources, a --cmd its command and a --cf its file's lines
 // (EXAMPLES chapter 79), and their declarations after declarationLists. A
-// --sleep, or a file line that is one (sleepLine; sent as written under
+// --sleep, or a file line that is one (commandfile.SleepLine; sent as written under
 // --literal), is no command: it is waited before the next command, the
 // sleeps in a row adding up, and one with no command after it is refused
 // (sleep_without_command; EXAMPLES chapter 95).
@@ -450,7 +451,7 @@ func commandPlan(inv *Invocation, streams app.IO) (commandSet, int, bool) {
 		addLines := func(path string, lines []string) error {
 			for n, line := range lines {
 				if !literal {
-					d, ok, err := sleepLine(line)
+					d, ok, err := commandfile.SleepLine(line)
 					if err != nil {
 						return errorcodes.Errorf("commands_file_sleep_invalid", "commands file %s line %d: %v", path, n+1, err)
 					}
@@ -468,7 +469,7 @@ func commandPlan(inv *Invocation, streams app.IO) (commandSet, int, bool) {
 			at[i] = len(commands) + 1
 			switch {
 			case s.Sleep:
-				d, _ := sleepDuration(s.Value) // the parser checked it
+				d, _ := commandfile.SleepDuration(s.Value) // the parser checked it
 				pending += d
 			case !s.File:
 				add(s.Value)
@@ -537,28 +538,6 @@ func commandsFileNames(inv *Invocation) []string {
 		}
 	}
 	return names
-}
-
-// sleepLine reports whether a commands-file line is a --sleep statement,
-// and its duration: the line, spaces around it trimmed, is --sleep DURATION
-// or --sleep=DURATION alone. Any other line is device text, but a line whose
-// first word is --sleep and is not a statement is refused rather than sent,
-// so a mistyped sleep never reaches the device as text (EXAMPLES chapter
-// 95).
-func sleepLine(line string) (time.Duration, bool, error) {
-	rest, ok := strings.CutPrefix(strings.TrimSpace(line), "--sleep")
-	if !ok || (rest != "" && rest[0] != ' ' && rest[0] != '\t' && rest[0] != '=') {
-		return 0, false, nil
-	}
-	value := strings.TrimSpace(rest)
-	if strings.HasPrefix(rest, "=") {
-		value = rest[1:]
-	}
-	d, err := sleepDuration(value)
-	if err != nil {
-		return 0, false, fmt.Errorf("--sleep %w; the line is --sleep DURATION alone", err)
-	}
-	return d, true, nil
 }
 
 // blindEscape is the only escape karvi interprets in device text.

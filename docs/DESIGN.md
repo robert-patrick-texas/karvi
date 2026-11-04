@@ -1661,13 +1661,15 @@ in the plan, bounded as any plan by `daemon.max-ipc-frame-bytes`, whose refusal
 gives the request's size over the bound: the plan is about 900 bytes a target
 before its list, so 2,500 targets of 40-line lists come to about 9 MB.
 `--dry-run` shows each target's list. The job folder keeps what each device was
-sent as `--cf` lines, each command's `\r` returns written back: `commands.txt`
+sent as `--cf` lines, each command's `\r` returns written back and the sleep
+before it as `--sleep` lines: `commands.txt`
 for one list, `commands.PLATFORM.txt` per platform, and `commands/NAME` per
 target, so `--tf failed-devices.txt --cf commands` from the job folder reruns
 the failures with their own lists; an `--expect`, a `--blind` without returns, a
 `--timeout`, or a `--maxbytes` has no form in a file and is the plan's alone. A
 copy is read without `--literal`, so a command whose own text ends in `\r`,
-which only `--literal` sends, reads back as returns. The summary names
+or is a `--sleep` line's, which only `--literal` sends, reads back as returns
+or a sleep. The summary names
 `commands.txt` only when it is written; the job's audit `start` lists the
 statements only when every device is sent one list, its count the longest
 list's, and each device's command events name what it was sent. In a stream, a

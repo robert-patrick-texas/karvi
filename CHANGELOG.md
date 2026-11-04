@@ -14,8 +14,10 @@
   (`commands_file_sleep_invalid`), and a device's sleeps above a set
   `execution.device-timeout` (`sleep_over_device_timeout`). The plan carries
   `sleeps_ns`; `--dry-run` names each sleep, and `--debug` writes `device
-  sleep` as each begins. [`docs/COMMAND-SESSION.md`](docs/COMMAND-SESSION.md)
-  has the rules.
+  sleep` as each begins. A job's `commands.txt`, `commands.PLATFORM.txt`, and
+  `commands/NAME` write each sleep back as `--sleep` lines before its
+  command, so a rerun from them waits as the job did.
+  [`docs/COMMAND-SESSION.md`](docs/COMMAND-SESSION.md) has the rules.
 - **The device-qualification script's parity rows pass on a device, and the
   runbook gives the run on the production network.** D1, D2, and D4 compared
   four streams of which the first was the device's first contact, whose first

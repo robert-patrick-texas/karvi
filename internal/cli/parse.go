@@ -2,7 +2,6 @@ package cli
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 	"sort"
 	"strconv"
@@ -11,6 +10,7 @@ import (
 	"unicode"
 
 	"github.com/robert-patrick-texas/karvi/configschema"
+	"github.com/robert-patrick-texas/karvi/internal/commandfile"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/matching"
 )
@@ -378,7 +378,7 @@ func (p *parser) apply(o *option, value string) (bool, error) {
 	case roleCf:
 		inv.Sources = append(inv.Sources, CommandSource{File: true, Value: value})
 	case roleSleep:
-		if _, err := sleepDuration(value); err != nil {
+		if _, err := commandfile.SleepDuration(value); err != nil {
 			return false, errorcodes.Errorf("cli_option_value_invalid", "--sleep %s", err)
 		}
 		inv.Sources = append(inv.Sources, CommandSource{Sleep: true, Value: value})
@@ -457,22 +457,6 @@ func checkDeclaredBound(o *option, value string) error {
 		return errorcodes.Errorf("cli_option_value_invalid", "--%s takes %s..%s, the range of %s, not %s", o.name, e.Min, e.Max, key, value)
 	}
 	return nil
-}
-
-// sleepMin and sleepMax bound one --sleep, --timeout's range (EXAMPLES
-// chapter 95).
-const (
-	sleepMin = time.Second
-	sleepMax = 12 * time.Hour
-)
-
-// sleepDuration is a --sleep value's duration: Go's form, 1s..12h.
-func sleepDuration(value string) (time.Duration, error) {
-	d, err := time.ParseDuration(strings.TrimSpace(value))
-	if err != nil || d < sleepMin || d > sleepMax {
-		return 0, fmt.Errorf("takes a duration of 1s..12h (30s, 5m, 1h30m), not %q", value)
-	}
-	return d, nil
 }
 
 // splitExpect divides an --expect value into PATTERN and RESPONSE at its

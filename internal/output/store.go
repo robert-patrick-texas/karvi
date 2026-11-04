@@ -19,6 +19,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/robert-patrick-texas/karvi/executionplan"
+	"github.com/robert-patrick-texas/karvi/internal/commandfile"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/platform"
@@ -323,7 +324,9 @@ func (s *Store) CommandsReader() *os.File {
 func (s *Store) Paths() Paths { return s.paths }
 
 // WriteCommands writes the job folder's copies of what each device is
-// sent, each a --cf file for a rerun (EXAMPLES chapter 79): commands.txt
+// sent, each a --cf file for a rerun (EXAMPLES chapter 79) in the commands
+// file's grammar (commandfile.Text: the \r endings and the sleeps written
+// back, chapter 96): commands.txt
 // for the plan's one list, commands.PLATFORM.txt for each platform's, and
 // commands/NAME for each target's, NAME as a --cf folder's files are named
 // (FileName). Nothing is written when commands.txt is switched off, and
@@ -335,11 +338,11 @@ func (s *Store) WriteCommands(plan *executionplan.ExecutionPlan) error {
 	}
 	if len(plan.Commands) == 0 {
 		s.paths.CommandsText = ""
-	} else if err := atomicBytes(s.paths.CommandsText, commandsText(plan.Commands, plan.BlindReturns), osutil.OutputFileMode); err != nil {
+	} else if err := atomicBytes(s.paths.CommandsText, commandfile.Text(plan.Commands, plan.BlindReturns, plan.SleepsNS), osutil.OutputFileMode); err != nil {
 		return err
 	}
 	for name, commands := range plan.PlatformCommands {
-		if err := atomicBytes(filepath.Join(s.paths.Root, "commands."+name+".txt"), commandsText(commands, nil), osutil.OutputFileMode); err != nil {
+		if err := atomicBytes(filepath.Join(s.paths.Root, "commands."+name+".txt"), commandfile.Text(commands, nil, nil), osutil.OutputFileMode); err != nil {
 			return err
 		}
 	}
@@ -353,30 +356,13 @@ func (s *Store) WriteCommands(plan *executionplan.ExecutionPlan) error {
 	for i := range plan.Targets {
 		t := &plan.Targets[i]
 		list := plan.TargetCommands[t.TargetID]
-		if err := atomicBytes(filepath.Join(dir, FileName(t.Device.CanonicalName, s.crop)), commandsText(list.Commands, list.BlindReturns), osutil.OutputFileMode); err != nil {
+		if err := atomicBytes(filepath.Join(dir, FileName(t.Device.CanonicalName, s.crop)), commandfile.Text(list.Commands, list.BlindReturns, list.SleepsNS), osutil.OutputFileMode); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// commandsText is a command file's content: one statement per line, each
-// command's blind returns written back as its trailing \r sequences, so
-// that the file read without --literal sends what was sent. A command
-// whose own text ends in \r, which only --literal sends, reads back as
-// returns; its other declarations have no form in a file and stay in the
-// plan.
-func commandsText(commands []string, returns []int) []byte {
-	var b strings.Builder
-	for i, c := range commands {
-		b.WriteString(c)
-		if i < len(returns) {
-			b.WriteString(strings.Repeat(`\r`, returns[i]))
-		}
-		b.WriteByte('\n')
-	}
-	return []byte(b.String())
-}
 func (s *Store) WriteManifest(v any) error {
 	if s.skip.ManifestJSON {
 		return nil

@@ -1544,7 +1544,7 @@ folder.
   `commands_file_in_collection` (exit 4).
 - **`--dry-run`** shows each device's list on its `commands:` line.
 - **The job folder** keeps each device's list as `commands/NAME`, its `\r`
-  returns written back, so `karvi run --tf J/failed-devices.txt --cf
+  returns and its sleeps written back, so `karvi run --tf J/failed-devices.txt --cf
   J/commands` reruns the failures, each with its own list.
 - **The plan's size.** Each device's list travels to the daemon in the plan,
   bounded by `daemon.max-ipc-frame-bytes` (8 MiB by default, at most 64 MiB).
@@ -1584,10 +1584,12 @@ Relationships worth knowing:
 - **A rerun needs `failed-devices.txt` and the commands together**
   (`karvi run --tf …/failed-devices.txt --cf …/commands.txt`, or `--cf
   …/commands` beside a `--cf` folder). Each command's `\r` returns are
-  written back, so the copy is read without `--literal`; an `--expect`, a
+  written back, and the sleep before it as `--sleep` lines, so the copy is
+  read without `--literal`; an `--expect`, a
   `--blind` without returns, a `--timeout`, or a `--maxbytes` has no form in
   a file and stays in `manifest.json`'s plan, and a command whose own text
-  ends in `\r`, which only `--literal` sends, reads back as returns.
+  ends in `\r`, or is a `--sleep` line's, which only `--literal` sends, reads
+  back as returns or a sleep.
 - **`summary.json` has no key: every folder holds it.** It is written
   when the job is accepted, naming the job's devices, and again whole at
   the job's end with the result, the counts, the causes, and each
