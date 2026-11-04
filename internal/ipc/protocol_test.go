@@ -13,16 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/ipc"
 	"github.com/robert-patrick-texas/karvi/internal/testsocket"
 )
-
-func TestSchemaVersionMatchesBuildInformation(t *testing.T) {
-	if ipc.SchemaVersion != buildinfo.DaemonIPCSchema {
-		t.Fatalf("ipc schema=%d buildinfo schema=%d", ipc.SchemaVersion, buildinfo.DaemonIPCSchema)
-	}
-}
 
 func TestCallReturnsStructuredSchemaMismatch(t *testing.T) {
 	t.Helper()

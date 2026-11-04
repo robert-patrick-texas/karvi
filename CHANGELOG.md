@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- **Breaking: a schema file's title and `$id` name no counter; each counter
+  is written once.** The audit's, the command record's, the job manifest's and
+  summary's, the plan report's, and the scoreboard's files in `schema/` were
+  `NAME-vN.json` and "schema N", and four named a counter their own
+  `schema_version` had left (audit 2, command record 4, scoreboard 4, plan
+  report 3); each `$id` is now
+  `https://robert-patrick-texas.github.io/karvi/schema/NAME.json`, as the
+  execution plan's and the daemon IPC's were, so a tool that finds a schema by
+  its `$id` takes the new one. `karvi version` reads each counter from the
+  package that owns its schema. `man karvi-audit` and OPERATIONS no longer say
+  audit schema 2: an event of another schema than `karvi-audit`'s own, the one
+  `karvi version` names, has no row. README and BUILD-HOWTO point at `karvi
+  version` for the counters, `scripts/verify-shipped.sh` compares the shipped
+  executable's counters with `release/release-manifest.json` where it pinned
+  five numbers, and `scripts/verify-release.sh` pins none.
+  [`docs/DESIGN.md`, section
+  15](docs/DESIGN.md#15-configuration-and-errors), "A counter is written once",
+  has the rule.
 - **Breaking: `--sudo TEXT` runs a command as root on the exec channel;
   execution plan 17, audit schema 3.** `command`, `run`, and `crun` take
   `--sudo TEXT` (`--sudo=TEXT`), a command source in the order written beside

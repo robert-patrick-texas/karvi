@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://robert-patrick-texas.github.io/karvi/schema/command-record-v4.json",
-  "title": "karvi per-command record schema 4",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/command-record.json",
+  "title": "karvi per-command record schema",
   "type": "object",
   "additionalProperties": true,
   "required": [

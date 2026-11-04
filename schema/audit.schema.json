@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://robert-patrick-texas.github.io/karvi/schema/audit-v2.json",
-  "title": "karvi audit record schema 2",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/audit.json",
+  "title": "karvi audit record schema",
   "description": "One audit event, as journald's KARVI_AUDIT_JSON and a line of audit.file hold it. event_name is <kind>.<event>; a job's events carry job_id, a login's login_id; a start and a cancel carry no outcome.",
   "type": "object",
   "additionalProperties": false,

@@ -2,18 +2,20 @@
 // executables. Release automation sets the variables with -ldflags.
 package buildinfo
 
-import "runtime"
+import (
+	"runtime"
 
+	"github.com/robert-patrick-texas/karvi/configschema"
+	"github.com/robert-patrick-texas/karvi/internal/ipc"
+	"github.com/robert-patrick-texas/karvi/records"
+)
+
+// The schema counters `karvi version` reports are their owners' constants,
+// read in Current: a counter is written once, in the package that owns its
+// schema.
 const (
-	AppName              = "karvi"
-	Version              = "0.39.0"
-	ConfigSchemaVersion  = 6
-	CommandRecordSchema  = 5
-	ScoreboardSchema     = 5
-	AuditSchema          = 3
-	JobSchema            = 5
-	DaemonIPCSchema      = 12
-	ConfigRegistrySchema = 33
+	AppName = "karvi"
+	Version = "0.39.0"
 )
 
 var (
@@ -60,11 +62,19 @@ type Info struct {
 
 func Current() Info {
 	return Info{
-		Application: AppName, Version: Version, Commit: Commit, Build: BuildOrNone(),
-		GoVersion: runtime.Version(), ConfigSchemaVersion: ConfigSchemaVersion,
-		CommandRecordSchemaVersion: CommandRecordSchema, ScoreboardSchemaVersion: ScoreboardSchema,
-		AuditSchemaVersion: AuditSchema, JobSchemaVersion: JobSchema,
-		DaemonIPCSchemaVersion: DaemonIPCSchema, ConfigRegistrySchemaVersion: ConfigRegistrySchema,
-		FIPSMode: FIPSMode, SSHTransports: sshTransports(),
+		Application:                 AppName,
+		Version:                     Version,
+		Commit:                      Commit,
+		Build:                       BuildOrNone(),
+		GoVersion:                   runtime.Version(),
+		ConfigSchemaVersion:         configschema.ConfigSchemaVersion,
+		CommandRecordSchemaVersion:  records.CommandSchemaVersion,
+		ScoreboardSchemaVersion:     records.ScoreboardSchemaVersion,
+		AuditSchemaVersion:          records.AuditSchemaVersion,
+		JobSchemaVersion:            records.JobSchemaVersion,
+		DaemonIPCSchemaVersion:      ipc.SchemaVersion,
+		ConfigRegistrySchemaVersion: configschema.RegistrySchemaVersion,
+		FIPSMode:                    FIPSMode,
+		SSHTransports:               sshTransports(),
 	}
 }

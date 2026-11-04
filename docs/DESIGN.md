@@ -3549,8 +3549,22 @@ beside the description; a remedy written as prose.
 contract (configuration, command record, scoreboard, audit, job, daemon IPC,
 registry, execution plan, credential package, plan report) keeps its own
 counter below 100 until 1.0, when every counter resets to 100; `karvi version`
-reports them all. *Why:* released daemons are identified by IPC schema, so
-reusing a low number would collide with a released protocol.
+reports the configuration's, the registry's, the command record's, the
+scoreboard's, the audit's, the job's, and the daemon IPC's. *Why:* released
+daemons are identified by IPC schema, so reusing a low number would collide
+with a released protocol.
+
+**A counter is written once.** Each schema's counter is a constant of the
+package that owns the schema, and `karvi version` reads it there. A schema
+file's `schema_version` holds it too, since JSON cannot read Go, and the tests
+that check karvi's records against the file fail where the two differ. Nothing
+else names it: a schema file's title and `$id` carry no number, the living
+documents point at `karvi version`, and the verifiers pin none,
+`verify-shipped.sh` comparing the shipped executable's counters with
+`release/release-manifest.json`, the release's one record of them. History,
+the CHANGELOG, EXAMPLES, and a release's evidence, keeps the numbers it
+recorded. *Why:* every copy that nothing checked drifted: four schema files'
+titles, the audit's man page, and README's and BUILD-HOWTO's lists.
 
 ## 16. Build, verification, and release
 

@@ -41,9 +41,8 @@ breaking changes of v0.10.0 from v0.9.2 remain in force:
    unless `--grace`, `--after=DURATION`, or `--force` is given.
 4. Every error carries one registered code, listed in
    [`docs/ERROR-CODES.md`](docs/ERROR-CODES.md).
-5. Configuration schema 6; this tree's other counters: registry schema 33,
-   daemon IPC schema 12, execution plan 15, job manifest and summary 5, plan
-   report 4, scoreboard 5.
+5. Configuration schema 6; `karvi version` reports this tree's other schema
+   counters.
 
 A client drains a daemon of another build at that daemon's own IPC schema and
 kills nothing; job submission stays exact-schema, and a daemon of a newer

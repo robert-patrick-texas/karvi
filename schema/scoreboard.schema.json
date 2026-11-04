@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://robert-patrick-texas.github.io/karvi/schema/scoreboard-v4.json",
-  "title": "karvi scoreboard snapshot schema 4",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/scoreboard.json",
+  "title": "karvi scoreboard snapshot schema",
   "type": "object",
   "additionalProperties": true,
   "required": ["schema_version", "activity_id", "operator", "activity_type", "mode",

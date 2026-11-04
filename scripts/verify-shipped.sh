@@ -1,7 +1,8 @@
 #!/bin/sh
 # Verify the shipped executables as bytes, in seconds and without a build:
-# the version, the checksums, the file format, the links, every counter the
-# executable reports, its build, both transports, a stateless --help and
+# the version, the checksums, the file format, the links, every schema counter
+# the executable reports against the release's manifest, its build, both
+# transports, a stateless --help and
 # version, every command's help, the configuration examples, and the removed
 # keys refused. scripts/verify-bundle.sh runs this first and then the tests
 # and the suites; the release evidence runs this on the shipped bytes and lets
@@ -23,19 +24,29 @@ file bin/karvi-audit-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
 [ "$(readlink bin/karvi-prune)" = karvi-prune-linux-amd64 ]
 [ "$(readlink bin/karvi-audit)" = karvi-audit-linux-amd64 ]
 ./bin/karvi-linux-amd64 version --format json | grep -q '"version": "0.39.0"'
-./bin/karvi-linux-amd64 version --format json | grep -q '"config_schema_version": 6'
-./bin/karvi-linux-amd64 version --format json | grep -q '"command_record_schema_version": 5'
-./bin/karvi-linux-amd64 version --format json | grep -q '"daemon_ipc_schema_version": 12'
-./bin/karvi-linux-amd64 version --format json | grep -q '"job_schema_version": 5'
-./bin/karvi-linux-amd64 version --format json | grep -q '"config_registry_schema_version": 33'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"id": "system"'
 ./bin/karvi-linux-amd64 --version | grep -q '^  system: external-executable$'
 ./bin/karvi-linux-amd64 --version | grep -q '^  native: compiled-in$'
 # The executable names its build, the Go build ID's last part: without it
 # its daemon would refuse to start (docs/EXAMPLES.md chapter 57, issue 8).
 . "$ROOT/scripts/lib/json.sh"
-build=$(./bin/karvi-linux-amd64 version --format json | json_get - build)
+version=$(./bin/karvi-linux-amd64 version --format json)
+build=$(printf '%s\n' "$version" | json_get - build)
 [ ${#build} -eq 20 ] || { echo "bin/karvi-linux-amd64 names no build (build: $build)" >&2; exit 1; }
+# Each schema counter is written once, in the package that owns its schema,
+# and the executable reports it; release/release-manifest.json is the
+# release's record of them (configuration_ where the executable writes
+# config_), so a manifest that names another value fails here.
+for key in config_schema_version config_registry_schema_version \
+    command_record_schema_version daemon_ipc_schema_version \
+    scoreboard_schema_version audit_schema_version job_schema_version; do
+  got=$(printf '%s\n' "$version" | json_get - "$key")
+  want=$(json_get release/release-manifest.json "$(echo "$key" | sed 's/^config_/configuration_/')")
+  [ "$got" = "$want" ] || {
+    printf 'schema counter %s differs\n  bin/karvi-linux-amd64          %s\n  release/release-manifest.json  %s\n' "$key" "$got" "$want" >&2
+    exit 1
+  }
+done
 
 STATELESS=$(mktemp -d)
 rm -rf "$STATELESS/home"

@@ -2247,7 +2247,7 @@ Every job and every login writes its audit events to journald, always, and to
 `audit.file`, one JSON line each, when the key names a file. An event is one
 journald entry: its message, one line of `key=value` pairs; the fields that
 match it; and the whole event as JSON in `KARVI_AUDIT_JSON`, the line
-`audit.file` holds (`schema/audit.schema.json`, audit schema 2). A job's events
+`audit.file` holds (`schema/audit.schema.json`). A job's events
 are named `<kind>.<event>`, the kind `cmd`, `run`, or `crun` as `job list`
 shows it:
 

@@ -24,8 +24,8 @@ parity suite `scripts/native-smoke-test.sh`.
 
 `verify-release.sh` builds from source: the import boundary and host-key
 assertions on the adapter, `gofmt`, `go mod verify`, the tests, vet, and the
-race detector in vendor mode, the build, its module metadata, version
-counters, and build, and the same smoke suites; then the tree's package, which
+race detector in vendor mode, the build, its module metadata, version, and
+build, and the same smoke suites; then the tree's package, which
 `scripts/check-deb.sh` checks against the tree and
 `scripts/sysutil-smoke-test.sh` tests as root in an Ubuntu 26.04 container
 under Docker (`karvi-sysutil`, the template unit, the maintainer scripts, the
@@ -204,10 +204,10 @@ make deps            # optional on a connected host: download and verify
   references `ssh-keyscan`, `os/exec`, or the removed pre-scan
   (`PrepareNative`, `InspectRemote`).
 - The tests, `go vet`, and the race run MUST pass under `-mod=vendor`.
-- `karvi version --format json` MUST report the schema counters the
-  verifiers check (configuration, command record, daemon IPC, job, and
-  registry) and both transport IDs; the text form's transport line is
-  checked verbatim.
+- `karvi version --format json` MUST report both transport IDs, the text
+  form's transport line checked verbatim, and the shipped executable the
+  schema counters `release/release-manifest.json` lists (configuration,
+  registry, command record, daemon IPC, scoreboard, audit, and job).
 - **The parity suite** (`scripts/native-smoke-test.sh`) MUST pass: every
   case the script lists, each as `command` and `run --no-daemon` over
   `system` and `native` (S1 through the daemon as well), against the

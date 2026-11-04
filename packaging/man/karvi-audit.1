@@ -66,13 +66,17 @@ everyone's.
 .PP
 An event it cannot read, one with no
 .BR KARVI_AUDIT_JSON ,
-JSON that does not decode, or an audit schema other than 2, has no row;
-one line on standard error at the end counts them, a follow ended by
-Ctrl\-C included:
+JSON that does not decode, or an audit schema other than the one it reads
+(the audit schema
+.B karvi version
+names), has no row; one line on standard error at the end counts them, a
+follow ended by Ctrl\-C included,
+.I N
+the schema it reads:
 .PP
 .nf
 .RS
-karvi\-audit: 12 events not shown: not audit schema 2
+karvi\-audit: 12 events not shown: not audit schema \fIN\fP
 .RE
 .fi
 .SH OPTIONS

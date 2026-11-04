@@ -119,7 +119,7 @@ the native transport carries karvi's host-key callback in its handshake and
 opens karvi's device session, and fails if its package references
 `ssh-keyscan`, `os/exec`, or the removed pre-scan; runs `go mod verify`, the
 tests, `go vet`, and the race run under `-mod=vendor`; builds the executable
-and checks its version counters and both transport IDs; runs every historical
+and checks its version, its build, and both transport IDs; runs every historical
 smoke suite; then runs the parity suite `scripts/native-smoke-test.sh`, which
 builds the fake device from the tree and runs every case as `command` and
 `run` over `system` and `native` with its own trust store, base directory, and
@@ -141,12 +141,12 @@ The bundle's `bin/` holds the executables of
 ./scripts/verify-bundle.sh
 ```
 
-It checks the checksums, the executable's version counters, its build, and
-both transport IDs, refuses Go source that `gofmt` would change, tests and vets
-offline from `vendor/`, compares the generated files,
-validates the example configurations, and runs every smoke suite, the
-canary suite, and the parity suite against `bin/` as shipped. To reproduce
-the shipped bytes, rebuild with the release identity:
+It checks the checksums, the executable's schema counters against
+`release/release-manifest.json`, its build, and both transport IDs, refuses Go
+source that `gofmt` would change, tests and vets offline from `vendor/`,
+compares the generated files, validates the example configurations, and runs
+every smoke suite, the canary suite, and the parity suite against `bin/` as
+shipped. To reproduce the shipped bytes, rebuild with the release identity:
 
 ```bash
 make build COMMIT=source-release-v$(cat VERSION)
@@ -279,8 +279,8 @@ using `login`, `command`, or `run`, by
 
 ## 8. Confirm the configuration and daemon/display boundary
 
-This release requires configuration schema 6, daemon IPC schema 12, execution
-plan 15, and configuration-registry schema 33 (`karvi version`). After an
+`karvi version` names the schema counters this release requires, and
+`release/release-manifest.json` lists every one. After an
 upgrade an operator's own daemon needs nothing run: the next submission drains
 a daemon of another build, an idle one replaced in the same invocation, a busy
 one finishing its jobs and exiting while new ones are refused, the builds

@@ -20972,3 +20972,93 @@ The evidence is kept beside the tree
 (`release-design-evidence/sudo-chapter-96/`: the decisions with every
 section's notes, the `ex96` scripts and their outputs, the container's, each
 section's test logs, and the battery's log).
+
+## 97. One place for each schema counter (2026-11-04)
+
+Before the release 0.40.0's number, a search for the counters the release
+moves (execution plan 17, command record 5, audit 3) found living copies left
+behind. `man karvi-audit` and OPERATIONS said audit schema 2, which the new
+`karvi-audit` no longer shows, and four schema files' titles and `$id`s named a
+counter their own `schema_version` had left, two of them since 0.36.0. The
+operator asked why the counters were not written in one place only. No rule
+had said so: each copy was added for its own reader, one at a time, and
+[chapter 24](#24-jobs-across-linux-servers-2026-10-04),
+finding `buildinfo`'s copy stale, tied it to its owner by a test rather than
+removing it. The copies something checked failed loudly when they lagged (the
+verifiers' pin of the command record, [chapter
+96](#96-root-commands-on-the-exec-channel-2026-11-04)); the copies nothing
+checked drifted.
+
+**What it gains.** A schema move changes one constant, and the release's
+manifest is checked against the shipped executable instead of trusted. It waits
+on nothing.
+
+**Where a counter was written, and what read it:**
+
+- the constant of the package that owns the schema (`records`,
+  `executionplan`, `configschema`, `ipc`, `credentialpackage`): the source;
+- `buildinfo`'s seven copies, which `karvi version` reports, tied to the owners
+  by two tests; only `karvi` links `buildinfo`, it links every owner already,
+  and no owner imports `buildinfo`;
+- each schema file's `schema_version`: the tests that check karvi's records
+  against the file;
+- each schema file's title and `$id` number: nothing, and four of the ten were
+  wrong;
+- five pins in each verifier, moved by hand at each schema move;
+- README's item 5, BUILD-HOWTO's section 8, OPERATIONS, and `karvi-audit.1`:
+  nothing, and README and BUILD-HOWTO said execution plan 15;
+- `release/release-manifest.json`, written at each release's second commit:
+  nothing;
+- history, the CHANGELOG's blocks, these chapters, and a release's evidence:
+  correct as written.
+
+**The rule, agreed as recommended.** A counter is written once, in its owner's
+constant; everything else reads it, is checked against it by a test, or names
+no number ([`docs/DESIGN.md`, section
+15](DESIGN.md#15-configuration-and-errors), "A counter is written once"):
+
+1. `buildinfo` reads the owners' constants; its copies and the two tests that
+   tied them are gone.
+2. The schema files keep `schema_version`, which the tests check, and their
+   titles and `$id`s name no counter, as the execution plan's and the daemon
+   IPC's already did.
+3. The living documents name no counter: README and BUILD-HOWTO point at `karvi
+   version`, OPERATIONS names the schema file, and the man page says an event
+   of another audit schema than `karvi-audit`'s own, the one `karvi version`
+   names, has no row, its example line `not audit schema N`. The configuration
+   schema's `schema-version = 6` stays where an operator writes it.
+4. `verify-release.sh` pins no counter, since its build reports the owners'
+   values by construction; `verify-shipped.sh` compares the shipped
+   executable's seven counters with the manifest's, which the release's second
+   commit writes before the third runs it.
+5. Tests that assert a literal value on the wire stay: they fail loudly.
+
+**The executed examples.** `verify-shipped.sh` as changed, on the tree before
+the number (the released 0.39.0 `bin/` and 0.39.0's manifest), passed; on a
+copy whose manifest names audit 3 it stopped:
+
+```text
+schema counter audit_schema_version differs
+  bin/karvi-linux-amd64          2
+  release/release-manifest.json  3
+exit=1
+```
+
+A build of the tree reports the seven counters the baseline's build of
+`7935835` reported, now read from their owners: configuration 6, command record
+5, scoreboard 5, audit 3, job 5, daemon IPC 12, registry 33.
+
+**Not taken.** A test that each schema file's title and `$id` name its counter,
+which the first recommendation proposed: a checked copy is still a copy, and
+none is needed. The schema files' `schema_version` generated from Go: the tests
+already fail where the two differ. The manifest's counters written by a tool at
+the release: the check finds a wrong one, and the manifest is written by hand
+in every other field. The version string under the same rule now: it is in five
+places, moved by hand at each release's first commit, and touches the build
+identity `CHECKSUMS.sha256` reproduces, so it waits until after the release.
+
+**Checks.** gofmt, `go vet`, `make generated-clean`, the whole tree's `go test`
+(74 packages), the examples above, and a check build of the documents; the
+release 0.40.0's baseline then runs on a clean clone of this commit. The
+evidence is kept beside the tree
+(`release-design-evidence/counters-chapter-97/`).
