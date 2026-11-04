@@ -20952,7 +20952,23 @@ would have broken. The documents say instead to quote such a command whole,
 `go test` (74 packages) on each code section, `-race` on the packages each
 touched; the native suite on each section's lab build from the third on; k03
 on the sixth and the last; the examples above on the last section's lab build
-and on the released 0.39.0. The evidence is kept beside the tree
+and on the released 0.39.0.
+
+The full battery at the end, `scripts/verify-release.sh` in a copy of the
+tree, so that its build left the released `bin/` as it was, found one stale
+pin before it ran. The verifier checks the counters of the build it makes, and
+its command record pin was 4, the released build's, which the second section
+had left for the release; the tree builds 5. On a clone of the tree, built, one
+of the verifier's five counter lines failed, and the release's baseline, which
+runs the same verifier on a clone of `dev`, would have stopped there too. On
+the operator's word the pin moved to 5 in both verifiers, as the record's move
+to 4 and the registry's to 33 moved theirs in their own commits; the release's
+evidence, which describes the shipped build, moves at the release. The battery
+then passed in 11 minutes (the Go tests, the race tests, every suite, k03's
+root-command cases among them, and the package with its container test), the
+host clean after it.
+
+The evidence is kept beside the tree
 (`release-design-evidence/sudo-chapter-96/`: the decisions with every
-section's notes, the `ex96` scripts and their outputs, the container's, and
-each section's test logs).
+section's notes, the `ex96` scripts and their outputs, the container's, each
+section's test logs, and the battery's log).
