@@ -12,9 +12,10 @@ import (
 )
 
 // The Linux persona: exec requests answered from a fixed table, and a
-// bash-like shell for linux_shell over the same table. Its outputs use
-// documentation addresses (192.0.2.0/24, 2001:db8::/32); ip's trailing
-// blanks are kept, as the real command writes them.
+// bash-like shell for linux_shell over the same table; a sudo line is the
+// persona's sudo's (sudo.go). Its outputs use documentation addresses
+// (192.0.2.0/24, 2001:db8::/32); ip's trailing blanks are kept, as the real
+// command writes them.
 
 // linuxResult is what one command of the table does.
 type linuxResult struct {
@@ -27,8 +28,10 @@ type linuxResult struct {
 }
 
 // linuxCommand is the table: the built-in collection list, the cases a suite
-// sends, and any other command not found.
-func (s *Server) linuxCommand(text string) linuxResult {
+// sends, and any other command not found; root runs it as root, as the
+// persona's sudo does, which whoami and id -u show (the login user's uid is
+// 1000).
+func (s *Server) linuxCommand(text string, root bool) linuxResult {
 	text = strings.TrimSpace(text)
 	switch text {
 	case "":
@@ -68,11 +71,16 @@ ID_LIKE=debian
 		return linuxResult{stdout: "slow output\n", slow: true}
 	case "nostatus":
 		return linuxResult{noStatus: true}
-	case "sudo -n id -u":
-		if s.opts.SudoAsks {
-			return linuxResult{stderr: "sudo: a password is required\n", status: 1}
+	case "whoami":
+		if root {
+			return linuxResult{stdout: "root\n"}
 		}
-		return linuxResult{stdout: "0\n"}
+		return linuxResult{stdout: s.opts.Username + "\n"}
+	case "id -u":
+		if root {
+			return linuxResult{stdout: "0\n"}
+		}
+		return linuxResult{stdout: "1000\n"}
 	}
 	fields := strings.Fields(text)
 	if len(fields) == 2 && fields[0] == "fail" {
@@ -94,7 +102,18 @@ func (s *Server) bigText() string {
 	return sb.String()
 }
 
-// exec runs one exec request: stdout, then stderr, then the status (or the
+// linuxLine answers one exec request or shell line: a sudo line by the
+// persona's sudo, given the exec channel's input and stderr (nil for the
+// shell), any other from the table as the login user.
+func (s *Server) linuxLine(line string, in *bufio.Reader, errOut io.Writer) linuxResult {
+	if c, ok := parseSudo(line); ok {
+		return s.sudo(c, in, errOut)
+	}
+	return s.linuxCommand(line, false)
+}
+
+// exec runs one exec request: a sudo line's prompts and its reads of the
+// channel's input first, then stdout, then stderr, then the status (or the
 // signal), then the end of output, then the channel's close. sshd sends the
 // end of output first, but it sends the status even after the client's
 // close, and OpenSSH's client closes as soon as the output ends; x/crypto
@@ -104,7 +123,7 @@ func (s *Server) bigText() string {
 // leaves it running, recorded.
 func (s *Server) exec(ch ssh.Channel, line string, signals <-chan string, gone <-chan struct{}) {
 	defer ch.Close()
-	r := s.linuxCommand(line)
+	r := s.linuxLine(line, bufio.NewReader(ch), ch.Stderr())
 	if r.slow {
 		timer := time.NewTimer(s.opts.Delay["slow"])
 		defer timer.Stop()
@@ -152,8 +171,9 @@ func (s *Server) linuxPrompt() string {
 
 // linuxShell is the shell for linux_shell: each line echoed as typed and
 // answered from the table, both streams on the terminal, the newlines as a
-// terminal's; a command not found is bash's message. exit or logout ends it
-// with status 0, as a login shell does.
+// terminal's; a command not found is bash's message, and sudo reads no
+// password (sudo.go). exit or logout ends it with status 0, as a login shell
+// does.
 func (s *Server) linuxShell(ch ssh.Channel) {
 	defer ch.Close()
 	w := func(text string) bool {
@@ -202,7 +222,7 @@ func (s *Server) linuxShell(ch ssh.Channel) {
 			return
 		}
 		time.Sleep(s.opts.Delay[strings.TrimSpace(text)])
-		r := s.linuxCommand(text)
+		r := s.linuxLine(text, nil, nil)
 		if r.unknown != "" {
 			r.stderr = "-bash: " + r.unknown + ": command not found\n"
 		}

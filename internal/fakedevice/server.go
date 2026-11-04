@@ -6,12 +6,12 @@
 // show commands, the device's "% Invalid input" line, the [confirm] and value
 // prompts of a few interactive commands, and exit; it refuses exec requests,
 // as a device session never makes one (contract rule 1). The Linux persona
-// (linux.go) answers exec requests from a fixed table and has a bash-like
-// shell for linux_shell. Both record every input line and exec request, every
-// PTY request, the session channels per connection, and every signal request,
-// so a test can assert what a transport asked for. It needs
-// golang.org/x/crypto/ssh, which go.mod and vendor/ carry for the native
-// transport.
+// (linux.go) answers exec requests from a fixed table, sudo among them in
+// either sudo's form (sudo.go), and has a bash-like shell for linux_shell.
+// Both record every input line and exec request, every PTY request, the
+// session channels per connection, and every signal request, so a test can
+// assert what a transport asked for. It needs golang.org/x/crypto/ssh, which
+// go.mod and vendor/ carry for the native transport.
 package fakedevice
 
 import (
@@ -48,7 +48,10 @@ type Options struct {
 	Hostname string // prompt stem; default "Router", or "fake" under PersonaLinux
 	Username string // default "netops"
 	Password string // default "pw"
-	Enable   string // the enable secret; "" means enable needs no secret
+	// Enable is the enable secret; "" means enable needs no secret. Under
+	// PersonaLinux it is sudo's password with SudoAsks; "" means the login
+	// password, as sudo's own default.
+	Enable string
 	// Delay holds per-command delays before the response is written.
 	Delay map[string]time.Duration
 	// LoginDelay is the wait before the shell's first prompt; SecretDelay the
@@ -95,9 +98,13 @@ type Options struct {
 	// NoKeyboardInteractive refuses the keyboard-interactive method, as a
 	// server that takes the password method alone.
 	NoKeyboardInteractive bool
-	// SudoAsks makes the Linux persona's sudo need a password, so "sudo -n
-	// id -u" is refused.
+	// SudoAsks makes the Linux persona's sudo need a password (Enable):
+	// sudo -n is refused and sudo -S prompts on stderr. Without it every
+	// sudo command runs as root with none asked, as under NOPASSWD.
 	SudoAsks bool
+	// SudoRS gives the Linux persona's sudo sudo-rs's prompt and messages
+	// (Ubuntu 26.04's sudo), classic sudo's (sudo.ws) otherwise.
+	SudoRS bool
 	// Decorations gives the Linux persona's shell bash's: the bracketed-paste
 	// switches, the window title, and the coloured prompt.
 	Decorations bool
@@ -314,8 +321,9 @@ func (s *Server) Sessions() int {
 }
 
 // Lines returns every input line the shells received, in order; a hidden
-// (secret) line is recorded as "<secret>" and an exec request, refused or
-// run, as "exec: TEXT".
+// (secret) line is recorded as "<secret>", as is each password line the
+// Linux persona's sudo read on an exec channel, and an exec request, refused
+// or run, as "exec: TEXT".
 func (s *Server) Lines() []string {
 	s.mu.Lock()
 	defer s.mu.Unlock()

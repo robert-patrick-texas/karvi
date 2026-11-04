@@ -25,7 +25,7 @@ func main() {
 	hostname := flag.String("hostname", "", "prompt stem; default Router, or fake under -persona linux")
 	user := flag.String("user", "netops", "accepted username")
 	password := flag.String("password", "pw", "accepted password")
-	enable := flag.String("enable", "en", "enable secret; empty means none")
+	enable := flag.String("enable", "en", "enable secret; empty means none; the Linux persona's sudo password under -sudo-asks (empty: -password)")
 	slow := flag.Duration("slow", 3*time.Second, "delay before 'show slow' answers, and the Linux persona's 'slow'")
 	drip := flag.Duration("drip", time.Second, "wait between the three lines 'show drip' answers")
 	loginDelay := flag.Duration("login-delay", 0, "delay before the shell's first prompt")
@@ -44,10 +44,11 @@ func main() {
 	port := flag.Int("port", 0, "127.0.0.1 port to listen on; 0 takes a free one (a restart that is to be the same device, port included)")
 	authorizedKeys := flag.String("authorized-keys", "", "authorized_keys file whose keys log in as -user beside the password")
 	noKbd := flag.Bool("no-keyboard-interactive", false, "refuse the keyboard-interactive method (a server that takes the password method alone)")
-	sudoAsks := flag.Bool("sudo-asks", false, "the Linux persona's sudo needs a password: 'sudo -n id -u' is refused")
+	sudoAsks := flag.Bool("sudo-asks", false, "the Linux persona's sudo needs a password (-enable): 'sudo -n' is refused, 'sudo -S' prompts on stderr")
+	sudoRS := flag.Bool("sudo-rs", false, "the Linux persona's sudo writes sudo-rs's prompt and messages (Ubuntu 26.04's sudo), not classic sudo's")
 	decorations := flag.Bool("decorations", false, "the Linux persona's shell writes bash's decorations (bracketed paste, title, colours)")
 	flag.Parse()
-	opts := fakedevice.Options{Persona: *persona, SudoAsks: *sudoAsks, Decorations: *decorations, Port: *port, Hostname: *hostname, Username: *user, Password: *password, Enable: *enable, Delay: map[string]time.Duration{"show slow": *slow, "slow": *slow, "enable": *enableDelay}, LoginDelay: *loginDelay, SecretDelay: *secretDelay, DripInterval: *drip, EchoSecret: *echoSecret, BigLines: *big, RSASHA1Only: *rsaSHA1Only, StartPrivileged: *startPrivileged, Unsaved: *unsaved, NoKeyboardInteractive: *noKbd}
+	opts := fakedevice.Options{Persona: *persona, SudoAsks: *sudoAsks, SudoRS: *sudoRS, Decorations: *decorations, Port: *port, Hostname: *hostname, Username: *user, Password: *password, Enable: *enable, Delay: map[string]time.Duration{"show slow": *slow, "slow": *slow, "enable": *enableDelay}, LoginDelay: *loginDelay, SecretDelay: *secretDelay, DripInterval: *drip, EchoSecret: *echoSecret, BigLines: *big, RSASHA1Only: *rsaSHA1Only, StartPrivileged: *startPrivileged, Unsaved: *unsaved, NoKeyboardInteractive: *noKbd}
 	split := func(v string) []string {
 		if v == "" {
 			return nil

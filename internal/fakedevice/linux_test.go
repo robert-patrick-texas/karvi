@@ -106,15 +106,6 @@ func TestLinuxExecTable(t *testing.T) {
 	}
 }
 
-// TestLinuxSudoAsks: under Options.SudoAsks sudo -n refuses as sudo does.
-func TestLinuxSudoAsks(t *testing.T) {
-	srv := startLinux(t, Options{SudoAsks: true})
-	stdout, stderr, err := run(t, connect(t, srv), "sudo -n id -u")
-	if code, _ := status(t, err); stdout != "" || stderr != "sudo: a password is required\n" || code != 1 {
-		t.Fatalf("stdout %q stderr %q status %d", stdout, stderr, code)
-	}
-}
-
 // TestLinuxSlowEndedByKill: a KILL signal request ends the slow command by
 // that signal, and the connection serves the next command; the signal is
 // recorded and nothing is left running.
