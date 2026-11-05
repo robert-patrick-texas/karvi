@@ -21360,3 +21360,144 @@ generated-clean`, where the embed needs none.
 the examples above, and the full battery, `scripts/verify-release.sh` in a copy
 of the tree. The evidence is kept beside the tree
 (`release-design-evidence/version-one-place/`).
+
+## 100. The daemon-upgrade suite's fixture and the suites' floor (2026-11-05)
+
+The operator chose the shell-script review's two findings, open since the
+review of 2026-10-31 ([chapter
+88](#88-the-code-review-of-2026-10-31-and-its-fixes-2026-11-01)): #64 and #65,
+each a suite that stopped the suites' third lane on a host where karvi itself
+was sound; and, found while measuring #65, four more suites asking the host for
+the same floor, fixed here on the operator's word. None of it touches karvi or
+production; each was a suite's own budget, of time or of disk.
+
+**What it gains.** A battery stops for karvi alone: not for a cold build cache,
+and not for a volume short of karvi's default 2 GiB floor, which five suites
+asked of the host. It waits on nothing.
+
+**#64, the fixture compiled inside its start's wait.** The daemon-upgrade suite
+starts a lifecycle-only daemon fixture four times and waits for its socket 100
+times 0.02 seconds. It ran the fixture by `go run`, so the first start after a
+change to the packages the fixture builds compiled them inside that wait: 2.4
+seconds on the operator's host in [chapter
+55](#55-an-explicit-envname-cell-2026-10-10), where a battery on a cold cache
+stopped on it and the ROADMAP took it up. On `6deeba6`, the build cache an
+empty folder, `TMPDIR=/var/tmp`, load 0.25, the suite stopped after 2.8
+seconds:
+
+```text
+$ GOCACHE=<an empty folder> ./scripts/daemon-upgrade-smoke-test.sh
+schema-2 fixture did not start
+exit=1
+```
+
+The fix, as the finding gave it: the suite builds `tools/daemon-fixture` into
+its work directory once, before the first start, by the line the other suites
+build the fake device with, and starts the executable. The wait measures the
+start alone, and `FIXTURE_PID` holds the fixture's own pid, not `go run`'s.
+With another empty cache the suite passed in 21.6 seconds, the compile before
+the first wait; with that cache warm, in 1.7. The ROADMAP item "A suite's
+failure that names its call" loses the half that asked for this; its question
+of a function that names a failed call stays.
+
+Not taken: a longer wait, which would still time a compile of whatever length
+the host gives (about 20 seconds here, cold); the fixture built by `make
+tools-build`, as `secret-scan` is, which would make the suite depend on a make
+step run before it.
+
+**#65, the floor the spool suite asked of the host.** S9's auto row runs a job
+at a 1 GiB command limit across more devices than the volume holds limits, and
+expects karvi to narrow it, `spool_width_narrowed`. The finding said the row
+needs about 3 GiB free and does not say so; it had stopped batteries on
+`/tmp`, a 4.9 GB tmpfs, once in [chapter
+43](#43-the-release-with-the-debian-package-2026-10-08) and twice in [chapter
+74](#74-a-shorter-name-keeps-its-scratch-files-2026-10-20) (3,228,434,432
+bytes asked; 2,757,001,216 and 2,903,162,880 free). Measured on `52fe96e` with a file filling `/tmp` to a
+chosen free space (the work directory shown as `$TMP`), the suite failed before
+S9 as well:
+
+```text
+# 2.83 GB free when the suite began
+spool smoke: FAIL: S6 not kept: exit 111: output_preflight_space: daemon validation: $TMP/base/jobs/261104/261104-214611-00, $TMP/spool: need 2214920192 bytes free, only 2147758080 free
+# 3.36 GB free when the suite began; S1 to S8 passed
+spool smoke: FAIL: S9 auto: exit 111: output_preflight_space: $TMP/base/jobs/261104/261104-215054-01, $TMP/spool: need 3228434432 bytes free, only 2511876096 free
+```
+
+Thirteen suites set `output.min-free-bytes-after-job` to 0. The spool suite ran
+under the default 2 GiB, so every row asked the host for 2 GiB beside the
+suite's own writes, about 0.9 GB before S9, and S9 asked a further limit.
+
+**The rule, agreed as recommended.** The suite's configuration sets the floor
+to 0, as the others do: its rows' subject is the spool, not the host's free
+space, and S10, whose subject is the floor, sets its own. S9 reads the floor
+from karvi (`config show output.min-free-bytes-after-job`) and the spool
+volume's free space at the row, after the suite's earlier writes, and runs the
+auto row when the volume holds the floor and two limits: one for the job at
+width one, one for the job's other files and what the other lanes write
+meanwhile, the reason S10 sets its floors a GiB above its reading. With less,
+the row is not run and its line names both figures. The row's limit is written
+once in the suite, as `LIMIT`. On the suite as changed:
+
+```text
+# 2.56 GB free when the suite began
+spool smoke: S9 never read nothing; auto not run here: the spool's volume has 1647316992 bytes free, under the floor and two limits, 2147483648
+spool smoke: pass
+# 3.90 GB free, /tmp as it was
+spool smoke: S9 never read nothing; auto narrowed 11 devices to what 3 GiB holds
+spool smoke: pass
+# TMPDIR=/var/tmp, 19.5 GB free
+spool smoke: S9 never read nothing; auto narrowed 26 devices to what 18 GiB holds
+spool smoke: pass
+```
+
+Not taken: the finding's fix as written, the row skipped below the floor and
+one limit, which leaves S6 failing on a smaller volume and, at its edge, lets
+the other lanes' writes turn the row between run and refused; the suite
+computing karvi's estimate of the job's other files, the formula written
+twice; the refusal asserted on a small volume, which is S10's subject. The
+cost: a volume holding less than two limits at S9 skips a row that could, at
+its margin, run at width one.
+
+**Four more suites, the same floor, agreed as recommended.** Of the six suites
+that set no floor beside the spool suite, four run jobs or recorded logins on
+the host's volume: the audit, job list, parity, and transcript suites (the
+completion suite runs no job; the sysutil suite runs karvi in its container,
+not measured). On `485ce78`, with `/tmp` filled to 1.75 GB free, each stopped
+at its first job or recorded login, the transcript suite with exit 111 and no
+line, the gap the ROADMAP's "A suite's failure that names its call" describes:
+
+```text
+audit smoke: FAIL: cmd: exit 111, want 0: output_preflight_space: $TMP/base/jobs/261105/261105-065916-00, $TMP/spool: need 2215247872 bytes free, only 1747378176 free
+job list smoke: FAIL: cmd: exit 111, want 0: output_preflight_space: $TMP/base/jobs/261105/261105-065917-00, $TMP/spool: need 2215247872 bytes free, only 1747390464 free
+native smoke: FAIL: S1 success, a rejected command, success under continue (the daemon path too) command.system: exit 111, expected 107: output_preflight_space: …
+```
+
+Each sets the floor to 0 where it keeps its other settings: the audit and job
+list suites in their configuration file; the transcript suite in its `--set`
+list, its floor rows still setting their own, since a later `--set` wins; and
+the parity suite through the environment layer,
+`KARVI__OUTPUT__MIN_FREE_BYTES_AFTER_JOB`, which the daemon a client launches
+inherits. The parity suite's rows write their own `[output]` tables into its
+file, and a second `[output]` header is refused (`config_toml_syntax: … table
+redefined: output`); the environment outranks the file, so no parity row sets
+the floor there. With the same 1.75 GB free, all four passed, the audit, job
+list, and transcript suites in 2 to 7 seconds, the parity suite in 210.
+
+Not taken: the environment layer in all four, where each suite's file or
+`--set` list holds the key beside its other settings and the layer is needed
+only where the file cannot hold it.
+
+**Left open.** The review's other open findings: #63 (Go's resolver and the
+host's domain) and #69 with #81 (checks going by path, not by a held
+descriptor), design sessions, and #71 (internal/app's login tests writing to
+the host's journal), the test review.
+
+**Checks.** `sh -n` on the six suites, the examples above, `make
+generated-clean`, a check build of the documents, and the full battery twice,
+`scripts/verify-release.sh` under `TMPDIR=/var/tmp`: in a clone of `485ce78`
+(11:48 to 11:58 UTC), and in a copy of the tree with the four suites' change
+(12:11 to 12:21 UTC). Both passed: 74 packages, then again under `-race`, and
+the 19 suites, S9 narrowing 25 devices to what 17 GiB holds. The evidence is
+kept beside the tree (`release-design-evidence/shell-script-review-2026-11-04/`:
+each finding's runs and patch, the two batteries' logs, and in `floor-class/`
+the four suites' runs before and after, and their patch).
