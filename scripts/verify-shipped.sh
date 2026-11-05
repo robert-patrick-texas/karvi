@@ -12,7 +12,7 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 
-[ "$(cat VERSION)" = "0.39.0" ]
+[ "$(cat VERSION)" = "0.40.0" ]
 sha256sum -c CHECKSUMS.sha256
 file bin/karvi-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
 file bin/karvi-askpass-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
@@ -23,7 +23,7 @@ file bin/karvi-audit-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
 [ "$(readlink bin/karvi-askpass)" = karvi-askpass-linux-amd64 ]
 [ "$(readlink bin/karvi-prune)" = karvi-prune-linux-amd64 ]
 [ "$(readlink bin/karvi-audit)" = karvi-audit-linux-amd64 ]
-./bin/karvi-linux-amd64 version --format json | grep -q '"version": "0.39.0"'
+./bin/karvi-linux-amd64 version --format json | grep -q '"version": "0.40.0"'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"id": "system"'
 ./bin/karvi-linux-amd64 --version | grep -q '^  system: external-executable$'
 ./bin/karvi-linux-amd64 --version | grep -q '^  native: compiled-in$'

@@ -1,6 +1,22 @@
 # Changelog
 
-## Unreleased
+## 0.40.0 - 2026-11-05
+
+A minor release on 0.39.0 for root commands on the exec channel (`--sudo`),
+sleeps between commands (`--sleep`), a device of `-` read from standard input,
+the SSH algorithms `--debug` names, each schema counter written once, and a
+release verifier that reads karvi's output whole. The execution plan moves to
+17, the command record to 5, and the audit to 3; every other counter is 0.39.0's
+(configuration schema 6, configuration registry 33, plan report 4, scoreboard 5,
+daemon IPC 12, job manifest and summary 5, credential package 2, metrics 1,
+inventory 1). Go and every module are 0.39.0's. A site has something to change
+where a commands-file line or a platform's `crun-commands` entry that begins
+`--sleep` or `--sudo` was meant as device text (`--literal` still sends it as
+written); a tool reads a command record's `command_sha256`, reads the audit
+trail as schema 2, or finds a schema file by an `$id` that named its counter; or
+a device named `-` is given on the command line, which now reads standard input
+(a target file still names it). An operator's 0.39.0 daemon, of another build,
+is drained by the first submission after the upgrade.
 
 - **The release verifier reads karvi's output whole before checking it.**
   `scripts/verify-release.sh` checked `karvi --version` through `grep -q` under

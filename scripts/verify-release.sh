@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Build and verify an official karvi v0.39.0 release (both transports) from an
+# Build and verify an official karvi v0.40.0 release (both transports) from an
 # authenticated vendored dependency tree.
 set -euo pipefail
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 
 command -v go >/dev/null 2>&1 || { echo 'go is required' >&2; exit 1; }
-[[ "$(cat VERSION)" == '0.39.0' ]]
+[[ "$(cat VERSION)" == '0.40.0' ]]
 [[ -s go.sum ]] || { echo 'go.sum is missing; run make deps on an approved connected builder' >&2; exit 1; }
 [[ -s vendor/modules.txt ]] || { echo 'vendor/modules.txt is missing; run make vendor' >&2; exit 1; }
 

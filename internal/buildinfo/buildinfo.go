@@ -15,7 +15,7 @@ import (
 // schema.
 const (
 	AppName = "karvi"
-	Version = "0.39.0"
+	Version = "0.40.0"
 )
 
 var (
