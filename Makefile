@@ -1,5 +1,4 @@
 GO ?= go
-VERSION ?= 0.40.0
 # The commit a build and the HTML footers name: COMMIT when given, on the
 # command line or in the environment (a release passes
 # source-release-vVERSION); else the checkout's own, git describe --always

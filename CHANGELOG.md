@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- **The release's number is written once, in `VERSION`.** A package at the
+  module root embeds the file, and `karvi version` reports it through
+  `buildinfo.Version`, so `go build`, `go test`, and `make build` give the same
+  number. The Makefile's `VERSION`, which nothing read, and each verifier's
+  typed copy of the number are gone: `scripts/verify-shipped.sh` checks the
+  shipped executable's version and the manifest's against the file, as
+  `scripts/verify-release.sh` checks its build's. A release changes `VERSION`,
+  the CHANGELOG, and `CHECKSUMS.sha256`. [`docs/DESIGN.md`, section
+  15](docs/DESIGN.md#15-configuration-and-errors), has the rule.
+
 ## 0.40.0 - 2026-11-05
 
 A minor release on 0.39.0 for root commands on the exec channel (`--sudo`),

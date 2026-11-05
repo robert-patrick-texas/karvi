@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-# Build and verify an official karvi v0.40.0 release (both transports) from an
-# authenticated vendored dependency tree.
+# Build and verify an official karvi release, VERSION's number (both
+# transports), from an authenticated vendored dependency tree.
 set -euo pipefail
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 
 command -v go >/dev/null 2>&1 || { echo 'go is required' >&2; exit 1; }
-[[ "$(cat VERSION)" == '0.40.0' ]]
 [[ -s go.sum ]] || { echo 'go.sum is missing; run make deps on an approved connected builder' >&2; exit 1; }
 [[ -s vendor/modules.txt ]] || { echo 'vendor/modules.txt is missing; run make vendor' >&2; exit 1; }
 
@@ -39,7 +38,7 @@ make build
 # Each output is read whole before it is checked: under pipefail a reader
 # that stops early, as grep -q does, leaves karvi's next write to a closed
 # pipe, and karvi's SIGPIPE fails the line on a loaded host (--version
-# writes its transports a line at a time; the release 0.40.0's baseline).
+# writes its transports a line at a time; docs/EXAMPLES.md chapter 98).
 . "$ROOT/scripts/lib/json.sh"
 version_json=$(./bin/karvi-linux-amd64 version --format json)
 version_text=$(./bin/karvi-linux-amd64 --version)

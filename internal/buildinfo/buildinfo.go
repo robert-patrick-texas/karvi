@@ -5,18 +5,17 @@ package buildinfo
 import (
 	"runtime"
 
+	"github.com/robert-patrick-texas/karvi"
 	"github.com/robert-patrick-texas/karvi/configschema"
 	"github.com/robert-patrick-texas/karvi/internal/ipc"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
-// The schema counters `karvi version` reports are their owners' constants,
-// read in Current: a counter is written once, in the package that owns its
-// schema.
-const (
-	AppName = "karvi"
-	Version = "0.40.0"
-)
+const AppName = "karvi"
+
+// Version is the release's number, read from VERSION at the tree's root, the
+// one place it is written.
+var Version = karvi.Version
 
 var (
 	Commit   = "development"
@@ -60,6 +59,9 @@ type Info struct {
 	SSHTransports []SSHTransport `json:"ssh_transports"`
 }
 
+// Current is this executable's projection. The schema counters it reports
+// are their owners' constants: a counter is written once, in the package that
+// owns its schema.
 func Current() Info {
 	return Info{
 		Application:                 AppName,

@@ -12,7 +12,6 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 
-[ "$(cat VERSION)" = "0.40.0" ]
 sha256sum -c CHECKSUMS.sha256
 file bin/karvi-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
 file bin/karvi-askpass-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
@@ -23,7 +22,6 @@ file bin/karvi-audit-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
 [ "$(readlink bin/karvi-askpass)" = karvi-askpass-linux-amd64 ]
 [ "$(readlink bin/karvi-prune)" = karvi-prune-linux-amd64 ]
 [ "$(readlink bin/karvi-audit)" = karvi-audit-linux-amd64 ]
-./bin/karvi-linux-amd64 version --format json | grep -q '"version": "0.40.0"'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"id": "system"'
 ./bin/karvi-linux-amd64 --version | grep -q '^  system: external-executable$'
 ./bin/karvi-linux-amd64 --version | grep -q '^  native: compiled-in$'
@@ -31,6 +29,16 @@ file bin/karvi-audit-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
 # its daemon would refuse to start (docs/EXAMPLES.md chapter 57, issue 8).
 . "$ROOT/scripts/lib/json.sh"
 version=$(./bin/karvi-linux-amd64 version --format json)
+# The release's number is written once, in VERSION; the executable reports
+# it, and the manifest records it.
+want=$(cat VERSION)
+for pair in "bin/karvi-linux-amd64|$(printf '%s\n' "$version" | json_get - version)" \
+    "release/release-manifest.json|$(json_get release/release-manifest.json version)"; do
+  [ "${pair#*|}" = "$want" ] || {
+    printf 'version differs\n  %-30s %s\n  %-30s %s\n' VERSION "$want" "${pair%%|*}" "${pair#*|}" >&2
+    exit 1
+  }
+done
 build=$(printf '%s\n' "$version" | json_get - build)
 [ ${#build} -eq 20 ] || { echo "bin/karvi-linux-amd64 names no build (build: $build)" >&2; exit 1; }
 # Each schema counter is written once, in the package that owns its schema,

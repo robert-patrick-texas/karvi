@@ -21295,3 +21295,68 @@ the core evidence, the build, the compatibility example, the 1/3 drafts and the
 check, the push, the site, the GitHub release, and the published check;
 `sudo-chapter-96/battery.log` the battery; `counters-chapter-97/` the first
 stop's checks).
+
+## 99. One place for the version (2026-11-05)
+
+Chapter 98 found the release's number in the shape chapter 97 removed from the
+schema counters, and the operator asked for it in one place. It was written
+five times, each moved by hand at a release's first commit:
+
+- `VERSION`, read by every script: the installer, the package's build, the
+  bundle's name, and the release tools;
+- the Makefile's `VERSION ?=`, read by nothing;
+- `buildinfo.Version`, a Go constant, which `karvi version` reports and 25
+  places in the code read;
+- `verify-release.sh`, a comment and a check that `VERSION` equals a typed copy
+  of itself;
+- `verify-shipped.sh`, the same check and a `grep` on the JSON for the typed
+  number.
+
+The bundle's name in BUILD-HOWTO and the runbook, and OPERATIONS' upgrade
+example, name an artifact or record what ran, and stay.
+
+**What it gains.** A release's number moves in one file, and nothing can
+disagree with it: the executable, the manifest, and the scripts are all
+checked against it or read it. It waits on nothing.
+
+**The rule, agreed as recommended** ([`docs/DESIGN.md`, section
+15](DESIGN.md#15-configuration-and-errors), "The release's number is written
+once"): `VERSION` is the one place. A file at the module root, `version.go`,
+embeds it at compile time (`//go:embed VERSION`), and `buildinfo.Version` reads
+it there. The Makefile's line goes. `verify-release.sh` drops its check and the
+number in its comment, and checks its build's version against the file, as
+since chapter 98. `verify-shipped.sh` drops its check and `grep`, and checks the
+shipped executable's version and the manifest's against the file through
+`scripts/lib/json.sh`. A release's first commit changes `VERSION`, the
+CHANGELOG, and the checksums.
+
+**The executed examples.** A clone with `VERSION` alone set to 9.9.9: `go run
+./cmd/karvi version` and `make build`'s executable reported 9.9.9, and the
+tests that read `buildinfo.Version` (`buildinfo`, `cli`, `daemon`, `app`)
+passed. `verify-shipped.sh` on the tree passed, and on copies with one value
+changed it stopped:
+
+```text
+# release/release-manifest.json naming 0.39.0
+version differs
+  VERSION                        0.40.0
+  release/release-manifest.json  0.39.0
+exit=1
+# VERSION 0.41.0 beside the 0.40.0 build
+version differs
+  VERSION                        0.41.0
+  bin/karvi-linux-amd64          0.40.0
+exit=1
+```
+
+**Not taken.** The number set by `-ldflags -X` from the Makefile: `go test`,
+`go run`, and a plain `go build` would report another number than `make
+build`'s. `VERSION` moved into `internal/buildinfo`, where `//go:embed` can
+reach it from that package: every script and the bundle's name read it at the
+root. A generated Go file holding the number: a second copy, checked by `make
+generated-clean`, where the embed needs none.
+
+**Checks.** gofmt, `go vet`, `make generated-clean`, the whole tree's `go test`,
+the examples above, and the full battery, `scripts/verify-release.sh` in a copy
+of the tree. The evidence is kept beside the tree
+(`release-design-evidence/version-one-place/`).

@@ -3566,6 +3566,14 @@ the CHANGELOG, EXAMPLES, and a release's evidence, keeps the numbers it
 recorded. *Why:* every copy that nothing checked drifted: four schema files'
 titles, the audit's man page, and README's and BUILD-HOWTO's lists.
 
+**The release's number is written once**, in `VERSION` at the tree's root. The
+root package `karvi` embeds the file at compile time and `buildinfo.Version`
+reads it there, so `go build`, `go test`, and `make build` report the same
+number; the scripts read the file; and the verifiers check the executable's
+version and the manifest's against it, naming none. A release changes
+`VERSION`, the CHANGELOG, and `CHECKSUMS.sha256`. *Why:* the number was moved
+by hand in five places at each release, one of them read by nothing.
+
 ## 16. Build, verification, and release
 
 **One shape of the source, one build, vendored.** The native transport is
