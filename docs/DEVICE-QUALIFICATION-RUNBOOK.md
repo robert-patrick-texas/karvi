@@ -44,7 +44,7 @@ command line or in a file.
 ## 2. Before the laboratory: the script against the fake
 
 ```bash
-cd karvi-v0.39.0
+cd karvi-v0.40.0
 sha256sum -c CHECKSUMS.sha256          # the released executables
 make tools-build                       # bin/secret-scan
 FAKE=1 CONFIG_ROW=1 RELOAD="system native" scripts/device-qualification.sh

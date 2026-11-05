@@ -1,42 +1,42 @@
 {
   "application": "karvi",
-  "version": "0.39.0",
-  "release_date": "2026-11-02",
+  "version": "0.40.0",
+  "release_date": "2026-11-05",
   "release_type": "engineering-candidate-release",
-  "behavior_change_from_previous": "a minor release on 0.38.0 for the fixes of the code review of 2026-10-31: the scratch and spool chains take only the operator's own directory; a revoked host key is refused host_key_revoked under every policy, and a @cert-authority or other marked line enrols no key; karvi-prune --days takes 1 to 999, and a root it cannot read fails the run (exit 1); askpass answers the login's username and password alone (askpass_prompt_unrecognized), askpass_enable_password_unset retired for privilege_failed, and karvi login resolves no enable secret; run --exercise refuses a configuration that keeps no job folder (run_mode_conflict); the configuration's TOML reads strings, integers, and floats as TOML does (config_toml_syntax); display.timestamp writes what its pattern says, mm between a date and a time token refused display_timestamp_mm_ambiguous; two inventory rows for one device are one only when every field agrees (inventory_conflict); .cloginrc lines, words, patterns, and passwords are read as clogin's Tcl reads them; a link at a day folder, a job folder, its commands folder, a capacity ledger's lock, or its devices folder is refused; a [platform.NAME] table's fields are checked against the registry's kinds (config_type_error, config_platform_telnet_port_out_of_range) and legacy-class is refused config_unknown_key; a locked key takes its macros from the global configuration alone (config_lock_violation); a formula backend's password source, the record templates, and a transform's keys are checked at load; config show --explain judges the capacity root and the scoreboards as a run does; registry 33 moves, every other counter is 0.38.0's (configuration schema 6, execution plan 15, daemon IPC 12, command record 4, job manifest and summary 5, plan report 4, credential package 2, scoreboard 5, audit 2); goldmark v1.8.7, for the documents alone, Go and the other modules are 0.38.0's; the first submission after the upgrade drains a 0.38.0 daemon; see CHANGELOG.md",
+  "behavior_change_from_previous": "a minor release on 0.39.0: --sudo TEXT runs a command as root on a platform's exec channel (sudo -S -p with karvi's prompt, no sh -c; the password the answering backend's enable field, NETSUDO, or NETENABLE under netvars, else sudo -n), a target on a shell refused channel_shell_sudo_refused, the record's and the audit's privilege sudo; --sleep DURATION waits before the next command, the rerun files writing each sleep back; a commands-file line or a platform's crun-commands entry beginning --sudo or --sleep is that statement, a malformed one refused commands_file_sudo_invalid or commands_file_sleep_invalid; a lone --cmd or --sudo takes the words after it, and after -- every word; a device of - reads standard input as --tf - does; --debug names the SSH algorithms the native transport negotiated; the command record has no command_sha256; each schema counter is written once, in the package that owns its schema, the schema files' titles and $ids naming none, and verify-shipped.sh compares the shipped executable's counters with this manifest; verify-release.sh reads karvi's output whole before checking it; execution plan 17, command record 5, and audit 3 move, every other counter is 0.39.0's (configuration schema 6, registry 33, daemon IPC 12, job manifest and summary 5, plan report 4, credential package 2, scoreboard 5); Go and every module are 0.39.0's; the first submission after the upgrade drains a 0.39.0 daemon; see CHANGELOG.md",
   "design": "docs/DESIGN.md",
   "roadmap": "ROADMAP.md",
   "configuration_schema_version": 6,
   "configuration_registry_schema_version": 33,
-  "command_record_schema_version": 4,
+  "command_record_schema_version": 5,
   "daemon_ipc_schema_version": 12,
   "scoreboard_schema_version": 5,
-  "audit_schema_version": 2,
+  "audit_schema_version": 3,
   "job_schema_version": 5,
-  "execution_plan_schema_version": 15,
+  "execution_plan_schema_version": 17,
   "credential_package_schema_version": 2,
   "plan_report_schema_version": 4,
   "included_binary_profile": "native-linux-amd64",
   "build": {
     "go_version": "go1.27.3",
     "official_go_floor": "1.27.0",
-    "source_identity": "source-release-v0.39.0",
-    "build": "OVm9OErdgujJlrhYFLuV",
+    "source_identity": "source-release-v0.40.0",
+    "build": "C71lyQOLd6sV4H1SEuL0",
     "cgo_enabled": false,
     "trimpath": true,
     "buildvcs": false,
     "dependencies": "vendored (go.mod, go.sum, vendor/); built with no network"
   },
   "source_statistics": {
-    "go_files_outside_vendor": 555,
-    "go_lines_outside_vendor": 123217,
-    "named_top_level_tests": 1280,
-    "packages": 92
+    "go_files_outside_vendor": 568,
+    "go_lines_outside_vendor": 126766,
+    "named_top_level_tests": 1321,
+    "packages": 93
   },
   "binaries": {
     "karvi-linux-amd64": {
-      "bytes": 12914848,
-      "sha256": "70b320fde743cbdf63fadec549baa4b6c17ab7b20a12656cb48d4da7e24d250c",
+      "bytes": 12984480,
+      "sha256": "15fc47064b208fd286a8e71fde3944a05c78f0103862d20261f6af8f2273df2d",
       "reported_ssh_transports": [
         {
           "id": "native",
@@ -52,20 +52,20 @@
       "native_transport": "compiled-in"
     },
     "karvi-askpass-linux-amd64": {
-      "bytes": 3915936,
-      "sha256": "724d3de509c9fbe95095da5a97fe17b62dbf183f70ea8fec1b0236fa962d7abb"
+      "bytes": 3920032,
+      "sha256": "b47fd568a35c3907e8d86fc397041f1fac0656c24d6d7cd7eb2609658558adde"
     },
     "karvi-prune-linux-amd64": {
-      "bytes": 3809440,
-      "sha256": "a3f0bf76dcb633087b17c58780026675cea16a7bf1752062c7ff0886cc9b990e"
+      "bytes": 3817632,
+      "sha256": "0a6a14a8765fa454b5b34e5c4a2b4f3b788bd3b6a7259502e89014ace9a649e8"
     },
     "karvi-audit-linux-amd64": {
-      "bytes": 3965088,
-      "sha256": "fac60afab7413fd9a0a1510dd04ab31898238d4e64b35eb6144f13b8ccc26ac2"
+      "bytes": 3969184,
+      "sha256": "3ad32e15682363ae56d45c29f6d270c39e620e74c304ef4eb8a00916f9447abb"
     }
   },
   "source_changes": {
-    "changelog": "CHANGELOG.md 0.39.0 - 2026-11-02"
+    "changelog": "CHANGELOG.md 0.40.0 - 2026-11-05"
   },
   "daemon_upgrade_recovery": {
     "job_submission_schema": "exact-current-only (the client's IPC schema and build)",
@@ -98,14 +98,14 @@
     "restart_grace_option": "--grace",
     "restart_after_option": "--after=DURATION",
     "forced_stop_accounting": "every unfinished unit incomplete_shutdown, exit 106",
-    "actual_lifecycle_replay": "not run: the newest release whose daemon IPC schema (11) differs from this client's (12) is v0.29.0, whose daemon predates the drain that exits and listens on daemon.sock, which this client never reaches; the compatibility example ran before the number was committed: beside the released v0.38.0 daemon, at this client's schema and of another build, the client's daemon status stacked the two builds (compatible: false), its run's exercise drained the idle daemon and started its own (exit 0, no device contacted), and with the older daemon holding a job on the fake device the client's run was refused daemon_draining (exit 112), the daemon exiting after the job (evidence/ipc-schema-compat.log)"
+    "actual_lifecycle_replay": "not run: the newest release whose daemon IPC schema (11) differs from this client's (12) is v0.29.0, whose daemon predates the drain that exits and listens on daemon.sock, which this client never reaches; the compatibility example ran before the number was committed: beside the released v0.39.0 daemon, at this client's schema and of another build, the client's daemon status stacked the two builds (compatible: false), its run's exercise drained the idle daemon and started its own (exit 0, no device contacted), and with the older daemon holding a job on the fake device the client's run was refused daemon_draining (exit 112), the daemon exiting after the job (evidence/ipc-schema-compat.log)"
   },
   "configuration_migration": {
     "from_schema": 6,
     "to_schema": 6,
     "required": false,
     "compatibility_alias": false,
-    "notes": "the configuration schema is unchanged from v0.10.0; config.schema-version stays 6; registry 33, 32 in v0.38.0: a [platform.NAME] table takes no legacy-class"
+    "notes": "the configuration schema is unchanged from v0.10.0; config.schema-version stays 6; registry 33, unchanged from v0.39.0"
   },
   "qualification": {
     "unit_tests": "passed",
@@ -128,9 +128,9 @@
     "debian_package": "passed (the tree's package in the release verifier's run, checked by scripts/check-deb.sh with lintian and tested as root in an Ubuntu 26.04 container under Docker by scripts/sysutil-smoke-test.sh, and the published package built twice from the verified bundle to the same bytes and checked by scripts/check-deb.sh)"
   },
   "previous_release": {
-    "version": "0.38.0",
-    "git_tag": "karvi-v0.38.0",
-    "notes": "a minor release on 0.37.0; every release is installed as new"
+    "version": "0.39.0",
+    "git_tag": "karvi-v0.39.0",
+    "notes": "a minor release on 0.38.0; every release is installed as new"
   },
   "vendored_modules": [
     "github.com/yuin/goldmark v1.8.7",
