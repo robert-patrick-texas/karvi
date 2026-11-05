@@ -21062,3 +21062,236 @@ identity `CHECKSUMS.sha256` reproduces, so it waits until after the release.
 release 0.40.0's baseline then runs on a clean clone of this commit. The
 evidence is kept beside the tree
 (`release-design-evidence/counters-chapter-97/`).
+
+## 98. The release 0.40.0 (2026-11-05)
+
+The twenty-first public release, 0.40.0, on the operator's word and number,
+carrying root commands on the exec channel ([chapter
+96](#96-root-commands-on-the-exec-channel-2026-11-04)), sleeps between commands
+([chapter 95](#95-a-sleep-between-commands-2026-11-03)), a device of `-` from
+standard input ([chapter 93](#93-standard-input-as-a-device-2026-11-03)), the
+negotiated SSH algorithms ([chapter
+94](#94-the-negotiated-ssh-algorithms-in---debug-2026-11-03)),
+and each schema counter written once ([chapter
+97](#97-one-place-for-each-schema-counter-2026-11-04)). A minor release: the
+execution plan moves to 17, the command record to 5, and the audit to 3; every
+other counter is 0.39.0's, and Go and every module are 0.39.0's. Six of the
+CHANGELOG block's ten entries are Breaking. The daemon IPC schema stays 12, so
+the compatibility example is the drain, beside the released 0.39.0 daemon. The
+operator's word was to publish without stopping unless a step failed; the
+sequence stopped twice before the number, once on stale counters and once on a
+verifier check that failed under load, and each was mended on the operator's
+word.
+
+**What it gains.** A site has `--sudo`, `--sleep`, and the rest from a
+published, checksummed bundle and package, with the documents on GitHub Pages
+at the release; a host on 0.39.0 takes it by `sudo karvi-sysutil package
+update`, or by `apt install`. The release's manifest is now checked against the
+shipped executable, and the release verifier no longer fails on a loaded host.
+The cost is the six Breaking changes, each named in the CHANGELOG's lead
+paragraph with what a site changes.
+
+**The operator's decisions**, in simple terms:
+
+- The full battery before the release, on `dev` with chapter 96: it found the
+  verifiers' command record pin at 4, the released build's, where the tree
+  builds 5; the pin moved to 5 (`5281f4b`), and the battery passed.
+- `dev` pushed before the release (`7367885..7935835`); the number 0.40.0; and
+  publish without stopping, unless a step fails.
+- The first stop: each schema counter written once (`d280179`, chapter 97).
+- The second stop: the release verifier reads karvi's output whole before it
+  checks it (`9455204`).
+
+**Before the number.** Load 0.49, `/tmp` 3.7 GB free, no karvi process; the
+release tools were 0.39.0's. `latest.sh` found Go 1.27.3 and the four modules
+at their newest, and the bridge probe reached every address. The archive's
+mirror was fetched before each change to the tree. The baseline on a clean
+clone of `7935835` passed. While it ran, the released 0.39.0 executable was
+copied out of `bin/` for the compatibility example and checked against
+`CHECKSUMS.sha256`, and 1/3 was drafted.
+
+**The first stop: the stale counters.** A search for the counters the release
+moves (execution plan 17, command record 5, audit 3) through the living files
+found copies left behind: `man karvi-audit` and OPERATIONS said audit schema 2,
+which the new `karvi-audit` no longer shows; four schema files' titles and
+`$id`s named a counter their own `schema_version` had left; README and
+BUILD-HOWTO said execution plan 15. The operator asked why they were not
+written in one place only, and chapter 97 is the answer and the change. The
+draft of 1/3 was set aside while it was made.
+
+**The second stop: the verifier's `--version` check.** The baseline on a clean
+clone of `d280179` failed in the release verifier, with exit 141, right after
+its build. What the check guards, in plain terms: that the built executable has
+the native transport compiled in. `verify-release.sh` ran
+`./bin/karvi-linux-amd64 --version | grep -q '^  native: compiled-in$'` under
+`set -o pipefail`. `karvi --version` writes its output in three pieces, the
+header, the native line, and the system line, and `grep -q` exits at the native
+line; when karvi had not yet written the system line, that write met a closed
+pipe, karvi ended by SIGPIPE, and `pipefail` failed the line. It needs a loaded
+host, one that pauses karvi between two writes; here the race run and the build
+had just ended. The line came with chapter 82 and had passed by luck in every
+release since, the battery before this release and its first baseline among
+them. karvi itself was never at fault. The mend, `9455204`: the verifier reads
+`version --format json` and `--version` once each, checks the version against
+`VERSION` and the transports through `scripts/lib/json.sh`, and the native line
+by `grep` on the text read. No other script pipes karvi into `grep -q` under
+`pipefail`:
+
+```text
+# the baseline at d280179, the release verifier after make build
+ln -sfn karvi-audit-linux-amd64 bin/karvi-audit
+verify-release exit=141
+# the writes of each output (strace -e trace=write)
+version --format json: one write of 660 bytes
+--version: three writes, the header (289 bytes),
+  "  native: compiled-in\n" (22), "  system: external-executable\n" (30)
+# the check as committed, under bash -o pipefail, on the clone's build
+idle: 0 of 700 failed
+beside eight /bin/true loops (load 7.0): 103 of 1000 failed, exit 141
+the output read whole first, beside the same loops: 0 of 1000 failed
+# the mended block, beside the same loops
+0 of 1000 failed
+a VERSION of another number: bin/karvi-linux-amd64 is not version 0.40.0, exit 1
+```
+
+**Not taken.** A rerun of the baseline until it passed: a check that fails 1
+time in 10 under load fails a release, and the next. `--version` writing its
+output in one piece: the check is the fault, not karvi, and an operator's
+`karvi --version | head -1` in a script under `pipefail` meets the same, which
+is the script's to read whole.
+
+**The number.** `VERSION`, the `Makefile`, `buildinfo.Version`, and the two
+verifiers; the `## Unreleased` block became `## 0.40.0 - 2026-11-05`, the UTC
+day of 1/3 as 0.39.0's was, under a lead paragraph naming the release's parts,
+its counters, and what a site changes, one clause for each Breaking entry.
+`CHECKSUMS.sha256` has its four lines from the release-identity build,
+`C71lyQOLd6sV4H1SEuL0`. Since the second stop `verify-release.sh` checks the
+build's version against `VERSION`, so its number moved in two lines, not three.
+
+**The documents.** 2/3 is 0.39.0's with this release's values, in the same
+eight files. The manifest's counters are now checked: `verify-shipped.sh` in
+3/3's evidence compares the shipped executable's seven with the manifest's, and
+ran on the tree before 2/3 was committed.
+
+**The release notes, executed.** Before publishing, the notes' claims ran on the
+release's build against the fake's Linux persona over the native transport
+(`v0400-notes-check.sh`, from chapter 96's helpers; the `==`, `$`, `exit`, and
+`--` lines are the script's). Each held, and the notes went out as drafted.
+Three of its cases:
+
+```text
+== --sudo: a root command, its password from NETSUDO
+$ NETSUDO=en karvi command srv1 --cmd whoami --sudo whoami
+exit 0
+! srv1 [127.0.0.1] platform=linux user=netops backend=builtin-env-fallback transport=native
+netops
+root
+! exit=0 elapsed=T artifacts=$TMP/state/jobs/ID
+-- the records: schema_version, command, privilege, command_sha256 present
+{"schema_version":5,"command":"whoami","privilege":"(absent)","command_sha256":false}
+{"schema_version":5,"command":"whoami","privilege":"sudo","command_sha256":false}
+-- the audit's device command events: schema_version, action.privilege
+{"schema_version":3,"event_name":"cmd.command","privilege":"(absent)"}
+{"schema_version":3,"event_name":"cmd.command","privilege":"sudo"}
+
+== a crun-commands entry --sleep with no duration
+$  karvi crun --target srv1
+exit 4
+commands_file_sleep_invalid: client planning: platform linux crun-commands entry 2: --sleep takes a duration of 1s..12h (30s, 5m, 1h30m), not "soon"; the line is --sleep DURATION alone
+
+== a device of - reads standard input
+$  karvi command - --cmd uname\ -snrm
+exit 0
+! srv1 [127.0.0.1] platform=linux user=netops backend=builtin-env-fallback transport=native
+Linux fake 6.8.0-0-generic x86_64
+! exit=0 elapsed=T artifacts=$TMP/state/jobs/ID
+```
+
+**The sequence, as run**, from the battery's pre-checks at 22:55 on 2026-11-04
+to the published check at 00:32 on 2026-11-05 (UTC; 17:55 to 19:32, EST):
+
+- 22:57:14 to 23:07:50, the full battery on a copy of `5281f4b`: every suite,
+  the package, and its container test; `7935835`, chapter 96's Checks.
+- 23:19, the operator's word: `dev` pushed, the release begun.
+- 23:21:33 to 23:32:19, the baseline on a clean clone of `7935835`: exit 0.
+- 23:24 to 23:36, the stale counters, the first stop for the operator:
+  `d280179`.
+- 23:36:41 to 23:40:01, the baseline on a clean clone of `d280179`: the release
+  verifier exit 141. The second stop, with the measurements: `9455204` at
+  23:57.
+- 23:57:22 to 00:07:35, the baseline on a clean clone of `9455204`: `latest.sh`,
+  gofmt, make, and the release verifier with its package and container steps,
+  exit 0 each.
+- 00:07 to 00:08, the release-identity build, the compatibility example, and
+  1/3: the 0.39.0 daemon drained idle, refusing busy; `f76f7af`.
+- 00:08:32 to 00:10:53, the core evidence: 1,321 named tests across 93
+  packages, vet 0, both socket lengths exit 0.
+- 00:12:28, the documents: `eef0b27` (2/3).
+- 00:12:36 to 00:22:44, the remaining evidence: the shipped checks exit 0, the
+  release verifier exit 0 with the nineteen suites, the package, and its
+  container test, the checksums unchanged by its rebuild; the replay skipped.
+- 00:23, 3/3, the tag, `main`: `3f3eb4a`, `karvi-v0.40.0`, `main`
+  fast-forwarded from `7158fa1`.
+- 00:23:13 to 00:29:46, the artifacts: the bundle reproducible byte for byte and
+  verified from its own archive; the package reproducible and checked against
+  the extraction; 40,085,865 and 6,660,078 bytes.
+- 00:30, the package installed in a throwaway `ubuntu:26.04`: `apt install`
+  exit 0; the four installed executables `CHECKSUMS.sha256`'s; `karvi-audit
+  --help` exit 0; 22 files under `/usr/share/karvi`. The notes' claims executed
+  on the release's build.
+- 00:30:44 to 00:32, the push, the site, the GitHub release: `dev`, `main`, and
+  the tag pushed; `pages.sh` pushed the release's site (`05cd660`), built at
+  00:31:34, its footer `karvi-v0.40.0`; release `karvi-v0.40.0` with the five
+  assets, marked latest, its body the notes file; the assets downloaded back
+  match, and `releases/latest` redirects to the tag.
+
+**Executed.** The compatibility example's turning points
+(`release/evidence/ipc-schema-compat.log`) and the published state:
+
+```text
+[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.39.0 build=OVm9OErdgujJlrhYFLuV
+daemon started socket=/dev/shm/r400/compat/base/socket/d.sock
+pid 1844456 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build OVm9OErdgujJlrhYFLuV 0.39.0
+  client build C71lyQOLd6sV4H1SEuL0 0.40.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 1844561 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+karvi-v0.40.0 assets=5 draft=false prerelease=false
+$ sha256sum -c karvi-v0.40.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.40.0-source-linux-amd64.tar.gz: OK
+karvi_0.40.0_amd64.deb: OK
+$ the latest redirect
+location: https://github.com/robert-patrick-texas/karvi/releases/tag/karvi-v0.40.0
+```
+
+**Found on the way.**
+
+- `karvi` is 69,632 bytes larger, `karvi-askpass` 4,096, `karvi-prune` 8,192,
+  and `karvi-audit` 4,096; the bundle is 100,887 bytes larger and the package
+  48,532.
+- The default configuration and the module metadata of the four executables are
+  0.39.0's, byte for byte, so 3/3 carries eight evidence files.
+- The version string has the shape chapter 97 removed from the counters: five
+  places moved by hand at each release's 1/3, `VERSION`, the `Makefile`,
+  `buildinfo.Version`, and the two verifiers.
+- In the throwaway container `man karvi-audit` has no page, as in the releases
+  before: the minimal image leaves out `/usr/share/man`.
+- `/tmp/karvi-1000`, empty and there since before the session, was unchanged by
+  every step.
+
+The evidence is kept beside the tree (`release-design-evidence/v0400-*`: the
+timeline, the three baselines, the SIGPIPE measurements and the mended block,
+the core evidence, the build, the compatibility example, the 1/3 drafts and the
+2/3 patch, the artifacts, the container install, the release notes and their
+check, the push, the site, the GitHub release, and the published check;
+`sudo-chapter-96/battery.log` the battery; `counters-chapter-97/` the first
+stop's checks).
