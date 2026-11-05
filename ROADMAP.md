@@ -322,17 +322,9 @@ None chosen: the operator names the next item, from "Later" or anew.
   tests under `set -eu`, so a release missing its number in that script ended
   `verify-bundle.sh` with exit 1 and an empty log ([chapter
   43](docs/EXAMPLES.md#43-the-release-with-the-debian-package-2026-10-08), S2).
-  A suite's own start budget stops a lane too, though with its line:
-  `daemon-upgrade-smoke-test` gives `go run ./tools/daemon-fixture` two seconds
-  to bind its socket, and the first run after a change to the packages it builds
-  compiles them first (2.4 seconds on the operator's host, 0.18 with the cache
-  warm), so a battery on a cold cache stopped there with `schema-2 fixture did
-  not start` and the rest of its lane unrun ([chapter
-  55](docs/EXAMPLES.md#55-an-explicit-envname-cell-2026-10-10), S4). The
-  questions: one function in `scripts/lib` that runs a call and, when it fails
-  unexpectedly, names it and prints what karvi wrote before the suite exits; and
-  the fixture built before its wait begins, so the wait measures its start and
-  not a compile.
+  The question: one function in `scripts/lib` that runs a call and, when it
+  fails unexpectedly, names it and prints what karvi wrote before the suite
+  exits.
 - **A client told when a running daemon's settings differ from its own.** A
   daemon keeps the `daemon.*` values of the invocation that launched it, and a
   later client's `--set daemon.*` reaches it only at its next start, without

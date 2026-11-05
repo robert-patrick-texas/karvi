@@ -12,6 +12,7 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 KARVI=${KARVI:-./bin/karvi-linux-amd64}
+GO=${GO:-go}
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-daemon-upgrade-smoke-XXXXXX")
 . "$ROOT/scripts/lib/host.sh"; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 BASE="$TMP/state"
@@ -35,7 +36,10 @@ cleanup() {
   rm -rf "$TMP"
 }
 trap cleanup EXIT HUP INT TERM
-install -d -m 700 "$BASE" "$HOME_DIR" "$TMP/tmp"
+install -d -m 700 "$BASE" "$HOME_DIR" "$TMP/tmp" "$TMP/bin"
+# The fixture is built once, before its first start, so the start's wait
+# measures its start and not a compile; its pid is the fixture's own.
+GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/daemon-fixture" ./tools/daemon-fixture
 # The executable's own version, IPC schema, and build, so the rule holds for
 # any build; OTHER is a build of another program.
 VERSION=$("$KARVI" version | sed -n '1s/^karvi //p')
@@ -47,7 +51,7 @@ OTHER=9Au3WHU839F5xE-67H93
 # start_fixture SCHEMA VERSION [BUILD [JOBS]]: a lifecycle-only daemon
 # fixture at the socket, naming BUILD, or no build, and holding JOBS.
 start_fixture() {
-  GOTOOLCHAIN=local go run -mod=vendor ./tools/daemon-fixture \
+  "$TMP/bin/daemon-fixture" \
     --socket "$SOCKET" --schema "$1" --version "$2" --build "${3:-}" --jobs "${4:-0}" \
     >"$TMP/fixture.out" 2>"$TMP/fixture.err" &
   FIXTURE_PID=$!

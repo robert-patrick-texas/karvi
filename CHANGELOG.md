@@ -11,6 +11,13 @@
   `scripts/verify-release.sh` checks its build's. A release changes `VERSION`,
   the CHANGELOG, and `CHECKSUMS.sha256`. [`docs/DESIGN.md`, section
   15](docs/DESIGN.md#15-configuration-and-errors), has the rule.
+- **The daemon-upgrade suite builds its fixture before it starts it.**
+  `scripts/daemon-upgrade-smoke-test.sh` ran the lifecycle fixture through
+  `go run` and gave it two seconds to bind its socket, so on a cold build cache
+  the compile took them and the suite stopped with `schema-2 fixture did not
+  start`, the rest of its lane unrun. It builds `tools/daemon-fixture` once into
+  its work directory and starts the executable, so the wait measures the start
+  alone, and the pid it holds is the fixture's own.
 
 ## 0.40.0 - 2026-11-05
 
