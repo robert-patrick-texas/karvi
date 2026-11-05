@@ -15,6 +15,12 @@ TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-native-smoke-XXXXXX")
 KH=$TMP/store/known_hosts
 FAKE_PID=
 unset NETUSER NETPASS NETENABLE
+# No floor, as in the other suites: the rows' subject is not the host's free
+# space. The environment layer carries it, since rows write their own
+# [output] tables into the file; the daemon a client launches inherits it,
+# and it outranks the file, so no row sets the floor there.
+KARVI__OUTPUT__MIN_FREE_BYTES_AFTER_JOB=0
+export KARVI__OUTPUT__MIN_FREE_BYTES_AFTER_JOB
 
 fail() { echo "native smoke: FAIL: $*" >&2; exit 1; }
 stop_fake() {

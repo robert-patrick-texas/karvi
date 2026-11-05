@@ -45,8 +45,10 @@ chmod 755 "$FAKE_SSH"
 
 # COMMON is karvi under the suite's environment (ENVS) and settings (SETS);
 # a case that starts karvi by another name puts its own between the two.
+# No floor, as in the other suites; the floor rows set their own, and a
+# later --set wins.
 ENVS="HOME='$HOME_DIR' NETUSER=smoke NETPASS=not-a-real-secret KARVI_TRANSCRIPT_DIR='$TMP/ignored'"
-SETS="--set 'basedir=\"$BASE\"' --set 'sharedroot=\"none\"' --set 'spooldir=\"$BASE/spool\"' --set 'tempdir=\"$BASE/tmp\"' --set 'platform-resolution.default=\"\"' --set 'scoreboards=\"$BASE/scoreboards\"' --set 'sessions.shared-capacity-root=\"$BASE/capacity\"' --set 'ssh.transports.system=\"$FAKE_SSH\"' --set display.color=never --set audit.journald-required=false --set 'audit.file=\"$BASE/audit.jsonl\"'"
+SETS="--set 'basedir=\"$BASE\"' --set 'sharedroot=\"none\"' --set 'spooldir=\"$BASE/spool\"' --set 'tempdir=\"$BASE/tmp\"' --set 'platform-resolution.default=\"\"' --set 'scoreboards=\"$BASE/scoreboards\"' --set 'sessions.shared-capacity-root=\"$BASE/capacity\"' --set 'ssh.transports.system=\"$FAKE_SSH\"' --set output.min-free-bytes-after-job=0 --set display.color=never --set audit.journald-required=false --set 'audit.file=\"$BASE/audit.jsonl\"'"
 COMMON="$ENVS '$KARVI' $SETS"
 
 # recorded NAME EXTRA_GLOBALS LOGIN_ARGS: runs a recorded login under a pty.

@@ -98,6 +98,10 @@ file = "$TMP/base/audit.jsonl"
 shared-capacity-root = "$TMP/base/cap"
 [display]
 color = "never"
+[output]
+# No floor, as in the other suites: the rows' subject is not the host's
+# free space.
+min-free-bytes-after-job = 0
 [platform.cisco_ios]
 ssh-port = $PORT
 [[inventory-source]]

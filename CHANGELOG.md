@@ -30,6 +30,15 @@
   karvi and the volume's free space at the row, and runs the row when it holds
   the floor and two limits (one for the job at width one, one for its other
   files and the other lanes' writes), else prints a line naming both figures.
+- **Four more suites ask no floor of the host.** The audit, job list, parity,
+  and transcript suites ran their jobs and recorded logins under the default
+  2 GiB `output.min-free-bytes-after-job`, so on a volume short of it each
+  stopped at its first job with `output_preflight_space`, the transcript suite
+  with no line. Each sets the floor to 0, as the other suites do: the audit and
+  job list suites in their configuration file, the transcript suite in its
+  `--set` list (its floor rows still set their own), and the parity suite
+  through the environment layer, since its rows write their own `[output]`
+  tables into its file.
 
 ## 0.40.0 - 2026-11-05
 
