@@ -47,6 +47,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0400---2026-11-05">0.40.0 - 2026-11-05</a></li>
 <li><a href="#0390---2026-11-02">0.39.0 - 2026-11-02</a></li>
 <li><a href="#0380---2026-10-28">0.38.0 - 2026-10-28</a></li>
 <li><a href="#0370---2026-10-27">0.37.0 - 2026-10-27</a></li>
@@ -79,8 +80,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -129,6 +130,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0400---2026-11-05">0.40.0 - 2026-11-05</a></li>
 <li><a href="#0390---2026-11-02">0.39.0 - 2026-11-02</a></li>
 <li><a href="#0380---2026-10-28">0.38.0 - 2026-10-28</a></li>
 <li><a href="#0370---2026-10-27">0.37.0 - 2026-10-27</a></li>
@@ -161,8 +163,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -174,6 +176,153 @@
 </nav>
 <main>
 <h1 id="changelog">Changelog <a class="anchor" href="#changelog" aria-label="Link to this section">#</a></h1>
+<h2 id="0400---2026-11-05">0.40.0 - 2026-11-05 <a class="anchor" href="#0400---2026-11-05" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.39.0 for root commands on the exec channel (<code>--sudo</code>),
+sleeps between commands (<code>--sleep</code>), a device of <code>-</code> read from standard input,
+the SSH algorithms <code>--debug</code> names, each schema counter written once, and a
+release verifier that reads karvi's output whole. The execution plan moves to
+17, the command record to 5, and the audit to 3; every other counter is 0.39.0's
+(configuration schema 6, configuration registry 33, plan report 4, scoreboard 5,
+daemon IPC 12, job manifest and summary 5, credential package 2, metrics 1,
+inventory 1). Go and every module are 0.39.0's. A site has something to change
+where a commands-file line or a platform's <code>crun-commands</code> entry that begins
+<code>--sleep</code> or <code>--sudo</code> was meant as device text (<code>--literal</code> still sends it as
+written); a tool reads a command record's <code>command_sha256</code>, reads the audit
+trail as schema 2, or finds a schema file by an <code>$id</code> that named its counter; or
+a device named <code>-</code> is given on the command line, which now reads standard input
+(a target file still names it). An operator's 0.39.0 daemon, of another build,
+is drained by the first submission after the upgrade.</p>
+<ul>
+<li><strong>The release verifier reads karvi's output whole before checking it.</strong>
+<code>scripts/verify-release.sh</code> checked <code>karvi --version</code> through <code>grep -q</code> under
+<code>pipefail</code>; <code>--version</code> writes its transports a line at a time, so a <code>grep</code>
+that stopped at the native line left karvi's next write to a closed pipe,
+and on a loaded host karvi's SIGPIPE failed the verifier (103 of 1000 runs
+beside eight busy loops). It now reads <code>version --format json</code> and
+<code>--version</code> once each, and checks the version against <code>VERSION</code> and both
+transports through <code>scripts/lib/json.sh</code>.</li>
+<li><strong>Breaking: a schema file's title and <code>$id</code> name no counter; each counter
+is written once.</strong> The audit's, the command record's, the job manifest's and
+summary's, the plan report's, and the scoreboard's files in <code>schema/</code> were
+<code>NAME-vN.json</code> and &quot;schema N&quot;, and four named a counter their own
+<code>schema_version</code> had left (audit 2, command record 4, scoreboard 4, plan
+report 3); each <code>$id</code> is now
+<code>https://robert-patrick-texas.github.io/karvi/schema/NAME.json</code>, as the
+execution plan's and the daemon IPC's were, so a tool that finds a schema by
+its <code>$id</code> takes the new one. <code>karvi version</code> reads each counter from the
+package that owns its schema. <code>man karvi-audit</code> and OPERATIONS no longer say
+audit schema 2: an event of another schema than <code>karvi-audit</code>'s own, the one
+<code>karvi version</code> names, has no row. README and BUILD-HOWTO point at <code>karvi version</code> for the counters, <code>scripts/verify-shipped.sh</code> compares the shipped
+executable's counters with <code>release/release-manifest.json</code> where it pinned
+five numbers, and <code>scripts/verify-release.sh</code> pins none.
+<a href="docs/DESIGN.html#15-configuration-and-errors"><code>docs/DESIGN.md</code>, section
+15</a>, &quot;A counter is written once&quot;,
+has the rule.</li>
+<li><strong>Breaking: <code>--sudo TEXT</code> runs a command as root on the exec channel;
+execution plan 17, audit schema 3.</strong> <code>command</code>, <code>run</code>, and <code>crun</code> take
+<code>--sudo TEXT</code> (<code>--sudo=TEXT</code>), a command source in the order written beside
+<code>--cmd</code>, <code>--cf</code>, and <code>--sleep</code>, written as a <code>--cmd</code> is, <code>--timeout</code> and
+<code>--maxbytes</code> after it its own; a commands-file line <code>--sudo TEXT</code> is the same
+statement, where it was device text (<code>--literal</code> still sends it as written),
+and so is a stream line. It reaches a platform on the exec channel alone: a
+target on a shell is refused at planning, <code>channel_shell_sudo_refused</code> (new),
+and a file line <code>--sudo</code> with no command, <code>commands_file_sudo_invalid</code> (new);
+a blank <code>--sudo</code> is <code>cli_option_value_invalid</code>. The command is sent as <code>sudo -S -p 'karvi-sudo-&lt;16 hex&gt;:' -- TEXT</code>, with no <code>sh -c</code>, so a server's rules
+match it and its log names it; the password is written once, at the prompt,
+and the input closed; without one it is <code>sudo -n -- TEXT</code>. The prompt is
+removed from the recorded stderr in both forms <code>sudo</code> writes it, classic
+<code>sudo</code>'s and sudo-rs's; a second prompt is <code>privilege_failed</code>, its
+description widened. The password is the answering backend's enable field
+(blank: none), or the fallback's <code>NETSUDO</code>, else <code>NETENABLE</code> under <code>netvars</code>,
+else none, never asked at the terminal; <code>NETSUDO</code> is read, and a server's
+enable field carried to the daemon, only for a device with a <code>--sudo</code>
+command, and <code>requires-enable</code> on a platform on the exec channel requires it
+of those devices alone. The record adds <code>privilege: &quot;sudo&quot;</code>, as the audit's
+action does (audit schema 2 -&gt; 3); the plan carries a <code>sudo</code> flag per command,
+its platform lists taking a device list's shape (plan 16 -&gt; 17). A root
+command is shown at <code>srv1#</code> in the text display, <code>--echo</code>,
+<code>output.TARGET.txt</code>, and <code>--live</code>, one not sent as <code>! not sent: --sudo TEXT</code>;
+its collection marker is <code>! --sudo TEXT</code>, and the rerun files and
+<code>karvi-audit</code>'s rows write it as <code>--sudo TEXT</code>. <code>--dry-run</code> names the root commands
+(<code>sudo: commands 2, 3</code>) and each device's source (<code>sudo: password from NETSUDO</code>, <code>sudo: none, sudo -n</code>), the JSON report as
+<code>credential_binding.sudo</code>; <code>--debug</code> adds <code>sudo=password|none</code> to a command's
+start and <code>device sudo answered</code>. <code>NETSUDO</code> joins the variables the daemon's
+<code>daemon_environment_secret_variable</code> names and the <code>crun.after</code> hook's
+environment drops. <code>karvi-fake-device</code>'s Linux persona plays <code>sudo</code> in both
+forms (<code>-sudo-rs</code> for sudo-rs's), <code>-sudo-asks</code> making it want <code>-enable</code>, and
+answers <code>whoami</code> and <code>id -u</code>. <a href="docs/COMMAND-SESSION.html#root-commands-on-an-exec-channel"><code>docs/COMMAND-SESSION.md</code>, &quot;Root commands on an exec
+channel&quot;</a> has the
+rules, and <a href="docs/OPERATIONS.html#root-commands-and-their-password"><code>docs/OPERATIONS.md</code>, &quot;Root commands and their
+password&quot;</a> the sources.</li>
+<li><strong>A line's one <code>--cmd</code> or <code>--sudo</code> takes the words after it; after <code>--cmd --</code>
+or <code>--sudo --</code> every word is the command.</strong> <code>karvi command srv1 --sudo systemctl restart nginx</code> is one root command, as the freeform command's words
+are one command, every word after the first the command's; <code>--cmd show ip interface brief</code> alike. After <code>--cmd --</code> or <code>--sudo --</code> every word to the
+line's end is the command, a dash among them (<code>--sudo -- journalctl -u nginx</code>), and that form may end a line of other commands. Unquoted words beside
+another command stay <code>cli_command_text_mixed</code>, its message now <code>freeform text &quot;…&quot; joins only a line's one --cmd or --sudo, right after its value; quote each command</code>, and an unknown option right after a command's first word says
+<code>for the command's own option write --sudo -- TEXT, or quote the command</code>.
+<a href="docs/COMMAND-SESSION.html#grammar"><code>docs/COMMAND-SESSION.md</code>, &quot;Grammar&quot;</a>.</li>
+<li><strong>Breaking: a platform's <code>crun-commands</code> entries are read as commands-file
+lines.</strong> An entry <code>--sleep DURATION</code> or <code>--sudo TEXT</code> is the statement, where
+it was device text; a malformed one is <code>commands_file_sleep_invalid</code> or
+<code>commands_file_sudo_invalid</code> naming <code>platform P crun-commands entry N</code>, and a
+trailing sleep or a sleep total over <code>execution.device-timeout</code> is refused
+naming the platform. An entry's trailing <code>\r</code> stays its text, as before, and
+<code>--literal</code> sends every entry as written.</li>
+<li><strong>Breaking: the command record has no <code>command_sha256</code>; command record
+5.</strong> Each record's <code>command_sha256</code>, the SHA-256 of its <code>command</code>, was read
+by nothing in karvi, and the record holds the command itself; a tool that
+wants the digest computes it from <code>command</code>, as the audit's statements
+replaced its digests (<a href="docs/EXAMPLES.html#63-the-audit-trails-names-and-fields-2026-10-17"><code>docs/EXAMPLES.md</code>, chapter
+63</a>).</li>
+<li><strong>Breaking: <code>--sleep DURATION</code> waits before the next command; execution
+plan 16.</strong> <code>command</code>, <code>run</code>, and <code>crun</code> take <code>--sleep</code> (1s..12h) as a command
+source in the order written, beside <code>--cmd</code> and <code>--cf</code>, and a commands-file
+line that is <code>--sleep DURATION</code> alone is the same statement, where it was
+device text (<code>--literal</code> still sends it as written). The sleep is waited once
+the command before it returns; sleeps in a row add up; a stream line takes
+it too. Refused before any connection: a sleep with no command after it
+(<code>sleep_without_command</code>), a declaration after one
+(<code>declaration_after_sleep</code>), a file line beginning <code>--sleep</code> that is not one
+(<code>commands_file_sleep_invalid</code>), and a device's sleeps above a set
+<code>execution.device-timeout</code> (<code>sleep_over_device_timeout</code>). The plan carries
+<code>sleeps_ns</code>; <code>--dry-run</code> names each sleep, and <code>--debug</code> writes <code>device sleep</code> as each begins. A job's <code>commands.txt</code>, <code>commands.PLATFORM.txt</code>, and
+<code>commands/NAME</code> write each sleep back as <code>--sleep</code> lines before its
+command, so a rerun from them waits as the job did.
+<a href="docs/COMMAND-SESSION.html"><code>docs/COMMAND-SESSION.md</code></a> has the rules.</li>
+<li><strong>The device-qualification script's parity rows pass on a device, and the
+runbook gives the run on the production network.</strong> D1, D2, and D4 compared
+four streams of which the first was the device's first contact, whose first
+record alone carries <code>host_key_enrolled</code>, so their parity failed on every
+device, and on the fake, since the notice was added; each row now stores the
+device's key first. D7 h failed at times over <code>system</code>, where OpenSSH writes
+the trust store without a lock and two first contacts may append the same
+line; a duplicate there is observed, while over <code>native</code>, which enrols under
+karvi's lock, one still fails the row.
+<a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html"><code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code></a>
+gains section 10, for the operators on the production network: the run at a
+glance, the rows never run on a production device, every command that
+reaches the device, and what to bring back.</li>
+<li><strong>Breaking: a device of <code>-</code> reads standard input.</strong> <code>-t -</code>, <code>-t=-</code>,
+<code>--target -</code>, and <code>--host -</code>, a <code>-</code> among <code>--tl</code>'s names (<code>-tl -</code>,
+<code>-tl=r1,-</code>), and <code>-</code> as the positional device of <code>command</code> and <code>login</code> read
+the devices from standard input, one per line, as <code>--tf -</code> does, at their
+place on the line, so an operator who types <code>-t</code> and <code>-tl</code> by habit pipes a
+list without changing to <code>--tf -</code>. Standard input is still read by one input
+(<code>stdin_source_repeated</code>, whose message names the new forms), a stream line
+may not give <code>-</code> to <code>--target</code> or <code>--tl</code>, and <code>job list --target -</code> is
+refused (<code>target_source_stdin_invalid</code>), its <code>--target</code> being a filter of
+jobs. A device named <code>-</code> is reached through a target file alone.</li>
+<li><strong><code>--debug</code> names the SSH algorithms the native transport negotiated.</strong> Once
+its handshake completes, the native transport writes <code>native SSH connection negotiated target=… address=… kex=… hostkey=… cipher=… mac=…</code>: the key
+exchange, host-key algorithm, cipher, and MAC both sides use, an AEAD
+cipher's MAC as <code>&lt;implicit&gt;</code>, as OpenSSH's <code>-v</code> writes it, and a cipher or
+MAC whose two directions differ as <code>to-device/from-device</code>. The line before
+it names only what karvi offered. A handshake that fails names none; a
+device chooses the same at every connection, so its next completed one
+names it. The system transport is unchanged.
+<a href="docs/SSH-TROUBLE.html"><code>docs/SSH-TROUBLE.md</code></a> section 3 adds how to find the
+key exchange at fault in a failure only some connections meet.</li>
+</ul>
 <h2 id="0390---2026-11-02">0.39.0 - 2026-11-02 <a class="anchor" href="#0390---2026-11-02" aria-label="Link to this section">#</a></h2>
 <p>A minor release on 0.38.0 for the fixes of the code review of 2026-10-31. The
 configuration registry moves to 33; every other counter is 0.38.0's
@@ -2502,7 +2651,7 @@ operator's private archive. Their executables are not installed anywhere
 outside the operator's own environment, and every release is installed as
 new.</p>
 
-<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.39.0</code>.</footer>
+<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.40.0</code>.</footer>
 </main>
 </body>
 </html>

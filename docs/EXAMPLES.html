@@ -137,6 +137,12 @@
 <li><a href="#89-the-reviews-later-fixes-waves-5-to-7-2026-11-01">89. The review&#39;s later fixes: waves 5 to 7 (2026-11-01)</a></li>
 <li><a href="#90-the-reviews-later-fixes-waves-8-to-10-2026-11-01">90. The review&#39;s later fixes: waves 8 to 10 (2026-11-01)</a></li>
 <li><a href="#91-the-reviews-later-fixes-wave-11-2026-11-01">91. The review&#39;s later fixes: wave 11 (2026-11-01)</a></li>
+<li><a href="#92-the-release-0390-2026-11-02">92. The release 0.39.0 (2026-11-02)</a></li>
+<li><a href="#93-standard-input-as-a-device-2026-11-03">93. Standard input as a device (2026-11-03)</a></li>
+<li><a href="#94-the-negotiated-ssh-algorithms-in---debug-2026-11-03">94. The negotiated SSH algorithms in --debug (2026-11-03)</a></li>
+<li><a href="#95-a-sleep-between-commands-2026-11-03">95. A sleep between commands (2026-11-03)</a></li>
+<li><a href="#96-root-commands-on-the-exec-channel-2026-11-04">96. Root commands on the exec channel (2026-11-04)</a></li>
+<li><a href="#97-one-place-for-each-schema-counter-2026-11-04">97. One place for each schema counter (2026-11-04)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -148,8 +154,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -288,6 +294,12 @@
 <li><a href="#89-the-reviews-later-fixes-waves-5-to-7-2026-11-01">89. The review&#39;s later fixes: waves 5 to 7 (2026-11-01)</a></li>
 <li><a href="#90-the-reviews-later-fixes-waves-8-to-10-2026-11-01">90. The review&#39;s later fixes: waves 8 to 10 (2026-11-01)</a></li>
 <li><a href="#91-the-reviews-later-fixes-wave-11-2026-11-01">91. The review&#39;s later fixes: wave 11 (2026-11-01)</a></li>
+<li><a href="#92-the-release-0390-2026-11-02">92. The release 0.39.0 (2026-11-02)</a></li>
+<li><a href="#93-standard-input-as-a-device-2026-11-03">93. Standard input as a device (2026-11-03)</a></li>
+<li><a href="#94-the-negotiated-ssh-algorithms-in---debug-2026-11-03">94. The negotiated SSH algorithms in --debug (2026-11-03)</a></li>
+<li><a href="#95-a-sleep-between-commands-2026-11-03">95. A sleep between commands (2026-11-03)</a></li>
+<li><a href="#96-root-commands-on-the-exec-channel-2026-11-04">96. Root commands on the exec channel (2026-11-04)</a></li>
+<li><a href="#97-one-place-for-each-schema-counter-2026-11-04">97. One place for each schema counter (2026-11-04)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -299,8 +311,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -20026,8 +20038,1084 @@ operator's.</p>
 passing runs and the harness, the merged patch, the section's check, the wave's
 battery, and in <code>chapter-91/</code> this chapter's lab scripts, the container's
 script, their logs, and the blocks cut from them).</p>
+<h2 id="92-the-release-0390-2026-11-02">92. The release 0.39.0 (2026-11-02) <a class="anchor" href="#92-the-release-0390-2026-11-02" aria-label="Link to this section">#</a></h2>
+<p>The twentieth public release, 0.39.0, on the operator's word and number,
+carrying the fixes of the code review of 2026-10-31 (<a href="#88-the-code-review-of-2026-10-31-and-its-fixes-2026-11-01">chapters
+88</a> to
+<a href="#91-the-reviews-later-fixes-wave-11-2026-11-01">91</a>) and wave 12 below, which
+closes #99, the one finding chapter 91 left open from its own lab. A minor
+release: the configuration registry moves to 33 (a <code>[platform.NAME]</code> table takes
+no <code>legacy-class</code>), every other counter is 0.38.0's, and Go is 0.38.0's;
+goldmark, which builds the documents alone, moves to v1.8.7. Fourteen of the
+CHANGELOG block's 37 entries are Breaking. The daemon IPC schema stays 12, so
+the compatibility example is the drain, beside the released 0.38.0 daemon. The
+sequence is <a href="#75-the-release-0341-2026-10-20">chapter 75</a>'s as <a href="#87-the-release-0380-2026-10-28">chapter
+87</a> ran it. It stopped twice for the operator,
+each time on a test that read a result before it was due on a loaded host, as
+chapter 75's two stops did; both tests were mended on the operator's word. The
+build then stopped after the package's install check, and was published at the
+operator's second word.</p>
+<p><strong>What it gains.</strong> A site has the review's fixes from a published, checksummed
+bundle and package, with the documents on GitHub Pages at the release; a host on
+0.38.0 takes it by <code>sudo karvi-sysutil package update</code>, or by <code>apt install</code> as
+before. Two tests that could fail a release on a loaded host now wait for what
+they check. The cost is the fourteen Breaking changes, each named in the
+CHANGELOG's lead paragraph with what a site changes.</p>
+<p><strong>Wave 12: the fallback warnings (#99).</strong> Under <code>auto</code>, with the scratch root
+closed to the operator, chapter 91's lab printed two warnings at fault: the
+capacity root's carried no <code>capacity_root_unusable</code>, which
+<a href="OPERATIONS.html"><code>docs/OPERATIONS.md</code></a> gives every such warning, and the
+scoreboards' named its folder twice. On the operator's word, as recommended, one
+section by the plan's method (S31): a fix agent in its own worktree, the
+orchestrator's reading of the diff against the finding, gofmt, vet,
+<code>make generated-clean</code>, the whole tree's <code>go test</code> (73 packages), the host
+clean, and <code>d856b62</code>. The capacity ledger's <code>New</code> warned with <code>mkdir</code>'s error
+uncoded; it now codes the error before the warning and a named root's refusal
+alike. The scoreboards' warning put the folder before an error that already
+named it; it now keeps the cause alone where the error names the folder, and the
+whole error where it names another path, the parent. Both are messages only and
+no suite asserts on either warning, so no battery ran for the section. The
+agent's open question went to the operator: OPERATIONS' list of what the
+capacity warning's message names left out a filesystem with no free inodes and a
+folder that could not be made. The clause names both (<code>01b5be1</code>, docs only), and
+the full battery at <code>01b5be1</code> passed, its suites in 238 seconds. Chapter 91's
+#96 case, run again on the release (<code>ex-99.sh</code>; its other lines are chapter
+91's), the warnings before and after:</p>
+<pre><code class="language-text"># before: chapter 91's lab at f327004
+warning: shared capacity root unavailable (mkdir /dev/shm/karvi/capacity: permission denied); using private fallback LAB/base/state/capacity
+warning: shared scoreboard directory unavailable (/dev/shm/karvi/scoreboards: mkdir /dev/shm/karvi/scoreboards: permission denied); using private fallback LAB/base/state/scoreboards
+# after: the release 0.39.0
+warning: shared capacity root unavailable (capacity_root_unusable: mkdir /dev/shm/karvi/capacity: permission denied); using private fallback LAB/base/state/capacity
+warning: shared scoreboard directory unavailable (/dev/shm/karvi/scoreboards: permission denied); using private fallback LAB/base/state/scoreboards
+</code></pre>
+<p><strong>The operator's decisions</strong>, in simple terms:</p>
+<ul>
+<li>#99: every fallback warning of the capacity root carries
+<code>capacity_root_unusable</code>; a scratch folder's warning names the folder once,
+then its cause.</li>
+<li>The OPERATIONS clause: the capacity warning's message names its cause, one of
+five: the shape the root needs, a link in it to remove, a server ledger that
+does not decode, no free inodes, or the folder it could not make.</li>
+<li><code>dev</code> pushed before the release (<code>4a70be2..01b5be1</code>), as chapter 91 and wave
+12 left it.</li>
+</ul>
+<p><strong>Before the number.</strong> The archive's mirror was at <code>01b5be1</code> already, its
+<code>SHA256SUMS</code> passing; the seven release tools were 0.38.0's. The bridge probe
+reached every address, and <code>/tmp</code> had 3.9 GB free at load 0.36. <code>latest.sh</code> on
+the tree found goldmark behind, so it moved first, by the rule of chapter 75
+(its own lines):</p>
+<pre><code class="language-text">== Go: /usr/local/go/bin/go against go.dev
+go                               go1.27.3                               newest
+== the 4 modules /home/netops/karvi/karvi/go.mod requires
+github.com/yuin/goldmark         v1.8.6                                 behind
+                                 v1.8.7                                 newest
+golang.org/x/crypto              v0.58.0                                newest
+golang.org/x/sys                 v0.49.0                                newest
+golang.org/x/term                v0.47.0                                newest
+latest: 1 behind; move each to its newest, with its CHANGELOG entry, and run the baseline again
+exit=1
+</code></pre>
+<p><strong>The module move.</strong> <code>07171fb</code>: goldmark v1.8.7 by <code>go get</code>, <code>go mod tidy</code>, and
+<code>go mod vendor</code>; <code>go mod verify</code> passes. goldmark is vendored for
+<code>tools/md-to-html</code> alone, and no executable contains it. Its changes bound the
+parser's work where it searched the same text again (an unclosed HTML comment, a
+long footnote label, many headings of one name) and rework how an autolink's
+trailing punctuation and an indented code block are read. <code>make html</code> into a lab
+folder at v1.8.6 and again at v1.8.7 wrote the same 40 pages and 10 other files,
+byte for byte. vet, <code>make generated-clean</code>, and the whole tree's <code>go test</code>
+passed; the commit carries the CHANGELOG entry and BUILD-HOWTO's vendored
+version.</p>
+<p><strong>The first stop: the alive test.</strong> The baseline on a clean clone of <code>07171fb</code>
+failed in the release verifier's race run, one test. What it guards, in plain
+terms: a running karvi names its scratch files with its process ID, and a
+starting karvi sweeps away those whose owner is no longer a running karvi. It
+judges the owner by the file the process runs, <code>/proc/PID/exe</code>, not the name it
+was started under, since a site's <code>/usr/bin/k</code> starts karvi under another name;
+judged by the name, karvi had removed a live session's files (<a href="#74-a-shorter-name-keeps-its-scratch-files-2026-10-20">chapter
+74</a>).
+<code>TestKarviAliveByExecutable</code> copies its own test binary as <code>karvi-sweep-test</code>,
+links it as <code>k</code>, starts it through <code>k</code>, and asks whether that process is alive
+as karvi; it then removes the file, as an upgrade does, and asks again; last, it
+starts a process that calls itself karvi but runs another file, which must not
+count.</p>
+<p>The obstacle: the test asked the instant <code>Start</code> returned, and on a loaded host
+<code>Start</code> can return before the kernel names the new file. A probe of 3,000 starts
+of a copied <code>sleep</code> through a link, reading <code>/proc/PID/exe</code> at once: idle, every
+read named the file started; beside loops starting <code>/bin/true</code>, some reads named
+no file, and one named the probe itself, the binary that forked the child. The
+test had read <code>osutil.test</code>, its own name. karvi's sweeps are untouched: a
+scratch file's owner made it after its own start. The mend, <code>1a3372d</code>: the
+helper writes a line once it runs, and the test waits for that line, up to 30
+seconds, before asking, so the <code>k</code> case is checked every time rather than in a
+window. Alone, the test passed 600 of 600 runs, with and without the race
+detector; beside load, as committed, it failed 1 of 1,400, and mended, none (the
+probe below was rerun for this chapter with its outcomes folded; the first
+run's, keyed by process, is kept with the evidence):</p>
+<pre><code class="language-text"># the baseline at 07171fb, the release verifier's go test -race
+--- FAIL: TestKarviAliveByExecutable (0.02s)
+    process_test.go:75: a karvi started as k judged not alive: its file &quot;osutil.test&quot;
+FAIL
+FAIL	github.com/robert-patrick-texas/karvi/internal/osutil	0.381s
+# the probe, rerun for this chapter with its outcomes folded: 3,000 starts each
+stress=false starts=3000 other-file reads=map[] (self probe) go=go1.27.3
+stress=true starts=3000 other-file reads=map[no file (no such file or directory):77] (self probe) go=go1.27.3
+stress=true starts=3000 other-file reads=map[no file (no such file or directory):150 probe-race:1] (self probe-race) go=go1.27.3
+# the test, 400 runs as committed and 400 mended, beside eight /bin/true loops
+committed: exit=1 failures=1 of 400; load 4.58
+      1 judged not alive: its file &quot;osutil.test&quot;
+mended: exit=0 failures=0 of 400; load 9.22
+# 1,000 runs each beside sixteen loops
+committed-1000: exit=0 failures=0 of 1000; load 18.26
+mended-1000: exit=0 failures=0 of 1000; load 19.05
+</code></pre>
+<p><strong>The second stop: the accept test.</strong> The core evidence after 1/3 failed one
+test of 1,280. What it guards, a fix of chapter 88's S10: with the process out
+of file descriptors, the daemon cannot accept a connection; it must log the
+failure, retry, and serve the connection once descriptors are free, still
+running, not stop. <code>TestAcceptOutOfDescriptorsIsRetried</code> starts a daemon, waits
+until it is up, lowers the process's descriptor limit to the lowest free
+descriptor, connects to both sockets, and requires each accept's retry to be
+logged and both connections served once the limit is restored.</p>
+<p>The obstacle: the test took the daemon's state file appearing as the daemon
+being up. The daemon writes that file by renaming it into place and then opening
+its folder to sync it; the test lowered the limit in the gap, the folder's open
+failed, and the daemon stopped. The gap is too narrow to meet by load alone, so
+it was widened by an overlay of the atomic write pausing 50 ms after the rename,
+which was not committed. The mend, <code>0aa8a54</code>: the test waits for the daemon to
+answer a ping, which it does only once its start is done, the sync included, and
+reads that connection to its end, so the daemon has closed its descriptor for it
+before the limit, as the test requires. With the daemon's retry mutated away,
+the mended test fails, so it still guards the fix:</p>
+<pre><code class="language-text"># the core evidence at 61e5759 (go test -count=1 -v)
+=== RUN   TestAcceptOutOfDescriptorsIsRetried
+    accept_test.go:121: Serve returned at a passing accept error: sync parent directory: open /var/tmp/ndN: too many open files
+--- FAIL: TestAcceptOutOfDescriptorsIsRetried (5.06s)
+# 500 runs each beside eight /bin/true loops
+committed: exit=0 failures=0 of 500; load 4.40
+mended: exit=0 failures=0 of 500; load 6.99
+# the gap between the rename and the folder's open widened to 50 ms: 20 runs as committed
+     20 Serve returned at a passing accept error: sync parent directory: open /var/tmp/ndN: too many open files
+FAIL	github.com/robert-patrick-texas/karvi/internal/daemon
+# 20 runs mended
+ok  	github.com/robert-patrick-texas/karvi/internal/daemon
+# mended, with the daemon's retry mutated away (acceptRetryable false)
+Serve returned at a passing accept error: accept unix /var/tmp/ndN/d.sock: accept4: too many open files
+</code></pre>
+<p><strong>Not taken</strong>, for both: a longer fixed pause before the test asks, which a
+slower host outruns, where waiting on the condition does not; a readiness signal
+added to the daemon for the accept test, a change to karvi's code for what a
+test alone needs; and running the release on an idle host, which the release
+cannot promise.</p>
+<p><strong>The number.</strong> <code>VERSION</code>, the <code>Makefile</code>, <code>buildinfo.Version</code>, and the two
+verifiers; the <code>## Unreleased</code> block became <code>## 0.39.0 - 2026-11-02</code> under a
+lead paragraph: a minor release on 0.38.0 for the fixes of the code review, the
+registry 33 and every other counter 0.38.0's, goldmark v1.8.7 for the documents
+alone, and what a site changes, one clause for each Breaking entry.
+<code>retiredV0390</code>, which the review's fixes had set for
+<code>askpass_enable_password_unset</code>, already named this number, so nothing was
+renamed. <code>CHECKSUMS.sha256</code> has its four lines from the release-identity build.
+The two test mends came after 1/3 and before the core evidence's second run;
+neither changes a shipped byte.</p>
+<p><strong>The documents.</strong> 2/3 is 0.38.0's with this release's values, in the same eight
+files: the build result, the artifact index, the manifest (its registry 33,
+goldmark v1.8.7, its previous release 0.38.0), the compatibility example's log,
+and the build guide's, the qualification document's, the runbook's, and
+OPERATIONS' release values.</p>
+<p><strong>The release notes, executed.</strong> Before publishing, the notes' concrete claims
+ran on the release's build in a lab under <code>/dev/shm</code>, every place under it
+(<code>v0390-notes-check.sh</code>; the lab's <code>--config</code> is left out of the <code>$</code> labels, the
+lab's path written <code>LAB</code>; the <code>#</code>, <code>$</code>, and <code>exit=</code> lines are the script's).
+Each held, and the notes went out as drafted. The exercise case is refused by
+the client, and no daemon was started:</p>
+<pre><code class="language-text"># karvi 0.39.0 build: OVm9OErdgujJlrhYFLuV
+# karvi-prune --days above 999
+$ karvi-prune --days 1000 --dry-run
+karvi-prune: --days takes one to 999, not 1000
+exit=2
+# karvi-prune on a root it cannot read
+$ karvi-prune --basedir unreadable --days 30 --dry-run
+failed kind=tree path=LAB/unreadable/jobs error=lstat LAB/unreadable/jobs: permission denied
+failed kind=tree path=LAB/unreadable/transcripts error=open LAB/unreadable/transcripts: permission denied
+failed kind=tree path=LAB/unreadable/state/scoreboards error=open LAB/unreadable/state/scoreboards: permission denied
+examined=0 removed=0 skipped=0 not_owned=0 failed=3 bytes=0 dry_run=true
+exit=1
+# an integer with a leading zero
+$ karvi config validate v.toml
+config_toml_syntax: invalid TOML at LAB/v.toml: TOML line 3 column 1: unsupported bare value &quot;010&quot;
+exit=2
+# display.timestamp with mm between a date token and a time token
+$ karvi config validate v.toml
+display_timestamp_mm_ambiguous: ambiguous mm in display.timestamp; use MM for month or place mm between hh and ss for minutes for display.timestamp at LAB/v.toml:2
+exit=2
+# a platform table's telnet-port outside 1..65535
+$ karvi config validate v.toml
+config_platform_telnet_port_out_of_range: must be 1..65535 for platform.cisco_ios.telnet-port at LAB/v.toml:2
+exit=2
+# a platform table's legacy-class
+$ karvi config validate v.toml
+config_unknown_key: unknown configuration key for platform.cisco_ios.legacy-class at LAB/v.toml:2
+exit=2
+# run --exercise where no job folder is kept
+$ karvi --set output.persist-command=false run --exercise --target router1 show clock
+run_mode_conflict: --exercise with output.persist-command = false: the exercise report is a file in the job folder; --of
+exit=4
+$ karvi daemon status
+daemon_unreachable: daemon not running or unreadable: dial unix LAB/base/socket/d.sock: connect: no such file or directory
+exit=110
+# two inventory rows for one device, differing in the port
+$ karvi run --dry-run --no-daemon --target router1 show clock
+inventory_conflict: client planning: inventory conflict for id name:router1 between LAB/inv.csv:2 and LAB/inv.csv:3
+exit=5
+</code></pre>
+<p><strong>The sequence, as run</strong>, from the pre-checks at 23:47 on 2026-11-01 to the
+published check at 02:46 on 2026-11-02 (UTC; 18:47 to 21:46, EST), the
+operator's two decisions on the tests between:</p>
+<ul>
+<li>23:47 to 23:51, the pre-checks, <code>latest.sh</code> exit 1, and the module move:
+<code>07171fb</code>.</li>
+<li>23:51:18 to 23:52:42, the baseline on a clean clone of <code>07171fb</code>: the release
+verifier exit 1 at the alive test. The first stop for the operator, with the
+probe and the measurements.</li>
+<li>01:46, the alive test mended: <code>1a3372d</code>.</li>
+<li>01:46:06 to 01:57:08, the baseline on a clean clone of <code>1a3372d</code>: <code>latest.sh</code>,
+gofmt, make, and the release verifier with its package and container steps,
+exit 0 each.</li>
+<li>01:57 to 01:58, the release-identity build, the compatibility example, and
+1/3: the build <code>OVm9OErdgujJlrhYFLuV</code> by go1.27.3; the 0.38.0 daemon drained
+idle, refusing busy; <code>61e5759</code>.</li>
+<li>01:58:09 to 02:00:29, the core evidence: the accept test failed. The second
+stop for the operator, with the widened gap.</li>
+<li>02:09, the accept test mended: <code>0aa8a54</code>.</li>
+<li>02:09:31 to 02:11:46, the core evidence: 1,280 named tests across 92 packages,
+vet 0, both socket lengths exit 0.</li>
+<li>02:13, the documents: <code>68dede4</code> (2/3).</li>
+<li>02:14:02 to 02:24:09, the remaining evidence: the shipped checks exit 0, the
+release verifier exit 0 with the nineteen suites, the package, and its
+container test, the checksums unchanged by its rebuild; the replay skipped.</li>
+<li>02:24, 3/3, the tag, <code>main</code>: <code>7158fa1</code>, <code>karvi-v0.39.0</code>, <code>main</code> fast-forwarded
+from <code>6d1bfac</code>.</li>
+<li>02:24:47 to 02:31:19, the artifacts: the bundle reproducible byte for byte and
+verified from its own archive; the package reproducible and checked against
+the extraction; 39,984,978 and 6,611,546 bytes.</li>
+<li>02:31:30 to 02:31:42, the package installed in a throwaway <code>ubuntu:26.04</code>:
+<code>apt install</code> exit 0; the four installed executables <code>CHECKSUMS.sha256</code>'s;
+<code>karvi-audit --help</code> exit 0; 22 files under <code>/usr/share/karvi</code>. The stop for
+the operator's word.</li>
+<li>To 02:44:49, the notes' claims executed on the release's build (the second run
+kept, the exercise case corrected to leave out <code>--no-daemon</code>, which
+<code>--exercise</code> refuses on its own); 02:44:57 to 02:46, the push, the site, the
+GitHub release: <code>dev</code>, <code>main</code>, and the tag pushed; <code>pages.sh</code> pushed the
+release's site (<code>3c85ffc</code>), built at 02:45:36, its 50 files 200 and its footer
+<code>karvi-v0.39.0</code>; release <code>karvi-v0.39.0</code> with the five assets, marked latest,
+its body the notes file; the assets downloaded back match, and
+<code>releases/latest</code> redirects to the tag.</li>
+</ul>
+<p><strong>Executed.</strong> The compatibility example's turning points
+(<code>release/evidence/ipc-schema-compat.log</code>) and the published state:</p>
+<pre><code class="language-text">[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.38.0 build=XVaquK8HnILbatvlhwRi
+daemon started socket=/dev/shm/r390/compat/base/socket/d.sock
+pid 1849402 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build XVaquK8HnILbatvlhwRi 0.38.0
+  client build OVm9OErdgujJlrhYFLuV 0.39.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 1849507 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+latest: karvi-v0.39.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.39.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.39.0-source-linux-amd64.tar.gz: OK
+karvi_0.39.0_amd64.deb: OK
+$ the latest redirect
+location: https://github.com/robert-patrick-texas/karvi/releases/tag/karvi-v0.39.0
+site files: 50, not 200: 0
+</code></pre>
+<p><strong>Found on the way.</strong></p>
+<ul>
+<li><code>karvi</code> is 114,688 bytes larger, <code>karvi-askpass</code> 4,096, <code>karvi-prune</code> 12,288,
+and <code>karvi-audit</code> 24,576; the bundle is 223,183 bytes larger and the package
+70,062.</li>
+<li>The default configuration's evidence carries the review's words: the scratch
+and spool chains' owner and mode rule, the lookup timeout per address family,
+and the halt at a revoked host key. The module metadata of the four
+executables is 0.38.0's, goldmark being in none, so 3/3 carries nine evidence
+files.</li>
+<li><code>exec.Cmd.Start</code> returning does not mean <code>/proc/PID/exe</code> names the new file,
+and a file renamed into place does not mean its writer is done: a test waits
+on the condition it means, as chapter 75 found for time.</li>
+<li>In the throwaway container <code>man karvi-audit</code> has no page, as in chapters 67,
+70, 73, 75, 77, 80, 85, and 87: the minimal image leaves out <code>/usr/share/man</code>.</li>
+</ul>
+<p>The evidence is kept beside the tree (<code>release-design-evidence/v0390-*</code>: the
+timeline, the bridge probe, <code>latest.sh</code>'s output and the module move's checks,
+both baselines, the probe and the two tests' measurements, overlays, and
+mutation, the first core evidence, the build, the compatibility example, the 1/3
+and 2/3 patches, the artifacts with their bundle verifier log, <code>check-deb</code>, the
+container install, the release notes and their check, the push, the site, the
+GitHub release, the published check, and in <code>v0390-chapter-92/</code> this chapter's
+example, its blocks, and the scripts that cut and assemble them;
+<code>review-fixes-2026-11-01/</code> S31's check and wave 12's battery).</p>
+<h2 id="93-standard-input-as-a-device-2026-11-03">93. Standard input as a device (2026-11-03) <a class="anchor" href="#93-standard-input-as-a-device-2026-11-03" aria-label="Link to this section">#</a></h2>
+<p>Operators on the production network asked that <code>-</code> mean standard input where
+they name a device: they type <code>-t</code> and <code>-tl</code> by habit, and to pipe a list of
+targets they had to change to <code>-tf -</code>. On the operator's word, a device of <code>-</code>
+reads standard input, one device per line, as <code>--tf -</code> does, in every
+spelling: <code>-t -</code>, <code>-t=-</code>, <code>--target -</code>, <code>--host -</code>, a <code>-</code> among <code>--tl</code>'s names
+(<code>-tl -</code>, <code>-tl=-</code>, <code>-tl=r1,-</code>), and, at the operator's addition, the positional
+device of <code>command</code>, which is <code>login</code>'s too, so both take it.
+<code>-t=device</code>, <code>-tl=list,of,devices</code>, and <code>-tf=-</code> are unchanged.</p>
+<p><strong>What it gains.</strong> A piped list reaches a run, a command, or a login by the
+options the operators already type, and lands where they put it on the line.
+It waits on nothing: the parser records a device of <code>-</code> as a <code>--tf -</code> at its
+position, so the reading, the one-reader rule, the empty-source rule, the
+plan, the manifest, and watch's TARGET column are <code>--tf -</code>'s, unchanged.</p>
+<p><strong>The rule, as restated for the operator's concurrence.</strong></p>
+<ul>
+<li><code>-</code> as a device reads standard input, one device per line, exactly as
+<code>--tf -</code> does (blank lines, and lines beginning with <code>#</code> or <code>!</code>, are
+skipped), at its place on the line: <code>-t</code>/<code>--target</code>/<code>--host</code>, a <code>-</code> in
+<code>-tl</code> alone or among names, and the positional device of <code>command</code> and
+<code>login</code>.</li>
+<li>Standard input is read once per line: a second <code>-</code> among these, <code>--tf -</code>,
+and <code>--cf -</code> is <code>stdin_source_repeated</code>; a stream line giving <code>-</code> to
+<code>--target</code> or <code>--tl</code> is dropped, as <code>--tf -</code> is.</li>
+<li><code>job list --target -</code> is <code>target_source_stdin_invalid</code>: that <code>--target</code>
+filters jobs and reads no standard input.</li>
+</ul>
+<p>One point the restatement carried was not so: it named the shortcut's form,
+<code>karvi - show clock</code>, among the positional devices, but <code>-</code> as the first word
+is already the stream (<code>stream, s, -</code>), and stays so; the parser test pins it.</p>
+<p><strong>The executed example.</strong> The lab build of the change against the k03 suite's
+fake system transport and settings (<code>ex93.sh</code>; the insecure policy's warning
+lines left out, the work folder written <code>$TMP</code>):</p>
+<pre><code class="language-text">$ printf '127.0.0.1\n' | karvi run --no-daemon -t - show clock
+! 127.0.0.1 [127.0.0.1] platform=generic user=u backend=builtin-env-fallback transport=system
+ok
+! exit=0 elapsed=273ms artifacts=$TMP/state/jobs/261103/261103-194455-00
 
-<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.39.0</code>.</footer>
+$ printf 'localhost\n' | karvi run --no-daemon -tl=127.0.0.1,- show clock
+! 127.0.0.1 [127.0.0.1] platform=generic user=u backend=builtin-env-fallback transport=system
+ok
+
+! localhost [127.0.0.1] platform=generic user=u backend=builtin-env-fallback transport=system
+ok
+! exit=0 elapsed=506ms artifacts=$TMP/state/jobs/261103/261103-194455-01
+
+$ printf '# lab\nlocalhost\n127.0.0.1\n' | karvi command - show clock
+! localhost [127.0.0.1] platform=generic user=u backend=builtin-env-fallback transport=system
+ok
+! exit=0 elapsed=264ms artifacts=$TMP/state/jobs/261103/261103-194455-02
+
+$ printf '127.0.0.1\n' | karvi run --no-daemon -t=- --tf - show clock
+stdin_source_repeated: standard input may be read by one input: one --cf -, --tf -, --target -, --tl -, or device -
+exit 4
+
+$ karvi job list --target -
+target_source_stdin_invalid: job list --target - is not accepted; job list's --target filters the jobs by device and reads no standard input
+exit 4
+
+$ printf -- '--target -\n--tl r1,-\n--end\n' | karvi stream
+stream line 1: standard input is the stream; --target - is not accepted
+stream line 2: standard input is the stream; --tl - is not accepted
+</code></pre>
+<p>The list's <code>-</code> takes the place it holds (<code>127.0.0.1</code> first, then standard
+input's <code>localhost</code>), and <code>command</code> connects to the first device of the set,
+the comment line skipped. The released 0.39.0, given the first three lines,
+looked <code>-</code> up as a name: <code>dns_nxdomain: 1 of 1 targets failed address resolution: name:- (lookup -: no such host (-))</code>, exit 7.</p>
+<p><strong>What changed.</strong> The parser's <code>addTarget</code> and <code>positionalDevice</code> record a
+device of <code>-</code> as a <code>--tf -</code> (<code>stdinDevice</code>, <code>stdinTargetInput</code>), so a <code>--tl</code>
+name, which <code>addTarget</code> takes one at a time, follows; <code>--tl</code>'s split is one
+function the stream's check reads too (<code>targetListNames</code>). <code>job list</code> refuses
+the recorded <code>--tf -</code> before its filters. The one-reader message names the new
+forms; the stream drops a <code>--target -</code> line and a <code>--tl</code> line with a <code>-</code> name.
+The help of <code>command</code>, <code>run</code>, <code>crun</code>, <code>login</code>, and <code>stream</code>, their manual
+pages, the two codes' causes, the stream rule in
+<a href="OPERATIONS.html"><code>docs/OPERATIONS.md</code></a>, and the rule in
+<a href="DESIGN.html"><code>docs/DESIGN.md</code></a> follow. A device named <code>-</code> is reached through a
+target file alone, so the CHANGELOG entry is Breaking.</p>
+<p><strong>Not taken.</strong> <code>-</code> only as a whole <code>--tl</code> value: each list name is already a
+<code>--target</code> at the list's position, so the plainer rule is that each name may
+be <code>-</code>. A target kind of its own for the parse: the recorded <code>--tf -</code> keeps
+every reader unchanged, and the invocation's own record still shows the option
+as typed. <code>job list</code> reading its filters from standard input: not asked, and
+its <code>--target</code> is no target input. The shortcut: <code>-</code> as the first word is the
+stream.</p>
+<p><strong>Checks.</strong> <code>go test ./internal/cli/</code> with the new parser test (seventeen
+spellings and modes, and <code>karvi -</code> the stream), seven refusal rows, and the
+stream's rows (<code>--t -</code>, which was a device named <code>-</code>, is now the stream's
+refusal); the k03 suite against the lab build with five new cases (f15 to f19:
+<code>-t -</code>, <code>-tl=127.0.0.1,-</code>, <code>command -</code>, <code>-t=-</code> beside <code>--tf -</code>, and
+<code>job list --target -</code>), f14 moved onto the same <code>piped</code> helper; then gofmt,
+<code>go vet ./...</code>, <code>make generated-clean</code>, and the whole tree's <code>go test</code> (73
+packages). The full battery runs at the end of the session's second section.</p>
+<p>The evidence is kept beside the tree (<code>release-design-evidence/stdin-device-chapter-93/</code>:
+<code>ex93.sh</code> and its output on the lab build and on the released 0.39.0, and the
+k03 run).</p>
+<h2 id="94-the-negotiated-ssh-algorithms-in---debug-2026-11-03">94. The negotiated SSH algorithms in <code>--debug</code> (2026-11-03) <a class="anchor" href="#94-the-negotiated-ssh-algorithms-in---debug-2026-11-03" aria-label="Link to this section">#</a></h2>
+<p>Operators on the production network reported that <code>run</code> against three
+Catalyst switches failed at times and worked at others, with the same
+command, device, and credential (the report renamed: devices, addresses, and
+user fictional):</p>
+<pre><code class="language-text">$ k r -t=switch1 -c=&quot;show clock&quot;
+! switch1 [192.0.2.56] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+karvi: target=switch1 status=connection_error error=native_session_open_failed: SSH handshake with 192.0.2.56:22: ssh: handshake failed: cipher: message authentication failed
+! exit=101 elapsed=262ms artifacts=…
+
+$ k r -t=switch1 -c=&quot;show clock&quot;
+! switch1 [192.0.2.56] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+13:31:48.974 EST Tue Nov 3 2026
+! exit=0 elapsed=2.55s artifacts=…
+</code></pre>
+<p>The two other switches failed with <code>ssh: invalid packet length, packet too large</code>; four runs of eleven failed. Read against the vendored x/crypto, a
+failure comes after the device's host-key signature verified and after both
+sides sent <code>NEWKEYS</code>: the device's first encrypted packet does not decrypt, so
+the two sides agreed on the exchange hash and derived different keys. The two
+messages are one fault through two ciphers: AES-GCM's tag check
+(<code>cipher.go</code>'s <code>aead.Open</code>), and a cipher that encrypts the length field,
+where wrong keys give a random length. What changes from one connection to
+the next is the key exchange's random values alone, the mark of a shared
+secret one side encodes otherwise for some values. karvi's <code>kex</code> list puts
+<code>ecdh-sha2-nistp521</code> before the 384 and 256 curves, where OpenSSH and
+x/crypto put 256 first, so a switch without curve25519 likely meets karvi on a
+key exchange other clients do not choose; but <code>--debug</code> named only what karvi
+offered, not what was chosen. On the operator's word, as recommended, the
+native transport names its choice.</p>
+<p><strong>What it gains.</strong> One <code>--debug</code> run names the key exchange, host-key
+algorithm, cipher, and MAC a device and karvi use, which is the question an
+intermittent failure after the key exchange asks first, and what a vendor case
+needs. It waits on nothing: x/crypto keeps the choice on the connection
+(<code>AlgorithmsConnMetadata</code>).</p>
+<p><strong>The rule, as agreed.</strong> After a completed handshake, one line: <code>native SSH connection negotiated target=… address=… kex=… hostkey=… cipher=… mac=…</code>; an
+AEAD cipher's MAC, which x/crypto leaves empty, is <code>&lt;implicit&gt;</code>, as OpenSSH's
+<code>-v</code> writes it; a cipher or MAC whose two directions differ is
+<code>to-device/from-device</code>, one name when they agree. A failed handshake prints
+none: x/crypto returns no connection, and a device's choice is the same at
+every connection, so its next completed one names what the failed one used.
+The system transport is unchanged.</p>
+<p><strong>The executed example.</strong> The lab build against <code>karvi-fake-device</code> limited
+to the lists named (<code>ex94.sh</code>; debug lines other than the new one left out):</p>
+<pre><code class="language-text">== a device offering ecdh-sha2-nistp521 and AES-GCM (fake: -kex ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256 -ciphers aes256-gcm@openssh.com,aes256-ctr)
+$ karvi --debug command --transport native --address 127.0.0.1 --port $PORT --pi router1 show clock
+exit 0
+19:50:50 2026-11-03 DEBUG native SSH connection negotiated target=&quot;router1&quot; address=127.0.0.1:46739 kex=ecdh-sha2-nistp521 hostkey=ssh-ed25519 cipher=aes256-gcm@openssh.com mac=&lt;implicit&gt;
+
+== a device offering AES-CTR and plain HMACs (fake: -kex ecdh-sha2-nistp256 -ciphers aes256-ctr -macs hmac-sha2-512,hmac-sha2-256)
+$ karvi --debug command --transport native --address 127.0.0.1 --port $PORT --pi router1 show clock
+exit 0
+19:50:50 2026-11-03 DEBUG native SSH connection negotiated target=&quot;router1&quot; address=127.0.0.1:38379 kex=ecdh-sha2-nistp256 hostkey=ssh-ed25519 cipher=aes256-ctr mac=hmac-sha2-512
+
+== a device with no cipher in common (fake: -ciphers aes128-cbc)
+$ karvi --debug command --transport native --address 127.0.0.1 --port $PORT --pi router1 show clock
+exit 110
+(no negotiated line)
+ssh_algorithm_negotiation_failed: command failed for name:router1
+</code></pre>
+<p>The first device offers the three curves, and karvi chooses P-521, its own
+first in common. A device whose directions differ is
+not in the fake (it offers one list for both); <code>TestNegotiatedDirections</code>
+covers the form.</p>
+<p><strong>What it leaves.</strong> The fault's key exchange is the operators' to find on the
+production network: <code>--set 'ssh-algorithms.kex=[&quot;NAME&quot;]'</code> before the command
+word pins one, and twenty runs of each of <code>ecdh-sha2-nistp521</code>,
+<code>ecdh-sha2-nistp384</code>, <code>ecdh-sha2-nistp256</code>, and
+<code>diffie-hellman-group14-sha256</code> against each switch tell which fails; a key
+exchange failing half its runs leaves twenty clean ones about one chance in a
+million. The same pin over <code>--transport system</code> tells a device fault, which
+OpenSSH meets as well (<code>Corrupted MAC on input</code>, <code>message authentication code incorrect</code>, <code>Bad packet length</code>), from x/crypto's. Whether the default <code>kex</code>
+order should put the 256 curve first, as OpenSSH does, waits on that result;
+until then, an <code>[ssh-algorithms-profile.NAME]</code> for the switches leaves the
+faulty key exchange out. <a href="SSH-TROUBLE.html"><code>docs/SSH-TROUBLE.md</code></a> section 3
+carries the recipe.</p>
+<p><strong>Not taken.</strong> The device's offer read from the wire, its <code>KEXINIT</code> in clear
+before the keys change, and x/crypto's choice repeated in karvi: it would name
+a failed handshake's choice, at the price of a second negotiation to keep in
+step with x/crypto's. x/crypto's <code>AuthCallback</code>, which sees the choice before
+authentication and so would name it on an authentication failure too, where it
+does not matter, at the price of a second path, since a server that accepts
+<code>none</code> never calls it.
+OpenSSH's log level raised under <code>--debug</code> for the system transport: its
+<code>debug1</code> lines name the choice, but karvi classifies OpenSSH's standard error
+at <code>VERBOSE</code>. The choice in the command record: not asked; the debug line is
+the operator's when wanted. An automatic retry of the handshake: it would hide
+a device fault that half the connections meet.</p>
+<p><strong>Checks.</strong> <code>TestDialNamesTheNegotiatedAlgorithms</code> against the fake (GCM,
+CTR with a plain MAC, and a handshake that fails naming none) and
+<code>TestNegotiatedDirections</code>; gofmt, <code>go vet ./...</code>, <code>make generated-clean</code>, the
+whole tree's <code>go test</code> (73 packages), and the full battery on both sections:
+<code>scripts/verify-release.sh</code> in a copy of the tree, so that its build left the
+released <code>bin/</code> as it was (the Go tests, the race tests, and every suite,
+k03's new cases among them), passed in 11 minutes, the host clean after it.</p>
+<p>The evidence is kept beside the tree (<code>release-design-evidence/negotiated-debug-chapter-94/</code>:
+<code>ex94.sh</code> and its output on the lab build, and the session's battery).</p>
+<p><strong>The outcome on the production network (2026-11-03).</strong> The operators pinned
+the two key exchanges the switch prefers, twenty runs each against one switch
+on IOS XE 26.1.2 (the report renamed: the switch is switch1 here):</p>
+<pre><code class="language-text">$ for kex in mlkem768x25519-sha256 curve25519-sha256; do … k --set &quot;ssh-algorithms.kex=[\&quot;$kex\&quot;]&quot; r -t=switch1 -c=&quot;show clock&quot; … done
+mlkem768x25519-sha256 ok=13 failed=7
+curve25519-sha256 ok=20 failed=0
+</code></pre>
+<p>The switch's <code>show ip ssh</code> lists <code>mlkem768x25519-sha256</code> first, then
+<code>curve25519-sha256</code> and the three ECDH curves, and karvi's <code>kex</code> list puts it
+first as well: every connection on karvi's defaults used it. The suspect named
+above was wrong: the switches hold curve25519, and the four pins the recipe
+named left out both key exchanges they prefer. The fault is the switch's
+ML-KEM hybrid: seven runs of twenty here, four of eleven in the report, about
+a third, where twenty clean runs of curve25519 at that rate come about once in
+five thousand. x/crypto encodes the hybrid's shared secret as a string in both
+the exchange hash and the key derivation (<code>mlkem.go</code>, after
+draft-kampanakis-curdle-ssh-pq-ke-05); the switch's signature over the hash
+verifies, so the switch derives other keys from that secret for some of its
+values. A switch on IOS XE 26.2.1 met no failure, and the production network
+is moving its switches to that release.</p>
+<p>The system transport met no failure on the operators' hosts for another
+reason: karvi offers what the host's <code>ssh</code> implements, and OpenSSH 9.6
+(Ubuntu 24.04) has no ML-KEM, so it chose curve25519; pinned to ML-KEM it had
+nothing to offer and failed at once. OpenSSH 10.2 (Ubuntu 26.04) implements
+it, so there the system transport offers it first too, and meets the same
+fault on a switch still on 26.1.2.</p>
+<p>Until a switch moves, a site profile leaves the key exchange out for the
+devices its map rule selects, on both transports, and comes out with one
+deletion afterwards. The lab build against the fake offering the switch's key
+exchanges (<code>ex94-outcome.sh</code>; timestamps cut, <code>$CFG</code> a directory holding the
+profile and a rule <code>name = &quot;switch*&quot;</code>):</p>
+<pre><code class="language-text">== the fake offering the switch's key exchanges (fake: -kex mlkem768x25519-sha256,curve25519-sha256,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256 -ciphers aes256-gcm@openssh.com,aes256-ctr -macs hmac-sha2-512,hmac-sha2-256)
+
+== karvi's default lists
+$ karvi --debug command --transport native --address 127.0.0.1 --port $PORT --pi switch1 show clock
+exit 0
+DEBUG native SSH connection negotiated target=&quot;switch1&quot; address=127.0.0.1:44459 kex=mlkem768x25519-sha256 hostkey=ssh-ed25519 cipher=aes256-gcm@openssh.com mac=&lt;implicit&gt;
+
+== the site profile, its map rule matching the device
+$ karvi --config $CFG --debug command --transport native --address 127.0.0.1 --port $PORT --pi switch1 show clock
+exit 0
+DEBUG native SSH connection negotiated target=&quot;switch1&quot; address=127.0.0.1:44459 kex=curve25519-sha256 hostkey=ssh-ed25519 cipher=aes256-gcm@openssh.com mac=&lt;implicit&gt;
+
+== the site profile, its map rule matching another device
+$ karvi --config $CFG --debug command --transport native --address 127.0.0.1 --port $PORT --pi router1 show clock
+exit 0
+DEBUG native SSH connection negotiated target=&quot;router1&quot; address=127.0.0.1:44459 kex=mlkem768x25519-sha256 hostkey=ssh-ed25519 cipher=aes256-gcm@openssh.com mac=&lt;implicit&gt;
+
+$ karvi --config $CFG config validate
+exit 0
+valid: true
+</code></pre>
+<p><strong>Agreed, on the operator's word as recommended.</strong> karvi's default <code>kex</code>
+order is unchanged: ML-KEM first is OpenSSH 10's default as well, it keeps a
+recorded session from a later quantum attack, and a fault in one release that
+the next fixes is a site setting's to work around, not the default's. Nothing
+points at P-521, so the question above, whether P-256 should precede it, is
+closed with the order as it is. <a href="SSH-TROUBLE.html"><code>docs/SSH-TROUBLE.md</code></a>
+section 3's recipe pins the key exchanges a device and karvi hold in common,
+in karvi's order from the first, where it named four fixed ones, and carries
+the observation and the profile. A switch on 26.2.1 meeting the failure
+reopens it.</p>
+<p><strong>Not taken.</strong> The default order changed to put curve25519 first: every
+device would give up the hybrid for one release's fault. A failed handshake
+retried on the next key exchange in common: it hides a device fault and
+doubles a failing connection's time. The switches' own lists (<code>ip ssh server algorithm kex</code> without the ML-KEM hybrid): it covers every client, OpenSSH
+10's among them, but it changes production devices, the network's call, and
+the upgrade under way takes its place.</p>
+<p><strong>Checks.</strong> The example's three runs and <code>config validate</code> on the lab build,
+exit 0 each, the host clean after; <code>make generated-clean</code>; the tree's
+conversion with the links checked. The evidence beside the tree, in the same
+folder: <code>production-result-renamed.txt</code> (the operators' loop and the switch's
+lists, renamed), <code>ex94-outcome.sh</code> and its output.</p>
+<h2 id="95-a-sleep-between-commands-2026-11-03">95. A sleep between commands (2026-11-03) <a class="anchor" href="#95-a-sleep-between-commands-2026-11-03" aria-label="Link to this section">#</a></h2>
+<p>The operator asked for a scripting syntax to pause before the next command
+statement. A change often waits for its own effect before reading it: a BGP
+peer cleared, then its summary a minute later. IOS XE's command line has no
+sleep, so the wait was two karvi runs with a shell <code>sleep</code> between them: two
+logins, two records, and in a run the slowest device setting everyone's wait.
+On the operator's word, as recommended, karvi has one statement, <code>sleep</code>, in
+two spellings of one grammar.</p>
+<p><strong>What it gains.</strong> A wait inside one session: one login, one record, and in a
+parallel run each device's own timing. It waits on nothing: the plan carries
+one more list parallel to the commands, as it carries each command's
+<code>--timeout</code>, and the executor waits before the command that list marks.</p>
+<p><strong>The rule, as agreed.</strong></p>
+<ul>
+<li>On the command line, <code>--sleep DURATION</code> is a command source in the order
+written, beside <code>--cmd</code> and <code>--cf</code>, on <code>command</code>, <code>run</code>, and <code>crun</code>, and a
+stream line. In a commands file, a line that is <code>--sleep DURATION</code> alone
+(or <code>--sleep=DURATION</code>, spaces around it allowed) is the same statement;
+every other line is device text as before, and <code>--literal</code> sends the line as
+written.</li>
+<li>The sleep begins once the command before it has returned its prompt (or the
+session is prepared, before the first command), and the next command is sent
+when it ends; sleeps in a row add up. It is no command: it has no record, and
+<code>--debug</code> writes <code>device sleep target=… index=… total=… sleep=…</code>.</li>
+<li>A sleep is 1s..12h, <code>--timeout</code>'s range. A device's total above a set
+<code>execution.device-timeout</code> is refused at planning; the deadline ends a sleep,
+the next command then not sent (<code>device_timeout</code>), and a cancel ends it at
+once.</li>
+<li>Refused before any connection: a sleep with no command after it
+(<code>sleep_without_command</code>), a declaration after one
+(<code>declaration_after_sleep</code>), a file line beginning <code>--sleep</code> that is not one
+(<code>commands_file_sleep_invalid</code>), the total over the device timeout
+(<code>sleep_over_device_timeout</code>), and freeform text beside one
+(<code>cli_command_text_mixed</code>).</li>
+<li>The name is <code>sleep</code>: pause suggests a keypress, and wait and delay are
+<code>--blind-wait</code>'s and <code>--wave-delay</code>'s. The file line is the option's own
+text, so that a line not taken as a sleep fails loudly: IOS answers <code>% Invalid input</code>, where a comment form such as <code>!karvi sleep 60s</code> would be
+skipped by the device and the next command run early, in the middle of a
+change.</li>
+</ul>
+<p><strong>The executed examples.</strong> The lab build against <code>karvi-fake-device</code> over the
+native transport (<code>ex95.sh</code>; the debug lines other than the command and sleep
+lines left out, and their fields <code>sha256=</code> and <code>maxbytes=</code>; <code>post.txt</code> is
+<code>clear counters\r</code>, <code>--sleep 3s</code>, <code>show clock</code>, its <code>\r</code> the blind return that
+answers the <code>[confirm]</code>; <code>plain.txt</code> is <code>show version</code>, <code>--sleep 3s</code>, <code>show clock</code>; <code>typo.txt</code> is <code>show clock</code>, <code>--sleep 3</code>, <code>show users</code>):</p>
+<pre><code class="language-text">== a --sleep between two --cmd
+$ karvi --debug command --transport native --address 127.0.0.1 --port $PORT --pi router1 --cmd show version --sleep 3s --cmd show clock
+exit 0, 3.6s
+DEBUG device command start target=&quot;router1&quot; index=1 total=2 bytes=12 command=&quot;show version&quot; timeout=20s blind=false blind_returns=0
+DEBUG device sleep target=&quot;router1&quot; index=2 total=2 sleep=3s
+DEBUG device command start target=&quot;router1&quot; index=2 total=2 bytes=10 command=&quot;show clock&quot; timeout=20s blind=false blind_returns=0
+
+== a --sleep line in a --cf file
+$ karvi --debug command --transport native --address 127.0.0.1 --port $PORT --pi router1 --cf $TMP/post.txt
+exit 0, 3.6s
+DEBUG device command start target=&quot;router1&quot; index=1 total=2 bytes=14 command=&quot;clear counters&quot; timeout=10s blind=true blind_returns=1
+DEBUG device sleep target=&quot;router1&quot; index=2 total=2 sleep=3s
+DEBUG device command start target=&quot;router1&quot; index=2 total=2 bytes=10 command=&quot;show clock&quot; timeout=20s blind=false blind_returns=0
+
+== --literal sends the line as text
+$ karvi command --transport native --address 127.0.0.1 --port $PORT --pi router1 --literal --cf $TMP/plain.txt
+exit 107, 0.8s
+device_command_error: command failed for name:router1
+     ^
+% Invalid input detected at '^' marker.
+karvi: target=router1 status=not_attempted_prior_command_failure command=3/3
+
+== the refusals, each exit 4 in no time, nothing sent
+sleep_without_command: a --sleep of 3s comes after the last command; a sleep waits before the next command, so put one after it or remove the sleep
+declaration_after_sleep: --timeout follows --sleep; write it right after its --cmd, before the --sleep
+commands_file_sleep_invalid: commands file $TMP/typo.txt line 2: --sleep takes a duration of 1s..12h (30s, 5m, 1h30m), not &quot;3&quot;; the line is --sleep DURATION alone
+sleep_over_device_timeout: the --sleep total 6s is above execution.device-timeout 5s, the bound on the device's whole list; shorten the sleeps or raise the ceiling with --set execution.device-timeout=6s
+cli_command_text_mixed: freeform text &quot;show clock&quot; cannot be combined with --cmd, --cf, or --sleep
+</code></pre>
+<p>The same script on the released 0.39.0 (<code>ex95-released-0390.out</code>): <code>--sleep</code>
+is <code>cli_option_unknown: unknown option --sleep in command</code>, and <code>post.txt</code>'s
+second line goes to the device as a command, <code>command=&quot;--sleep 3s&quot;</code>, which
+answers <code>% Invalid input</code> and leaves <code>show clock</code> not attempted. A <code>--dry-run</code>
+on the lab build names each sleep by the command it precedes, <code>run --dry-run --no-daemon --target 127.0.0.1 --cmd 'clear ip bgp 192.0.2.1 soft' --sleep 1m --cmd 'show ip bgp summary' --cf post.txt</code> (its sleep 20s) giving:</p>
+<pre><code class="language-text">commands: 4
+sleeps: 1m0s before command 2; 20s before command 4
+</code></pre>
+<p><strong>What changed.</strong> The parser's <code>CommandSource</code> holds a sleep beside <code>--cmd</code>
+and <code>--cf</code>; <code>commandPlan</code> turns the sleeps and the file lines into the list
+parallel to the commands; the plan carries it as <code>sleeps_ns</code>, on the plan and
+on each device's own list under a <code>--cf</code> folder, and the plan check refuses a
+miscounted or negative one (execution plan 16; the plan report stays 4, since
+it refers to the plan's schema); the planner refuses the total over the
+device timeout; the executor waits before the command, its cancel and
+device-timeout checks after the wait unchanged, so the command after a sleep
+they end is recorded as they record any unsent command. A commands-file line
+<code>--sleep …</code> was device text and is now the statement: breaking, as the
+CHANGELOG says.</p>
+<p><strong>Not taken.</strong> A declaration on the <code>--cmd</code> before it, as <code>--timeout</code> is: it
+could not follow a <code>--cf</code> or stand in a file. A blind send held open,
+<code>--cmd '\r' --blind-wait 60s</code>: it sends a keystroke. The device's own sleep:
+IOS has none (a Linux device's shell has, within the command timeout). Two
+runs with a shell <code>sleep</code>: today's workaround, which the statement replaces.
+A comment form in files (<code>!karvi sleep</code>): skipped silently where it is not
+read. A record per sleep: the command records carry their times, and the
+debug line names each sleep. A sleep allowed after the last command: it
+would only hold the session open. A cap below <code>--timeout</code>'s 12h: the device
+timeout is the site's ceiling, and a device's idle limit the caution
+<a href="COMMAND-SESSION.html#sleeps-between-commands"><code>docs/COMMAND-SESSION.md</code></a>
+names (IOS <code>exec-timeout</code>, 10 minutes by default, which the transport's
+keepalives do not reset).</p>
+<p><strong>Checks.</strong> Two sections: the plan and the executor (<code>sleeps_ns</code>, schema 16,
+the executor's wait and its cut by the device deadline and by a cancel, the
+planner's total; the four pinned digests moved by the version and the field
+alone, the former digests returning with both set back), and the command line
+(the option, the file lines, the refusals, the dry-run text, help and man
+pages, the codes, k03's new cases <code>s1</code> to <code>s6</code>); gofmt, <code>go vet ./...</code>, <code>make generated-clean</code>, and the whole tree's <code>go test</code> (73 packages) on each; and the
+full battery on both: <code>scripts/verify-release.sh</code> in a copy of the tree, so
+that its build left the released <code>bin/</code> as it was (the Go tests, the race
+tests, and every suite, k03's new cases among them), passed in 11 minutes, the
+host clean after it.</p>
+<p>The evidence is kept beside the tree (<code>release-design-evidence/sleep-chapter-95/</code>:
+<code>ex95.sh</code> and its output on the lab build and on the released 0.39.0, each
+section's patch and test log, k03's output, and the battery's log).</p>
+<h2 id="96-root-commands-on-the-exec-channel-2026-11-04">96. Root commands on the exec channel (2026-11-04) <a class="anchor" href="#96-root-commands-on-the-exec-channel-2026-11-04" aria-label="Link to this section">#</a></h2>
+<p>The operator asked which capability to build next, measured against the tools
+operators use beside karvi; grouped output came first in the recommendation,
+<code>sudo</code> second, and the operator chose <code>sudo</code> on the exec channel. Until now a
+server's command that needed root was written <code>sudo -n …</code>: it ran where the
+server's rules wanted no password and was refused at once, <code>sudo: a password is required</code>, everywhere else. DESIGN section 5 held a sketch from chapter 24
+(a <code>--sudo</code> flag attached to the <code>--cmd</code> before it, the command run through <code>sh -c</code>) and ROADMAP its open questions. The session settled six issues, one at a
+time, each on the operator's word, and built them in seven sections.</p>
+<p><strong>What it gains.</strong> A root command with a password in the same session as the
+rest of the list: one login, one record per command, the password never on a
+command line or in a file, and the record saying the command ran as root. The
+server's own rules keep their meaning: a rule for one command matches it, and
+the server's log names it.</p>
+<p><strong>The rule, as agreed.</strong></p>
+<ol>
+<li><strong>The exec channel alone.</strong> <code>--sudo</code> reaches a target whose platform runs on
+the exec channel (<code>linux</code> and the tables on its base); a target on a shell,
+<code>linux_shell</code> and every network platform, is refused at planning,
+<code>channel_shell_sudo_refused</code>, naming the target and the command's index, by
+the client and by the daemon's plan check. The shell's form, <code>sudo -p</code>
+without <code>-S</code> on the terminal, waits in ROADMAP.</li>
+<li><strong>A command source, on the operator's proposal.</strong> &quot;Why not use <code>--sudo</code> in
+place of <code>--cmd</code>, such that <code>--sudo</code> leads the statement in all methods&quot;:
+<code>--sudo TEXT</code> is one command run as root, in the order written beside
+<code>--cmd</code>, <code>--cf</code>, and <code>--sleep</code>, repeatable, quoted as a <code>--cmd</code>'s (its
+words unquoted too, later in the session: below), its <code>--timeout</code> and
+<code>--maxbytes</code> after it. A commands-file line, a stream line,
+and a <code>crun-commands</code> entry <code>--sudo TEXT</code> are the same statement, and the
+entries are now read by the file-line rule, so a <code>--sleep</code> entry is a sleep
+there too (breaking). A line <code>--sudo</code> with no command is
+<code>commands_file_sudo_invalid</code>; <code>--literal</code> sends every line as written.</li>
+<li><strong>The password, by the source that answered the credential.</strong> A backend's
+enable field as it is, blank being none (no variable fills a backend's
+blank, chapter 56's rule; a row names <code>env:NETSUDO</code>); the fallback's
+<code>NETSUDO</code>, else <code>NETENABLE</code> where it holds <code>netvars</code>, else none. Nothing
+asks at the terminal. <code>NETSUDO</code> is read, and a server's enable field
+carried to the daemon, only for a device with a <code>--sudo</code> command, and
+<code>requires-enable</code> on the exec channel requires it of those alone (the
+operator agreed this reading in section 5: an empty <code>NETSUDO</code> is unset).</li>
+<li><strong>The wire and the record.</strong> <code>sudo -S -p 'karvi-sudo-&lt;16 hex&gt;:' -- TEXT</code>, the
+password written once at the prompt and the input closed; <code>sudo -n -- TEXT</code> with none. No <code>sh -c</code>: the operator asked why the record's
+<code>command_sha256</code> was needed, and with nothing reading it the digest went
+(command record 5); in the same review, both <code>sudo</code>s refused <code>sh -c 'id -u'</code> under a <code>NOPASSWD</code> rule for <code>id</code>, so the wrapper that the sketch
+carried would defeat every per-command rule. The prompt is recognised by
+its token in both forms <code>sudo</code> writes and removed from stderr; a second
+prompt is <code>privilege_failed</code>. The record adds <code>privilege: &quot;sudo&quot;</code>, the
+audit's action too (audit schema 3, agreed in section 3); the display shows
+<code>srv1#</code>; the collection's marker is <code>! --sudo TEXT</code>.</li>
+<li><strong>The rerun files</strong> write each sleep as <code>--sleep DURATION</code> before its command
+(chapter 95's files had dropped them) and each root command as <code>--sudo TEXT</code>; the other declarations stay the plan's.</li>
+<li><strong>Session-init profiles stay device text</strong> for now. The operator: &quot;a future
+iteration may allow <code>--sudo</code>, <code>--sleep</code>, <code>--expect</code> and other karvi
+capabilities in the session-init profile for devices, and some of these
+decisions may need to be revisited when operators insist on using sudo
+within a <code>linux_shell</code> interactive environment&quot;: two ROADMAP items.</li>
+</ol>
+<p><strong>What <code>sudo</code> writes, executed first.</strong> Before the wire was fixed, both
+<code>sudo</code>s of Ubuntu 26.04 were run without a terminal, the input a pipe, in a
+container with no network (<code>ex96-sudo-container.sh</code>, <code>ex96d-stderr.sh</code>,
+<code>ex96e-unseen.sh</code>): sudo-rs 0.2.13, the release's <code>sudo</code>, writes <code>[sudo: PROMPT] Password: </code> and a line end once its read ends; classic <code>sudo</code> 1.9.17p2
+writes the prompt as given and no line end, the command's own stderr following
+it directly. A wrong password then the input's end gives a second prompt in
+both, and exit 1. The removal rule takes one line end directly after a prompt
+where <code>sudo</code> wrote one (every sudo-rs prompt, a classic second prompt), so a
+command whose stderr begins with a blank line keeps it. <code>karvi-fake-device</code>
+plays both forms by these bytes (<code>-sudo-rs</code>, <code>-sudo-asks</code>).</p>
+<p><strong>The executed examples.</strong> The lab build of the last section against the fake's
+Linux persona over the native transport (<code>ex96.sh</code>, <code>ex96-lab-s7.out</code>; its
+<code>sudo</code> wants the password <code>en</code>):</p>
+<pre><code class="language-text">== a password from NETSUDO, classic sudo's prompt
+$ NETSUDO=en karvi command srv1 --echo --cmd whoami --sudo whoami --sudo id\ -u
+exit 0
+srv1$ whoami
+netops
+srv1# whoami
+root
+srv1# id -u
+0
+-- the records (command, privilege, exit_status, stderr)
+{&quot;command&quot;:&quot;whoami&quot;,&quot;privilege&quot;:&quot;(absent)&quot;,&quot;exit_status&quot;:0,&quot;stderr&quot;:&quot;&quot;}
+{&quot;command&quot;:&quot;whoami&quot;,&quot;privilege&quot;:&quot;sudo&quot;,&quot;exit_status&quot;:0,&quot;stderr&quot;:&quot;&quot;}
+{&quot;command&quot;:&quot;id -u&quot;,&quot;privilege&quot;:&quot;sudo&quot;,&quot;exit_status&quot;:0,&quot;stderr&quot;:&quot;&quot;}
+-- commands.txt, the rerun file
+  whoami
+  --sudo whoami
+  --sudo id -u
+
+== --debug's lines (fields sha256 and maxbytes left out)
+DEBUG device command start target=&quot;srv1&quot; index=1 total=2 bytes=6 command=&quot;whoami&quot; timeout=20s blind=false blind_returns=0 expectations=[]
+DEBUG device command start target=&quot;srv1&quot; index=2 total=2 bytes=6 command=&quot;whoami&quot; timeout=20s blind=false blind_returns=0 expectations=[] sudo=password
+DEBUG device sudo answered target=&quot;srv1&quot; index=2
+
+== no password: sudo -n, refused by a sudo that wants one
+$ karvi command srv1 --sudo whoami
+exit 107
+sudo: a password is required
+karvi: target=srv1 status=device_error error=command_exit_nonzero: exited 1
+
+== a wrong password: sudo asks again
+$ NETSUDO=wrong karvi command srv1 --sudo whoami
+exit 107
+Sorry, try again.
+sudo: no password was provided
+sudo: 1 incorrect password attempt
+karvi: target=srv1 status=device_error error=privilege_failed: sudo asked for the password a second time, refusing the one given; the input was closed and the command did not run
+
+== the refusals, each exit 4 before any connection
+channel_shell_sudo_refused: router1: command 1 is a --sudo command, and the target's platform runs it on a shell channel, which --sudo does not reach; use --cmd for it or a platform on the exec channel
+cli_command_text_mixed: freeform text &quot;restart nginx&quot; joins only a line's one --cmd or --sudo, right after its value; quote each command
+cli_option_unknown: unknown option -u in command; for the command's own option write --sudo -- TEXT, or quote the command
+cli_option_value_invalid: --sudo has no command; it takes the command to run as root, --sudo TEXT
+commands_file_sudo_invalid: commands file $TMP/bare.txt line 2: --sudo has no command; the line is --sudo TEXT
+</code></pre>
+<p>Under sudo-rs's prompt the display and the records are the same, the stderr
+empty; under <code>NOPASSWD</code> with a password held, <code>sudo=password</code> and no <code>device sudo answered</code>, since <code>sudo</code> asked nothing. The same script on the released
+0.39.0 (<code>ex96-released-0390.out</code>): <code>--sudo</code> is <code>cli_option_unknown</code>, and a
+file line <code>--sudo whoami</code> reaches the server as text, <code>sh: 1: --sudo: not found</code>, exit 127: an older karvi given a newer file fails safe. A session-init
+profile's entry <code>--sudo whoami</code> does the same today, under its <code>on-error</code>
+(<code>ex96h-session-init.sh</code>). The dry run (<code>ex96g-dryrun-text.sh</code>) names the root
+commands and each device's source:</p>
+<pre><code class="language-text">commands: 3
+sleeps: 5s before command 3
+sudo: commands 2, 3
+- name:127.0.0.1: planned
+  credential: bound ID (policy=default backend=builtin-env-fallback user=netops; value not displayed)
+  sudo: password from NETSUDO (value not displayed)
+</code></pre>
+<p>with <code>sudo: password from NETENABLE</code>, <code>sudo: password from the enable field (backend=site-creds; …)</code> for a CSV row's field, and <code>sudo: none, sudo -n</code> for
+neither variable or a row's blank field.</p>
+<p><strong>Against the real thing, once.</strong> The lab build in an Ubuntu 26.04 container
+with OpenSSH and both <code>sudo</code>s, <code>--network none</code>, the device user <code>alice</code> with
+every command as root on her password and <code>id</code> and <code>head</code> without one, over
+<code>127.0.0.1</code> on both transports (<code>ex96-karvi-container.sh</code>, its image
+<code>ct/Dockerfile</code>, removed after the run). Every case answered alike on <code>native</code>
+and <code>system</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>sudo-rs</th>
+<th>classic <code>sudo</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--sudo whoami</code>, <code>NETSUDO</code> right</td>
+<td><code>root</code>, stderr empty</td>
+<td>the same</td>
+</tr>
+<tr>
+<td><code>--sudo whoami</code>, none</td>
+<td><code>interactive authentication is required</code></td>
+<td><code>a password is required</code></td>
+</tr>
+<tr>
+<td><code>--sudo whoami</code>, wrong</td>
+<td><code>privilege_failed</code></td>
+<td>the same</td>
+</tr>
+<tr>
+<td><code>--sudo 'id -u'</code> (<code>NOPASSWD</code>), none</td>
+<td><code>0</code></td>
+<td>the same</td>
+</tr>
+<tr>
+<td><code>--sudo 'whoami; whoami'</code></td>
+<td><code>root</code>, <code>alice</code></td>
+<td>the same</td>
+</tr>
+<tr>
+<td><code>--sudo &quot;sh -c 'whoami; whoami'&quot;</code></td>
+<td><code>root</code>, <code>root</code></td>
+<td>the same</td>
+</tr>
+<tr>
+<td><code>--sudo 'head -c1'</code> (<code>NOPASSWD</code>), a password held</td>
+<td><code>command_timeout</code> at 3s</td>
+<td>the same</td>
+</tr>
+</tbody>
+</table>
+<p>The wrong password's records hold <code>sudo</code>'s own lines and no prompt (<code>sudo: Authentication failed, try again.</code> / <code>sudo: Authentication required but not attempted</code>; <code>Sorry, try again.</code> / <code>sudo: no password was provided</code> / <code>sudo: 1 incorrect password attempt</code>). The fifth row is the rule of the wire: only the
+first command is <code>sudo</code>'s. The last is the caution the documents carry.</p>
+<p><strong>Four more, on the operator's word.</strong> The documents raised two open items,
+and one answer raised a question of the operator's:</p>
+<ul>
+<li>
+<p><strong><code>karvi-audit</code>'s rows name the privilege.</strong> The audit's action carried
+<code>privilege: &quot;sudo&quot;</code>, but a row was built from the command alone, so the
+login user's <code>whoami</code> and root's read alike. Agreed as recommended: a root
+command's statement cell is its <code>--sudo TEXT</code>, as the collection marker, the
+rerun files, and the dry run write it, all four now through one function
+(<code>commandfile.Statement</code>):</p>
+<pre><code class="language-text">261104-162716-00  netops  cmd  command success  srv1  whoami
+261104-162716-00  netops  cmd  command success  srv1  --sudo whoami
+261104-162716-00  netops  cmd  command success  srv1  --sudo id -u
+</code></pre>
+</li>
+<li>
+<p><strong>A root command not sent keeps its mark.</strong> Its text line was <code>! not sent: whoami</code>, a sent one's <code>srv1# whoami</code>. Agreed as recommended: <code>! not sent: --sudo whoami</code>, in <code>output.TARGET.txt</code> and the echo alike, through the same
+function.</p>
+</li>
+<li>
+<p><strong>The words of a lone <code>--cmd</code> or <code>--sudo</code>.</strong> The operator: &quot;given that
+<code>cli_command_text_mixed</code> quotes every word after freeform text starts, can we
+support <code>--sudo</code> freeform command text as it [is] done with <code>--cmd</code> freeform
+command text?&quot; Executed first: the freeform command's words are one command,
+<code>srv1 systemctl restart nginx --echo</code> planning <code>systemctl restart nginx --echo</code>; <code>--cmd systemctl restart nginx</code> and <code>--sudo systemctl restart nginx</code>
+were both <code>cli_command_text_mixed</code>; a file line <code>--sudo systemctl restart nginx</code> was one root command. (The quoting the operator saw is that rule:
+karvi options end where the text begins.) Agreed as recommended, one rule for
+both options: the words right after the value of a line's one <code>--cmd</code> or
+<code>--sudo</code>, to the line's end, are that command; options go before it; beside
+another command each is quoted.</p>
+</li>
+<li>
+<p><strong>A dash after the first word.</strong> Run on the built rule, a dash word right
+after the command's first word was still karvi's: <code>--sudo id -u</code> and <code>--sudo journalctl -u nginx</code> were <code>cli_option_unknown</code>, <code>--sudo df -h</code> printed the
+help, <code>--sudo ping -4 192.0.2.1</code> took karvi's <code>-4</code>; <code>--sudo systemctl status nginx --no-pager</code> was one command. The parser cannot read such a word as the
+command's without taking <code>--cmd uptime --timeout 5s</code>'s declaration as text,
+since it never sees the shell's quotes. Agreed as recommended: after <code>--cmd --</code> or <code>--sudo --</code> every word to the line's end is the command, the <code>--</code>
+karvi already reads before freeform text, and that form may end a line of
+other commands; the unknown option after a first word names both fixes.</p>
+</li>
+</ul>
+<pre><code class="language-text">$ NETSUDO=en karvi command srv1 --echo --sudo cat /etc/os-release
+srv1# cat /etc/os-release
+PRETTY_NAME=&quot;Ubuntu 24.04.1 LTS&quot;
+…
+$ NETSUDO=en karvi command srv1 --echo --cmd whoami --sudo -- id -u
+srv1$ whoami
+netops
+srv1# id -u
+0
+</code></pre>
+<p><strong>What changed.</strong> Nine sections, each committed on the operator's word: the
+rerun files' sleeps (the line grammar moved into <code>internal/commandfile</code>); the
+record's digest removed (command record 5); execution plan 17, the exec
+session's <code>sudo</code> (<code>internal/devsession/sudo.go</code>: the wire and the stderr
+filter), the record's <code>privilege</code>, and audit schema 3; the fake's <code>sudo</code> and
+the executor's tests end to end over both transports; the password
+(<code>NETSUDO</code>, the source per device, <code>credential_binding.sudo</code> in the plan
+report); the command line (the option, the file and stream lines, the
+<code>crun-commands</code> entries, the refusals, the dry-run text, help and man pages,
+k03's cases <code>u1</code> to <code>u7</code>); <code>karvi-audit</code>'s rows and the not-sent line
+(<code>commandfile.Statement</code>); the words of a lone command and of one after <code>--</code>
+(k03's <code>u4</code> and <code>u8</code> to <code>u11</code>, <code>c12b</code>); and these documents
+(<a href="COMMAND-SESSION.html#root-commands-on-an-exec-channel"><code>docs/COMMAND-SESSION.md</code>, &quot;Root commands on an exec
+channel&quot;</a>,
+<a href="OPERATIONS.html#root-commands-and-their-password"><code>docs/OPERATIONS.md</code>, &quot;Root commands and their
+password&quot;</a>, DESIGN sections 2,
+4, 5, 7, 10, and 11, COLLECTION, the credential guides, ROADMAP, the CHANGELOG).</p>
+<p><strong>Not taken.</strong> <code>--sudo</code> as a flag after its <code>--cmd</code>, chapter 24's form: two
+spellings, and a flag attached to the wrong command. A run-wide <code>--sudo-all</code>,
+and <code>--sudo</code> covering a <code>--cf</code>. <code>sh -c</code> around the command: it defeats the
+server's per-command rules. A password written to the input before <code>sudo</code>
+asks: it reaches the command wherever <code>sudo</code> needs none. <code>NETSUDO</code> filling a
+backend's blank field, and a separate sudo field in the stores. A terminal
+prompt for the password. A record field or notice for &quot;no password&quot;, a new
+failure code, and a <code>sudo -n true</code> probe. The file-line rule in session-init
+profiles now, and a load-time refusal of a <code>--sudo</code> entry there. A dash word
+after a command's first word read as the command's: <code>-c</code>, <code>-h</code>, and <code>-4</code> are
+karvi's, and an option karvi adds later would change such a line. A one-letter
+option right after a one-word command refused, proposed for <code>--sudo sh -c 'echo hi'</code>, which plans <code>sh</code> as root and <code>echo hi</code> as the login user since <code>-c</code>
+is <code>--cmd</code>'s alias: the operator answered with <code>karvi r -cmd df -c free -c &quot;uname -a&quot;</code>, three commands on 0.39.0 and on the lab build, which the refusal
+would have broken. The documents say instead to quote such a command whole,
+<code>--sudo &quot;sh -c 'echo hi'&quot;</code>, since the joined words lose the shell's quotes
+(<code>--sudo -- sh -c 'echo hi'</code> plans <code>sh -c echo hi</code>).</p>
+<p><strong>Checks.</strong> gofmt, <code>go vet ./...</code>, <code>make generated-clean</code>, and the whole tree's
+<code>go test</code> (74 packages) on each code section, <code>-race</code> on the packages each
+touched; the native suite on each section's lab build from the third on; k03
+on the sixth and the last; the examples above on the last section's lab build
+and on the released 0.39.0.</p>
+<p>The full battery at the end, <code>scripts/verify-release.sh</code> in a copy of the
+tree, so that its build left the released <code>bin/</code> as it was, found one stale
+pin before it ran. The verifier checks the counters of the build it makes, and
+its command record pin was 4, the released build's, which the second section
+had left for the release; the tree builds 5. On a clone of the tree, built, one
+of the verifier's five counter lines failed, and the release's baseline, which
+runs the same verifier on a clone of <code>dev</code>, would have stopped there too. On
+the operator's word the pin moved to 5 in both verifiers, as the record's move
+to 4 and the registry's to 33 moved theirs in their own commits; the release's
+evidence, which describes the shipped build, moves at the release. The battery
+then passed in 11 minutes (the Go tests, the race tests, every suite, k03's
+root-command cases among them, and the package with its container test), the
+host clean after it.</p>
+<p>The evidence is kept beside the tree
+(<code>release-design-evidence/sudo-chapter-96/</code>: the decisions with every
+section's notes, the <code>ex96</code> scripts and their outputs, the container's, each
+section's test logs, and the battery's log).</p>
+<h2 id="97-one-place-for-each-schema-counter-2026-11-04">97. One place for each schema counter (2026-11-04) <a class="anchor" href="#97-one-place-for-each-schema-counter-2026-11-04" aria-label="Link to this section">#</a></h2>
+<p>Before the release 0.40.0's number, a search for the counters the release
+moves (execution plan 17, command record 5, audit 3) found living copies left
+behind. <code>man karvi-audit</code> and OPERATIONS said audit schema 2, which the new
+<code>karvi-audit</code> no longer shows, and four schema files' titles and <code>$id</code>s named a
+counter their own <code>schema_version</code> had left, two of them since 0.36.0. The
+operator asked why the counters were not written in one place only. No rule
+had said so: each copy was added for its own reader, one at a time, and
+<a href="#24-jobs-across-linux-servers-2026-10-04">chapter 24</a>,
+finding <code>buildinfo</code>'s copy stale, tied it to its owner by a test rather than
+removing it. The copies something checked failed loudly when they lagged (the
+verifiers' pin of the command record, <a href="#96-root-commands-on-the-exec-channel-2026-11-04">chapter
+96</a>); the copies nothing
+checked drifted.</p>
+<p><strong>What it gains.</strong> A schema move changes one constant, and the release's
+manifest is checked against the shipped executable instead of trusted. It waits
+on nothing.</p>
+<p><strong>Where a counter was written, and what read it:</strong></p>
+<ul>
+<li>the constant of the package that owns the schema (<code>records</code>,
+<code>executionplan</code>, <code>configschema</code>, <code>ipc</code>, <code>credentialpackage</code>): the source;</li>
+<li><code>buildinfo</code>'s seven copies, which <code>karvi version</code> reports, tied to the owners
+by two tests; only <code>karvi</code> links <code>buildinfo</code>, it links every owner already,
+and no owner imports <code>buildinfo</code>;</li>
+<li>each schema file's <code>schema_version</code>: the tests that check karvi's records
+against the file;</li>
+<li>each schema file's title and <code>$id</code> number: nothing, and four of the ten were
+wrong;</li>
+<li>five pins in each verifier, moved by hand at each schema move;</li>
+<li>README's item 5, BUILD-HOWTO's section 8, OPERATIONS, and <code>karvi-audit.1</code>:
+nothing, and README and BUILD-HOWTO said execution plan 15;</li>
+<li><code>release/release-manifest.json</code>, written at each release's second commit:
+nothing;</li>
+<li>history, the CHANGELOG's blocks, these chapters, and a release's evidence:
+correct as written.</li>
+</ul>
+<p><strong>The rule, agreed as recommended.</strong> A counter is written once, in its owner's
+constant; everything else reads it, is checked against it by a test, or names
+no number (<a href="DESIGN.html#15-configuration-and-errors"><code>docs/DESIGN.md</code>, section
+15</a>, &quot;A counter is written once&quot;):</p>
+<ol>
+<li><code>buildinfo</code> reads the owners' constants; its copies and the two tests that
+tied them are gone.</li>
+<li>The schema files keep <code>schema_version</code>, which the tests check, and their
+titles and <code>$id</code>s name no counter, as the execution plan's and the daemon
+IPC's already did.</li>
+<li>The living documents name no counter: README and BUILD-HOWTO point at <code>karvi version</code>, OPERATIONS names the schema file, and the man page says an event
+of another audit schema than <code>karvi-audit</code>'s own, the one <code>karvi version</code>
+names, has no row, its example line <code>not audit schema N</code>. The configuration
+schema's <code>schema-version = 6</code> stays where an operator writes it.</li>
+<li><code>verify-release.sh</code> pins no counter, since its build reports the owners'
+values by construction; <code>verify-shipped.sh</code> compares the shipped
+executable's seven counters with the manifest's, which the release's second
+commit writes before the third runs it.</li>
+<li>Tests that assert a literal value on the wire stay: they fail loudly.</li>
+</ol>
+<p><strong>The executed examples.</strong> <code>verify-shipped.sh</code> as changed, on the tree before
+the number (the released 0.39.0 <code>bin/</code> and 0.39.0's manifest), passed; on a
+copy whose manifest names audit 3 it stopped:</p>
+<pre><code class="language-text">schema counter audit_schema_version differs
+  bin/karvi-linux-amd64          2
+  release/release-manifest.json  3
+exit=1
+</code></pre>
+<p>A build of the tree reports the seven counters the baseline's build of
+<code>7935835</code> reported, now read from their owners: configuration 6, command record
+5, scoreboard 5, audit 3, job 5, daemon IPC 12, registry 33.</p>
+<p><strong>Not taken.</strong> A test that each schema file's title and <code>$id</code> name its counter,
+which the first recommendation proposed: a checked copy is still a copy, and
+none is needed. The schema files' <code>schema_version</code> generated from Go: the tests
+already fail where the two differ. The manifest's counters written by a tool at
+the release: the check finds a wrong one, and the manifest is written by hand
+in every other field. The version string under the same rule now: it is in five
+places, moved by hand at each release's first commit, and touches the build
+identity <code>CHECKSUMS.sha256</code> reproduces, so it waits until after the release.</p>
+<p><strong>Checks.</strong> gofmt, <code>go vet</code>, <code>make generated-clean</code>, the whole tree's <code>go test</code>
+(74 packages), the examples above, and a check build of the documents; the
+release 0.40.0's baseline then runs on a clean clone of this commit. The
+evidence is kept beside the tree
+(<code>release-design-evidence/counters-chapter-97/</code>).</p>
+
+<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.40.0</code>.</footer>
 </main>
 </body>
 </html>

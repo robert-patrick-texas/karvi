@@ -60,8 +60,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -123,8 +123,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -198,8 +198,7 @@ macro file that holds a secret, and the permission check a credential file
 has; a reference that finds no value (refused at planning); and the stream.
 Masking the job's files by the platform's <code>masks</code> was weighed and set aside:
 the patterns are best effort, a masked <code>commands.txt</code> would send <code>&lt;removed&gt;</code>
-on a rerun, the manifest's plan would no longer match its digest, and a
-record's <code>command_sha256</code> beside a masked line is a fingerprint to guess.</li>
+on a rerun, and the manifest's plan would no longer match its digest.</li>
 <li><strong>A daemon run's live view.</strong> <code>--live</code> runs in the client's process alone
 (<a href="docs/DESIGN.html#12-display-and-help"><code>docs/DESIGN.md</code>, section 12</a>).
 Through the daemon (<code>run</code> without <code>--no-daemon</code>, <code>job follow</code>), the device's bytes would reach the follower as frames of their own
@@ -229,20 +228,21 @@ further backends, each with its own type, keys, and driver: a SQLite store
 holding device or operator data or both, and a JSON store, a device-keyed
 one honouring a pin through the keyed capability; in the shared tabular
 reader, an explicit mapping outranking a field's own header.</li>
-<li><strong><code>sudo</code> on an exec channel: <code>--sudo</code> and <code>NETSUDO</code>.</strong> A command over the
-exec channel that needs <code>sudo</code> runs only as written, <code>sudo -n …</code>, and a
-refused one records <code>command_exit_nonzero</code> with <code>sudo</code>'s message; nothing
-reads <code>NETSUDO</code>. The design is recorded (<a href="docs/DESIGN.html#5-transports-and-the-device-session"><code>docs/DESIGN.md</code>, section
-5</a>): <code>--sudo</code> attaches to
-the <code>--cmd</code> it follows and runs it as <code>sudo -S -p 'karvi-sudo-&lt;16 hex&gt;:' -- sh -c '&lt;the command&gt;'</code>, the password written once and only after that prompt
-appears on standard error, a second appearance <code>privilege_failed</code>; the
-password is the credential's enable field, then <code>NETSUDO</code>, then <code>NETENABLE</code>
-where the platform's fallback holds <code>netvars</code>, and with none the command runs
-under <code>sudo -n</code> and never waits. The questions: the run-wide spelling for
-command files; and whether <code>NETSUDO</code> and <code>NETENABLE</code> fill a backend's blank
-field, which the <code>NET*</code> variables never do for a device a backend answered
-(<a href="docs/EXAMPLES.html#56-the-credential-helper-2026-10-11"><code>docs/EXAMPLES.md</code>, chapter
-56</a>).</li>
+<li><strong>karvi's statements in session-init profiles.</strong> A <code>[session-init.NAME]</code>
+profile's commands are device text: an entry <code>--sudo …</code> or <code>--sleep …</code>
+reaches the device as written and fails there under the profile's
+<code>on-error</code>. A later profile may take karvi's statements and declarations,
+<code>--sudo</code>, <code>--sleep</code>, <code>--expect</code>, and the others, as a commands file's lines
+do (<a href="docs/EXAMPLES.html#96-root-commands-on-the-exec-channel-2026-11-04"><code>docs/EXAMPLES.md</code>, chapter
+96</a>, issue
+6).</li>
+<li><strong><code>--sudo</code> on a shell channel.</strong> <code>--sudo</code> reaches the exec channel alone; a
+target on a shell, <code>linux_shell</code> among them, is refused at planning
+(<code>channel_shell_sudo_refused</code>). The shell's form types <code>sudo -p '&lt;prompt&gt;' -- TEXT</code> without <code>-S</code>, so <code>sudo</code> reads the terminal with its echo off, and
+answers after the prompt as on exec (chapter 24, issue 8). Built when
+operators need <code>sudo</code> in a <code>linux_shell</code> session, it may revisit chapter 96's
+issues 1 to 4: the refusal, the statement, the password's sources, and the
+wire.</li>
 <li><strong>The key that authenticated.</strong> A record names the method that
 authenticated its session (<code>credential.auth</code>) and not which of the
 credential's keys the server accepted. OpenSSH names the key at <code>DEBUG1</code>
@@ -598,7 +598,7 @@ interactive session whose operator saw it end.</li>
 2,500-device accounting gate waits on that run and on review by the network
 operations and security owners.</p>
 
-<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.39.0</code>.</footer>
+<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.40.0</code>.</footer>
 </main>
 </body>
 </html>

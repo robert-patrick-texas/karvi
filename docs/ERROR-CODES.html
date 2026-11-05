@@ -63,8 +63,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -129,8 +129,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -513,6 +513,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>A target's platform asks for an exec channel and its transport is telnet, which has none; refused at planning, naming both.</td>
 </tr>
 <tr>
+<td><code>channel_shell_sudo_refused</code></td>
+<td>usage</td>
+<td style="text-align:right">4</td>
+<td style="text-align:center">no</td>
+<td>A <code>--sudo</code> command is for a target whose platform runs it on a shell channel: <code>--sudo</code> reaches a platform on the exec channel alone (the shell form is not built). Refused at planning, and by the daemon's plan check, naming the target and the command's index.</td>
+</tr>
+<tr>
 <td><code>cli_command_ambiguous</code></td>
 <td>usage</td>
 <td style="text-align:right">4</td>
@@ -538,7 +545,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td>Freeform text is combined with <code>--cmd</code> or <code>--cf</code>.</td>
+<td>Freeform text is combined with more than one command source, a <code>--cf</code>, or a <code>--sleep</code>, or does not begin right after a lone <code>--cmd</code>'s or <code>--sudo</code>'s value; the words after the value of a line's one <code>--cmd</code> or <code>--sudo</code> are its command, and a line of several commands quotes each.</td>
 </tr>
 <tr>
 <td><code>cli_command_unknown</code></td>
@@ -594,7 +601,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td>An option value does not fit the option's declared type: an on/off option given an inline value other than <code>true</code> or <code>false</code>, or an integer, duration, or enumerated option given a value outside its type.</td>
+<td>An option value does not fit the option's declared type: an on/off option given an inline value other than <code>true</code> or <code>false</code>, or an integer, duration, or enumerated option given a value outside its type; <code>--sudo</code> given a blank command.</td>
 </tr>
 <tr>
 <td><code>cli_option_value_missing</code></td>
@@ -798,6 +805,20 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">5</td>
 <td style="text-align:center">no</td>
 <td>Two devices of the target set would read one file of a <code>--cf</code> folder: under <code>output.crop-to-dot</code> a device name's file name is its first label, and <code>core.example.net</code> beside <code>core.example.com</code> is one <code>DIR/core</code>; refused at planning, whatever files the job writes, naming the file and the devices. Set <code>output.crop-to-dot = false</code>, or run the two apart.</td>
+</tr>
+<tr>
+<td><code>commands_file_sleep_invalid</code></td>
+<td>usage</td>
+<td style="text-align:right">4</td>
+<td style="text-align:center">no</td>
+<td>A commands-file line, or an entry of the platform's <code>crun-commands</code> list a <code>crun</code> with no command sends, whose first word is <code>--sleep</code> is not <code>--sleep DURATION</code> alone with DURATION 1s..12h; refused at planning, naming the file and the line (the platform and the entry), rather than sent to the device as text. <code>--literal</code> sends every line as written.</td>
+</tr>
+<tr>
+<td><code>commands_file_sudo_invalid</code></td>
+<td>usage</td>
+<td style="text-align:right">4</td>
+<td style="text-align:center">no</td>
+<td>A commands-file line, or an entry of the platform's <code>crun-commands</code> list a <code>crun</code> with no command sends, whose first word is <code>--sudo</code> has no command after it (the statement is <code>--sudo TEXT</code> or <code>--sudo=TEXT</code>); refused at planning, naming the file and the line (the platform and the entry), rather than sent to the device as text. <code>--literal</code> sends every line as written.</td>
 </tr>
 <tr>
 <td><code>commands_file_unreadable</code></td>
@@ -2221,11 +2242,18 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td><code>--debug-show-secrets</code> is given without <code>--debug</code>.</td>
 </tr>
 <tr>
+<td><code>declaration_after_sleep</code></td>
+<td>usage</td>
+<td style="text-align:right">4</td>
+<td style="text-align:center">no</td>
+<td><code>--expect</code>, <code>--blind</code>, <code>--blind-return</code>, <code>--timeout</code>, or <code>--maxbytes</code> follows a <code>--sleep</code>; a declaration attaches to the <code>--cmd</code> or <code>--sudo</code> written right before it, so it is written before the <code>--sleep</code>.</td>
+</tr>
+<tr>
 <td><code>declaration_before_command</code></td>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td><code>--expect</code>, <code>--blind</code>, <code>--blind-return</code>, <code>--timeout</code>, or <code>--maxbytes</code> is given before the first <code>--cmd</code>; each attaches to the <code>--cmd</code> it follows (or to the one freeform command) and is written after it.</td>
+<td><code>--expect</code>, <code>--blind</code>, <code>--blind-return</code>, <code>--timeout</code>, or <code>--maxbytes</code> is given before the first <code>--cmd</code> or <code>--sudo</code>; each attaches to the <code>--cmd</code> or <code>--sudo</code> it follows (or to the one freeform command) and is written after it.</td>
 </tr>
 <tr>
 <td><code>declaration_repeated</code></td>
@@ -2239,7 +2267,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td><code>--expect</code>, <code>--blind</code>, <code>--blind-return</code>, <code>--timeout</code>, or <code>--maxbytes</code> follows a <code>--cf</code>; a declaration attaches to the <code>--cmd</code> written right before it, and a file line takes <code>\r</code> at its end.</td>
+<td><code>--expect</code>, <code>--blind</code>, <code>--blind-return</code>, <code>--timeout</code>, or <code>--maxbytes</code> follows a <code>--cf</code>; a declaration attaches to the <code>--cmd</code> or <code>--sudo</code> written right before it, and a file line takes <code>\r</code> at its end.</td>
 </tr>
 <tr>
 <td><code>dependency_askpass_unavailable</code></td>
@@ -3457,7 +3485,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>device</td>
 <td style="text-align:right">107</td>
 <td style="text-align:center">no</td>
-<td>Entering the platform's privileged mode fails.</td>
+<td>Entering privileged mode fails: the platform's enable step, or sudo refusing a <code>--sudo</code> command's password (it asks a second time; the command does not run).</td>
 </tr>
 <tr>
 <td><code>record_activity_type_invalid</code></td>
@@ -3859,6 +3887,20 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>A daemon shutdown (<code>--force</code>, or grace expiry) ended the job before this unit finished; the record's status is <code>incomplete_shutdown</code>, and a command already sent has an unknown outcome, never success or failure.</td>
 </tr>
 <tr>
+<td><code>sleep_over_device_timeout</code></td>
+<td>usage</td>
+<td style="text-align:right">4</td>
+<td style="text-align:center">no</td>
+<td>A device's <code>--sleep</code> total (its <code>crun-commands</code> list's, naming the platform) is above a set <code>execution.device-timeout</code>, which bounds the device's whole list and which the sleeps, waited in full, would outlast; refused at planning, naming both values and the <code>--set execution.device-timeout=…</code> that raises the ceiling. At the default 0 there is no ceiling.</td>
+</tr>
+<tr>
+<td><code>sleep_without_command</code></td>
+<td>usage</td>
+<td style="text-align:right">4</td>
+<td style="text-align:center">no</td>
+<td>A <code>--sleep</code>, or a commands-file line or <code>crun-commands</code> entry that is one, comes after the device's last command; a sleep is waited before the next command, so one must follow. Under a <code>--cf</code> folder it names the device, in a <code>crun-commands</code> list the platform.</td>
+</tr>
+<tr>
 <td><code>spool_directory_unavailable</code></td>
 <td>permission</td>
 <td style="text-align:right">9</td>
@@ -3926,7 +3968,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td>More than one input reads standard input: <code>--cf -</code> or <code>--tf -</code> given twice, or the two together.</td>
+<td>More than one input reads standard input: two of <code>--cf -</code>, <code>--tf -</code>, and a device of <code>-</code> (<code>--target -</code>, a <code>-</code> among <code>--tl</code>'s names, or the positional device of <code>command</code> or <code>login</code>).</td>
 </tr>
 <tr>
 <td><code>stream_input_read_failed</code></td>
@@ -4059,7 +4101,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td><code>--tfr -</code> is given; only <code>--tf -</code> reads standard input.</td>
+<td><code>--tfr -</code> is given, where <code>--tf -</code> reads standard input; or <code>job list --target -</code>, whose <code>--target</code> filters the jobs and reads no standard input.</td>
 </tr>
 <tr>
 <td><code>target_source_unreadable</code></td>
@@ -4537,7 +4579,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>notice</td>
 <td style="text-align:right">—</td>
 <td style="text-align:center">no</td>
-<td>A daemon started outside the launcher inherited <code>NETUSER</code>, <code>NETPASS</code>, or <code>NETENABLE</code>; the daemon does not read them, and the notice names the variable only.</td>
+<td>A daemon started outside the launcher inherited <code>NETUSER</code>, <code>NETPASS</code>, <code>NETENABLE</code>, or <code>NETSUDO</code>; the daemon does not read them, and the notice names the variable only.</td>
 </tr>
 <tr>
 <td><code>daemon_other_build</code></td>
@@ -5387,7 +5429,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 </tbody>
 </table>
 
-<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.39.0</code>.</footer>
+<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.40.0</code>.</footer>
 </main>
 </body>
 </html>

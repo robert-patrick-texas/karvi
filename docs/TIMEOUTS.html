@@ -62,8 +62,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -127,8 +127,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -210,10 +210,16 @@ grace).</p>
 <td>each command of that session-init profile</td>
 </tr>
 <tr>
-<td><code>--timeout DURATION</code>, a declaration on one requested command</td>
+<td><code>--timeout DURATION</code>, a declaration on one requested command (a <code>--cmd</code> or a <code>--sudo</code>)</td>
 <td>unset: <code>execution.command-timeout</code></td>
 <td>1s–12h, when parsed; at most a set <code>execution.device-timeout</code>, at planning (<code>timeout_over_device_timeout</code>); refused on a blind command (<code>timeout_with_blind</code>)</td>
 <td>that command, in place of <code>execution.command-timeout</code> and over telnet of <code>telnet.read-timeout</code> too</td>
+</tr>
+<tr>
+<td><code>--sleep DURATION</code>, a source in the command order</td>
+<td>none</td>
+<td>1s–12h, when parsed; the device's total at most a set <code>execution.device-timeout</code>, at planning (<code>sleep_over_device_timeout</code>)</td>
+<td>the wait before the next requested command, under what remains of <code>execution.device-timeout</code>; a cancel ends it (<a href="COMMAND-SESSION.html#sleeps-between-commands"><code>docs/COMMAND-SESSION.md</code></a>)</td>
 </tr>
 <tr>
 <td><code>execution.device-timeout</code> (<code>KARVI__EXECUTION__DEVICE_TIMEOUT</code>)</td>
@@ -249,8 +255,11 @@ grace).</p>
 </table>
 <p>None of these keys but <code>execution.blind-wait</code> has a command-line option; each
 is set for one invocation with <code>--set KEY=VALUE</code> before the mode. One command
-takes its own timeout with <code>--timeout</code> after its <code>--cmd</code>, the rest of the list
-keeping the key's. Every range
+takes its own timeout with <code>--timeout</code> after its <code>--cmd</code> or <code>--sudo</code>, the rest
+of the list keeping the key's. A root command's <code>sudo</code> and its password are
+inside its command timeout: a command that reads its input where <code>sudo</code> asked
+for no password waits to it (<a href="COMMAND-SESSION.html#root-commands-on-an-exec-channel"><code>docs/COMMAND-SESSION.md</code>, &quot;Root commands on an
+exec channel&quot;</a>). Every range
 in the table is enforced when the configuration loads
 (<code>config_value_out_of_range</code>), and <code>execution.blind-wait</code>'s again when the plan
 is drafted (<code>execution_plan_invalid</code>).</p>
@@ -258,9 +267,10 @@ is drafted (<code>execution_plan_invalid</code>).</p>
 client's configuration, which reaches the daemon in the plan's <code>configuration</code>
 block, so every key on this page, the connect and handshake timeouts and the
 keepalives among them, is the invocation's; the plan carries each command's
-<code>--timeout</code> in <code>timeouts_ns</code> (0 for the key's), and the daemon's own values for
-these keys bound no job. A daemon's plan check refuses a negative or miscounted
-<code>timeouts_ns</code>; the client's load has checked every key's range.</p>
+<code>--timeout</code> in <code>timeouts_ns</code> (0 for the key's) and its <code>--sleep</code> in <code>sleeps_ns</code>
+(0 none), and the daemon's own values for these keys bound no job. A daemon's
+plan check refuses a negative or miscounted <code>timeouts_ns</code> or <code>sleeps_ns</code>; the
+client's load has checked every key's range.</p>
 <h2 id="2-how-the-values-relate">2. How the values relate <a class="anchor" href="#2-how-the-values-relate" aria-label="Link to this section">#</a></h2>
 <table>
 <thead>
@@ -579,7 +589,7 @@ shell being out of step.</li>
 </tbody>
 </table>
 
-<footer>Generated from <code>docs/TIMEOUTS.md</code> at <code>karvi-v0.39.0</code>.</footer>
+<footer>Generated from <code>docs/TIMEOUTS.md</code> at <code>karvi-v0.40.0</code>.</footer>
 </main>
 </body>
 </html>

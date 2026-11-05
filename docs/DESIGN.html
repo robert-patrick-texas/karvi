@@ -74,8 +74,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -151,8 +151,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -230,11 +230,22 @@ pflag.</p>
 word; in <code>run</code>, at the first positional word. After that karvi recognises no
 option, no abbreviation, no <code>--</code>, and no help flag: every remaining argument
 reaches the device unchanged, <code>-4</code> and <code>-h</code> included. Freeform forms exactly
-one device command; several commands take repeated <code>--cmd</code> or <code>--cf</code>, and
-mixing freeform with either is refused. <em>Why:</em> the earlier parser
+one device command, and so do the words right after the value of a line's one
+<code>--cmd</code> or <code>--sudo</code>; after <code>--cmd --</code> or <code>--sudo --</code> every word to the line's
+end is that command, which may end a line of others. Several commands
+otherwise take repeated, quoted <code>--cmd</code> and <code>--sudo</code>, or <code>--cf</code>, and freeform
+beside them is refused (<code>cli_command_text_mixed</code>); an unknown option right
+after a command's first word names both fixes. <em>Why:</em> the earlier parser
 captured karvi options inside device text, so <code>traceroute -4 host</code> lost its
-<code>-4</code> and a trailing <code>-h</code> printed help. <em>Not taken:</em> recognising options after
-positional words.</p>
+<code>-4</code> and a trailing <code>-h</code> printed help; the words after a lone <code>--cmd</code> or
+<code>--sudo</code> read as the freeform command's and a commands-file line's do, and a
+command's own option right after its first word cannot be told from karvi's
+without <code>--</code>, since the parser never sees the shell's quotes (<code>--cmd uptime --timeout 5s</code> keeps its declaration; <a href="EXAMPLES.html#96-root-commands-on-the-exec-channel-2026-11-04"><code>docs/EXAMPLES.md</code>, chapter
+96</a>). <em>Not taken:</em>
+recognising options after positional words; a dash word after a command's
+first word read as the command's (<code>-c</code>, <code>-h</code>, and <code>-4</code> are karvi's, and an
+option karvi adds later would change such a line); a one-letter option there
+refused (<code>karvi r -cmd df -c free -c &quot;uname -a&quot;</code> is three commands, and <code>--sudo sh -c '…'</code> unquoted two, the second the login user's).</p>
 <p><strong>Spelling.</strong> One or two leading dashes are equivalent, <code>=</code> attaches a value
 in either form, and aliases match exactly (<code>--target</code>/<code>--host</code>/<code>-t</code>,
 <code>--cmd</code>/<code>--command</code>/<code>-c</code>, <code>--address</code>/<code>-a</code>, <code>-4</code>/<code>-6</code>). The option table
@@ -282,6 +293,21 @@ whitespace-separated name as a <code>--target</code> at the list's position, so 
 and manifest record target inputs and never a list.
 <em>Why:</em> the operator's most typed values; nothing after the parser changes.
 <em>Not taken:</em> aliases (an alias still takes a value); a list kind in the plan.</p>
+<p><strong>A device of <code>-</code> reads standard input.</strong> <code>-</code> as the value of <code>--target</code>
+(<code>--host</code>, <code>-t</code>), as a <code>--tl</code> name, alone or among others, or as the positional
+device of <code>command</code> and <code>login</code>, reads the devices from standard input, one per
+line, as <code>--tf -</code> does: the parser records it as a <code>--tf -</code> at its position.
+Standard input is still read by one input (<code>stdin_source_repeated</code>), a stream
+line may not give <code>-</code> to <code>--target</code> or <code>--tl</code>, and <code>job list --target -</code> is
+refused (<code>target_source_stdin_invalid</code>), since that <code>--target</code> filters jobs.
+<code>karvi -</code> stays the stream, and a device named <code>-</code> is reached through a target
+file alone.
+<em>Why:</em> operators type <code>-t</code> and <code>-tl</code> by habit and pipe their lists; one
+recorded kind leaves every reader of <code>--tf -</code> as it was.
+<em>Not taken:</em> <code>-</code> only as a whole <code>--tl</code> value (a list's names are each a
+<code>--target</code>); a kind of its own in the parse; <code>job list</code> reading its filters
+from standard input (<a href="EXAMPLES.html#93-standard-input-as-a-device-2026-11-03"><code>docs/EXAMPLES.md</code>, chapter
+93</a>).</p>
 <p><strong>Declarations attach backwards.</strong> <code>--expect</code>, <code>--blind</code>, <code>--blind-return</code>,
 <code>--timeout</code>, and <code>--maxbytes</code> attach to the command source written right
 before them, which must be a <code>--cmd</code>, or to the one freeform command; an option
@@ -847,10 +873,15 @@ platform, read from the platform the device actually runs as. When optional,
 resolution uses a secret if one is resolved, never prompts for one, and never
 fails for its absence; the session's one attempt then decides. A login
 resolves none on any platform: it asks for none, refuses no credential
-without one, reads no <code>NETENABLE</code>, and drops one a backend holds. <em>Why:</em> many
+without one, reads no <code>NETENABLE</code>, and drops one a backend holds. On the exec
+channel the field is a root command's <code>sudo</code> password alone (section 5): a
+device with a <code>--sudo</code> command carries it, and <code>requires-enable</code> requires it of
+that device, <code>credential_enable_missing</code> at planning and never a prompt; a
+device without one carries none, as a login. <em>Why:</em> many
 organisations deliver privilege 15 at login or configure enable without a
 secret; a login's operator types <code>enable</code> at the device, so nothing of the
-login would send the secret.</p>
+login would send the secret; on exec nothing but <code>sudo</code> sends it, and a
+secret no command uses would only travel to the daemon.</p>
 <p><strong>The askpass broker answers the username and the password alone.</strong> Over
 <code>system</code>, OpenSSH's questions reach karvi's askpass broker, which answers the
 login's username and password, judging a prompt by its own words with
@@ -983,8 +1014,10 @@ operator's username and keys), and <code>prompt</code> (the terminal prompts): t
 network built-ins and <code>generic</code> are <code>[&quot;netvars&quot;, &quot;prompt&quot;]</code>, <code>linux</code> and
 <code>linux_shell</code> <code>[&quot;keys&quot;]</code>, a platform that leaves the field unset <code>[&quot;netvars&quot;, &quot;prompt&quot;]</code>, and an empty list no fallback; a site that lets the variables serve
 its servers writes <code>[platform.linux] fallback = [&quot;netvars&quot;, &quot;keys&quot;]</code>. For a
-Linux server the enable field is the <code>sudo</code> password. Whether keys are offered
-is the credential's, and <code>ssh.pubkey-authentication</code> is removed: a credential
+server on the exec channel the enable field is a <code>--sudo</code> command's password;
+a fallback that answered, by whichever word, reads <code>NETSUDO</code> for it, then
+<code>NETENABLE</code> where the list holds <code>netvars</code>. Whether keys are offered is the
+credential's, and <code>ssh.pubkey-authentication</code> is removed: a credential
 with a key offers it, one without offers none, and a server whose credential
 has no password needs none. <em>Why:</em> the production fleet needs all four forms,
 and a backend's rows already map a credential to devices; a key's bytes copied
@@ -1032,8 +1065,7 @@ goal (<a href="../ROADMAP.html"><code>ROADMAP.md</code></a>, &quot;The key that 
 <code>Include</code> of the operator's <code>~/.ssh/config</code> (<code>ssh.include-user-config</code>) stays:
 OpenSSH adds that file's <code>IdentityFile</code> lines after karvi's even under
 <code>IdentitiesOnly</code>, so a key of the operator's own configuration may be offered
-once karvi's are refused. No <code>sudo</code> support is added with the first build: a
-command written <code>sudo -n …</code> runs as written. <em>Why:</em> each key offered spends one
+once karvi's are refused. <em>Why:</em> each key offered spends one
 of the server's authentication attempts (<code>MaxAuthTries</code>, 6 by default) and the
 first authorized key offered is the one that logs in, so the order is the
 operator's choice, defaulting to the strongest and fastest first; a key whose
@@ -1183,9 +1215,11 @@ usable: the rest stop unless <code>--continue-device-on-error</code>.
 together, and each stream is spooled past the threshold on its own; at the limit
 the command is stopped as at a timeout, the record is <code>output_limit_exceeded</code>
 with the first limit bytes across the two streams, and the connection serves the
-next command under the device-error policy. <code>--sudo</code> reaches a shell too: karvi
-types <code>sudo -p '&lt;prompt&gt;' -- sh -c '&lt;command&gt;'</code> without <code>-S</code>, so <code>sudo</code> reads
-the terminal with its echo off, and answers after the prompt as on exec. <em>Why:</em>
+next command under the device-error policy. <code>--sudo</code> reaches the exec channel
+alone: a target on a shell is refused at planning,
+<code>channel_shell_sudo_refused</code>, by the client and by the daemon's plan check, and
+the shell's form (<code>sudo -p</code> without <code>-S</code>, <code>sudo</code> reading the terminal with its
+echo off) is not built (<a href="../ROADMAP.html"><code>ROADMAP.md</code></a>, Later). <em>Why:</em>
 a channel without a terminal has nothing to page, escalate, or log out of; a
 declaration that answers a terminal cannot be honoured, and one dropped would
 let the operator believe a confirmation was answered; on a shell a timeout
@@ -1206,26 +1240,52 @@ there is no de-escalation. Paging follows privilege; the session-init profile
 follows paging; then the requested commands. <em>Why:</em> scrapligo's escalation loop
 sent a wrong secret nine times; the contract fixes one attempt. <em>Not taken:</em>
 loading patterns from scrapligo's assets at run time.</p>
-<p><strong><code>sudo</code> on an exec channel is declared, and its password follows its own
-prompt.</strong> The first build adds nothing: a command written <code>sudo -n …</code> runs as
-written, and a refused one records <code>command_exit_nonzero</code> with <code>sudo</code>'s
-message in its stderr. Later, with the password credentials, <code>--sudo</code> attaches
-to the <code>--cmd</code> it follows, as <code>--expect</code> does, and the command runs as <code>sudo -S -p 'karvi-sudo-&lt;16 hex&gt;:' -- sh -c '&lt;the command&gt;'</code>, the prompt random per
-command; the record keeps the command as written and adds <code>privilege: &quot;sudo&quot;</code>;
-a run-wide spelling for command files is settled when built. The password is
-written once and only after that prompt appears on stderr, the prompt is
-removed from the recorded stderr, and a second appearance (a wrong password)
-closes the input and records <code>privilege_failed</code>. The password is the
-credential's enable field, then <code>NETSUDO</code>, then <code>NETENABLE</code> where the
-platform's <code>fallback</code> holds <code>netvars</code>; with none the command runs under <code>sudo -n</code> and never waits. The shell channel answers a <code>sudo</code> prompt with <code>--expect</code>
-as before. <em>Why:</em> over exec <code>sudo -n</code> already fails cleanly; <code>-S -p</code> gives a
-prompt karvi chooses and prints it only when <code>sudo</code> asks, while a password
-written before it reaches the command whenever <code>sudo</code> needs none (no password
-required, or a ticket cached), as <code>printf SECRET | sudo -S cat</code> printed it.
-<em>Not taken:</em> a password written to the input blindly; recognising and
-rewriting a <code>sudo</code> the operator wrote (<code>sudo</code>'s own prompt is set by each site
-and translated); a pty for <code>sudo</code>'s prompt (the streams merge and the terminal
-returns); <code>SUDO_ASKPASS</code> (a program on every server).</p>
+<p><strong>A root command is a command source, and its password follows its own
+prompt.</strong> <code>--sudo TEXT</code> is one command run as root, a source in the order
+written beside <code>--cmd</code>, <code>--cf</code>, and <code>--sleep</code>, repeatable, written as a
+<code>--cmd</code> is (section 2's boundary), <code>--timeout</code> and <code>--maxbytes</code> after it its
+own; a commands-file line, a stream line, and a <code>crun-commands</code> entry <code>--sudo TEXT</code> are the same
+statement, and one with no command is refused (<code>commands_file_sudo_invalid</code>,
+naming the file and line, or the platform and entry). It reaches the exec
+channel alone (above). The command runs as <code>sudo -S -p 'karvi-sudo-&lt;16 hex&gt;:' -- TEXT</code>, the prompt random per command and the input open; when the prompt
+appears on stderr the session writes the password and a line end once and
+closes the input. Without a password it runs as <code>sudo -n -- TEXT</code>, the input at
+its end, and never waits. The prompt is recognised by its token in both forms
+<code>sudo</code> writes (classic <code>sudo</code>'s, verbatim and without a line end; sudo-rs's,
+Ubuntu 26.04's, <code>[sudo: PROMPT] Password: </code> and a line end) and removed from
+stderr whole, with one line end directly after it where <code>sudo</code> wrote one (every
+sudo-rs prompt; a classic second prompt, at the input's end); a second prompt
+is <code>privilege_failed</code>, the command not run. The password is chosen in the
+client by the source that answered the credential: a backend's enable field as
+it is, blank being none (no variable fills it, chapter 56's rule; a row names
+one, <code>env:NETSUDO</code>); the fallback's <code>NETSUDO</code>, else <code>NETENABLE</code> where it holds
+<code>netvars</code>, else none. <code>NETSUDO</code> is read only for a device with a <code>--sudo</code>
+command, and nothing prompts for it. The record keeps the command as written
+and adds <code>privilege: &quot;sudo&quot;</code>, as the audit's action does (audit schema 3);
+execution plan 17 carries a <code>sudo</code> flag per command on each command list, the
+plan's and the platforms' alike. The display shows a root command at <code>srv1#</code>,
+a collection's marker is <code>! --sudo TEXT</code>, the rerun files write <code>--sudo TEXT</code>,
+and the dry run names each device's source (<code>sudo: password from NETSUDO</code>,
+<code>sudo: none, sudo -n</code>). <em>Why:</em> a statement of its own cannot attach to the
+wrong command, and reads the same on the line, in a file, and in a stream
+(<a href="EXAMPLES.html#96-root-commands-on-the-exec-channel-2026-11-04"><code>docs/EXAMPLES.md</code>, chapter
+96</a>); without <code>sh -c</code> the server's rules match the command and its log names it, where both
+<code>sudo</code>s refused <code>sh -c 'id -u'</code> under a rule for <code>id</code>; a pipe or a <code>;</code> after the
+first command runs as the login user, as <code>sudo TEXT</code> typed at a prompt does;
+<code>-S -p</code> gives a prompt karvi chooses and prints it only when <code>sudo</code> asks, while
+a password written before it reaches the command whenever <code>sudo</code> needs none, as
+<code>printf SECRET | sudo -S cat</code> printed it; the source that answered the
+credential is the one the site set for the device. The caution: where a
+password is held and <code>sudo</code> asks none (<code>NOPASSWD</code>), the input stays open, so a
+command that reads it waits to its command timeout. <em>Not taken:</em> <code>--sudo</code> as a
+flag after its <code>--cmd</code> (two spellings, and attachment to the wrong command); a
+run-wide <code>--sudo-all</code>; <code>--sudo</code> covering a <code>--cf</code>; <code>sh -c</code>; a password written
+to the input blindly; recognising and rewriting a <code>sudo</code> the operator wrote
+(<code>sudo</code>'s own prompt is set by each site and translated); a pty for <code>sudo</code>'s
+prompt (the streams merge and the terminal returns); <code>SUDO_ASKPASS</code> (a program
+on every server); <code>NETSUDO</code> filling a backend's blank; a separate sudo field in
+the stores; a terminal prompt for the password; a record field or notice for
+&quot;no password&quot;; a <code>sudo -n true</code> probe.</p>
 <p><strong>A session-init profile is chosen by the client and carried in the plan.</strong>
 <code>[session-init.NAME]</code> profiles (commands, <code>on-error</code> of <code>fail-device</code> or
 <code>continue</code>, an optional command timeout) are selected per target by the
@@ -1308,6 +1368,26 @@ deadline growing by a declared excess; refusing a list whose timeouts sum past
 the device ceiling; a declared limit raising the job limit; <code>--maxbytes</code> above 1
 GiB before the record holds output of several GiB; a record field for the
 bounds; one list of objects in the plan.</p>
+<p><strong><code>--sleep</code> waits before the next command.</strong> <code>--sleep DURATION</code> (1s..12h) is a
+command source in the order written, beside <code>--cmd</code> and <code>--cf</code>, and a
+commands-file line that is <code>--sleep DURATION</code> alone is the same statement
+(<code>--literal</code> sends it as text). It is waited after the command before it
+returns, before the next is sent; sleeps in a row add up; it is no command and
+has no record. One with no command after it, a declaration after one, a file
+line beginning <code>--sleep</code> that is not one, and a device's total above a set
+<code>execution.device-timeout</code> are refused before any connection; the deadline and
+a cancel end a sleep, and the command after it is then recorded as either
+records an unsent command. The plan carries <code>sleeps_ns</code>, one entry per command
+or empty, 0 none, as <code>timeouts_ns</code> is (execution plan 16). <em>Why:</em> a change
+waits for its own effect before reading it (a peer cleared, a link brought up),
+and IOS XE has no sleep of its own; a wait inside one session keeps one login,
+one record, and in a run each device's own timing. The file line is the
+option's own text, so that a line not taken as a sleep reaches IOS as <code>% Invalid input</code>, never as a comment skipped while the next command runs early.
+<em>Not taken:</em> a declaration on the <code>--cmd</code> before it (it could not follow a
+<code>--cf</code> or stand in a file); <code>--cmd '\r' --blind-wait</code>, which sends a keystroke;
+the device's own sleep (IOS has none); a comment-form file line (<code>!karvi sleep</code>); the names pause, wait, and delay (a keypress, <code>--blind-wait</code>,
+<code>--wave-delay</code>); a record per sleep. <a href="EXAMPLES.html#95-a-sleep-between-commands-2026-11-03"><code>docs/EXAMPLES.md</code>, chapter
+95</a>.</p>
 <p><strong>The native transport is karvi's own SSH connection.</strong> An x/crypto dial with
 karvi's host-key callback, a PTY and shell, the password read inside the
 authentication callbacks at authentication time. No subprocess, no
@@ -1338,10 +1418,16 @@ command, a large one, silence, reload, configuration mode, a syntax error). The
 Linux persona (<code>-persona linux</code>) answers exec channels from a fixed table (the
 collection list; <code>fail N</code> on stderr with exit N; <code>both</code> on each stream; <code>big</code>
 and <code>bigerr</code> for the two spools; <code>slow</code>, ended by a <code>KILL</code> request and recorded
-as left running when its channel closes; <code>signal TERM</code>; <code>nostatus</code>; <code>sudo -n id -u</code>, or <code>a password is required</code> under an option; an unknown command <code>sh: 1: NAME: not found</code>, exit 127), sends a command's status or signal before its
-end of output (OpenSSH's client closes a channel as soon as its output ends,
-and x/crypto answers that close at once and sends nothing after it, where
-<code>sshd</code> still sends the status), logs in by key (<code>-authorized-keys PATH</code>), by
+as left running when its channel closes; <code>signal TERM</code>; <code>nostatus</code>; <code>whoami</code>
+and <code>id -u</code>, the login user's, uid 1000; an unknown command <code>sh: 1: NAME: not found</code>, exit 127) and a <code>sudo</code> before any of them: every root command run as
+under <code>NOPASSWD</code>, or under <code>-sudo-asks</code> a password wanted (<code>-enable</code>, else the
+login password), <code>sudo -n</code> refused and <code>sudo -S</code> prompting on stderr, in
+classic <code>sudo</code>'s words or, under <code>-sudo-rs</code>, sudo-rs's, by the bytes both write
+on Ubuntu 26.04 (<a href="EXAMPLES.html#96-root-commands-on-the-exec-channel-2026-11-04"><code>docs/EXAMPLES.md</code>, chapter
+96</a>); it sends a
+command's status or signal before its end of output (OpenSSH's client closes a
+channel as soon as its output ends, and x/crypto answers that close at once
+and sends nothing after it, where <code>sshd</code> still sends the status), logs in by key (<code>-authorized-keys PATH</code>), by
 password, and later by a key and then a password (<code>PartialSuccessError</code>), and
 has a shell for <code>linux_shell</code> (<code>netops@fake:~$</code>, bash's decorations under an
 option). Both record every line or exec request received, every pty request,
@@ -1550,6 +1636,21 @@ names, OpenSSH's without <code>ssh-rsa</code>); the defaults filtered by karvi's
 list's source chosen apart; <code>/etc/ssh/ssh_config</code> read under the setting
 (<a href="EXAMPLES.html#54-the-transports-own-ssh-algorithm-lists-2026-10-10"><code>docs/EXAMPLES.md</code>, chapter
 54</a>).</p>
+<p><strong><code>--debug</code> names what the native handshake chose.</strong> Once its handshake
+completes, the native transport writes <code>native SSH connection negotiated</code>
+with the key exchange, the host-key algorithm, the cipher, and the MAC (<code>kex=</code>,
+<code>hostkey=</code>, <code>cipher=</code>, <code>mac=</code>), from x/crypto's own record of them; an AEAD
+cipher's MAC is <code>&lt;implicit&gt;</code>, as OpenSSH's <code>-v</code> writes it, and a cipher or MAC
+whose directions differ is <code>to-device/from-device</code>. A failed handshake names
+none: the device's choice is the same at every connection, so a completed one
+names what a failed one used. The system transport is unchanged; OpenSSH at
+<code>-vvv</code> names its choice (<a href="SSH-TROUBLE.html"><code>docs/SSH-TROUBLE.md</code></a>, section 1).
+<em>Why:</em> the line before named only karvi's offer, and an intermittent failure
+just after the key exchange turns on what was chosen. <em>Not taken:</em> the
+device's offer read from the wire and x/crypto's choice repeated in karvi,
+which would name a failed handshake's; OpenSSH's log level raised under
+<code>--debug</code>, which changes the standard error karvi classifies; the line in the
+command record (<a href="EXAMPLES.html#94-the-negotiated-ssh-algorithms-in---debug-2026-11-03"><code>docs/EXAMPLES.md</code>, chapter 94</a>).</p>
 <h2 id="7-the-plan-the-daemon-and-the-credential-channel">7. The plan, the daemon, and the credential channel <a class="anchor" href="#7-the-plan-the-daemon-and-the-credential-channel" aria-label="Link to this section">#</a></h2>
 <p><strong>The client plans; the daemon validates and executes.</strong> The client owns
 configuration, inventory, target assembly, address resolution under client
@@ -1637,13 +1738,15 @@ in the plan, bounded as any plan by <code>daemon.max-ipc-frame-bytes</code>, who
 gives the request's size over the bound: the plan is about 900 bytes a target
 before its list, so 2,500 targets of 40-line lists come to about 9 MB.
 <code>--dry-run</code> shows each target's list. The job folder keeps what each device was
-sent as <code>--cf</code> lines, each command's <code>\r</code> returns written back: <code>commands.txt</code>
-for one list, <code>commands.PLATFORM.txt</code> per platform, and <code>commands/NAME</code> per
-target, so <code>--tf failed-devices.txt --cf commands</code> from the job folder reruns
+sent as <code>--cf</code> lines, each command's <code>\r</code> returns written back, the sleep
+before it as <code>--sleep</code> lines, and a root command as <code>--sudo TEXT</code>:
+<code>commands.txt</code> for one list, <code>commands.PLATFORM.txt</code> per platform, and
+<code>commands/NAME</code> per target, so <code>--tf failed-devices.txt --cf commands</code> from the job folder reruns
 the failures with their own lists; an <code>--expect</code>, a <code>--blind</code> without returns, a
 <code>--timeout</code>, or a <code>--maxbytes</code> has no form in a file and is the plan's alone. A
 copy is read without <code>--literal</code>, so a command whose own text ends in <code>\r</code>,
-which only <code>--literal</code> sends, reads back as returns. The summary names
+or is a <code>--sleep</code> or <code>--sudo</code> line's, which only <code>--literal</code> sends, reads back
+as returns or the statement. The summary names
 <code>commands.txt</code> only when it is written; the job's audit <code>start</code> lists the
 statements only when every device is sent one list, its count the longest
 list's, and each device's command events name what it was sent. In a stream, a
@@ -1733,8 +1836,8 @@ transport packages. <em>Why:</em> nothing may hold a secret outside a job's life
 <code>daemon serve</code> an explicit environment built by the one filter the system
 transport applies to its <code>ssh</code> children (<code>HOME</code>, <code>USER</code>, <code>LOGNAME</code>, <code>PATH</code>,
 <code>security.child-environment-allowlist</code>, plus every <code>KARVI__*</code> variable, <code>TZ</code>,
-<code>TMPDIR</code>); a daemon that finds <code>NETUSER</code>, <code>NETPASS</code>, or <code>NETENABLE</code> in its
-own environment writes one notice per name and does not refuse. <em>Why:</em> one
+<code>TMPDIR</code>); a daemon that finds <code>NETUSER</code>, <code>NETPASS</code>, <code>NETENABLE</code>, or
+<code>NETSUDO</code> in its own environment writes one notice per name and does not refuse. <em>Why:</em> one
 filter cannot drift into two; the daemon has not read the built-in variables
 since planning moved to the client. <em>Not taken:</em> a deny-list; re-executing
 with a scrubbed environment; refusing to start.</p>
@@ -2212,7 +2315,9 @@ exec record a null <code>stderr</code> says the command did not run (its channel
 opened, or the device refused its exec request: a not-attempted record, a
 connection that failed first, <code>ssh_session_channel_refused</code> on either
 transport), an empty one that it ran and wrote nothing there; the text file and
-the echo show <code>! not sent:</code> by it. Exec output is recorded as the program wrote
+the echo show <code>! not sent:</code> by it (a root command's <code>! not sent: --sudo TEXT</code>).
+A root command's record adds <code>privilege: &quot;sudo&quot;</code> and keeps its command as written, its stderr without <code>sudo</code>'s prompt
+(section 5). Exec output is recorded as the program wrote
 it, with no terminal between to render. Exit 0 is <code>success</code> whatever stderr
 holds; a non-zero exit is <code>device_error</code> with <code>command_exit_nonzero</code>, a signal
 <code>command_exit_signal</code>, and a channel closed without a status on a live
@@ -2596,8 +2701,11 @@ the configuration last, each portable, answered without root, and stable while
 nothing changes; there is no built-in <code>crun-filters</code>. Under exec a block is the
 <code>! COMMAND</code> marker, then stdout, then stderr; a non-zero exit leaves its error
 text in the block and the file is replaced, as a rejected statement's is, the
-exit status staying in the record. A command that needs root is written <code>sudo -n …</code> in a site's list until <code>--sudo</code> is built, when a list entry's way of
-declaring it is settled. Distribution-specific state (the package list, the
+exit status staying in the record. A command that needs root is a list entry
+<code>--sudo TEXT</code>, its block's marker <code>! --sudo TEXT</code>: the entries are read as a
+commands file's lines, <code>--sleep</code> and <code>--sudo</code> the statements (<code>--literal</code>
+sends every entry as written), a malformed one refused naming the platform and
+the entry. Distribution-specific state (the package list, the
 firewall rules) is a site's alias list. <em>Why:</em> with no list, <code>crun --all</code> over
 a fleet with servers refused every server at planning; two collections of the
 list seconds apart were identical, and the hostname (<code>uname -n</code>), the IPv6 and
@@ -2620,7 +2728,7 @@ executable run once when the summary is written, in the collection directory,
 with the replaced files' names on stdin and the counts in its environment,
 bounded by <code>crun.after-timeout</code>; two example hooks ship (a git commit and a
 diff mail). The hook has the operator's shell environment without the device
-credentials <code>NETUSER</code>, <code>NETPASS</code>, and <code>NETENABLE</code>. <em>Why:</em> the client has the
+credentials <code>NETUSER</code>, <code>NETPASS</code>, <code>NETENABLE</code>, and <code>NETSUDO</code>. <em>Why:</em> the client has the
 operator's shell environment (git identity, mail transport) while the daemon
 has the user manager's; git and mail are a site's choices; a device password
 the hook has no use for would reach every process it starts. <em>Not taken:</em> a
@@ -3309,8 +3417,21 @@ beside the description; a remedy written as prose.</p>
 contract (configuration, command record, scoreboard, audit, job, daemon IPC,
 registry, execution plan, credential package, plan report) keeps its own
 counter below 100 until 1.0, when every counter resets to 100; <code>karvi version</code>
-reports them all. <em>Why:</em> released daemons are identified by IPC schema, so
-reusing a low number would collide with a released protocol.</p>
+reports the configuration's, the registry's, the command record's, the
+scoreboard's, the audit's, the job's, and the daemon IPC's. <em>Why:</em> released
+daemons are identified by IPC schema, so reusing a low number would collide
+with a released protocol.</p>
+<p><strong>A counter is written once.</strong> Each schema's counter is a constant of the
+package that owns the schema, and <code>karvi version</code> reads it there. A schema
+file's <code>schema_version</code> holds it too, since JSON cannot read Go, and the tests
+that check karvi's records against the file fail where the two differ. Nothing
+else names it: a schema file's title and <code>$id</code> carry no number, the living
+documents point at <code>karvi version</code>, and the verifiers pin none,
+<code>verify-shipped.sh</code> comparing the shipped executable's counters with
+<code>release/release-manifest.json</code>, the release's one record of them. History,
+the CHANGELOG, EXAMPLES, and a release's evidence, keeps the numbers it
+recorded. <em>Why:</em> every copy that nothing checked drifted: four schema files'
+titles, the audit's man page, and README's and BUILD-HOWTO's lists.</p>
 <h2 id="16-build-verification-and-release">16. Build, verification, and release <a class="anchor" href="#16-build-verification-and-release" aria-label="Link to this section">#</a></h2>
 <p><strong>One shape of the source, one build, vendored.</strong> The native transport is
 compiled into every executable with no build tag; <code>vendor/</code> is part of the
@@ -3625,7 +3746,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.39.0</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.40.0</code>.</footer>
 </main>
 </body>
 </html>

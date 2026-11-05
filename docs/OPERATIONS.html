@@ -33,6 +33,7 @@
 <li><a href="#the-daemons-idle-exit">The daemon&#39;s idle exit</a></li>
 <li><a href="#a-service-accounts-daemon-under-systemd">A service account&#39;s daemon under systemd</a></li>
 <li><a href="#linux-servers">Linux servers</a></li>
+<li><a href="#root-commands-and-their-password">Root commands and their password</a></li>
 <li><a href="#configuration-macros">Configuration macros</a></li>
 <li><a href="#the-platforms-fallback-and-the-operators-keys">The platform&#39;s fallback and the operator&#39;s keys</a></li>
 <li><a href="#the-credential-prompts">The credential prompts</a></li>
@@ -94,8 +95,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -130,6 +131,7 @@
 <li><a href="#the-daemons-idle-exit">The daemon&#39;s idle exit</a></li>
 <li><a href="#a-service-accounts-daemon-under-systemd">A service account&#39;s daemon under systemd</a></li>
 <li><a href="#linux-servers">Linux servers</a></li>
+<li><a href="#root-commands-and-their-password">Root commands and their password</a></li>
 <li><a href="#configuration-macros">Configuration macros</a></li>
 <li><a href="#the-platforms-fallback-and-the-operators-keys">The platform&#39;s fallback and the operator&#39;s keys</a></li>
 <li><a href="#the-credential-prompts">The credential prompts</a></li>
@@ -191,8 +193,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -243,15 +245,15 @@ of its executable, equal the client's. The next submission (<code>run</code>, <c
 <code>--exercise</code>, <code>--detach</code>, a stream's job, or <code>daemon start</code>) drains a daemon of
 another build. Holding no job, it exits at once, and the client starts one of
 its own build in the same invocation:</p>
-<pre><code>daemon drained version=0.38.0 build=XVaquK8HnILbatvlhwRi
+<pre><code>daemon drained version=0.39.0 build=OVm9OErdgujJlrhYFLuV
 daemon started socket=/home/netops/.local/share/karvi/socket/d.sock
 </code></pre>
 <p>Holding jobs, the drained daemon finishes them and exits after the last,
 killing nothing. Until then every submission is refused, the daemon's build
 over the client's:</p>
 <pre><code>daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
-  daemon build XVaquK8HnILbatvlhwRi 0.38.0
-  client build OVm9OErdgujJlrhYFLuV 0.39.0
+  daemon build OVm9OErdgujJlrhYFLuV 0.39.0
+  client build C71lyQOLd6sV4H1SEuL0 0.40.0
 </code></pre>
 <p>Meanwhile <code>karvi run --no-daemon</code> runs in the foreground, and <code>karvi job follow</code> and <code>karvi job cancel</code> reach the draining daemon's jobs, as a client of
 any build does at the same IPC schema. <code>karvi daemon status</code> stacks each of the
@@ -550,7 +552,7 @@ does not read them in any case: the submitting client resolves credentials
 and delivers them per job over the credential socket.</p>
 <p>A daemon started another way, <code>karvi daemon start --foreground</code> or a service
 unit, keeps whatever environment its starter gave it. When that environment
-holds <code>NETUSER</code>, <code>NETPASS</code>, or <code>NETENABLE</code>, the daemon writes one
+holds <code>NETUSER</code>, <code>NETPASS</code>, <code>NETENABLE</code>, or <code>NETSUDO</code>, the daemon writes one
 <code>daemon_environment_secret_variable</code> line per name to its log, naming the
 variable and never its value; start it from a shell or unit without them.
 A variable the daemon needs from the shell, an agent socket for example,
@@ -716,8 +718,8 @@ signal <code>command_exit_signal</code>, and a channel closed without a status
 <code>command_exit_missing</code>; each is a device error, so the device's later
 commands are not attempted unless <code>--continue-device-on-error</code>, and a command
 that may fail on purpose says so (<code>grep … || true</code>). A command that needs root
-is written <code>sudo -n …</code>: where <code>sudo</code> wants a password it is refused at once,
-<code>command_exit_nonzero</code> with <code>sudo</code>'s message in <code>stderr</code>, and never waits.</p>
+is <code>--sudo TEXT</code> (<a href="#root-commands-and-their-password">root commands and their
+password</a>).</p>
 <p><strong>A command given up.</strong> At its command timeout, a cancel, or the output limit,
 <code>native</code> asks the server to end the command before closing its channel.
 The system transport's OpenSSH client cannot ask, so the record carries the
@@ -742,6 +744,62 @@ DEBUG control_socket_abandoned_removed: removed the abandoned control socket /ho
 <p>A server is qualified by the rows of
 <a href="DEVICE-QUALIFICATION-RUNBOOK.html#9-a-production-server"><code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code>, section
 9</a>.</p>
+<h2 id="root-commands-and-their-password">Root commands and their password <a class="anchor" href="#root-commands-and-their-password" aria-label="Link to this section">#</a></h2>
+<p><code>--sudo TEXT</code> runs one command as root on a server, through its own <code>sudo</code>,
+where the platform runs on the exec channel; it is a command source as <code>--cmd</code>
+is, and a commands-file line, a stream line, and a <code>crun-commands</code> entry
+<code>--sudo TEXT</code> are the same
+(<a href="COMMAND-SESSION.html#root-commands-on-an-exec-channel"><code>docs/COMMAND-SESSION.md</code></a>
+has the rules, the wire, and the display). Its password is chosen at planning
+for each device with a <code>--sudo</code> command, by the source that answered the
+device's credential:</p>
+<ul>
+<li>
+<p><strong>A backend answered:</strong> its enable field, as it is. A blank field is no
+password: the command is sent as <code>sudo -n</code>, and neither <code>NETSUDO</code> nor
+<code>NETENABLE</code> fills it (a backend's row is the site's word for the device). A
+row that should take a variable names it: <code>env:NETSUDO</code> in a CSV or Vault
+field, <code>enable-var-template = &quot;NETSUDO&quot;</code> in an <code>env</code> backend.</p>
+</li>
+<li>
+<p><strong>The platform's fallback answered,</strong> by whichever word: <code>NETSUDO</code>, else
+<code>NETENABLE</code> where the fallback holds <code>netvars</code>, else none. Under <code>linux</code>'s
+<code>[&quot;keys&quot;]</code> a server reached by the operator's keys takes <code>NETSUDO</code> alone. An
+empty variable is unset, as <code>netvars</code> reads one.</p>
+</li>
+<li>
+<p><strong>Nothing asks</strong> for it at the terminal, whatever the fallback holds.</p>
+</li>
+<li>
+<p><strong>Only a <code>--sudo</code> device carries it.</strong> <code>NETSUDO</code> is read, and a server's
+enable field carried to the daemon, only for a device with a <code>--sudo</code>
+command; for any other server on the exec channel a backend's enable field
+is dropped at planning and <code>NETENABLE</code> is not read, as for a login.</p>
+</li>
+<li>
+<p><strong><code>requires-enable = true</code></strong> on a platform on the exec channel requires the
+password of a device with a <code>--sudo</code> command, at planning, and nothing of a
+device without one:</p>
+<pre><code class="language-text">credential_enable_missing: client planning: 1 of 1 targets failed credential resolution: name:srv1 (the platform requires an enable password, sudo's for a --sudo command, and none was found; policy=default backend=builtin-env-fallback)
+</code></pre>
+</li>
+</ul>
+<p>The dry run names the root commands and each device's source, never a value:</p>
+<pre><code class="language-text">commands: 3
+sleeps: 5s before command 3
+sudo: commands 2, 3
+- name:srv1: planned
+  credential: bound ID (policy=default backend=builtin-env-fallback user=netops; value not displayed)
+  sudo: password from NETSUDO (value not displayed)
+</code></pre>
+<p>The other sources read <code>sudo: password from NETENABLE (value not displayed)</code>,
+<code>sudo: password from the enable field (backend=site-creds; value not displayed)</code>, and <code>sudo: none, sudo -n</code>; the JSON report's
+<code>credential_binding.sudo</code> names the same. Without a password a <code>sudo</code> whose
+rules want one refuses at once, <code>command_exit_nonzero</code> with its message in
+<code>stderr</code>; a wrong one is <code>privilege_failed</code>. A server's rules may name the
+command: karvi sends <code>sudo -- TEXT</code> with no <code>sh -c</code>, so a <code>NOPASSWD</code> rule for
+<code>/usr/bin/id</code> runs <code>--sudo 'id -u'</code> with no password, where <code>sudo</code> would see
+<code>sh</code> in <code>sh -c 'id -u'</code> and refuse it.</p>
 <h2 id="configuration-macros">Configuration macros <a class="anchor" href="#configuration-macros" aria-label="Link to this section">#</a></h2>
 <p>A <code>[macros]</code> table names values that any other value of the configuration takes
 as <code>%NAME%</code>, the name a letter and then up to 63 letters, digits, <code>_</code>, and <code>-</code>.
@@ -834,7 +892,9 @@ value through its macro. <code>%operator%</code> is no layer's.</p>
 <p>When no backend of the policy answers for a device, its platform's
 <code>fallback</code> says what follows, in order: <code>netvars</code> reads <code>NETUSER</code>, <code>NETPASS</code>,
 and <code>NETENABLE</code> (the credential helper's values where it set them, else the
-process environment's: <a href="#the-credential-helper">the credential helper</a>); <code>keys</code>
+process environment's: <a href="#the-credential-helper">the credential helper</a>), and
+<code>NETSUDO</code> for a <code>--sudo</code> command (<a href="#root-commands-and-their-password">root
+commands</a>); <code>keys</code>
 is the operator's login name and own keys; <code>prompt</code> asks at the terminal (<a href="#the-credential-prompts">the
 credential prompts</a>).
 The network built-ins and <code>generic</code> are <code>[&quot;netvars&quot;, &quot;prompt&quot;]</code>, <code>linux</code> and
@@ -1004,8 +1064,10 @@ device the policies send to it.</p>
 </ul>
 <p>The fallback's <code>NETUSER</code>, <code>NETPASS</code>, and <code>NETENABLE</code> are read without a
 backend, after the policy's backends, where the platform's fallback holds
-<code>netvars</code> (<a href="#the-platforms-fallback-and-the-operators-keys">the platform's fallback</a>);
-an <code>env</code> backend is how a site names variables of its own.</p>
+<code>netvars</code> (<a href="#the-platforms-fallback-and-the-operators-keys">the platform's fallback</a>),
+and <code>NETSUDO</code> for a <code>--sudo</code> device whose fallback answered (<a href="#root-commands-and-their-password">root
+commands</a>); an <code>env</code> backend is how a site
+names variables of its own.</p>
 <h2 id="the-vault-backend">The Vault backend <a class="anchor" href="#the-vault-backend" aria-label="Link to this section">#</a></h2>
 <p>A backend of <code>type = &quot;vault&quot;</code> reads the operator's record from a Vault KV
 version 2 engine, in the client before the job is planned, with a token from a
@@ -1696,7 +1758,7 @@ selected device is a <code>--cf</code> file of the run, links followed, is
 <code>commands_file_in_collection</code> (exit 4).</li>
 <li><strong><code>--dry-run</code></strong> shows each device's list on its <code>commands:</code> line.</li>
 <li><strong>The job folder</strong> keeps each device's list as <code>commands/NAME</code>, its <code>\r</code>
-returns written back, so <code>karvi run --tf J/failed-devices.txt --cf J/commands</code> reruns the failures, each with its own list.</li>
+returns and its sleeps written back, so <code>karvi run --tf J/failed-devices.txt --cf J/commands</code> reruns the failures, each with its own list.</li>
 <li><strong>The plan's size.</strong> Each device's list travels to the daemon in the plan,
 bounded by <code>daemon.max-ipc-frame-bytes</code> (8 MiB by default, at most 64 MiB).
 The plan is about 900 bytes a device before its list, and a list costs about
@@ -1776,10 +1838,12 @@ the records there is nothing to derive a device's text from again, and
 the notice of a text file that could not be written says so.</li>
 <li><strong>A rerun needs <code>failed-devices.txt</code> and the commands together</strong>
 (<code>karvi run --tf …/failed-devices.txt --cf …/commands.txt</code>, or <code>--cf …/commands</code> beside a <code>--cf</code> folder). Each command's <code>\r</code> returns are
-written back, so the copy is read without <code>--literal</code>; an <code>--expect</code>, a
+written back, the sleep before it as <code>--sleep</code> lines, and a root command as
+<code>--sudo TEXT</code>, so the copy is read without <code>--literal</code>; an <code>--expect</code>, a
 <code>--blind</code> without returns, a <code>--timeout</code>, or a <code>--maxbytes</code> has no form in
 a file and stays in <code>manifest.json</code>'s plan, and a command whose own text
-ends in <code>\r</code>, which only <code>--literal</code> sends, reads back as returns.</li>
+ends in <code>\r</code>, or is a <code>--sleep</code> or <code>--sudo</code> line's, which only <code>--literal</code>
+sends, reads back as returns or the statement.</li>
 <li><strong><code>summary.json</code> has no key: every folder holds it.</strong> It is written
 when the job is accepted, naming the job's devices, and again whole at
 the job's end with the result, the counts, the causes, and each
@@ -2333,8 +2397,8 @@ job asks reads the keys typed at it (&quot;The credential prompts&quot;), and a
 line typed during the job waits for the stream.</li>
 <li>A line the parser refuses (<code>--typo</code>, a declaration before any command)
 is reported on standard error with its line number and dropped; the
-draft stands. <code>--cf</code>, <code>--tf</code>, and <code>--tfr</code> may not name <code>-</code> in any
-spelling: standard input is the stream.</li>
+draft stands. <code>--cf</code>, <code>--tf</code>, <code>--tfr</code>, <code>--target</code>, and <code>--tl</code> may not
+name <code>-</code> in any spelling: standard input is the stream.</li>
 <li>The exit is the last executed job's, 0 when none ran. A read failure,
 or a line over the reader's 1 MiB limit, ends the stream with
 <code>stream_input_read_failed</code> (exit 1) naming the line. Each job is a
@@ -2346,7 +2410,7 @@ exit. Global options go before the word: <code>karvi --quiet --config FILE strea
 <code>audit.file</code>, one JSON line each, when the key names a file. An event is one
 journald entry: its message, one line of <code>key=value</code> pairs; the fields that
 match it; and the whole event as JSON in <code>KARVI_AUDIT_JSON</code>, the line
-<code>audit.file</code> holds (<code>schema/audit.schema.json</code>, audit schema 2). A job's events
+<code>audit.file</code> holds (<code>schema/audit.schema.json</code>). A job's events
 are named <code>&lt;kind&gt;.&lt;event&gt;</code>, the kind <code>cmd</code>, <code>run</code>, or <code>crun</code> as <code>job list</code>
 shows it:</p>
 <ul>
@@ -2413,7 +2477,8 @@ JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      D
 </code></pre>
 <p>The columns stand at fixed widths, so a followed trail stays in line: JOB-ID,
 OPERATOR (<code>OPERATOR/LOGINUSER</code> under <code>sudo</code>), MODE, EVENT, OUTCOME, DEVICE, and
-the statement. At a terminal the line is cut with <code>…</code> to its width; to a pipe
+the statement, a root command's as its <code>--sudo TEXT</code> (the event's
+<code>action.privilege</code> is <code>sudo</code>). At a terminal the line is cut with <code>…</code> to its width; to a pipe
 or a file nothing is cut. OUTCOME is green for work done, orange for work not
 done or cut short, red for a failure; the colour goes to a terminal and through
 a pipe (<code>karvi-audit | less -R</code>), never into a file, and <code>--nocolor</code> or
@@ -2449,7 +2514,7 @@ journald's and the forwarder's; <code>karvi-prune</code> never touches it (&quot
 records, and scoreboards as authoritative. Human headers, borders, and footers
 are projections only.</p>
 
-<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.39.0</code>.</footer>
+<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.40.0</code>.</footer>
 </main>
 </body>
 </html>

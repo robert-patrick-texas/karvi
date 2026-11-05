@@ -32,6 +32,8 @@
 <li><a href="#the-exec-channel">The exec channel</a></li>
 <li><a href="#blind-sends-and-expectations">Blind sends and expectations</a></li>
 <li><a href="#a-commands-own-bounds">A command&#39;s own bounds</a></li>
+<li><a href="#sleeps-between-commands">Sleeps between commands</a></li>
+<li><a href="#root-commands-on-an-exec-channel">Root commands on an exec channel</a></li>
 <li><a href="#prompt-detection">Prompt detection</a></li>
 <li><a href="#echo">Echo</a></li>
 <li><a href="#live-view">Live view</a></li>
@@ -69,8 +71,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -104,6 +106,8 @@
 <li><a href="#the-exec-channel">The exec channel</a></li>
 <li><a href="#blind-sends-and-expectations">Blind sends and expectations</a></li>
 <li><a href="#a-commands-own-bounds">A command&#39;s own bounds</a></li>
+<li><a href="#sleeps-between-commands">Sleeps between commands</a></li>
+<li><a href="#root-commands-on-an-exec-channel">Root commands on an exec channel</a></li>
 <li><a href="#prompt-detection">Prompt detection</a></li>
 <li><a href="#echo">Echo</a></li>
 <li><a href="#live-view">Live view</a></li>
@@ -141,8 +145,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -169,6 +173,25 @@ in it, <code>DIR/NAME</code>, NAME its collection file's
 (<a href="OPERATIONS.html#a-command-list-per-device"><code>docs/OPERATIONS.md</code></a>). This sends
 <code>show clock</code>, the lines of <code>checks.txt</code>, and <code>show users</code>:</p>
 <pre><code class="language-bash">karvi command router1 --cmd 'show clock' --cf checks.txt --cmd 'show users'
+</code></pre>
+<p><code>--sudo TEXT</code> and <code>--sleep DURATION</code> are sources in the same order: a command
+run as root where the platform runs on the exec channel (<a href="#root-commands-on-an-exec-channel">root
+commands</a>), and a wait before the next
+command (<a href="#sleeps-between-commands">sleeps</a>).</p>
+<p>A line's one <code>--cmd</code> or <code>--sudo</code> may take its command unquoted: the words
+right after its value, to the line's end, join it with one space each, as the
+freeform command's words do, every word after the first the command's, a
+karvi option's name among them. The shell's quotes are gone by then, so a
+command whose own words need quotes is quoted whole. A command's own option right after its first word would be read as
+karvi's, so after <code>--cmd --</code> or <code>--sudo --</code> every word to the line's end is
+the command; that form may also end a line of other commands:</p>
+<pre><code class="language-bash">karvi command srv1 --sudo systemctl restart nginx
+karvi command srv1 --cmd 'systemctl is-active nginx' --sudo -- journalctl -u nginx -n 20
+</code></pre>
+<p>Options go before such a command (<code>--timeout 60s --sudo systemctl restart nginx</code>). Unquoted words beside another command, without <code>--</code>, are refused
+(<code>cli_command_text_mixed</code>), and an unknown option right after a command's first
+word names both fixes:</p>
+<pre><code class="language-text">cli_option_unknown: unknown option -u in command; for the command's own option write --sudo -- TEXT, or quote the command
 </code></pre>
 <p><code>--target</code> and <code>--host</code> are target synonyms. <code>--address</code> aliases
 <code>--management-address</code>; neither address option supplies the required target:</p>
@@ -257,7 +280,10 @@ command ends the device: the requested commands are recorded
 <code>not_attempted_session_init_failure</code>. Under <code>continue</code> the device goes
 on and its first requested record carries the notice
 <code>session_init_command_failed</code> naming the profile, the command's index,
-and the code.</li>
+and the code. A profile's commands are device text alone: an entry
+<code>--sudo …</code> or <code>--sleep …</code> reaches the device as written and fails there
+(on a server <code>sh: 1: --sudo: not found</code>, exit 127), under the profile's
+<code>on-error</code>.</li>
 </ol>
 <p>Then the requested commands, then the definition's <code>exit-commands</code> at close.</p>
 <h2 id="the-exec-channel">The exec channel <a class="anchor" href="#the-exec-channel" aria-label="Link to this section">#</a></h2>
@@ -276,6 +302,8 @@ standard input at its end (<a href="DESIGN.html#5-transports-and-the-device-sess
   -&gt; for each requested command:           (execution.device-timeout over the whole list)
        open an exec channel and start the command
          system: one ssh -S client of the master, LogLevel QUIET, ProxyCommand false
+         --sudo: sudo -S -p PROMPT -- TEXT, the password at the prompt;
+                 sudo -n -- TEXT without one
        read stdout and stderr, each spooled past the threshold on its own
        wait for the exit status or signal   (its command timeout, from the channel's opening)
        emit one command record
@@ -283,7 +311,8 @@ standard input at its end (<a href="DESIGN.html#5-transports-and-the-device-sess
   -&gt; close: system ssh -O exit, the master killed on an abort;
             native closes its connection
 </code></pre>
-<p>There is no first prompt, no privilege step, no paging command, and no exit
+<p>There is no first prompt, no privilege step but a root command's own <code>sudo</code>
+(<a href="#root-commands-on-an-exec-channel">below</a>), no paging command, and no exit
 command, and nothing carries from one command to the next (<code>cd</code>, variables,
 <code>umask</code>): the remote shell is not interactive. Blind sends, <code>\r</code> endings,
 <code>--blind-return</code>, and <code>--expect</code> are refused at planning for an exec target
@@ -331,6 +360,101 @@ no <code>--timeout</code> (its wait is <code>execution.blind-wait</code>); a tim
 <code>execution.device-timeout</code>, or a limit above <code>output.max-job-bytes</code>, is refused
 at planning (<a href="TIMEOUTS.html"><code>docs/TIMEOUTS.md</code></a>,
 <a href="OPERATIONS.html#long-commands-a-copy-and-a-show-tech"><code>docs/OPERATIONS.md</code></a>).</p>
+<h2 id="sleeps-between-commands">Sleeps between commands <a class="anchor" href="#sleeps-between-commands" aria-label="Link to this section">#</a></h2>
+<p><code>--sleep DURATION</code> waits before the next command: it is a command source in
+the order written, as <code>--cmd</code> and <code>--cf</code> are, and the wait begins once the
+command before it has returned its prompt (or, before the first command, once
+the session is prepared). In a commands file, a line that is <code>--sleep DURATION</code> alone, or <code>--sleep=DURATION</code>, spaces around it allowed, is the same
+statement; every other line is device text as before, and <code>--literal</code> sends
+the line as written. This clears a peer, waits a minute, and reads the result:</p>
+<pre><code class="language-bash">karvi command router1 --cmd 'clear ip bgp 192.0.2.1 soft' --sleep 1m --cmd 'show ip bgp summary'
+</code></pre>
+<p>and so does a file holding the three lines <code>clear ip bgp 192.0.2.1 soft</code>,
+<code>--sleep 1m</code>, and <code>show ip bgp summary</code>. A sleep is 1s..12h; sleeps in a row
+add up; a sleep is no command and has no record, and <code>--debug</code> writes <code>device sleep target=… index=… total=… sleep=…</code> as each begins. Each is refused before
+any connection: one with no command after it (<code>sleep_without_command</code>), a
+declaration written after one (<code>declaration_after_sleep</code>; it belongs right
+after its <code>--cmd</code>), a file line whose first word is <code>--sleep</code> and is not the
+statement (<code>commands_file_sleep_invalid</code>, naming the file and line, so a
+mistyped sleep never reaches the device as text), and freeform text beside one
+(<code>cli_command_text_mixed</code>). The sleeps count against <code>execution.device-timeout</code>:
+their total above a set one is refused at planning (<code>sleep_over_device_timeout</code>),
+and the deadline ends a sleep, the next command then not sent
+(<code>device_timeout</code>); a cancel ends a sleep at once. A sleep longer than the
+device's own idle limit (IOS <code>exec-timeout</code>, 10 minutes by default) loses the
+session: the transport's keepalives are not input, so the device logs the
+session out and the next command fails on it.</p>
+<h2 id="root-commands-on-an-exec-channel">Root commands on an exec channel <a class="anchor" href="#root-commands-on-an-exec-channel" aria-label="Link to this section">#</a></h2>
+<p><code>--sudo TEXT</code> runs one command as root through the server's <code>sudo</code>: a command
+source in the order written, as <code>--cmd</code>, <code>--cf</code>, and <code>--sleep</code> are,
+repeatable, on <code>command</code>, <code>run</code>, and <code>crun</code>, and a stream line. Its text is
+written as a <code>--cmd</code>'s: quoted, or unquoted as the line's one command, or after
+<code>--sudo --</code> (<a href="#grammar">the grammar</a>); <code>--timeout</code> and <code>--maxbytes</code> written after
+a quoted one are its own. In a commands file, a line <code>--sudo TEXT</code> or <code>--sudo=TEXT</code>, spaces
+around it trimmed, is the same statement, and <code>--literal</code> sends every line as
+written. This checks a service as the login user, restarts it as root, and
+checks it again:</p>
+<pre><code class="language-bash">karvi command srv1 --cmd 'systemctl is-active nginx' --sudo 'systemctl restart nginx' --cmd 'systemctl is-active nginx'
+</code></pre>
+<p><code>--sudo</code> reaches a target whose platform runs on the exec channel (<code>linux</code>,
+or a <code>[platform.NAME]</code> table on its base): a target on a shell channel, every
+network platform and <code>linux_shell</code> among them, is refused at planning,
+<code>channel_shell_sudo_refused</code>, naming the target and the command's index (the
+shell's form is not built: <a href="../ROADMAP.html"><code>ROADMAP.md</code></a>, Later). Refused before
+any connection too: unquoted words beside another command
+(<code>cli_command_text_mixed</code>), a blank <code>--sudo</code> (<code>cli_option_value_invalid</code>), and
+a file line whose first word is <code>--sudo</code> with no command after it
+(<code>commands_file_sudo_invalid</code>, naming the file and line).</p>
+<p><strong>The password</strong> is chosen per device at planning, by the source that
+answered its credential: a backend's enable field, as it is (blank, none: a
+variable never fills it, and a row names one as <code>env:NETSUDO</code>); the platform's
+fallback, <code>NETSUDO</code>, else <code>NETENABLE</code> where the fallback holds <code>netvars</code>, else
+none. Nothing asks at the terminal. <code>NETSUDO</code> is read, and an exec device's
+enable field carried to the session, only for a device with a <code>--sudo</code>
+command; a platform on the exec channel with <code>requires-enable</code> requires the
+password of those devices alone (<code>credential_enable_missing</code>). The sources are
+<a href="OPERATIONS.html#root-commands-and-their-password"><code>docs/OPERATIONS.md</code></a>'s.</p>
+<p><strong>On the wire</strong> the command is <code>sudo -S -p 'karvi-sudo-&lt;16 hex&gt;:' -- TEXT</code>, the
+prompt random per command and the input left open: when the prompt appears on
+stderr, karvi writes the password and a line end once and closes the input.
+Without a password it is <code>sudo -n -- TEXT</code>, the input at its end, and a <code>sudo</code>
+whose rules want one refuses at once, <code>command_exit_nonzero</code> with its message
+in stderr (<code>sudo: a password is required</code>; sudo-rs, Ubuntu 26.04's <code>sudo</code>,
+<code>sudo: interactive authentication is required</code>). There is no <code>sh -c</code>: the
+server's rules match the command and its log names it, and the rest of the
+line after the first command, a <code>;</code>, a pipe, or a redirect, runs as the login
+user, as <code>sudo TEXT</code> typed at a prompt does (<code>--sudo 'whoami; whoami'</code> prints
+<code>root</code>, then the login user). A whole line as root is <code>--sudo &quot;sh -c '…'&quot;</code>, which
+the rules must allow for <code>sh</code>. Written unquoted, <code>--sudo sh -c '…'</code> is two
+commands: <code>-c</code> is <code>--cmd</code>'s alias and begins the next, which runs as the login
+user (the dry run counts both, and the display shows the second at <code>srv1$</code>).</p>
+<p><strong>The prompt</strong> is removed from the recorded stderr in both forms <code>sudo</code> writes
+it: classic <code>sudo</code>'s, the prompt as given, and sudo-rs's, <code>[sudo: PROMPT] Password: </code> and its line end. A second prompt says <code>sudo</code> refused the
+password: the input is closed, the command did not run, and the record is
+<code>privilege_failed</code>, <code>sudo</code>'s own lines in its stderr:</p>
+<pre><code class="language-text">privilege_failed: sudo asked for the password a second time, refusing the one given; the input was closed and the command did not run
+</code></pre>
+<p><strong>What shows it.</strong> A root command is shown at <code>srv1#</code>, where a command of the
+login user is at <code>srv1$</code>: in the text display, <code>--echo</code>, <code>output.TARGET.txt</code>,
+and <code>--live</code>, and one not sent is <code>! not sent: --sudo TEXT</code>. Its record keeps
+the command as written and adds <code>privilege: &quot;sudo&quot;</code>, as the audit's action
+does, and <code>karvi-audit</code>'s row shows <code>--sudo TEXT</code>; a collection's marker is <code>! --sudo TEXT</code>; a job's rerun files write it back as <code>--sudo TEXT</code>. The dry run names the root
+commands and each device's password source:</p>
+<pre><code class="language-text">commands: 3
+sudo: commands 2, 3
+- name:srv1: planned
+  credential: bound ID (policy=default backend=builtin-env-fallback user=netops; value not displayed)
+  sudo: password from NETSUDO (value not displayed)
+</code></pre>
+<p>or <code>sudo: password from the enable field (backend=NAME; value not displayed)</code>,
+or <code>sudo: none, sudo -n</code>. <code>--debug</code> adds <code>sudo=password</code> or <code>sudo=none</code> to
+the command's start line, and <code>device sudo answered target=… index=…</code> once
+the password was written.</p>
+<p><strong>A caution.</strong> Where a password is held and <code>sudo</code> asks for none (a
+<code>NOPASSWD</code> rule, or a ticket still valid), the input stays open: a command that
+reads its input with no file named (<code>head -c1</code>, <code>cat</code>, a script that asks)
+waits for it to its command timeout. Name its input, or bound it with
+<code>--timeout</code>.</p>
 <h2 id="prompt-detection">Prompt detection <a class="anchor" href="#prompt-detection" aria-label="Link to this section">#</a></h2>
 <p>The session renders the received bytes as the terminal showed them
 (<code>internal/termtext</code>, at no width: carriage returns, backspaces, and erases
@@ -379,6 +503,7 @@ srv1$ ls /nonexistent
 ls: cannot access '/nonexistent': No such file or directory
 karvi: target=srv1 status=device_error error=command_exit_nonzero: exited 2
 </code></pre>
+<p>A root command is shown at <code>srv1#</code> (<code>srv1# systemctl restart nginx</code>).</p>
 <p>The command record persists <code>promptbefore</code>, <code>prompt</code>, <code>prompt_source</code>, and
 <code>prompt_observed</code>; an exec record's are empty, <code>none</code>, and false, and it carries
 <code>channel</code>, <code>exit_status</code>, <code>exit_signal</code>, and <code>stderr</code> with its encoding, count,
@@ -423,10 +548,11 @@ command's <code>karvi: target=…</code> line on a line of its own after the dev
 bytes; the records, the job's files, and the audit are those of the same
 command without <code>--live</code>, which the plan does not carry, so its digest is the
 same. The exact value of each secret the session writes (the enable secret, a
-telnet password) is shown <code>&lt;removed&gt;</code>, found even when the device echoes it in
-two pieces; escape sequences follow <code>output.ansi</code>, as the text display's do. An
-exec target echoes nothing, so each command is shown at the prompt <code>--echo</code>
-shows it at (<code>srv1$ uname -a</code>), its stdout and stderr as they arrive. <code>--quiet</code>
+telnet password, a root command's <code>sudo</code> password) is shown <code>&lt;removed&gt;</code>, found
+even when the device echoes it in two pieces; escape sequences follow
+<code>output.ansi</code>, as the text display's do. An exec target echoes nothing, so
+each command is shown at the prompt <code>--echo</code> shows it at (<code>srv1$ uname -a</code>, a
+root command's <code>srv1#</code>), its stdout and stderr as they arrive. <code>--quiet</code>
 drops the header and the footer. Beside <code>--live</code>, the options that shape the
 display it replaces are refused (<code>live_option_conflict</code>): <code>--format jsonl</code> or
 <code>json</code>, <code>--echo</code>, <code>--border</code>, and <code>--noborder</code>; a configured echo or border is
@@ -441,9 +567,10 @@ set aside.</p>
 and its source, the credential backend and device username, the SSH
 algorithm lists with the profile and rule that selected them, the
 capacity admission, the connection opening and ready, each command's
-start (index, hash, size, blind flags, expectation count) and completion
-(status, code, output bytes, elapsed, prompt source), and how the
-session ended.</li>
+start (index, hash, size, blind flags, expectation count, and a root
+command's <code>sudo=password</code> or <code>sudo=none</code>) and completion (status, code,
+output bytes, elapsed, prompt source), each sleep, a root command's
+password written (<code>device sudo answered</code>), and how the session ended.</li>
 <li><code>system SSH command session …</code>, <code>system SSH exec master …</code>, or <code>native SSH connection …</code> (the transport): the binary or implementation, the address
 and port, the host-key policy and identity, the process ID or the shell's
 start, an exec master's socket and the method that authenticated, an open
@@ -476,7 +603,7 @@ the connection serving the next command, so the policy applies to them too. A
 refused channel or exec request, a lost connection, the device timeout, and a
 keepalive expiry end the session.</p>
 
-<footer>Generated from <code>docs/COMMAND-SESSION.md</code> at <code>karvi-v0.39.0</code>.</footer>
+<footer>Generated from <code>docs/COMMAND-SESSION.md</code> at <code>karvi-v0.40.0</code>.</footer>
 </main>
 </body>
 </html>

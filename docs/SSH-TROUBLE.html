@@ -61,8 +61,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -125,8 +125,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -258,17 +258,40 @@ method that authenticated; and it detects the prompt, a missing one being
 none. <code>native</code> is karvi's own x/crypto connection, another SSH stack altogether:
 when it reaches the prompt and <code>system</code> does not, the difference is OpenSSH's or
 the generated configuration's, and a plain <code>ssh -vvv</code> beside <code>ssh -vvv -F</code> a
-copy of karvi's configuration finds the setting. <code>--set 'ssh-algorithms.source=&quot;transport&quot;'</code> takes karvi's key exchange, cipher, and MAC
-lists out of the comparison: a device that connects under it and fails without
-is refused by karvi's lists, and the failure's <code>karvi offered</code> against <code>the device offered</code> names the list.
+copy of karvi's configuration finds the setting. Under <code>--debug</code>, <code>native</code> names
+what its handshake chose once it completes: <code>native SSH connection negotiated target=… address=… kex=… hostkey=… cipher=… mac=…</code>. A handshake that fails
+names none, but a device chooses the same at every connection, so a completed
+one names what a failed one used. <code>--set 'ssh-algorithms.source=&quot;transport&quot;'</code>
+takes karvi's key exchange, cipher, and MAC lists out of the comparison: a
+device that connects under it and fails without is refused by karvi's lists,
+and the failure's <code>karvi offered</code> against <code>the device offered</code> names the list.
 <a href="COMMAND-TROUBLESHOOTING.html"><code>docs/COMMAND-TROUBLESHOOTING.md</code></a> reads a
 command's capture.</p>
+<p>A failure that only some connections meet, <code>cipher: message authentication failed</code> or <code>invalid packet length</code> just after the key exchange, is the device
+and karvi deriving different keys under one key exchange. The candidates are
+the key exchanges both hold, in karvi's order from the first, which is the one
+the negotiated line names: <code>--set 'ssh-algorithms.kex=[&quot;NAME&quot;]'</code> before the
+command word pins one, and twenty runs of each tell the one at fault. Catalyst
+9300 switches on IOS XE 26.1.2 failed about a third of their connections under
+<code>mlkem768x25519-sha256</code>, which karvi and the switch both put first, and one on
+26.2.1 none. Over <code>system</code> the
+same holds where the host's OpenSSH implements it (OpenSSH 10; 9.6 does not, and
+offers the next in common). Until a switch moves to a release without the fault,
+a profile its map rule selects leaves the key exchange out on both transports
+(<a href="EXAMPLES.html#94-the-negotiated-ssh-algorithms-in---debug-2026-11-03"><code>docs/EXAMPLES.md</code>, chapter 94</a>):</p>
+<pre><code class="language-toml">[ssh-algorithms-profile.iosxe-26-1]
+kex = [&quot;curve25519-sha256&quot;, &quot;curve25519-sha256@libssh.org&quot;, &quot;ecdh-sha2-nistp521&quot;, &quot;ecdh-sha2-nistp384&quot;, &quot;ecdh-sha2-nistp256&quot;]
+
+[[ssh-algorithms-map]]
+profile = &quot;iosxe-26-1&quot;
+device-group = &quot;iosxe-26-1&quot;   # or name, address-cidr, site, platform
+</code></pre>
 <h2 id="4-on-the-device">4. On the device <a class="anchor" href="#4-on-the-device" aria-label="Link to this section">#</a></h2>
 <p>From the console or a session that works: <code>show users</code> and <code>show line vty</code> (is
 the session there, and in what state), <code>show ip ssh</code>, <code>show aaa servers</code>, <code>show logging</code>, and <code>debug ip ssh detail</code> during an attempt. They say whether the
 device got past authentication on its side.</p>
 
-<footer>Generated from <code>docs/SSH-TROUBLE.md</code> at <code>karvi-v0.39.0</code>.</footer>
+<footer>Generated from <code>docs/SSH-TROUBLE.md</code> at <code>karvi-v0.40.0</code>.</footer>
 </main>
 </body>
 </html>

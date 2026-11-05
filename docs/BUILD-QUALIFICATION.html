@@ -65,8 +65,8 @@
 </ul></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -133,8 +133,8 @@
 </ul></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -165,8 +165,8 @@ the daemon-upgrade smoke suite, the v0100 suite <code>scripts/v0100-smoke-test.s
 parity suite <code>scripts/native-smoke-test.sh</code>.</p>
 <p><code>verify-release.sh</code> builds from source: the import boundary and host-key
 assertions on the adapter, <code>gofmt</code>, <code>go mod verify</code>, the tests, vet, and the
-race detector in vendor mode, the build, its module metadata, version
-counters, and build, and the same smoke suites; then the tree's package, which
+race detector in vendor mode, the build, its module metadata, version, and
+build, and the same smoke suites; then the tree's package, which
 <code>scripts/check-deb.sh</code> checks against the tree and
 <code>scripts/sysutil-smoke-test.sh</code> tests as root in an Ubuntu 26.04 container
 under Docker (<code>karvi-sysutil</code>, the template unit, the maintainer scripts, the
@@ -204,9 +204,9 @@ v0.21.0 and v0.21.1, which keep it, it is v0.19.0; for v0.22.0, the karvi
 line's first release, and v0.23.0 to v0.28.0, which keep 10, there was none;
 for v0.29.0, which moved the schema to 11, it was v0.28.0; for v0.30.0, which
 moved it to 12, and v0.30.1, v0.31.0, v0.31.1, v0.32.0, v0.32.1, v0.33.0,
-v0.34.0, v0.34.1, v0.35.0, v0.36.0, v0.37.0, v0.38.0, and v0.39.0, which keep
-it, there was none: v0.29.0's daemon predates the drain that exits and listens
-on <code>daemon.sock</code>, which the new client never reaches).</li>
+v0.34.0, v0.34.1, v0.35.0, v0.36.0, v0.37.0, v0.38.0, v0.39.0, and v0.40.0,
+which keep it, there was none: v0.29.0's daemon predates the drain that exits
+and listens on <code>daemon.sock</code>, which the new client never reaches).</li>
 <li>The Go tests and the suites MUST leave the host's shared places as they
 were: both verifiers list the shared scoreboard directory and the shared
 trees under <code>/opt/karvi</code> and <code>/var/lib/karvi</code>, and whether
@@ -339,10 +339,10 @@ and <code>devsession.Open</code> in its <code>native.go</code>, and fails if the
 references <code>ssh-keyscan</code>, <code>os/exec</code>, or the removed pre-scan
 (<code>PrepareNative</code>, <code>InspectRemote</code>).</li>
 <li>The tests, <code>go vet</code>, and the race run MUST pass under <code>-mod=vendor</code>.</li>
-<li><code>karvi version --format json</code> MUST report the schema counters the
-verifiers check (configuration, command record, daemon IPC, job, and
-registry) and both transport IDs; the text form's transport line is
-checked verbatim.</li>
+<li><code>karvi version --format json</code> MUST report both transport IDs, the text
+form's transport line checked verbatim, and the shipped executable the
+schema counters <code>release/release-manifest.json</code> lists (configuration,
+registry, command record, daemon IPC, scoreboard, audit, and job).</li>
 <li><strong>The parity suite</strong> (<code>scripts/native-smoke-test.sh</code>) MUST pass: every
 case the script lists, each as <code>command</code> and <code>run --no-daemon</code> over
 <code>system</code> and <code>native</code> (S1 through the daemon as well), against the
@@ -379,7 +379,7 @@ from a host with journald.</li>
 <a href="CISCO-IOSXE-QUALIFICATION.html"><code>docs/CISCO-IOSXE-QUALIFICATION.md</code></a> holds the
 laboratory matrix and <a href="../ROADMAP.html"><code>ROADMAP.md</code></a> the open production gates.</p>
 
-<footer>Generated from <code>docs/BUILD-QUALIFICATION.md</code> at <code>karvi-v0.39.0</code>.</footer>
+<footer>Generated from <code>docs/BUILD-QUALIFICATION.md</code> at <code>karvi-v0.40.0</code>.</footer>
 </main>
 </body>
 </html>

@@ -62,8 +62,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -127,8 +127,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.39.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.39.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -892,13 +892,16 @@ had; each but the summary has its switch, <code>output.files.*</code>, and <code
 </tbody>
 </table>
 <p>The three command copies are what each device was sent, as <code>--cf</code> lines, each
-command's <code>\r</code> returns written back, so a copy read without <code>--literal</code> sends
-what was sent, and <code>karvi run --tf J/failed-devices.txt --cf J/commands</code> reruns
-a folder's failures with their own lists. A file cannot hold an <code>--expect</code>, a
-<code>--blind</code> without returns, a <code>--timeout</code>, or a <code>--maxbytes</code>; <code>manifest.json</code>'s
-plan alone does. A command whose own text ends in <code>\r</code>, which only <code>--literal</code>
-sends, reads back as returns. <code>summary.json</code>'s <code>paths</code> names <code>commands.txt</code> when
-it is written; the other copies are named by rule, as the output files are.</p>
+command's <code>\r</code> returns written back, the sleep before it as <code>--sleep</code> lines
+(sleeps in a row as their sum, in parts of at most 12h), and a root command as
+<code>--sudo TEXT</code>, so a copy read without <code>--literal</code> sends what was sent, and
+<code>karvi run --tf J/failed-devices.txt --cf J/commands</code> reruns a folder's
+failures with their own lists. A file cannot hold an <code>--expect</code>, a <code>--blind</code>
+without returns, a <code>--timeout</code>, or a <code>--maxbytes</code>; <code>manifest.json</code>'s plan alone
+does. A command whose own text ends in <code>\r</code>, or is a <code>--sleep</code> or <code>--sudo</code>
+line's, which only <code>--literal</code> sends, reads back as returns or the statement.
+<code>summary.json</code>'s <code>paths</code> names <code>commands.txt</code> when it is written; the other
+copies are named by rule, as the output files are.</p>
 <h3 id="44-transcripts-and-collection-files">4.4 Transcripts and collection files <a class="anchor" href="#44-transcripts-and-collection-files" aria-label="Link to this section">#</a></h3>
 <table>
 <thead>
@@ -1201,7 +1204,7 @@ the home from the password database, so a run under another <code>HOME</code> st
 writes to the account's own.</li>
 </ul>
 
-<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.39.0</code>.</footer>
+<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.40.0</code>.</footer>
 </main>
 </body>
 </html>
