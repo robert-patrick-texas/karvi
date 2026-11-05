@@ -18,6 +18,18 @@
   start`, the rest of its lane unrun. It builds `tools/daemon-fixture` once into
   its work directory and starts the executable, so the wait measures the start
   alone, and the pid it holds is the fixture's own.
+- **The spool suite asks no floor of the host and says when S9's narrowing
+  row cannot run.** `scripts/spool-smoke-test.sh` ran under the default 2 GiB
+  `output.min-free-bytes-after-job`, so a volume short of that and the
+  suite's own writes refused a row with `output_preflight_space` (S6, with
+  2.8 GB free when the suite began), and S9's narrowing row, a job at a 1 GiB
+  command limit, asked a further GiB (S9, with 3.4 GB free when the suite
+  began, asking 3,228,434,432 bytes), stopping its lane before the job list
+  and audit suites. The suite sets the floor to 0, as
+  the other suites do, S10 still setting its own; S9 reads the floor from
+  karvi and the volume's free space at the row, and runs the row when it holds
+  the floor and two limits (one for the job at width one, one for its other
+  files and the other lanes' writes), else prints a line naming both figures.
 
 ## 0.40.0 - 2026-11-05
 

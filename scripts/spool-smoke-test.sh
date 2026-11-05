@@ -64,8 +64,9 @@ start_fake
 : >"$KH"; chmod 600 "$KH"
 
 # The inventory: the fake under one name, and enough names on its address
-# for the width the narrowing row needs.
-FITS=$(( $(df --output=avail -B1 "$SPOOL" | tail -1) / 1073741824 ))
+# for the width the narrowing row needs. LIMIT is that row's command limit.
+LIMIT=1073741824
+FITS=$(( $(df --output=avail -B1 "$SPOOL" | tail -1) / LIMIT ))
 DEVICES=$((FITS + 8))
 [ "$DEVICES" -le 200 ] || DEVICES=0
 {
@@ -98,8 +99,11 @@ command-timeout = "20s"
 [output]
 # Every answer spools (the suites' way): the daemon's jobs read
 # the daemon's configuration, not a client's --set, so the threshold is
-# here; a row that wants memory sets 1 GiB.
+# here; a row that wants memory sets 1 GiB. No floor, as in the other
+# suites: the rows' subject is the spool, not the host's free space; S9
+# reads this value and S10 sets its own floors.
 spool-threshold-bytes = 0
+min-free-bytes-after-job = 0
 [dispatch]
 default = "parallel"
 parallel-workers = 200
@@ -326,18 +330,29 @@ echo "spool smoke: S8 the scoreboard carried $seen bytes in flight during the re
 # passed every row above; `never` reads nothing; `auto` narrows a job of
 # more devices than the disk holds at the 1 GiB limit, above the floor and
 # the job's own files, to the width that fits, with the warning, when the
-# host's free space lets the suite ask for that many devices.
+# host's free space lets the suite ask for that many devices. The auto row
+# runs when the spool's volume, read here, holds the floor and two limits:
+# one for the job at width one, one for the job's other files and what the
+# suites in the other lanes write meanwhile; with less it is not run, and
+# the line says so.
 karvi s9n --set 'freecheck="never"' --debug cmd fake-iosxe --format jsonl --transport native --cmd 'show clock'
 [ "$CODE" -eq 0 ] || fail "S9 never: exit $CODE"
 grep -q 'freecheck=never volumes=0' "$TMP/err.s9n" || fail "S9 never: the debug stream lacks the word and the empty read"
-if [ "$DEVICES" -gt 0 ]; then
-  karvi s9a --set output.max-command-bytes=1073741824 run --no-daemon --target 'wide-*' --format jsonl 'show clock'
+karvi s9f config show output.min-free-bytes-after-job
+S9_FLOOR=$(sed -n 's/^value: *//p' "$TMP/out.s9f")
+[ "$CODE" -eq 0 ] && [ -n "$S9_FLOOR" ] || fail "S9: the floor not read: exit $CODE"
+S9_NEED=$((S9_FLOOR + 2 * LIMIT))
+S9_FREE=$(df --output=avail -B1 "$SPOOL" | tail -1)
+if [ "$DEVICES" -eq 0 ]; then
+  echo "spool smoke: S9 never read nothing; auto not narrowed here (the disk holds more than 192 limits)"
+elif [ "$S9_FREE" -lt "$S9_NEED" ]; then
+  echo "spool smoke: S9 never read nothing; auto not run here: the spool's volume has $S9_FREE bytes free, under the floor and two limits, $S9_NEED"
+else
+  karvi s9a --set output.max-command-bytes=$LIMIT run --no-daemon --target 'wide-*' --format jsonl 'show clock'
   [ "$CODE" -eq 0 ] || fail "S9 auto: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s9a" | head -1)"
-  grep -q "warning: spool_width_narrowed: .*$SPOOL has [0-9]* bytes free, 1073741824 per command in flight (output.max-command-bytes) above the [0-9]* bytes the job's other files and the floor take: the job runs [0-9]* at a time instead of $DEVICES" "$TMP/err.s9a" || fail "S9 auto: no narrowing warning: $(grep warning "$TMP/err.s9a" | head -1)"
+  grep -q "warning: spool_width_narrowed: .*$SPOOL has [0-9]* bytes free, $LIMIT per command in flight (output.max-command-bytes) above the [0-9]* bytes the job's other files and the floor take: the job runs [0-9]* at a time instead of $DEVICES" "$TMP/err.s9a" || fail "S9 auto: no narrowing warning: $(grep warning "$TMP/err.s9a" | head -1)"
   [ "$(wc -l <"$TMP/out.s9a")" -eq $((DEVICES + 1)) ] || fail "S9 auto: $(wc -l <"$TMP/out.s9a") lines for $DEVICES devices and the summary"
   echo "spool smoke: S9 never read nothing; auto narrowed $DEVICES devices to what $FITS GiB holds"
-else
-  echo "spool smoke: S9 never read nothing; auto not narrowed here (the disk holds more than 192 limits)"
 fi
 
 # S10: the floor on every volume. `always` with the floor a
