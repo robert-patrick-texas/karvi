@@ -1,11 +1,11 @@
-karvi 0.39.0
-commit: source-release-v0.39.0
-build: OVm9OErdgujJlrhYFLuV
+karvi 0.40.0
+commit: source-release-v0.40.0
+build: C71lyQOLd6sV4H1SEuL0
 go: go1.27.3
 config_schema: 6
-command_record_schema: 4
+command_record_schema: 5
 scoreboard_schema: 5
-audit_schema: 2
+audit_schema: 3
 job_schema: 5
 daemon_ipc_schema: 12
 config_registry_schema: 33
