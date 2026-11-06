@@ -7,14 +7,12 @@ ifeq ($(origin COMMIT),undefined)
 COMMIT := $(shell if [ -e .git ]; then git describe --always --dirty 2>/dev/null || echo development; else echo development; fi)
 endif
 HTMLDIR ?= ../html
-FIPS_MODE ?= false
 GOOS ?= linux
 GOARCH ?= amd64
 
 MODULE := github.com/robert-patrick-texas/karvi
 LDFLAGS := -s -w \
-	-X $(MODULE)/internal/buildinfo.Commit=$(COMMIT) \
-	-X $(MODULE)/internal/buildinfo.FIPSMode=$(FIPS_MODE)
+	-X $(MODULE)/internal/buildinfo.Commit=$(COMMIT)
 
 .PHONY: all fmt generate generated-clean deps vendor test vet build checksums html deb smoke halt-smoke k03-smoke native-smoke clean
 

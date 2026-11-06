@@ -1,5 +1,5 @@
 // Package buildinfo owns the single version/build identity used by all karvi
-// executables. Release automation sets the variables with -ldflags.
+// executables. Release automation sets Commit with -ldflags.
 package buildinfo
 
 import (
@@ -17,10 +17,7 @@ const AppName = "karvi"
 // one place it is written.
 var Version = karvi.Version
 
-var (
-	Commit   = "development"
-	FIPSMode = "false"
-)
+var Commit = "development"
 
 // SSHTransport is one SSH transport this executable carries: the native
 // transport compiled in, and OpenSSH run as an external executable.
@@ -52,7 +49,6 @@ type Info struct {
 	JobSchemaVersion            int    `json:"job_schema_version"`
 	DaemonIPCSchemaVersion      int    `json:"daemon_ipc_schema_version"`
 	ConfigRegistrySchemaVersion int    `json:"config_registry_schema_version"`
-	FIPSMode                    string `json:"fips_mode"`
 	// ICMPMethod is the ICMP gate method this process detected; the version
 	// command fills it, Current leaves it empty.
 	ICMPMethod    string         `json:"icmp_method,omitempty"`
@@ -76,7 +72,6 @@ func Current() Info {
 		JobSchemaVersion:            records.JobSchemaVersion,
 		DaemonIPCSchemaVersion:      ipc.SchemaVersion,
 		ConfigRegistrySchemaVersion: configschema.RegistrySchemaVersion,
-		FIPSMode:                    FIPSMode,
 		SSHTransports:               sshTransports(),
 	}
 }

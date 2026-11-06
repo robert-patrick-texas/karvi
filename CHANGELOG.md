@@ -48,6 +48,13 @@
   `config_unknown_environment`; the audit's policy no longer carries
   `fips_required`. karvi has no FIPS 140-3 mode; what one waits on is in
   [`ROADMAP.md`](ROADMAP.md).
+- **Breaking: `karvi version` has no `fips_mode` line.** The value was the
+  Makefile's `FIPS_MODE` word, stamped in at build time and checked against
+  nothing: `false` for a build with Go's FIPS 140-3 mode on (`GOFIPS140`, or
+  `GODEBUG=fips140=on`), `true` for an ordinary build made with
+  `FIPS_MODE=true`. The line, the version JSON's `fips_mode`, a job manifest's
+  `app.build.fips_mode`, and the Makefile's `FIPS_MODE` are gone; the job
+  schema stays 5, the manifest's `app` being free-form.
 
 ## 0.40.0 - 2026-11-05
 

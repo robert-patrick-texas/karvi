@@ -21715,9 +21715,43 @@ number in their events and its warning, and name 4. *Not taken:* the key kept
 with its documentation corrected to "recorded in the audit only", a setting
 that changes nothing.
 
-**Left open.** The ROADMAP item, opened by its test above. The second finding,
-taken up next: `karvi version`'s `fips_mode` line reports the Makefile's
-label, not the binary.
+**The second finding, agreed: the `fips_mode` label removed.** `karvi
+version`'s `fips_mode`, in its text, its JSON, and a job manifest's
+`app.build`, was the Makefile's `FIPS_MODE` word, stamped in at build time and
+checked against nothing. It said `false` for the three builds above, two of
+them in Go's FIPS mode, and on `b189505` whatever the build command said, here
+for an ordinary build with no FIPS setting at all:
+
+```text
+$ karvi version   # built as make build FIPS_MODE=true does
+  fips_mode: true
+  --format json, fips_mode: true
+$ karvi command --target router1 -c 'show clock'   # exit 0, the default build
+  manifest app.build.fips_mode: false
+```
+
+Nothing read it, the verifiers checking the schema numbers alone. The line,
+the field, `buildinfo.FIPSMode`, and the Makefile's `FIPS_MODE` and its `-X`
+flag are removed; the job schema stays 5, the manifest's `app` being
+free-form, as when `app.build.ssh_transports` changed. After, both builds
+alike:
+
+```text
+$ karvi version
+  config_registry_schema: 34
+  icmp_method: socket
+  --format json, fips_mode: (absent)
+$ karvi command --target router1 -c 'show clock'   # exit 0
+  manifest app.build.fips_mode: (absent)
+  manifest schema_version: 5
+```
+
+A command line that still says `FIPS_MODE=true` reaches no flag: `make -n
+build` passes `-X …/buildinfo.Commit=` alone. *Not taken:* the line reporting
+the running binary's Go FIPS state and module version, a field about a mode
+karvi does not have, off for every release; it belongs to the mode's design.
+
+**Left open.** The ROADMAP item, opened by its test above.
 
 **Checks.** The FIPS runs above, by one script on the tree at `04f4df4` with
 the ROADMAP item: karvi and the fake device built from the tree, a
@@ -21728,6 +21762,9 @@ key's runs by a second script the same way, on `e68d406` and on the change;
 check build of the documents, and the full battery,
 `scripts/verify-release.sh` under `TMPDIR=/var/tmp`, in a copy of the tree with
 the change (03:52 to 04:02 UTC): 74 packages, then again under `-race`, and the
-19 suites, S9 narrowing 24 devices to what 16 GiB holds. The evidence is kept
-beside the tree (`release-design-evidence/fips-2026-11-05/`: the scripts and
-their logs, and the battery's).
+19 suites, S9 narrowing 24 devices to what 16 GiB holds. The label's runs by a
+third script the same way, on `b189505` and on the change; `go vet`, `go test
+./...`, and `make generated-clean` again, and a second battery in a copy of the
+tree with that change (04:23 to 04:33 UTC), alike. The evidence is kept beside
+the tree (`release-design-evidence/fips-2026-11-05/`: the scripts and their
+logs, and the two batteries').
