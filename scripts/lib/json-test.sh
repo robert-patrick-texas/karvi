@@ -4,7 +4,9 @@
 set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "$ROOT/scripts/lib/json.sh"
-TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT HUP INT TERM
+TMP=$(mktemp -d)
+cleanup() { rm -rf "$TMP"; }
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 failures=0
 check() { # check NAME WANT GOT
   if [ "$2" = "$3" ]; then echo "json lib: $1: pass"; else echo "json lib: $1: FAIL: want [$2] got [$3]" >&2; failures=$((failures + 1)); fi

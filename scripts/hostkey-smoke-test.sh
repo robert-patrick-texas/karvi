@@ -18,7 +18,7 @@ FAKE_SSH=$TMP/fake-ssh
 CAPTURE=$TMP/managed-ssh.conf
 
 cleanup() { rm -rf "$TMP"; }
-trap cleanup EXIT HUP INT TERM
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 
 install -d -m 700 "$HOME_DIR" "$BASE" "$SCORE" "$CAPACITY" "$TMP/bin"
 cat > "$FAKE_SSH" <<EOF_INNER

@@ -28,7 +28,7 @@ cleanup() {
   "$KARVI" --set "basedir=\"$BASE_S1\"" daemon stop --force >/dev/null 2>&1 || true
   rm -rf "$TMP"
 }
-trap cleanup EXIT HUP INT TERM
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 install -d -m 700 "$BASE" "$BASE_S1" "$SCORE" "$CAP" "$HOME_DIR" "$TMP/streams"
 
 seed() { printf 'ndcanary-%s' "$(tr -dc '0-9abcdefghjkmnpqrstvwxyz' </dev/urandom | head -c 20)"; }

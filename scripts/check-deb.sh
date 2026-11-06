@@ -28,7 +28,8 @@ cd_failed=0
 fail() { echo "check-deb: $*" >&2; cd_failed=1; }
 
 cd_work=$(mktemp -d "${TMPDIR:-/tmp}/karvi-check-deb-XXXXXX")
-trap 'rm -rf "${cd_work:?}"' EXIT HUP INT TERM
+cleanup() { rm -rf "${cd_work:?}"; }
+. "$(dirname -- "$0")/lib/exit.sh"; on_exit cleanup
 R=$cd_work/root
 dpkg-deb -x "$PKG" "$R"
 DOC=$R/usr/share/doc/karvi

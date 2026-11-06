@@ -68,7 +68,8 @@ for command in login command cmd run daemon config watch version; do
 done
 
 TMP=$(mktemp -d)
-trap 'rm -rf "$TMP"' EXIT HUP INT TERM
+cleanup() { rm -rf "$TMP"; }
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 # Config validation checks explicit executable mappings. Supply an isolated
 # executable named ssh so the examples remain independent of the build host.
 install -d -m 700 "$TMP/bin"

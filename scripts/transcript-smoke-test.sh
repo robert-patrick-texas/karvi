@@ -32,7 +32,7 @@ MARKER=KARVI_TRANSCRIPT_SMOKE_MARKER
 DAY=$(date +%y%m%d)
 
 cleanup() { rm -rf "$TMP"; }
-trap cleanup EXIT HUP INT TERM
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 
 install -d -m 700 "$HOME_DIR" "$BASE"
 cat > "$FAKE_SSH" <<EOF_INNER

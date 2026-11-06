@@ -50,7 +50,7 @@ cleanup() {
   [ -z "$FAKE_PID" ] || { kill "$FAKE_PID" 2>/dev/null || true; wait "$FAKE_PID" 2>/dev/null || true; }
   rm -rf "$TMP"
 }
-trap cleanup EXIT HUP INT TERM
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 
 install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store" "$TMP/home" "$TMP/base"
 (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)

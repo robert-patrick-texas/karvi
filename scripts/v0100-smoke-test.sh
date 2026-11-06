@@ -53,7 +53,7 @@ cleanup() {
   "$KARVI" --quiet $(common_args) daemon stop --force >/dev/null 2>&1 || true
   rm -rf "$TMP"
 }
-trap cleanup EXIT
+. scripts/lib/exit.sh; on_exit cleanup
 failures=0
 fail() { echo "FAIL: $*" >&2; failures=$((failures + 1)); }
 rows=0

@@ -33,7 +33,7 @@ cleanup() {
   chmod -R u+rwX "$TMP" 2>/dev/null || true
   rm -rf "$TMP"
 }
-trap cleanup EXIT HUP INT TERM
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 
 install -d -m 700 "$TMP/bin" "$TMP/home" "$TMP/base" "$TMP/score" "$TMP/crun"
 (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)

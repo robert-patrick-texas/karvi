@@ -36,7 +36,7 @@ stop_daemon() {
   [ ! -S "$TMP/base/socket/d.sock" ] || fail "the daemon socket remains"
 }
 cleanup() { stop_daemon 2>/dev/null || true; stop_fake; rm -rf "$TMP"; }
-trap cleanup EXIT HUP INT TERM
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 
 [ -x "$PRUNE" ] || fail "karvi-prune not found at $PRUNE"
 install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store" "$TMP/home" "$TMP/base" "$SPOOL"

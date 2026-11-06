@@ -2,7 +2,8 @@
 # The executable suites, in one place: both
 # verifiers run the same list against bin/ as it stands, so the list cannot
 # drift between them. Source it, then call run_suites from the tree's root.
-# The JSON reader's own test goes first: the suites assert through it.
+# The libraries' own tests go first: the suites assert through the JSON
+# reader and clean up through on_exit.
 #
 # The suites run in three lanes at once: the parity suite alone, the v0100
 # suite alone, and the seventeen others in order. Each suite keeps its
@@ -39,6 +40,7 @@ rs_lane() {
 
 run_suites() {
   ./scripts/lib/json-test.sh >/dev/null || return 1
+  ./scripts/lib/exit-test.sh >/dev/null || return 1
   if [ "${KARVI_SUITE_LANES:-3}" = 1 ]; then
     # shellcheck disable=SC2086
     rs_run $RS_LANE1 $RS_LANE2 $RS_LANE3

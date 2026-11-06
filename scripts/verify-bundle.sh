@@ -32,7 +32,8 @@ GOTOOLCHAIN=local go test -count=1 -mod=vendor ./...
 GOTOOLCHAIN=local go vet -mod=vendor ./...
 
 TMP=$(mktemp -d)
-trap 'rm -rf "$TMP"' EXIT HUP INT TERM
+cleanup() { rm -rf "$TMP"; }
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 GOTOOLCHAIN=local go run -mod=vendor ./tools/configgen \
   -schema "$TMP/config-schema.json" -reference "$TMP/reference.toml"
 cmp schema/config-schema.json "$TMP/config-schema.json"

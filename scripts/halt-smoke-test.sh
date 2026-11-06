@@ -14,7 +14,7 @@ FAKE=$TMP/fake-ssh
 THIRD_MARKER=$TMP/third-target-opened
 
 cleanup() { rm -rf "$TMP"; }
-trap cleanup EXIT HUP INT TERM
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 
 install -d -m 700 "$BASE" "$SCORE" "$CAP"
 cat > "$FAKE" <<SH_INNER

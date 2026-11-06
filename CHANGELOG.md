@@ -84,6 +84,22 @@
 - **`karvi-sysutil` reads `daemon status` without colour.** Under a global
   file's `display.color = "always"`, the install read a painted
   `compatible:` value and warned of "another build" on every run.
+- **The scripts end at a signal, their cleanup run once.** Twenty-four
+  scripts set their cleanup with `trap ... EXIT HUP INT TERM`, so a Ctrl-C,
+  TERM, or HUP ran the cleanup and the script went on, running it again at its
+  end: a Ctrl-C during `scripts/device-qualification.sh` against the fake
+  stopped the fake, and the run went on through 77 more rows, 46 of them
+  failing, to exit 1. `make generated-clean`'s trap was on EXIT alone, which
+  dash (`/bin/sh`) does not run when a signal ends the shell, so a Ctrl-C left
+  its scratch folder in `/tmp`. Every script and the recipe set their cleanup
+  through `on_exit` in `scripts/lib/exit.sh`: the cleanup runs once, and HUP,
+  INT, and TERM end the script with 129, 130, and 143. The five bash scripts
+  whose trap was on EXIT alone use it too, so a TERM sent to one of them alone
+  no longer runs its cleanup while the command it waits on is still running.
+  `scripts/lib/exit-test.sh`, which `run_suites` runs first with the JSON
+  reader's test, ends a model script under sh and bash with each signal, and
+  fails when a script sets a trap on EXIT any other way. ROADMAP's item for it
+  is closed.
 
 ## 0.40.0 - 2026-11-05
 

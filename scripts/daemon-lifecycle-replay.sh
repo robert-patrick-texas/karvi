@@ -36,7 +36,7 @@ cleanup() {
   HOME=$H "$OLD" "${O[@]}" daemon stop >/dev/null 2>&1 || true
   rm -rf "$TMP"
 }
-trap cleanup EXIT
+. ./scripts/lib/exit.sh; on_exit cleanup
 failures=0
 fail() { echo "FAIL: $*" >&2; failures=$((failures + 1)); }
 pid() { HOME=$H "$NEW" "${A[@]}" daemon status 2>/dev/null | sed -n 's/^pid: //p'; }

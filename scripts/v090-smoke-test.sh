@@ -28,7 +28,7 @@ cleanup() {
   "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' daemon stop >/dev/null 2>&1 || true
   rm -rf "$TMP"
 }
-trap cleanup EXIT HUP INT TERM
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 install -d -m 700 "$HOME_DIR" "$BASE" "$SCORE" "$CAP"
 
 cat >"$FAKE" <<'EOF_FAKE'

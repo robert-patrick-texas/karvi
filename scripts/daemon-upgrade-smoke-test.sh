@@ -35,7 +35,7 @@ cleanup() {
   fi
   rm -rf "$TMP"
 }
-trap cleanup EXIT HUP INT TERM
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 install -d -m 700 "$BASE" "$HOME_DIR" "$TMP/tmp" "$TMP/bin"
 # The fixture is built once, before its first start, so the start's wait
 # measures its start and not a compile; its pid is the fixture's own.

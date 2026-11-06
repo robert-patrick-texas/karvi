@@ -38,9 +38,10 @@ generate:
 	$(GO) run ./tools/mangen
 
 # Every comparison counts: set -e, since the recipe is one shell line and
-# its exit would otherwise be the last command's alone.
+# its exit would otherwise be the last command's alone. The scratch folder
+# goes at any end, a Ctrl-C included (scripts/lib/exit.sh).
 generated-clean:
-	@set -e; tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
+	@set -e; . ./scripts/lib/exit.sh; tmp=$$(mktemp -d); on_exit 'rm -rf "$$tmp"'; \
 	$(GO) run ./tools/configgen -schema "$$tmp/config-schema.json" -reference "$$tmp/reference.toml"; \
 	$(GO) run ./tools/errorcodegen -output "$$tmp/ERROR-CODES.md"; \
 	$(GO) run ./tools/mangen -dir "$$tmp/man"; \

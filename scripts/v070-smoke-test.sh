@@ -23,7 +23,8 @@ SCORE=$TMP/scoreboards
 CAP=$TMP/capacity
 FAKE=$TMP/fake-ssh
 LOG=$FAKE.log
-trap 'rm -rf "$TMP"' EXIT HUP INT TERM
+cleanup() { rm -rf "$TMP"; }
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 install -d -m 700 "$HOME_DIR" "$BASE" "$SCORE" "$CAP"
 
 cat >"$FAKE" <<'SH'

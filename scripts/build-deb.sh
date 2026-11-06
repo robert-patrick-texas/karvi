@@ -52,7 +52,8 @@ fi
 
 bd_maintainer=$(sed -n 's/^Maintainer: //p' "$ROOT/packaging/debian/control")
 bd_work=$(mktemp -d "${TMPDIR:-/tmp}/karvi-deb.XXXXXX")
-trap 'rm -rf "${bd_work:?}"' EXIT HUP INT TERM
+cleanup() { rm -rf "${bd_work:?}"; }
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 bd_src=$bd_work/karvi-$bd_package
 mkdir "$bd_src"
 (cd "$ROOT" && tar --exclude=./.git --exclude=./dist -cf - .) | (cd "$bd_src" && tar -xf -)

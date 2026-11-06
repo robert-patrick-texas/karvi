@@ -114,7 +114,7 @@ cleanup() {
   [ -z "$FAKE_PID" ] || { kill "$FAKE_PID" 2>/dev/null || true; wait "$FAKE_PID" 2>/dev/null || true; }
   [ -z "${SOCKDIR:-}" ] || rm -rf "$SOCKDIR"
 }
-trap cleanup EXIT HUP INT TERM
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 wanted() { [ -z "${ROWS:-}" ] && return 0; for r in $ROWS; do [ "$1" != "$r" ] || return 0; done; return 1; }
 
 [ ! -e "$EVIDENCE" ] || { echo "device qualification: $EVIDENCE exists; name another EVIDENCE" >&2; exit 2; }

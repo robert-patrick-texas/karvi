@@ -67,7 +67,10 @@ A script reads JSON through `scripts/lib/json.sh` (`json_get`, `json_has`,
 records, one line each, the values asked for tab-separated) and never by
 matching a file's text; a must-not-appear check stops the script rather than
 relying on a negated pipeline. A Go test that
-needs a value from a `.json` file decodes it.
+needs a value from a `.json` file decodes it. A script sets its cleanup
+through `on_exit` in `scripts/lib/exit.sh`, which runs it once at any end and
+ends the script at a signal; `scripts/lib/exit-test.sh` fails on a trap of
+its own on EXIT.
 
 ## Branches and releases
 

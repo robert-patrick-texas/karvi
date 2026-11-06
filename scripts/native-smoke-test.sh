@@ -37,7 +37,7 @@ stop_daemon() {
   [ ! -S "$TMP/base/socket/d.sock" ] || fail "the daemon socket remains"
 }
 cleanup() { stop_fake; stop_daemon 2>/dev/null || true; rm -rf "$TMP"; }
-trap cleanup EXIT HUP INT TERM
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 
 install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store"
 (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)

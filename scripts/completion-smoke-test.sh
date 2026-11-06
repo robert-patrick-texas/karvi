@@ -13,7 +13,8 @@ PRUNE=${KARVI_PRUNE:-$(dirname "$KARVI")/karvi-prune}
 AUDIT=${KARVI_AUDIT:-$(dirname "$KARVI")/karvi-audit}
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-completion-smoke-XXXXXX")
 . "$ROOT/scripts/lib/host.sh"; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
-trap 'rm -rf "$TMP"' EXIT
+cleanup() { rm -rf "$TMP"; }
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 install -d -m 700 "$TMP/home" "$TMP/state" "$TMP/sb" "$TMP/bin"
 ln -s "$KARVI" "$TMP/bin/karvi"
 ln -s "$PRUNE" "$TMP/bin/karvi-prune"

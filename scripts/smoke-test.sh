@@ -19,7 +19,7 @@ cleanup() {
     daemon stop >/dev/null 2>&1 || true
   rm -rf "$TMP"
 }
-trap cleanup EXIT HUP INT TERM
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 
 install -d -m 700 "$BASE" "$SCORE" "$CAP"
 printf '%s' "$SECRET" | sha256sum | awk '{print $1}' > "$FAKE.expected"

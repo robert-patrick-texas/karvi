@@ -80,7 +80,7 @@ cleanup() {
   docker rmi -f "$TAG" >/dev/null 2>&1
   rm -rf "${TMP:?}"
 }
-trap cleanup EXIT HUP INT TERM
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 
 UNIT=karvi-daemon@karvi.service
 HOME_DIR=/opt/karvi/users/karvi

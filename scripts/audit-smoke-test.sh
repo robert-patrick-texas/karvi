@@ -31,7 +31,7 @@ cleanup() {
   if [ -n "$FAKE_PID" ]; then kill "$FAKE_PID" 2>/dev/null || true; wait "$FAKE_PID" 2>/dev/null || true; fi
   rm -rf "$TMP"
 }
-trap cleanup EXIT HUP INT TERM
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 
 [ -x "$AUDIT" ] || fail "karvi-audit not found at $AUDIT"
 
