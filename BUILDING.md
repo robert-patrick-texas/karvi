@@ -24,9 +24,9 @@ carries the native transport. Its text version output MUST include:
   native: compiled-in
 ```
 
-The suites run in three lanes at once (`scripts/lib/suites.sh`);
-`KARVI_SUITE_LANES=1` runs them one after
-another with the output live.
+The suites run in three lanes at once (`scripts/lib/suites.sh`); a Ctrl-C
+stops every lane, each suite running its cleanup. `KARVI_SUITE_LANES=1` runs
+them one after another with the output live.
 
 A build is stamped with its version and its commit, and no build time: `make
 build` takes `COMMIT` from the command line or the environment, else `git

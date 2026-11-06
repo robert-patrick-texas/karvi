@@ -19,7 +19,8 @@ sudo apt-get install -y \
 
 `openssh-client` supplies system SSH, `ssh-keyscan`, and `ssh-keygen`.
 `util-linux` supplies `script(1)`, which karvi uses for PTY-backed login
-transcripts. `dpkg-dev`, `debhelper`, and `lintian` build and check the Debian
+transcripts, and `setsid(1)`, which runs each lane of the suites in a session
+of its own. `dpkg-dev`, `debhelper`, and `lintian` build and check the Debian
 package ([§4.3](#43-build-the-debian-package)); the release verifier builds
 one and fails without them.
 

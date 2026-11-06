@@ -8,7 +8,6 @@ ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP=$(mktemp -d)
 cleanup() { rm -rf "$TMP"; }
 on_exit cleanup
-command -v python3 >/dev/null 2>&1 || { echo "exit lib: python3 is required (BUILD-HOWTO.md §1)" >&2; exit 2; }
 failures=0
 check() { # check NAME WANT GOT
   if [ "$2" = "$3" ]; then echo "exit lib: $1: pass"; else echo "exit lib: $1: FAIL: want [$2] got [$3]" >&2; failures=$((failures + 1)); fi
@@ -28,20 +27,14 @@ case $5 in
   end) ;;
 esac
 EOF
-# The model starts in a group of its own with INT at its default, as a
-# terminal's job has it: an asynchronous command of a script starts with INT
-# ignored, which no trap can undo, and run_suites runs this test so.
-LAUNCH='import os, signal, sys
-os.setsid()
-signal.signal(signal.SIGINT, signal.SIG_DFL)
-os.execvp(sys.argv[1], sys.argv[1:])'
-
 # model SHELL END [SIGNAL TARGET]: the model's status and what it wrote, on
-# one line. TARGET "group" signals the model and its command, as a Ctrl-C or
-# `kill -- -PGID` does; "script" the model alone, as timeout(1) does.
+# one line. The model starts as a terminal's job (terminal_job), not as a
+# plain asynchronous command, whose INT starts ignored. TARGET "group"
+# signals the model and its command, as a Ctrl-C or `kill -- -PGID` does;
+# "script" the model alone, as timeout(1) does.
 model() {
   d=$(mktemp -d "$TMP/model.XXXXXX")
-  python3 -c "$LAUNCH" "$1" "$TMP/model.sh" "$ROOT/scripts/lib/exit.sh" "$d/out" "$d/ready" "$d/stop" "$2" 2>"$d/err" &
+  terminal_job "$1" "$TMP/model.sh" "$ROOT/scripts/lib/exit.sh" "$d/out" "$d/ready" "$d/stop" "$2" 2>"$d/err"
   pid=$!
   i=0
   while [ ! -e "$d/ready" ] && [ "$i" -lt 400 ]; do sleep 0.05; i=$((i + 1)); done

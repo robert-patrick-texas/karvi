@@ -1,9 +1,11 @@
 #!/bin/sh
 # The executable suites, in one place: both
 # verifiers run the same list against bin/ as it stands, so the list cannot
-# drift between them. Source it, then call run_suites from the tree's root.
+# drift between them. Source it after scripts/lib/exit.sh (the caller's
+# cleanup set through on_exit), then call run_suites from the tree's root.
 # The libraries' own tests go first: the suites assert through the JSON
-# reader and clean up through on_exit.
+# reader and clean up through on_exit, and run_suites's lanes are the
+# subject of suites-test.sh, which runs them over model suites.
 #
 # The suites run in three lanes at once: the parity suite alone, the v0100
 # suite alone, and the seventeen others in order. Each suite keeps its
@@ -13,6 +15,16 @@
 # and is printed whole when every lane has ended, lane by lane, so a log reads
 # as it did. KARVI_SUITE_LANES=1 runs the same list one suite after another,
 # the output live, for a machine or a fault that wants it.
+#
+# Each lane runs in a session, and so a process group, of its own (setsid),
+# its pid the group's id: an asynchronous command of a script starts with INT
+# ignored, which no trap undoes, so a Ctrl-C would end the caller and leave
+# the lanes running. While they run, HUP, INT, and TERM stop them (rs_stop):
+# TERM to each lane's group, so each suite runs its cleanup; up to 30 s for
+# the groups to empty, a second signal meanwhile ignored; the lanes' output
+# printed, the lane folder removed, and the caller ended with 129, 130, or
+# 143, its own cleanup run. Once the lanes have ended, the caller's signal
+# traps are on_exit's again (signal_exits).
 #
 # The canary suite needs bin/secret-scan (make tools-build); the parity suite
 # builds the fake device from the tree; the
@@ -38,22 +50,57 @@ rs_lane() {
   echo $? >"$rs_dir/$rs_n.status"
 }
 
+# rs_start N SUITE...: lane N in a session of its own, its pid (its group's
+# id) added to rs_groups. The lane's shell sources this file from the tree's
+# root, as run_suites runs.
+rs_start() {
+  setsid sh -c '. ./scripts/lib/suites.sh && rs_lane "$@"' sh "$rs_out" "$@" &
+  rs_groups="$rs_groups $!"
+}
+
+# rs_stop STATUS: the lanes stopped at a signal, the caller ended with
+# STATUS. A lane not yet in its own group takes the TERM by its pid.
+rs_stop() {
+  trap '' HUP INT TERM
+  for rs_pg in $rs_groups; do
+    kill -TERM "-$rs_pg" 2>/dev/null || kill -TERM "$rs_pg" 2>/dev/null || :
+  done
+  rs_i=0
+  for rs_pg in $rs_groups; do
+    while kill -0 "-$rs_pg" 2>/dev/null && [ "$rs_i" -lt 300 ]; do sleep 0.1; rs_i=$((rs_i + 1)); done
+    kill -0 "-$rs_pg" 2>/dev/null && echo "suite lane group $rs_pg still running after 30 s" >&2
+  done
+  signal_exits
+  if [ -n "$rs_out" ]; then
+    for rs_n in 1 2 3; do cat "$rs_out/$rs_n.out" 2>/dev/null || :; done
+    rm -rf "$rs_out"
+  fi
+  exit "$1"
+}
+
 run_suites() {
   ./scripts/lib/json-test.sh >/dev/null || return 1
   ./scripts/lib/exit-test.sh >/dev/null || return 1
+  ./scripts/lib/suites-test.sh >/dev/null || return 1
   if [ "${KARVI_SUITE_LANES:-3}" = 1 ]; then
     # shellcheck disable=SC2086
     rs_run $RS_LANE1 $RS_LANE2 $RS_LANE3
     return $?
   fi
+  rs_out=
+  rs_groups=
+  trap 'rs_stop 129' HUP
+  trap 'rs_stop 130' INT
+  trap 'rs_stop 143' TERM
   rs_out=$(mktemp -d)
   # shellcheck disable=SC2086
-  rs_lane "$rs_out" 1 $RS_LANE1 &
+  rs_start 1 $RS_LANE1
   # shellcheck disable=SC2086
-  rs_lane "$rs_out" 2 $RS_LANE2 &
+  rs_start 2 $RS_LANE2
   # shellcheck disable=SC2086
-  rs_lane "$rs_out" 3 $RS_LANE3 &
+  rs_start 3 $RS_LANE3
   wait
+  signal_exits
   rs_failed=0
   for rs_n in 1 2 3; do
     cat "$rs_out/$rs_n.out"

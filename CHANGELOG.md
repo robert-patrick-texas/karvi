@@ -100,6 +100,24 @@
   reader's test, ends a model script under sh and bash with each signal, and
   fails when a script sets a trap on EXIT any other way. ROADMAP's item for it
   is closed.
+- **A Ctrl-C stops every lane of the suites.** `run_suites` started its three
+  lanes as asynchronous commands, which a script starts with INT ignored, so a
+  Ctrl-C ended the verifier and left the lanes running: 45 s into a run, the
+  verifier ended at once and, 15 s later, the v0100 and smoke suites and their
+  daemons were still running, the lane folder left in TMPDIR. Each lane runs
+  in a session of its own (`setsid`); HUP, INT, and TERM while the lanes run
+  send TERM to each lane's group, so each suite runs its cleanup, wait up to
+  30 s for the groups to empty, a second signal meanwhile ignored (a second
+  TERM would cut the suites' cleanups short), then print the lanes' output,
+  remove the lane folder, and end the verifier with 129, 130, or 143. The same
+  Ctrl-C now ends the run in under a second with nothing left. Once the lanes
+  have ended, the signal traps are `on_exit`'s again, through `signal_exits`
+  in `scripts/lib/exit.sh`. `scripts/lib/suites-test.sh`, which `run_suites`
+  runs first with the other library tests, runs a model verifier under sh and
+  bash over model suites in a scratch root. The library tests start their
+  models as a terminal starts a job, through `terminal_job` (`setsid env
+  --default-signal=INT`), so `scripts/lib/exit-test.sh` no longer needs
+  python3; BUILD-HOWTO §1 names `setsid(1)` among util-linux's tools.
 
 ## 0.40.0 - 2026-11-05
 
