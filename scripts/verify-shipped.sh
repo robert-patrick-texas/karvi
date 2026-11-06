@@ -17,11 +17,20 @@ file bin/karvi-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
 file bin/karvi-askpass-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
 file bin/karvi-prune-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
 file bin/karvi-audit-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
-[ -x bin/karvi-linux-amd64 ] && [ -x bin/karvi-askpass-linux-amd64 ] && [ -x bin/karvi-prune-linux-amd64 ] && [ -x bin/karvi-audit-linux-amd64 ]
+[ -x bin/karvi-linux-amd64 ]
+[ -x bin/karvi-askpass-linux-amd64 ]
+[ -x bin/karvi-prune-linux-amd64 ]
+[ -x bin/karvi-audit-linux-amd64 ]
 [ "$(readlink bin/karvi)" = karvi-linux-amd64 ]
 [ "$(readlink bin/karvi-askpass)" = karvi-askpass-linux-amd64 ]
 [ "$(readlink bin/karvi-prune)" = karvi-prune-linux-amd64 ]
 [ "$(readlink bin/karvi-audit)" = karvi-audit-linux-amd64 ]
+# From here karvi runs: nothing it does before the stateless check below may
+# write in its places under the home of the passwd entry, which it takes in
+# place of $HOME, or in the host's shared places (scripts/lib/host.sh).
+. "$ROOT/scripts/lib/host.sh"
+home=$(host_passwd_home)
+before=$(host_places "$home")
 ./bin/karvi-linux-amd64 version --format json | grep -q '"id": "system"'
 ./bin/karvi-linux-amd64 --version | grep -q '^  system: external-executable$'
 ./bin/karvi-linux-amd64 --version | grep -q '^  native: compiled-in$'
@@ -56,20 +65,21 @@ for key in config_schema_version config_registry_schema_version \
   }
 done
 
-STATELESS=$(mktemp -d)
-rm -rf "$STATELESS/home"
-HOME="$STATELESS/home" XDG_CONFIG_HOME="$STATELESS/xdg" ./bin/karvi-linux-amd64 --help >/dev/null
-HOME="$STATELESS/home" XDG_CONFIG_HOME="$STATELESS/xdg" ./bin/karvi-linux-amd64 version >/dev/null
-[ ! -e "$STATELESS/home" ] && [ ! -e "$STATELESS/xdg" ]
-rm -rf "$STATELESS"
+TMP=$(mktemp -d)
+cleanup() { rm -rf "$TMP"; }
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+
+# --help and version write nothing: not under a fresh HOME, and nothing
+# since the first run above in karvi's places or the host's shared places.
+HOME="$TMP/stateless/home" XDG_CONFIG_HOME="$TMP/stateless/xdg" ./bin/karvi-linux-amd64 --help >/dev/null
+HOME="$TMP/stateless/home" XDG_CONFIG_HOME="$TMP/stateless/xdg" ./bin/karvi-linux-amd64 version >/dev/null
+[ ! -e "$TMP/stateless" ]
+host_places_unchanged "$home" "$before"
 
 for command in login command cmd run daemon config watch version; do
   ./bin/karvi-linux-amd64 "$command" --help >/dev/null
 done
 
-TMP=$(mktemp -d)
-cleanup() { rm -rf "$TMP"; }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 # Config validation checks explicit executable mappings. Supply an isolated
 # executable named ssh so the examples remain independent of the build host.
 install -d -m 700 "$TMP/bin"

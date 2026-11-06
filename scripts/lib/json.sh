@@ -90,7 +90,7 @@ json_wait() {
 }
 
 # TAB is the separator jsonl_lines prints between the values, for a script's
-# pattern: `grep -cx "run\.end${TAB}completed"`.
+# pattern: `grep -cx "run\.end${TAB}complete"`.
 TAB=$(printf '\t')
 
 # jsonl_lines KEY FILE PATH...: one line per line of a .jsonl file that
@@ -136,7 +136,7 @@ jsonl_records() {
 
 # audit_events FILE PATH...: the events of an audit file (audit.file), one
 # per line holding event_name: `audit_events "$BASE/audit.jsonl" event_name
-# outcome | grep -cx "run.end${TAB}completed"`.
+# outcome | grep -cx "run.end${TAB}complete"`.
 audit_events() {
   jsonl_lines event_name "$@"
 }

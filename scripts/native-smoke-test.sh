@@ -1170,7 +1170,9 @@ fi
 
 [ "$(host_store_digest "$OWN_STORE")" = "$OWN_BEFORE" ] || fail "the operator's trust store $OWN_STORE changed"
 fake_stop FAKE_PID
-if pgrep -f "$TMP/bin/fake" >/dev/null 2>&1 || pgrep -f "daemon serve.*$TMP" >/dev/null 2>&1; then
+# A daemon the suite launched holds every --config and --set before
+# `daemon serve` in its command line, so its own file comes first.
+if pgrep -f "$TMP/bin/fake" >/dev/null 2>&1 || pgrep -f -- "--config $TMP/karvi.toml .*daemon serve" >/dev/null 2>&1; then
   fail "a fake or a daemon is still running"
 fi
 echo 'native smoke: pass'

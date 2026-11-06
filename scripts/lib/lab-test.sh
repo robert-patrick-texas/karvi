@@ -2,9 +2,11 @@
 # The check of scripts/lib/lab.sh: under sh and bash, daemon_stop_force
 # against a model executable and a socket file (a daemon that stops, one
 # whose stop fails, one that goes late, one that ignores the stop), a
-# cleanup that reaches its removal past a daemon that stays, and fake_stop;
-# and over the tree, no `daemon stop` whose status is ignored outside lab.sh
-# and none in a cleanup.
+# cleanup that reaches its removal past a daemon that stays, fake_stop, and
+# absent (a file without the pattern, with it, a pattern that begins with
+# --, a file that cannot be read); and over the tree, no `daemon stop` whose
+# status is ignored outside lab.sh and none in a cleanup, no copy of absent,
+# and no must-not-appear line that cannot stop its script.
 set -eu
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
 . "$ROOT/scripts/lib/exit.sh"
@@ -64,6 +66,15 @@ case $1 in
     sleep 0 & DONE_PID=$!; sleep 0.2
     rc=0; fake_stop DONE_PID || rc=$?; echo "ended $rc [$DONE_PID]"
     rc=0; fake_stop 'x;y' 2>/dev/null || rc=$?; echo "bad name $rc" ;;
+  absent)
+    printf 'one\n      --address string        Alias for --target\n' >"$W/f"
+    case $2 in
+      none) absent SECRET "$W/f" ;;
+      match) absent 'Alias for' "$W/f" ;;
+      dash) absent '--address .*Alias for --target' "$W/f" ;;
+      missing) absent SECRET "$W/missing" ;;
+    esac
+    echo "went on" ;;
 esac
 EOF
 
@@ -108,6 +119,14 @@ for sh in sh bash; do
   check "$sh a cleanup past a daemon that stays, the suite's 1: its removal reached" "1 removed no work socket" "$(lab "$sh" cleanup 1) $(work_left) $(sock_left)"
   fresh nosocket
   check "$sh fake_stop" "0 gone var [] empty 0 ended 0 [] bad name 2" "$(lab "$sh" fake)"
+  fresh nosocket
+  check "$sh absent, no match: returns" "0 went on|" "$(lab "$sh" absent none)|$(cat "$LAB_W/err")"
+  fresh nosocket
+  check "$sh absent, a match: the script ends" "1 |$TMP/caller.sh: W/f must not match: Alias for" "$(lab "$sh" absent match)|$(sed "s|$LAB_W|W|" "$LAB_W/err")"
+  fresh nosocket
+  check "$sh absent, a pattern that begins with --" "1 |$TMP/caller.sh: W/f must not match: --address .*Alias for --target" "$(lab "$sh" absent dash)|$(sed "s|$LAB_W|W|" "$LAB_W/err")"
+  fresh nosocket
+  check "$sh absent, a file that cannot be read: the script ends" "1 |$TMP/caller.sh: cannot read W/missing, which must not match: SECRET" "$(lab "$sh" absent missing)|$(sed "s|$LAB_W|W|" "$LAB_W/err")"
 done
 
 # Over the tree: a daemon stop whose status is ignored is daemon_stop_force's
@@ -123,6 +142,18 @@ in_cleanup=$(cd "$ROOT" && for f in scripts/*.sh scripts/lib/*.sh; do
   ' "$f"
 done)
 check "no daemon stop in a cleanup" "" "$in_cleanup"
+
+# Over the tree: absent is lab.sh's alone, and every must-not-appear line
+# can stop its script: a command that begins with `!` (a negated pipeline,
+# which set -e ignores) is a condition of if/while/until or ends in `||`.
+SHELLS="scripts/*.sh scripts/lib/*.sh packaging/sbin/karvi-sysutil packaging/cron/karvi-crun packaging/cron/karvi-prune packaging/debian/karvi.postinst packaging/debian/karvi.postrm packaging/crun/*.example examples/karvi-credh"
+# shellcheck disable=SC2086
+copies=$(cd "$ROOT" && grep -n '^absent() *{' $SHELLS | grep -v '^scripts/lib/lab\.sh:' || true)
+check "absent defined in lab.sh alone" "" "$copies"
+# shellcheck disable=SC2086
+bare=$(cd "$ROOT" && grep -nE '(^|;|&&|\bthen|\bdo|\belse)[[:space:]]*![[:space:]]' $SHELLS |
+  grep -vE '^[^:]+:[0-9]+:[[:space:]]*#' | grep -v '||' || true)
+check "no bare negated pipeline" "" "$bare"
 
 [ "$failures" -eq 0 ] || { echo "lab lib: $failures failed" >&2; exit 1; }
 echo "lab lib: pass"

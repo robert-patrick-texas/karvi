@@ -65,16 +65,20 @@ a row of the removed-keys table and is refused from every layer.
 A script reads JSON through `scripts/lib/json.sh` (`json_get`, `json_has`,
 `json_is` for one document; `jsonl_records` for a `.jsonl` stream's command
 records, one line each, the values asked for tab-separated) and never by
-matching a file's text; a must-not-appear check stops the script rather than
-relying on a negated pipeline. A Go test that
+matching a file's text; a must-not-appear check stops the script, through
+`absent` in `scripts/lib/lab.sh` or `! ... || fail`, rather than relying on a
+negated pipeline. A Go test that
 needs a value from a `.json` file decodes it. A script sets its cleanup
 through `on_exit` in `scripts/lib/exit.sh`, which runs it once at any end and
 ends the script at a signal; `scripts/lib/exit-test.sh` fails on a trap of
 its own on EXIT. A suite or lab stops its daemon through `daemon_stop_force`
 in `scripts/lib/lab.sh` (`daemon stop --force`, then the socket's wait; a
 status the caller acts on, never an exit) and its fake through `fake_stop`;
-`scripts/lib/lab-test.sh` fails on a `daemon stop` whose status is ignored
-and on one in a cleanup.
+`scripts/lib/lab-test.sh` fails on a `daemon stop` whose status is ignored,
+on one in a cleanup, on a copy of `absent`, and on a bare negated pipeline.
+karvi takes its home from the passwd entry, not `$HOME`: a script whose
+karvi runs must write nothing there compares karvi's places under that home
+through `host_places` and `host_places_unchanged` in `scripts/lib/host.sh`.
 
 ## Branches and releases
 

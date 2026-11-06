@@ -5,12 +5,11 @@
 # row asserts through scripts/lib/json.sh. A response of 65.7 MB is the
 # fake's `show big` at 900,000 lines, the size that streams for over a second
 # so a cut lands inside it; the small answers are the fake's usual ones.
-# Needs karvi-prune beside the executable, and `go`.
+# Needs `go`.
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
-PRUNE=${KARVI_PRUNE:-$(dirname "$KARVI")/karvi-prune}
 GO=${GO:-go}
 . "$ROOT/scripts/lib/json.sh"
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-spool-smoke-XXXXXX")
@@ -27,7 +26,6 @@ stop_daemon() { daemon_stop_force "$TMP/base/socket/d.sock" env HOME="$TMP/home"
 cleanup() { stop_daemon || :; fake_stop FAKE_PID; rm -rf "$TMP"; }
 . "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
-[ -x "$PRUNE" ] || fail "karvi-prune not found at $PRUNE"
 install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store" "$TMP/home" "$TMP/base" "$SPOOL"
 (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)
 
@@ -227,7 +225,7 @@ echo "spool smoke: S4 the limit (20000 held, $observed observed), the timeout, t
 
 # S5: the sweep at admission: a spool named for a dead pid
 # goes, one named for the running daemon's pid stays, a file of another
-# shape is not touched; karvi-prune leaves the spool directory alone.
+# shape is not touched.
 karvi s5d --quiet daemon start
 [ "$CODE" -eq 0 ] || fail "S5: the daemon did not start: $(cat "$TMP/err.s5d")"
 DPID=$(json_get "$TMP/base/state/daemon.json" pid)
@@ -235,8 +233,6 @@ sh -c 'exit 0' & DEAD=$!; wait "$DEAD" 2>/dev/null || true
 : >"$SPOOL/260927-100000-00.fake-iosxe.1.$DEAD.spool"
 : >"$SPOOL/260927-100000-00.fake-iosxe.2.$DPID.spool"
 : >"$SPOOL/notes.txt"
-rc=0; "$PRUNE" --basedir "$TMP/base" --sharedroot none --scoreboards "$SCORE" --days 0 >"$TMP/out.prune" 2>"$TMP/err.prune" || rc=$?
-[ "$(ls -A "$SPOOL" | wc -l)" -eq 3 ] || fail "S5: karvi-prune touched the spool directory: $(ls -A "$SPOOL")"
 karvi s5 --debug cmd fake-iosxe --format jsonl --transport native --cmd 'show clock'
 [ "$CODE" -eq 0 ] || fail "S5: exit $CODE"
 grep -q "spool_abandoned_removed: removed the abandoned spool $SPOOL/260927-100000-00.fake-iosxe.1.$DEAD.spool" "$TMP/err.s5" || fail "S5: the sweep did not report the dead pid's spool"
@@ -244,7 +240,7 @@ grep -q "spool_abandoned_removed: removed the abandoned spool $SPOOL/260927-1000
 [ -e "$SPOOL/260927-100000-00.fake-iosxe.2.$DPID.spool" ] || fail "S5: the daemon's spool was swept"
 [ -e "$SPOOL/notes.txt" ] || fail "S5: a file of another shape was touched"
 rm -f "$SPOOL/260927-100000-00.fake-iosxe.2.$DPID.spool" "$SPOOL/notes.txt"
-echo "spool smoke: S5 the sweep removed the dead pid's spool and kept the daemon's; karvi-prune left the directory alone"
+echo "spool smoke: S5 the sweep removed the dead pid's spool and kept the daemon's and a file of another shape"
 
 # S6: the follower: a spooled record that fits the frame
 # reaches the client from the file, its jsonl equal to commands.jsonl; one

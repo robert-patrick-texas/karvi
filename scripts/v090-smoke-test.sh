@@ -3,16 +3,6 @@
 # parity, trailing command options, and error-path prompt/command echo.
 set -eu
 
-# absent PATTERN FILE: the file must not match. A bare "! grep" line is exempt
-# from set -e (POSIX: errexit ignores a negated pipeline) and asserts nothing,
-# so every must-not-appear check goes through here.
-absent() {
-  if grep -q -- "$1" "$2"; then
-    echo "$0: $2 must not match: $1" >&2
-    exit 1
-  fi
-}
-
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-v090-smoke-XXXXXX")

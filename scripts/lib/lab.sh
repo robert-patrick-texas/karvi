@@ -1,6 +1,7 @@
 #!/bin/sh
-# The labs' stops, in one place: the suites and the labs that start a daemon
-# or a fake device stop them here, in their rows and in their cleanup. Source
+# The labs' shared functions, in one place: the suites and the labs that
+# start a daemon or a fake device stop them here, in their rows and in their
+# cleanup, and a suite under set -e asserts what must not appear here. Source
 # it:
 #
 #   . "$ROOT/scripts/lib/lab.sh"
@@ -25,9 +26,16 @@
 # never reaches a process that took the number since; nothing when VAR is
 # empty.
 #
+# absent PATTERN FILE ends the script, status 1, with a line on stderr, when
+# FILE matches PATTERN (grep's basic expression) or cannot be read; it
+# returns when FILE is read and does not match. A bare `! grep` line asserts
+# nothing, since set -e ignores a pipeline that begins with `!` (POSIX), so
+# a suite's must-not-appear check goes through here or says `! ... || fail`.
+#
 # lab_stop_tenths, when set, bounds the socket's wait in tenths of a second
 # (150); scripts/lib/lab-test.sh, the check, shortens it.
-# POSIX sh: no local; the functions' variables carry the ds_ and fs_ prefixes.
+# POSIX sh: no local; the functions' variables carry the ds_, fs_, and ab_
+# prefixes.
 
 daemon_stop_force() {
   ds_sock=$1; shift
@@ -49,4 +57,15 @@ fake_stop() {
   kill "$fs_pid" 2>/dev/null || :
   wait "$fs_pid" 2>/dev/null || :
   eval "$1="
+}
+
+absent() {
+  ab_rc=0
+  grep -q -- "$1" "$2" 2>/dev/null || ab_rc=$?
+  case $ab_rc in
+    1) return 0 ;;
+    0) echo "$0: $2 must not match: $1" >&2 ;;
+    *) echo "$0: cannot read $2, which must not match: $1" >&2 ;;
+  esac
+  exit 1
 }

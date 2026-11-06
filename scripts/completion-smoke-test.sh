@@ -49,6 +49,11 @@ chmod 600 "$CFG"
 failures=0
 fail() { echo "FAIL: $*" >&2; failures=$((failures + 1)); }
 
+# karvi takes its places under the home of the passwd entry, not $HOME: the
+# hidden words write nothing there or in the host's shared places.
+home=$(host_passwd_home)
+places_before=$(host_places "$home")
+
 # The hidden word, as the function calls it: hidden EXE NAME CURSOR WORD...,
 # CURSOR the index of the word under the cursor (the last word, or one past
 # it for a Tab after a space); the candidates in $TMP/out. word is karvi's,
@@ -81,10 +86,13 @@ word w9 2 karvi setup t;                          lines w9 tab
 word w10 0 karvi;                                 empty w10
 word w11 1 karvi --set=display.col;               has w11 --set=display.color=; has w11 --set=display.colors.success=
 [ ! -e "$TMP/state" ] || [ -z "$(ls -A "$TMP/state")" ] || fail "the hidden word created state: $(ls -A "$TMP/state")"
+host_places_unchanged "$home" "$places_before" || fail "the hidden word wrote in karvi's places"
+places_before=$(host_places "$home")   # the helper's words judged on their own
 
 # The helper's hidden word: its flags from its own flag set, a flag's
 # words, the path directive, an inline value, nothing after -- or a
-# positional; and no private root resolved (nothing under the lab's home).
+# positional; and no private root resolved (nothing under the lab's home or
+# in karvi's places under the passwd entry's).
 FLAGS=(--basedir --days --dry-run --format --minfree --scoreboards --sharedroot --verbose)
 pword p1 1 karvi-prune;                            lines p1 "${FLAGS[@]}"
 pword p2 1 karvi-prune --d;                        lines p2 --days --dry-run
@@ -97,6 +105,7 @@ pword p8 2 karvi-prune --days;                     empty p8
 pword p9 2 karvi-prune --;                         empty p9
 pword p10 2 karvi-prune extra;                     empty p10
 [ -z "$(ls -A "$TMP/home")" ] || fail "the helper's hidden word wrote under the home: $(ls -A "$TMP/home")"
+host_places_unchanged "$home" "$places_before" || fail "the helper's hidden word wrote in karvi's places"
 
 # karvi-audit's hidden word: its long flags alone, a one-letter spelling
 # completing to nothing; nothing for a value Tab cannot know (a name, a

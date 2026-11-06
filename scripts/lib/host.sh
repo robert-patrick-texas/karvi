@@ -43,9 +43,56 @@ host_shared_unchanged() {
   hsu_after=$(host_shared_entries)
   [ "$hsu_after" = "$1" ] && return 0
   echo "the host's shared places changed during the run (a test or a suite wrote there):" >&2
+  host_entries_diff "$1" "$hsu_after"
+  return 1
+}
+
+# host_entries_diff BEFORE AFTER prints on stderr the lines that went (<)
+# and came (>) between two listings.
+host_entries_diff() {
   printf '%s\n' "$1" > "${TMPDIR:-/tmp}/karvi-host-before.$$"
-  printf '%s\n' "$hsu_after" | diff "${TMPDIR:-/tmp}/karvi-host-before.$$" - >&2 || true
+  printf '%s\n' "$2" | diff "${TMPDIR:-/tmp}/karvi-host-before.$$" - >&2 || true
   rm -f "${TMPDIR:-/tmp}/karvi-host-before.$$"
+}
+
+# host_passwd_home prints the home of the operator's passwd entry, the one
+# karvi takes for its places (`user.Current()`; $HOME only when the entry
+# cannot be read), so a script that moves HOME does not move what karvi
+# writes. Status 1, with a line on stderr, when there is no entry.
+host_passwd_home() {
+  hph_home=$(getent passwd "$(id -u)" | cut -d: -f6)
+  [ -n "$hph_home" ] || { echo "no passwd entry for uid $(id -u)" >&2; return 1; }
+  printf '%s\n' "$hph_home"
+}
+
+# host_places HOME prints host_shared_entries' lines and karvi's two places
+# under HOME, each by its existence (a link counts): the private root's
+# automatic place HOME/.local/share/karvi and the operator's configuration
+# folder HOME/.config/karvi. By existence alone, as the scratch candidates,
+# since the operator's own daemon writes inside the first; on a host where
+# neither exists (the build host), a stateless command or a suite that
+# writes either is seen. HOME is the passwd entry's (host_passwd_home); a
+# test passes a folder of its own.
+#
+#   home=$(host_passwd_home)
+#   before=$(host_places "$home")
+#   ... HOME="$TMP/home" "$KARVI" --help ...
+#   host_places_unchanged "$home" "$before"
+host_places() {
+  { host_shared_entries
+    for hp_dir in "$1/.local/share/karvi" "$1/.config/karvi"; do
+      if [ -e "$hp_dir" ] || [ -L "$hp_dir" ]; then printf '%s\n' "$hp_dir"; fi
+    done; } | sort
+}
+
+# host_places_unchanged HOME BEFORE fails, naming what appeared or went,
+# when host_places HOME differs from BEFORE (an earlier host_places HOME).
+# A HOME that already had its places compares equal: the run added nothing.
+host_places_unchanged() {
+  hpu_after=$(host_places "$1")
+  [ "$hpu_after" = "$2" ] && return 0
+  echo "karvi's places under $1 or the host's shared places changed during the run:" >&2
+  host_entries_diff "$2" "$hpu_after"
   return 1
 }
 

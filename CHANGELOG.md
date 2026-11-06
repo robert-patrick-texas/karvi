@@ -144,6 +144,54 @@
   sh and bash against a model daemon, and fails when a script ignores a
   `daemon stop`'s status or stops a daemon in its cleanup other than through
   `daemon_stop_force`.
+- **The checks that karvi writes nothing under the home watch the passwd
+  entry's home.** `scripts/verify-shipped.sh`'s stateless `--help` and
+  `version` and the completion suite's hidden words looked for writes under a
+  fresh `$HOME`, but karvi takes its home from the passwd entry, so a write
+  into the operator's own `~/.local/share/karvi` passed them: a model
+  executable that made its private root under a folder standing for the
+  passwd home passed verify-shipped's lines as they were. Both compare
+  karvi's places under the passwd entry's home (`~/.local/share/karvi`,
+  `~/.config/karvi`, by their existence) and the host's shared places before
+  and after, through `host_places` and `host_places_unchanged` in
+  `scripts/lib/host.sh`; verify-shipped makes its work folder, its cleanup
+  set, before the stateless runs. `scripts/lib/host-test.sh`, which
+  `run_suites` runs with the other library tests, runs both functions under
+  sh and bash over a scratch home against a model executable, never the
+  operator's home.
+- **A guard of several tests fails on any of them.** `set -e` ignores a
+  failure before the last command of an `&&` list, so two guards checked only
+  their last test: `scripts/verify-shipped.sh` passed whole with
+  `bin/karvi-askpass-linux-amd64` at mode 0644, and the daemon-upgrade suite,
+  given a `version` without its `daemon_ipc_schema` line, went past its guard
+  and stopped rows later with no message. Each of verify-shipped's four tests
+  is its own line; the suite's guard names the version, IPC schema, and build
+  when one is missing.
+- **Every must-not-appear check stops its suite.** The v061 suite's check was
+  a bare `! grep`, which `set -e` ignores, so a help naming `--address` as the
+  alias for `--target` passed it. It goes through `absent PATTERN FILE`, now
+  in `scripts/lib/lab.sh`, whose five copies in the transcript, display,
+  v070, v080, and v090 suites are gone; `absent` also stops at a file it
+  cannot read, which the copies passed. `scripts/lib/lab-test.sh` runs it
+  under sh and bash and fails on a copy of it or a bare negated pipeline in a
+  script.
+- **The parity suite's last leak check sees a daemon left running.** It
+  looked for `daemon serve.*$TMP`, but a daemon's command line holds its
+  `--config` and `--set` before `daemon serve`, so a model daemon left
+  running passed it. It looks for `--config $TMP/karvi.toml .*daemon serve`.
+- **The transcript suite's first refusal row runs under the suite's places.**
+  The `--debug-show-secrets` row ran karvi without the suite's places and fake
+  transport, so a regression of the refusal would have recorded under the
+  operator's basedir and reached the host's port 22. It runs through the
+  suite's `$COMMON`, as the rows after it.
+- **The spool suite runs no karvi-prune.** Its S5 ran `karvi-prune --days 0`,
+  refused at its arguments since 0.39.0 (exit 2), its status unread, so the
+  row held because nothing ran. The row is removed, not repaired: karvi-prune
+  walks the jobs, transcripts, and scoreboard folders, never the spool, and
+  the Go tests cover what it leaves inside them. S5 keeps the admission
+  sweep, and the suite no longer needs karvi-prune beside the executable.
+- **`scripts/lib/json.sh`'s examples count the outcome karvi writes.** Its
+  two examples counted `run.end` with `completed`; the word is `complete`.
 
 ## 0.40.0 - 2026-11-05
 

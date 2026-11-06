@@ -10,16 +10,6 @@
 # refusals.
 set -eu
 
-# absent PATTERN FILE: the file must not match. A bare "! grep" line is exempt
-# from set -e (POSIX: errexit ignores a negated pipeline) and asserts nothing,
-# so every must-not-appear check goes through here.
-absent() {
-  if grep -q -- "$1" "$2"; then
-    echo "$0: $2 must not match: $1" >&2
-    exit 1
-  fi
-}
-
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 . "$ROOT/scripts/lib/json.sh"
@@ -32,7 +22,7 @@ MARKER=KARVI_TRANSCRIPT_SMOKE_MARKER
 DAY=$(date +%y%m%d)
 
 cleanup() { rm -rf "$TMP"; }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
 install -d -m 700 "$HOME_DIR" "$BASE"
 cat > "$FAKE_SSH" <<EOF_INNER
@@ -268,7 +258,7 @@ if [ -n "$(cut -f3 "$TMP/contact-known.audit")" ]; then echo "$0: a known key na
 
 # Refusals happen before any file or child process exists.
 set +e
-HOME="$HOME_DIR" "$KARVI" --debug --debug-show-secrets login --record="$TMP/blocked" --management-address 127.0.0.1 transcript-device >"$TMP/blocked.out" 2>"$TMP/blocked.err"; code=$?
+eval "$COMMON --debug --debug-show-secrets login --record=$TMP/blocked --management-address 127.0.0.1 transcript-device" >"$TMP/blocked.out" 2>"$TMP/blocked.err"; code=$?
 set -e
 [ "$code" -eq 4 ]; grep -q "^record_debug_show_secrets_conflict: " "$TMP/blocked.err"; [ ! -e "$TMP/blocked" ]
 : >"$TMP/session.log"

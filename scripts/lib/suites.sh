@@ -4,8 +4,9 @@
 # drift between them. Source it after scripts/lib/exit.sh (the caller's
 # cleanup set through on_exit), then call run_suites from the tree's root.
 # The libraries' own tests go first: the suites assert through the JSON
-# reader, clean up through on_exit, and stop their daemons and fakes through
-# lab.sh, and run_suites's lanes are the subject of suites-test.sh, which
+# reader, clean up through on_exit, stop their daemons and fakes and assert
+# what must not appear through lab.sh, and compare the home's places through
+# host.sh, and run_suites's lanes are the subject of suites-test.sh, which
 # runs them over model suites.
 #
 # The suites run in three lanes at once: the parity suite alone, the v0100
@@ -83,6 +84,7 @@ run_suites() {
   ./scripts/lib/json-test.sh >/dev/null || return 1
   ./scripts/lib/exit-test.sh >/dev/null || return 1
   ./scripts/lib/lab-test.sh >/dev/null || return 1
+  ./scripts/lib/host-test.sh >/dev/null || return 1
   ./scripts/lib/suites-test.sh >/dev/null || return 1
   if [ "${KARVI_SUITE_LANES:-3}" = 1 ]; then
     # shellcheck disable=SC2086

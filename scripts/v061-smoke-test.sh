@@ -14,7 +14,7 @@ CAP=$TMP/capacity
 FAKE=$TMP/fake-ssh
 LOG=$TMP/fake-ssh.log
 cleanup() { rm -rf "$TMP"; }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 install -d -m 700 "$HOME_DIR" "$BASE" "$SCORE" "$CAP"
 
 cat > "$FAKE" <<'SH'
@@ -59,7 +59,7 @@ common_args() {
 for mode in login command run; do
   "$KARVI" "$mode" --help >"$TMP/$mode.help"
   grep -q -- '--management-address IP, --address, --a' "$TMP/$mode.help"
-  ! grep -q -- '--address .*Alias for --target' "$TMP/$mode.help"
+  absent '--address .*Alias for --target' "$TMP/$mode.help"
 done
 
 # Command: --address may appear among explicit commands but does not supply the

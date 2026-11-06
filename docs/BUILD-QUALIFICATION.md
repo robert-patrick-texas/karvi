@@ -36,7 +36,8 @@ change. A build is stamped with its version and its commit, and no build time.
 
 A must-not-appear check in a script MUST be able to stop it: a bare
 `! command` line is exempt from `set -e`. The
-smoke suites use `absent PATTERN FILE` or `! … || fail "…"`.
+smoke suites use `absent PATTERN FILE` (`scripts/lib/lab.sh`) or
+`! … || fail "…"`.
 
 ## Release gates
 

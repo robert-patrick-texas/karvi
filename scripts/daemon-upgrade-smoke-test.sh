@@ -43,7 +43,10 @@ VERSION=$("$KARVI" version | sed -n '1s/^karvi //p')
 SCHEMA=$("$KARVI" version | sed -n 's/^daemon_ipc_schema: //p')
 BUILD=$("$KARVI" version | sed -n 's/^build: //p')
 OTHER=9Au3WHU839F5xE-67H93
-[ -n "$VERSION" ] && [ -n "$SCHEMA" ] && [ -n "$BUILD" ] && [ "$BUILD" != none ]
+[ -n "$VERSION" ] && [ -n "$SCHEMA" ] && [ -n "$BUILD" ] && [ "$BUILD" != none ] || {
+  printf '%s: %s names no version, IPC schema, or build\n  version            %s\n  daemon_ipc_schema  %s\n  build              %s\n' "$0" "$KARVI" "$VERSION" "$SCHEMA" "$BUILD" >&2
+  exit 1
+}
 
 # start_fixture SCHEMA VERSION [BUILD [JOBS]]: a lifecycle-only daemon
 # fixture at the socket, naming BUILD, or no build, and holding JOBS.
