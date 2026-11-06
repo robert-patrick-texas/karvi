@@ -192,6 +192,51 @@
   sweep, and the suite no longer needs karvi-prune beside the executable.
 - **`scripts/lib/json.sh`'s examples count the outcome karvi writes.** Its
   two examples counted `run.end` with `completed`; the word is `complete`.
+- **`karvi-crun`'s lock is under the operator's private root.** It was
+  `${TMPDIR:-/tmp}/karvi-crun.<uid>.lock`, a name another user can make
+  first: on a shared jump box, a file alice made at bob's name refused every
+  tick of bob's (`cannot create ... Permission denied`, exit 2, under the
+  host's `protected_regular`), and on a host without it a file she held
+  locked would skip them all; a hand run with `TMPDIR` set took another lock
+  than the cron's and ran beside the tick. The lock is
+  `<basedir>/state/crun.lock`, the private root karvi resolves from the
+  passwd home (`config show --explain basedir`), so the cron, a hand run, and
+  `sudo -u` take one lock. A first tick makes the root's missing folders as
+  karvi's first activity does (0750, `state` 0700) and never makes an
+  explicit `basedir`; a basedir karvi refuses, or an explicit one that is not
+  a directory, ends the tick with exit 1 and one line. `KARVI_CRUN_LOCK`
+  still names another path. The parity suite's lone tick takes the default
+  lock.
+- **The source bundle and the package stop when tar fails.**
+  `scripts/package-source-bundle.sh` piped tar into gzip and
+  `scripts/build-deb.sh` tar into tar, under `/bin/sh` without pipefail, so a
+  file tar could not read was left out and the script went on: in a clone
+  holding an unreadable file, the bundle script wrote a bundle without it and
+  printed its checksum, exit 0, and `make deb` built a package from the short
+  copy, exit 0. Each writes tar's archive to a file first and stops with exit
+  1 when tar fails; the bundle script removes its output first, so no bundle
+  is left.
+- **The source bundle's bytes no longer follow the checkout's umask.** Its
+  owner, group, and mtime were fixed and its modes were not: clones made
+  under umask 0022, 0002, 0027, and 0077 gave four bundles (the 0.40.0 bundle
+  carries 0664 and 0775). The bundle's tar sets every mode from the owner's
+  execute bit alone (`--mode=a+rX,u+w,go-w`: files 0644, executables and
+  folders 0755, the two modes git keeps) and names its format (`gnu`, tar's
+  default), so all four give one; the next release's bundle carries 0644 and
+  0755, so its bytes differ from what the same tree gave before.
+- **The Makefile's smoke targets are removed.** `smoke`, `halt-smoke`,
+  `k03-smoke`, `v0100-smoke`, `native-smoke`, and `canary-smoke` each
+  depended on `build`, so running one overwrote `bin/`'s executables, a
+  release's qualified build among them. A suite runs by its shebang against
+  `bin/` or the executable `KARVI` names, and `run_suites` runs them all;
+  `build`, and `all` through it, alone writes `bin/`'s executables.
+  `tools-build` (`bin/secret-scan`) stays and joins `.PHONY`, which also
+  lacked `v0100-smoke` and `canary-smoke`. BUILD-HOWTO and BUILD-QUALIFICATION
+  name the suite's own command.
+- **karvi-prune(8) names the final statuses karvi writes.** It listed
+  `completed`, `halted`, `errored`, `cancelled`, and `exercised`; the words
+  are `complete`, `halt`, `error`, `cancel`, `incomplete`, and `exercise`
+  (`records.FinalStatuses`), as `docs/PRUNE.md` has them.
 
 ## 0.40.0 - 2026-11-05
 

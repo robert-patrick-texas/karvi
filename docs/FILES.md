@@ -253,6 +253,7 @@ in a shared place and the operator's primary group in a private one.
 | `d.sock` | `<basedir>/socket/` (`daemon.sockets`) | `0600` socket | `0600` socket | while the daemon runs | the client's requests to the daemon; peer credentials checked |
 | `c.sock` | `<basedir>/socket/` (`daemon.sockets`) | `0600` socket | `0600` socket | while the daemon runs | the credential package, one frame per connection under a one-use token |
 | `daemon.json` | `<basedir>/state/` | `0600` | `0600` | while the daemon runs | the running daemon's status (pid, socket, version, schema, jobs), removed when it stops |
+| `crun.lock` | `<basedir>/state/` (`KARVI_CRUN_LOCK` names another) | the umask's, empty | the umask's, empty | kept; held while a `karvi-crun` collection runs | the cron script's lock: a tick that finds it held is skipped |
 | `daemon.log` | `<basedir>/logs/` | `0600`, appended | `0600`, appended | kept | one line per request outcome, the token redacted |
 | `karvi-ssh-<pid>-*.conf` | the scratch (`tempdir`) | `0600` | `0600` | one system-transport session; one a karvi killed outright left is swept at the next admission, daemon start, or login | the `ssh` configuration karvi writes for the session, named by its maker's pid |
 | `askpass-<pid>-<16 hex>.sock` | the scratch | `0600` socket | `0600` socket | one authentication; one a karvi killed outright left is swept as above | where `karvi-askpass` fetches the secret `ssh` asks for, named by its maker's pid |
@@ -379,8 +380,8 @@ the executables under versioned names in `/usr/local/lib/karvi`, linked from
 `karvi-sysutil(8)` in `/usr/local/share/man/man8`; and the template in
 `/usr/local/lib/systemd/system`, systemd reloaded; it finds the other files in
 the bundle's `packaging/`, `configs/`, `schema/`, and `docs/`. The cron script
-`karvi-crun` holds a lock at `${TMPDIR:-/tmp}/karvi-crun.<uid>.lock`
-(`KARVI_CRUN_LOCK`) for the length of a collection.
+`karvi-crun` holds a lock at `<basedir>/state/crun.lock` (4.2) for the length
+of a collection.
 
 ## 5. Signs a host is not as intended
 

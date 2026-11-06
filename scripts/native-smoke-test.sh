@@ -890,6 +890,8 @@ directory = \"$TMP/crun\""
   # previous runs (the fake's `show slow` takes 3 s) is skipped with one line
   # and exit 75 and submits no job; a tick alone collects. The script takes
   # the executable from KARVI, so a wrapper carries the suite's configuration.
+  # The two ticks name their lock (KARVI_CRUN_LOCK); the tick alone takes the
+  # default, <basedir>/state/crun.lock, under the suite's basedir.
   printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\n' >"$TMP/inv.csv"
   COMMAND_TIMEOUT=5s write_config accept-new "$BUILTIN
 [crun]
@@ -920,9 +922,11 @@ directory = \"$TMP/crun\""
   [ ! -s "$TMP/out.s33lb" ] || fail "S33 schedule: the skipped tick wrote records"
   [ "$(ls -d "$TMP"/base/jobs/*/* | wc -l)" -eq 1 ] || fail "S33 schedule: $(ls -d "$TMP"/base/jobs/*/* | wc -l) jobs, expected the one tick's"
   grep -q '^! show slow$' "$TMP/crun/fake-iosxe" || fail "S33 schedule: the tick's file lacks its block"
-  CODE=0; KARVI="$TMP/bin/nd" KARVI_CRUN_LOCK="$TMP/crun.lock" sh "$ROOT/packaging/cron/karvi-crun" --transport native </dev/null >"$TMP/out.s33lc" 2>"$TMP/err.s33lc" || CODE=$?
+  rm -f "$TMP/base/state/crun.lock"
+  CODE=0; KARVI="$TMP/bin/nd" sh "$ROOT/packaging/cron/karvi-crun" --transport native </dev/null >"$TMP/out.s33lc" 2>"$TMP/err.s33lc" || CODE=$?
   tail -1 "$TMP/out.s33lc" >"$TMP/s33lc.last"
-  [ "$CODE" -eq 0 ] && [ "$(json_get "$TMP/s33lc.last" collection.replace)" = 1 ] && cmp -s "$TMP/crun/fake-iosxe" "$TMP/s33.want" || fail "S33 schedule: the tick alone: exit $CODE: $(head -c 300 "$TMP/s33lc.last")"
+  [ "$CODE" -eq 0 ] && [ "$(json_get "$TMP/s33lc.last" collection.replace)" = 1 ] && cmp -s "$TMP/crun/fake-iosxe" "$TMP/s33.want" || fail "S33 schedule: the tick alone: exit $CODE: $(head -c 300 "$TMP/s33lc.last") $(head -2 "$TMP/err.s33lc")"
+  [ -f "$TMP/base/state/crun.lock" ] || fail "S33 schedule: the tick alone took no lock at $TMP/base/state/crun.lock"
   fake_stop FAKE_PID
   echo 'native smoke: S33 the collection run: the file, the kept device, the folder, the summary, a rejected statement, --cd through the daemon, --nof, the crun.after hook on both paths, its exit and its bound, the crun-filters drop list off, a site'"'"'s, and a bad pattern refused, the packaged cron script'"'"'s guard: ok'
 fi

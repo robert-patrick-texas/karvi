@@ -10,13 +10,33 @@
 # A cron starts a tick whatever the previous one is doing, so the run holds a
 # lock (flock) for its duration: a tick that finds the lock held is skipped
 # with one line on stderr and exit 75 (EX_TEMPFAIL), never queued, and two
-# collections never overlap in one directory. The lock is per user under
-# TMPDIR; KARVI_CRUN_LOCK names another path. The in-process path
-# (--no-daemon) needs no daemon; the crun.after hook runs in this process
-# with the cron's environment. KARVI names the executable; the arguments
-# are appended to the crun line (--select-platform, --cd=PATH, --transport).
+# collections never overlap in one directory. The lock is
+# <basedir>/state/crun.lock, the private root as karvi resolves it (from the
+# passwd home, so the cron, a hand run, and sudo -u take one lock); the
+# root's missing folders are made as karvi makes an automatic root (0750,
+# state 0700), an explicit root never. A basedir karvi refuses, or one that
+# is not a directory, ends the tick with exit 1. KARVI_CRUN_LOCK names
+# another path. The in-process path (--no-daemon) needs no daemon; the
+# crun.after hook runs in this process with the cron's environment. KARVI
+# names the executable; the arguments are appended to the crun line
+# (--select-platform, --cd=PATH, --transport).
 set -u
-lock=${KARVI_CRUN_LOCK:-${TMPDIR:-/tmp}/karvi-crun.$(id -u).lock}
+if [ -n "${KARVI_CRUN_LOCK:-}" ]; then
+  lock=$KARVI_CRUN_LOCK
+else
+  explain=$("${KARVI:-karvi}" --nocolor config show --explain basedir) || exit 1
+  base=$(printf '%s\n' "$explain" | sed -n 's/^resolved: *//p')
+  case $base in
+    /*) ;;
+    *) echo "karvi-crun: cannot take the lock: basedir resolved: $base" >&2; exit 1 ;;
+  esac
+  if [ "$(printf '%s\n' "$explain" | sed -n 's/^value: *//p')" = '"auto"' ]; then
+    (umask 027; mkdir -p "$base") || exit 1
+  fi
+  [ -d "$base" ] || { echo "karvi-crun: cannot take the lock: the private root $base is not a directory" >&2; exit 1; }
+  (umask 077; mkdir -p "$base/state") || exit 1
+  lock=$base/state/crun.lock
+fi
 exec 9>"$lock" || exit 1
 if ! flock -n 9; then
   echo "karvi-crun: skipped: the previous collection is still running ($lock)" >&2

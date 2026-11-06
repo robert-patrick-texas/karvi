@@ -14,7 +14,7 @@ MODULE := github.com/robert-patrick-texas/karvi
 LDFLAGS := -s -w \
 	-X $(MODULE)/internal/buildinfo.Commit=$(COMMIT)
 
-.PHONY: all fmt generate generated-clean deps vendor test vet build checksums html deb smoke halt-smoke k03-smoke native-smoke clean
+.PHONY: all fmt generate generated-clean deps vendor test vet build checksums html deb tools-build clean
 
 all: generate test vet build
 
@@ -67,6 +67,9 @@ test:
 vet:
 	$(GO) vet ./...
 
+# build, and all through it, alone writes bin/'s executables: no suite is a
+# target. A suite runs by its shebang against bin/, or the executable KARVI
+# names, and scripts/lib/suites.sh's run_suites runs them all.
 build:
 	mkdir -p bin
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build -buildvcs=false -trimpath -ldflags '$(LDFLAGS)' -o bin/karvi-$(GOOS)-$(GOARCH) ./cmd/karvi
@@ -88,31 +91,11 @@ checksums:
 		bin/karvi-prune-$(GOOS)-$(GOARCH) \
 		bin/karvi-audit-$(GOOS)-$(GOARCH) > CHECKSUMS.sha256
 
-# The smoke suites run against the executable make build produces, which
-# carries both transports.
-smoke: build
-	./scripts/lib/json-test.sh
-	./scripts/smoke-test.sh
-
-halt-smoke: build
-	./scripts/halt-smoke-test.sh
-
-k03-smoke: build
-	./scripts/k03-smoke-test.sh
-
-v0100-smoke: build
-	./scripts/v0100-smoke-test.sh
-
-# The parity suite runs the executable this build writes.
-native-smoke: build
-	GO=$(GO) ./scripts/native-smoke-test.sh
-
+# The scan the canary suite and device-qualification.sh run,
+# bin/secret-scan, which CHECKSUMS.sha256 does not list.
 tools-build:
 	mkdir -p bin
 	CGO_ENABLED=0 GOTOOLCHAIN=local $(GO) build -buildvcs=false -trimpath -o bin/secret-scan ./tools/secret-scan
-
-canary-smoke: build tools-build
-	./scripts/canary-smoke-test.sh
 
 clean:
 	rm -f bin/karvi bin/karvi-askpass bin/karvi-prune bin/karvi-audit

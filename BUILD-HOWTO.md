@@ -126,8 +126,9 @@ builds the fake device from the tree and runs every case as `command` and
 `run` over `system` and `native` with its own trust store, base directory, and
 `HOME`, comparing the records path by path (about a minute; no fake or daemon is
 left running and the operator's trust store is unchanged); then the canary
-suite. `make native-smoke` runs the parity suite alone after `make build`;
-`ONLY=S21 scripts/native-smoke-test.sh` runs one case.
+suite. `scripts/native-smoke-test.sh` runs the parity suite alone, against
+`bin/` or the executable `KARVI` names (no suite is a make target; only `make
+build` writes `bin/`); `ONLY=S21 scripts/native-smoke-test.sh` runs one case.
 [`docs/BUILD-QUALIFICATION.md`](docs/BUILD-QUALIFICATION.md) states the gates.
 
 Do not use `go get ...@latest` in a release tree.

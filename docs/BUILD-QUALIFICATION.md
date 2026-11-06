@@ -18,9 +18,9 @@ rebuilding them: identity and checksums, static Linux binaries, the build
 source outside `vendor/`, the unit tests and vet in vendor mode, deterministic
 generated files, the example configurations, removed-key rejection, and every
 historical smoke suite through `v090-smoke-test.sh`, plus the k03 parser suite,
-the daemon-upgrade smoke suite, the v0100 suite `scripts/v0100-smoke-test.sh`
-(`make v0100-smoke`), the canary suite `scripts/canary-smoke-test.sh`, and the
-parity suite `scripts/native-smoke-test.sh`.
+the daemon-upgrade smoke suite, the v0100 suite `scripts/v0100-smoke-test.sh`,
+the canary suite `scripts/canary-smoke-test.sh`, and the parity suite
+`scripts/native-smoke-test.sh`.
 
 `verify-release.sh` builds from source: the import boundary and host-key
 assertions on the adapter, `gofmt`, `go mod verify`, the tests, vet, and the
@@ -227,8 +227,8 @@ make deps            # optional on a connected host: download and verify
   the fake received equal across the four combinations, one connection per
   combination with one shell or a channel per command, the activity's exit
   status, that the operator's trust store is unchanged, and that no fake and
-  no daemon is left running. `make native-smoke` runs it alone after `make
-  build`; `ONLY=S21` selects one case.
+  no daemon is left running. It runs alone by its shebang, against `bin/` or
+  `KARVI`; `ONLY=S21` selects one case.
 - **The audit suite** (`scripts/audit-smoke-test.sh`) MUST pass: jobs against
   the fake device, at two devices named for the run alone, read back from the
   host's journal by `karvi-audit` beside the executable, each row equal to the

@@ -739,13 +739,24 @@ so a git repository over the collection directory is written there too.
 
 `karvi-crun` runs `karvi crun --all --no-daemon --format jsonl` with the
 arguments appended (`--select-platform`, `--cd=PATH`, `--transport`),
-under a lock it holds for the run's duration (`flock`, per user under
-`TMPDIR`; `KARVI_CRUN_LOCK` names another path). A cron starts a tick
-whatever the previous one is doing, so a tick that finds the lock held is
-skipped with one line on stderr and exit 75, never queued:
+under a lock it holds for the run's duration (`flock` on
+`<basedir>/state/crun.lock`; `KARVI_CRUN_LOCK` names another path). A cron
+starts a tick whatever the previous one is doing, so a tick that finds the
+lock held is skipped with one line on stderr and exit 75, never queued:
 
 ```text
-karvi-crun: skipped: the previous collection is still running (/tmp/karvi-crun.1000.lock)
+karvi-crun: skipped: the previous collection is still running (/opt/karvi/users/netops/state/crun.lock)
+```
+
+The private root is the one karvi resolves, from the operator's passwd home,
+so the cron, a hand run, and `sudo -u` take the same lock whatever their
+`HOME` and `TMPDIR`. A first tick makes the root's missing folders as karvi's
+first activity does (`0750`, `state` `0700`), and never makes an explicit
+`basedir`; a basedir karvi refuses, or an explicit one that is not a
+directory, ends the tick with exit 1 and one line:
+
+```text
+karvi-crun: cannot take the lock: the private root /srv/karvi/netops is not a directory
 ```
 
 **What karvi does not do.** It does not refuse a second `crun` into one

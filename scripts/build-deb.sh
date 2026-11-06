@@ -56,7 +56,12 @@ cleanup() { rm -rf "${bd_work:?}"; }
 . "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 bd_src=$bd_work/karvi-$bd_package
 mkdir "$bd_src"
-(cd "$ROOT" && tar --exclude=./.git --exclude=./dist -cf - .) | (cd "$bd_src" && tar -xf -)
+# tar writes a file first and the copy is extracted after, so a tar that
+# fails (an unreadable file) stops the build instead of packaging part of it.
+(cd "$ROOT" && tar --exclude=./.git --exclude=./dist -cf "$bd_work/tree.tar" .) ||
+  die "tar of the tree failed; no package built"
+tar -xf "$bd_work/tree.tar" -C "$bd_src" || die "the tree's copy could not be extracted"
+rm -f "$bd_work/tree.tar"
 mv "$bd_src/packaging/debian" "$bd_src/debian"
 cat >"$bd_src/debian/changelog" <<EOF
 karvi ($bd_package) unstable; urgency=medium
