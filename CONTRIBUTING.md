@@ -70,7 +70,11 @@ relying on a negated pipeline. A Go test that
 needs a value from a `.json` file decodes it. A script sets its cleanup
 through `on_exit` in `scripts/lib/exit.sh`, which runs it once at any end and
 ends the script at a signal; `scripts/lib/exit-test.sh` fails on a trap of
-its own on EXIT.
+its own on EXIT. A suite or lab stops its daemon through `daemon_stop_force`
+in `scripts/lib/lab.sh` (`daemon stop --force`, then the socket's wait; a
+status the caller acts on, never an exit) and its fake through `fake_stop`;
+`scripts/lib/lab-test.sh` fails on a `daemon stop` whose status is ignored
+and on one in a cleanup.
 
 ## Branches and releases
 

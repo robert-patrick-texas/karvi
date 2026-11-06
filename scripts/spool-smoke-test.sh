@@ -22,21 +22,10 @@ PORT=
 unset NETUSER NETPASS NETENABLE
 
 fail() { echo "spool smoke: FAIL: $*" >&2; exit 1; }
-stop_fake() {
-  [ -n "$FAKE_PID" ] || return 0
-  kill "$FAKE_PID" 2>/dev/null || true
-  wait "$FAKE_PID" 2>/dev/null || true
-  FAKE_PID=
-}
-stop_daemon() {
-  [ -S "$TMP/base/socket/d.sock" ] || return 0
-  HOME=$TMP/home "$KARVI" --quiet --config "$TMP/karvi.toml" daemon stop --force >/dev/null 2>&1 || true
-  i=0
-  while [ -S "$TMP/base/socket/d.sock" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
-  [ ! -S "$TMP/base/socket/d.sock" ] || fail "the daemon socket remains"
-}
-cleanup() { stop_daemon 2>/dev/null || true; stop_fake; rm -rf "$TMP"; }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+# stop_daemon: the suite's daemon stopped (scripts/lib/lab.sh); 1 when it stays.
+stop_daemon() { daemon_stop_force "$TMP/base/socket/d.sock" env HOME="$TMP/home" "$KARVI" --quiet --config "$TMP/karvi.toml"; }
+cleanup() { stop_daemon || :; fake_stop FAKE_PID; rm -rf "$TMP"; }
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
 [ -x "$PRUNE" ] || fail "karvi-prune not found at $PRUNE"
 install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store" "$TMP/home" "$TMP/base" "$SPOOL"
@@ -399,8 +388,8 @@ else
   echo "spool smoke: S10 the other-volume row not exercised here (/dev/shm not a smaller separate volume)"
 fi
 
-stop_daemon
-stop_fake
+stop_daemon || fail "the daemon socket remains"
+fake_stop FAKE_PID
 grep -q "^connections=" "$TMP/fake.err" || fail "the fake left no summary"
 [ "$(host_store_digest "$OWN_STORE")" = "$OWN_BEFORE" ] || fail "the operator's trust store $OWN_STORE changed"
 echo "spool smoke: pass"

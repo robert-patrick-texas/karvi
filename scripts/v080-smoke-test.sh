@@ -27,10 +27,10 @@ CFG=$TMP/config.toml
 INV=$TMP/inventory.csv
 
 cleanup() {
-  "$KARVI" --config "$CFG" daemon stop >/dev/null 2>&1 || true
+  daemon_stop_force "$BASE/socket/d.sock" "$KARVI" --config "$CFG" || :
   rm -rf "$TMP"
 }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 install -d -m 700 "$HOME_DIR" "$BASE" "$SCORE" "$CAP"
 
 cat >"$INV" <<'EOF_INV'

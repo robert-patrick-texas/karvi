@@ -50,10 +50,10 @@ common_args() {
 }
 cleanup() {
   # shellcheck disable=SC2046
-  "$KARVI" --quiet $(common_args) daemon stop --force >/dev/null 2>&1 || true
+  daemon_stop_force "$BASE/socket/d.sock" "$KARVI" --quiet $(common_args) || :
   rm -rf "$TMP"
 }
-. scripts/lib/exit.sh; on_exit cleanup
+. scripts/lib/exit.sh; . scripts/lib/lab.sh; on_exit cleanup
 failures=0
 fail() { echo "FAIL: $*" >&2; failures=$((failures + 1)); }
 rows=0
@@ -348,8 +348,7 @@ sleep 0.5
 row s9 112 -- daemon restart
 grep -q '^daemon_active_jobs: ' "$TMP/streams/s9.err" || fail "s9: no daemon_active_jobs refusal"
 [ "$(daemon_pid)" = "$s9_pid" ] || fail "s9: the refused restart replaced the daemon"
-"$KARVI" $(common_args) daemon stop --force >/dev/null 2>&1 || true
-wait_stopped || fail "s9: the daemon socket remains after the cleanup stop"
+daemon_stop_force "$BASE/socket/d.sock" "$KARVI" $(common_args) || fail "s9: the daemon socket remains after the cleanup stop"
 
 # cancel_job: c1 cancels a held detached job with a
 # reason and asserts the cancelled accounting, the cancellation block, and

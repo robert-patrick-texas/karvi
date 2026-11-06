@@ -13,13 +13,12 @@ CAP=$TMP/capacity
 FAKE=$TMP/fake-ssh
 
 cleanup() {
-  "$KARVI" \
+  daemon_stop_force "$BASE/socket/d.sock" "$KARVI" \
     --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' \
-    --set "daemon.sockets=\"$BASE/socket\"" \
-    daemon stop >/dev/null 2>&1 || true
+    --set "daemon.sockets=\"$BASE/socket\"" || :
   rm -rf "$TMP"
 }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
 install -d -m 700 "$BASE" "$SCORE" "$CAP"
 printf '%s' "$SECRET" | sha256sum | awk '{print $1}' > "$FAKE.expected"
@@ -91,7 +90,7 @@ find "$BASE/jobs" -name summary.json -type f | grep -q .
 # socket; the next client finds none. The daemon the run above launched
 # carries the default (10m) and is stopped first.
 # shellcheck disable=SC2046
-"$KARVI" $(common_args) daemon stop >/dev/null 2>&1 || true
+daemon_stop_force "$BASE/socket/d.sock" "$KARVI" $(common_args) || { echo "the run's daemon did not stop" >&2; exit 1; }
 # shellcheck disable=SC2046
 "$KARVI" $(common_args) --set daemon.shutdown-idle-timer=1m daemon start >/dev/null 2>"$TMP/idle.err"
 i=0

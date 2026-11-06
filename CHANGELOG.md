@@ -118,6 +118,32 @@
   models as a terminal starts a job, through `terminal_job` (`setsid env
   --default-signal=INT`), so `scripts/lib/exit-test.sh` no longer needs
   python3; BUILD-HOWTO §1 names `setsid(1)` among util-linux's tools.
+- **A suite's cleanup stops its daemon with `--force` and always reaches its
+  removal.** The parity and spool suites stopped the daemon in their cleanup
+  through a function whose `fail` is `exit 1`, so a daemon still listening
+  after its stop ended the cleanup there: against a model daemon that
+  ignores the stop, a suite whose rows had passed ended 1 after 10 s, its
+  work folder and its fake left. The smoke, v080, v090, and canary suites and
+  the lifecycle replay stopped it without `--force`, which a daemon holding a
+  job refuses (`daemon_active_jobs`, exit 112), so after a Ctrl-C in the
+  middle of a row the folder went and the daemon ran on: against the released
+  build, it finished its job and wrote the removed work folder again (its
+  scoreboard, capacity lock, and the job's summary). Every suite and lab that
+  starts a daemon or a fake stops it through `scripts/lib/lab.sh`:
+  `daemon_stop_force SOCKET COMMAND...` runs `daemon stop --force`, waits up
+  to 15 s for the socket to go, and when it stays names it on stderr and
+  returns 1, never exiting; `fake_stop VAR` stops the fake and empties its
+  pid. A cleanup goes on to its removal (the same model: the suite's own 0,
+  the line, the folder removed, the fake stopped; the same job: stopped in
+  0.6 s, nothing left), and a row that needs the daemon gone fails on the
+  status, among them smoke's stop before its idle-timer daemon, whose status
+  was ignored. The device qualification's stop after each daemon row waits
+  for the socket before the row's folder moves into the evidence, and records
+  a daemon that stays as a failed check. `scripts/lib/lab-test.sh`, which
+  `run_suites` runs with the other library tests, runs both functions under
+  sh and bash against a model daemon, and fails when a script ignores a
+  `daemon stop`'s status or stops a daemon in its cleanup other than through
+  `daemon_stop_force`.
 
 ## 0.40.0 - 2026-11-05
 

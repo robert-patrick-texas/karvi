@@ -28,14 +28,11 @@ k() {
     --set output.min-free-bytes-after-job=0 "$@"
 }
 cleanup() {
-  k --quiet daemon stop --force >/dev/null 2>&1 || true
-  if [ -n "$FIXTURE_PID" ]; then
-    kill "$FIXTURE_PID" >/dev/null 2>&1 || true
-    wait "$FIXTURE_PID" >/dev/null 2>&1 || true
-  fi
+  daemon_stop_force "$SOCKET" k --quiet || :
+  fake_stop FIXTURE_PID
   rm -rf "$TMP"
 }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 install -d -m 700 "$BASE" "$HOME_DIR" "$TMP/tmp" "$TMP/bin"
 # The fixture is built once, before its first start, so the start's wait
 # measures its start and not a compile; its pid is the fixture's own.

@@ -32,11 +32,11 @@ A=(--set "basedir=\"$BASE\"" --set "scoreboards=\"$BASE/scoreboards\"" --set aud
 # refuses, where the new names the directory in daemon.sockets.
 O=("${A[@]}" --set "daemon.socket=\"$BASE/socket/d.sock\"")
 cleanup() {
-  HOME=$H "$NEW" "${A[@]}" daemon stop --force >/dev/null 2>&1 || true
-  HOME=$H "$OLD" "${O[@]}" daemon stop >/dev/null 2>&1 || true
+  daemon_stop_force "$BASE/socket/d.sock" env HOME="$H" "$NEW" "${A[@]}" || :
+  daemon_stop_force "$BASE/socket/d.sock" env HOME="$H" "$OLD" "${O[@]}" || :
   rm -rf "$TMP"
 }
-. ./scripts/lib/exit.sh; on_exit cleanup
+. ./scripts/lib/exit.sh; . ./scripts/lib/lab.sh; on_exit cleanup
 failures=0
 fail() { echo "FAIL: $*" >&2; failures=$((failures + 1)); }
 pid() { HOME=$H "$NEW" "${A[@]}" daemon status 2>/dev/null | sed -n 's/^pid: //p'; }

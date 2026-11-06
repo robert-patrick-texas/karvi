@@ -25,10 +25,10 @@ FAKE=$TMP/fake-ssh
 LOG=$FAKE.log
 
 cleanup() {
-  "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' daemon stop >/dev/null 2>&1 || true
+  daemon_stop_force "$BASE/socket/d.sock" "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' || :
   rm -rf "$TMP"
 }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 install -d -m 700 "$HOME_DIR" "$BASE" "$SCORE" "$CAP"
 
 cat >"$FAKE" <<'EOF_FAKE'

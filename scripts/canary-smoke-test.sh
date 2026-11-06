@@ -24,11 +24,11 @@ HOME_DIR=$TMP/home
 FAKE=$TMP/fake-ssh
 BASE_S1=$TMP/state-s1
 cleanup() {
-  "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' --set "daemon.sockets=\"$BASE/socket\"" daemon stop >/dev/null 2>&1 || true
-  "$KARVI" --set "basedir=\"$BASE_S1\"" daemon stop --force >/dev/null 2>&1 || true
+  daemon_stop_force "$BASE/socket/d.sock" "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' --set "daemon.sockets=\"$BASE/socket\"" || :
+  daemon_stop_force "$BASE_S1/socket/d.sock" "$KARVI" --set "basedir=\"$BASE_S1\"" || :
   rm -rf "$TMP"
 }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 install -d -m 700 "$BASE" "$BASE_S1" "$SCORE" "$CAP" "$HOME_DIR" "$TMP/streams"
 
 seed() { printf 'ndcanary-%s' "$(tr -dc '0-9abcdefghjkmnpqrstvwxyz' </dev/urandom | head -c 20)"; }

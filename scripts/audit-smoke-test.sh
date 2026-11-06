@@ -28,10 +28,10 @@ unset NETUSER NETPASS NETENABLE NO_COLOR
 fail() { echo "audit smoke: FAIL: $*" >&2; exit 1; }
 cleanup() {
   if [ -n "$FOLLOW_PID" ]; then env kill -TERM -- "-$FOLLOW_PID" 2>/dev/null || true; wait "$FOLLOW_PID" 2>/dev/null || true; fi
-  if [ -n "$FAKE_PID" ]; then kill "$FAKE_PID" 2>/dev/null || true; wait "$FAKE_PID" 2>/dev/null || true; fi
+  fake_stop FAKE_PID
   rm -rf "$TMP"
 }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
 [ -x "$AUDIT" ] || fail "karvi-audit not found at $AUDIT"
 
@@ -68,6 +68,7 @@ fi
 install -d -m 700 "$TMP/bin" "$TMP/home" "$TMP/base" "$TMP/score" "$TMP/store"
 (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)
 "$TMP/bin/fake" -host-key-file "$TMP/hostkey" -port 0 >"$TMP/port" 2>"$TMP/fake.err" &
+# shellcheck disable=SC2034 # read by name: fake_stop FAKE_PID (scripts/lib/lab.sh)
 FAKE_PID=$!
 i=0
 while [ ! -s "$TMP/port" ] && [ $i -lt 100 ]; do sleep 0.05; i=$((i + 1)); done

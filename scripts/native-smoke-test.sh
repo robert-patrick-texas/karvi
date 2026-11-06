@@ -23,21 +23,10 @@ KARVI__OUTPUT__MIN_FREE_BYTES_AFTER_JOB=0
 export KARVI__OUTPUT__MIN_FREE_BYTES_AFTER_JOB
 
 fail() { echo "native smoke: FAIL: $*" >&2; exit 1; }
-stop_fake() {
-  [ -n "$FAKE_PID" ] || return 0
-  kill "$FAKE_PID" 2>/dev/null || true
-  wait "$FAKE_PID" 2>/dev/null || true
-  FAKE_PID=
-}
-stop_daemon() {
-  [ -S "$TMP/base/socket/d.sock" ] || return 0
-  HOME=$TMP/home "$KARVI" --quiet --config "$TMP/karvi.toml" daemon stop --force >/dev/null 2>&1 || true
-  i=0
-  while [ -S "$TMP/base/socket/d.sock" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
-  [ ! -S "$TMP/base/socket/d.sock" ] || fail "the daemon socket remains"
-}
-cleanup() { stop_fake; stop_daemon 2>/dev/null || true; rm -rf "$TMP"; }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+# stop_daemon: the suite's daemon stopped (scripts/lib/lab.sh); 1 when it stays.
+stop_daemon() { daemon_stop_force "$TMP/base/socket/d.sock" env HOME="$TMP/home" "$KARVI" --quiet --config "$TMP/karvi.toml"; }
+cleanup() { fake_stop FAKE_PID; stop_daemon || :; rm -rf "$TMP"; }
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
 install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store"
 (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)
@@ -54,6 +43,7 @@ OWN_BEFORE=$(host_store_digest "$OWN_STORE")
 start_fake() {  # fake flags...; sets PORT
   : >"$TMP/port"
   "$TMP/bin/fake" -host-key-file "$TMP/hostkey" "$@" 2>"$TMP/fake.err" >"$TMP/port" &
+  # shellcheck disable=SC2034 # read by name: fake_stop FAKE_PID (scripts/lib/lab.sh)
   FAKE_PID=$!
   i=0
   while [ ! -s "$TMP/port" ] && [ $i -lt 100 ]; do sleep 0.05; i=$((i + 1)); done
@@ -111,7 +101,7 @@ run_karvi() {  # tag, activity (command|run|daemon), transport, enable, karvi ar
   env ${enable:+NETENABLE=$enable} HOME="$TMP/home" NETUSER=netops NETPASS="${PASS:-pw}" \
     "$KARVI" --config "$TMP/karvi.toml" --set 'platform-resolution.default=""' $sub --format jsonl --target fake-iosxe --transport "$tr" "$@" \
     >"$TMP/out.$tag" 2>"$TMP/err.$tag" || CODE=$?
-  [ "$act" != daemon ] || stop_daemon
+  [ "$act" != daemon ] || stop_daemon || fail "the daemon socket remains"
 }
 
 # parity_case LABEL POLICY PLATFORM TABLES ENABLE FAKEFLAGS EXPECT COMMANDEXIT LINES -- karvi args...
@@ -148,7 +138,7 @@ parity_case() {
     [ -z "${OTHERKEY:-}" ] || printf '[fake-iosxe]:%s %s\n' "$PORT" "$OTHERKEY" >"$KH"
     write_config "$policy" "$tables"
     run_karvi "$tag" "$act" "$tr" "$enable" "$@"
-    stop_fake
+    fake_stop FAKE_PID
     want=$cexit
     [ "$act" = command ] || [ "$cexit" -eq 0 ] || want=101
     [ "$CODE" -eq "$want" ] || fail "$label $tag: exit $CODE, expected $want: $(grep -E '^[a-z_]+:' "$TMP/err.$tag" | head -1)"
@@ -395,7 +385,7 @@ cross_pair() {  # label, enrolling activity:transport, reading activity:transpor
     [ "$(awk '{print $1" "$2}' "$KH")" = "[fake-iosxe]:$PORT ssh-ed25519" ] || fail "$label $tag: the trust store holds: $(cat "$KH")"
     streams="$streams $TMP/out.$tag"
   done
-  stop_fake
+  fake_stop FAKE_PID
   grep -q '^connections=2 sessions=2$' "$TMP/fake.err" || fail "$label: $(grep '^connections=' "$TMP/fake.err"), expected two connections and two shells"
   # shellcheck disable=SC2086
   result=$("$TMP/bin/paritycheck" -expect success -pin "$4" $streams) || fail "$label: $(printf '%s' "$result" | sed "s|$TMP/out\.||g" | head -12)"
@@ -628,7 +618,7 @@ job_run() {
   write_config accept-new "$BUILTIN
 $job_tables"
   run_karvi "$job_tag" "$job_act" native en "$@"
-  stop_fake
+  fake_stop FAKE_PID
   JOB_DIR=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
 }
 job_files() { ls "$JOB_DIR" | tr '\n' ' '; }
@@ -778,7 +768,7 @@ if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S33 ]; then
     env NETENABLE=en HOME="$TMP/home" NETUSER=netops NETPASS=pw \
       "$KARVI" --config "$TMP/karvi.toml" --set 'platform-resolution.default=""' $s33_sub --format jsonl --transport native "$@" \
       >"$TMP/out.$s33_tag" 2>"$TMP/err.$s33_tag" || CODE=$?
-    [ "$s33_act" != daemon ] || stop_daemon
+    [ "$s33_act" != daemon ] || stop_daemon || fail "the daemon socket remains"
     JOB_DIR=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
   }
   printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\ndead,127.0.0.1,dead\n' >"$TMP/inv.csv"
@@ -933,7 +923,7 @@ directory = \"$TMP/crun\""
   CODE=0; KARVI="$TMP/bin/nd" KARVI_CRUN_LOCK="$TMP/crun.lock" sh "$ROOT/packaging/cron/karvi-crun" --transport native </dev/null >"$TMP/out.s33lc" 2>"$TMP/err.s33lc" || CODE=$?
   tail -1 "$TMP/out.s33lc" >"$TMP/s33lc.last"
   [ "$CODE" -eq 0 ] && [ "$(json_get "$TMP/s33lc.last" collection.replace)" = 1 ] && cmp -s "$TMP/crun/fake-iosxe" "$TMP/s33.want" || fail "S33 schedule: the tick alone: exit $CODE: $(head -c 300 "$TMP/s33lc.last")"
-  stop_fake
+  fake_stop FAKE_PID
   echo 'native smoke: S33 the collection run: the file, the kept device, the folder, the summary, a rejected statement, --cd through the daemon, --nof, the crun.after hook on both paths, its exit and its bound, the crun-filters drop list off, a site'"'"'s, and a bad pattern refused, the packaged cron script'"'"'s guard: ok'
 fi
 
@@ -985,7 +975,7 @@ after = \"$TMP/after34.sh\""
   cmp -s "$TMP/cd/fake-iosxe" "$TMP/s34c.want" || fail "S34 --continue: the file differs: $(diff "$TMP/s34c.want" "$TMP/cd/fake-iosxe" | head -3)"
   # Through the daemon: the line follows the footer on stdout.
   s34_run s34d run --transport native --target fake-iosxe --cmd 'show clock' --cd="$TMP/cd"
-  stop_daemon
+  stop_daemon || fail "the daemon socket remains"
   [ "$CODE" -eq 0 ] && [ "$(tail -1 "$TMP/out.s34d")" = "! collection=$TMP/cd replace=1 keep=0" ] || fail "S34 daemon: exit $CODE, $(tail -1 "$TMP/out.s34d")"
   # command --cd with --nof: no folder, the file and the line.
   s34_run s34e command --nof --transport native --cd="$TMP/cd2" fake-iosxe show clock
@@ -1011,7 +1001,7 @@ directory = \"$TMP/cd\""
   [ "$CODE" -eq 0 ] && [ -f "$TMP/cd/fake-iosxe.cfg" ] && [ ! -e "$TMP/cd.cfg" ] || fail "S34 crun --fs: exit $CODE, $(ls -A "$TMP/cd" | tr '\n' ' ')"
   s34_run s34i run --no-daemon --transport native --target fake-iosxe --cmd 'show clock' --fs=a/b
   [ "$CODE" -eq 4 ] && grep -q '^crun_suffix_invalid: ' "$TMP/err.s34i" || fail "S34 --fs=a/b: exit $CODE, $(head -1 "$TMP/err.s34i")"
-  stop_fake
+  fake_stop FAKE_PID
   echo 'native smoke: S34 --cd and --fs on run and command: the unfiltered file, the folder'"'"'s text files, the kept device, a rejected statement with and without --continue, the collection line after the footer on both paths, no hook but crun'"'"'s, --nof, the suffix and the implied working directory, the sweep, crun'"'"'s --fs, a bad suffix: ok'
 fi
 
@@ -1069,7 +1059,7 @@ default = \"parallel\""
   [ "$CODE" -eq 4 ] && [ "$(cat "$TMP/err.s36echo")" = 'live_option_conflict: --live and --echo are mutually exclusive' ] || fail "S36 --echo: exit $CODE, $(head -1 "$TMP/err.s36echo")"
   s36_run s36daemon run --live --transport native --target fake-iosxe --cmd 'show clock'
   [ "$CODE" -eq 4 ] && [ "$(cat "$TMP/err.s36daemon")" = 'live_option_conflict: --live without --no-daemon; add --no-daemon' ] && [ ! -S "$TMP/base/socket/d.sock" ] || fail "S36 daemon: exit $CODE, $(head -1 "$TMP/err.s36daemon")"
-  stop_fake
+  fake_stop FAKE_PID
   echo 'native smoke: S36 --live: command over system and native (the header, every byte from the first, the secret removed, the footer), the text file unchanged, run serial under a parallel default with each device in turn, no secret anywhere, --echo and a daemon run refused: ok'
 fi
 
@@ -1127,7 +1117,7 @@ ssh-port = 1"
   # A folder through the daemon, dead unreachable.
   s37_run s37dir run --transport native --target fake-iosxe --target fake-b --target dead --cmd 'show clock' --cf "$TMP/s37/lists"
   s37_audit=$(audit_events "$TMP/base/audit.jsonl" event_name action.command_count action.commands | grep '^run\.start' || true)
-  stop_daemon
+  stop_daemon || fail "the daemon socket remains"
   [ "$CODE" -eq 101 ] || fail "S37 folder: exit $CODE, expected dead's failure: $(grep -E '^[a-z_]+:' "$TMP/err.s37dir" | head -1)"
   [ "$(s37_sent | tr '|' '\n' | sort | paste -sd '|' -)" = 'dead show clock|dead show users|fake-b copy running-config startup-config|fake-b show clock|fake-iosxe show clock|fake-iosxe show version' ] || fail "S37 folder: sent $(s37_sent)"
   [ "$(ls "$JOB_DIR/commands" | tr '\n' ' ')" = 'dead fake-b fake-iosxe ' ] && [ ! -e "$JOB_DIR/commands.txt" ] || fail "S37 folder: the job folder holds $(job_files), commands/ $(ls "$JOB_DIR/commands" 2>/dev/null | tr '\n' ' ')"
@@ -1160,7 +1150,7 @@ show clock' ] || fail "S37 one list: exit $CODE, commands.txt $(tr '\n' '|' <"$J
   [ "$CODE" -eq 0 ] || fail "S37 one list's rerun: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s37one2" | head -1)"
 
   # The planning refusals, no device contacted: a fresh fake counts none.
-  stop_fake
+  fake_stop FAKE_PID
   start_fake -port 0 -hostname fake-iosxe
   write_config accept-new "$BUILTIN"
   s37_run s37missing run --no-daemon --transport native --target fake-iosxe --target edge.example.net --target edge.example.org --cmd 'show clock' --cf "$TMP/s37/lists"
@@ -1173,13 +1163,13 @@ show clock' ] || fail "S37 one list: exit $CODE, commands.txt $(tr '\n' '|' <"$J
   [ "$CODE" -eq 4 ] && [ "$(cat "$TMP/s37/lists/fake-iosxe")" = 'show version' ] && grep -q '^commands_file_in_collection: \(client planning: \)\{0,1\}a --cf folder is the collection folder$' "$TMP/err.s37coll" || fail "S37 a collection into the folder: exit $CODE, $(head -1 "$TMP/err.s37coll")"
   s37_run s37coll run --no-daemon --transport native --target fake-iosxe --cf "$TMP/s37/lists/fake-iosxe" --cd="$TMP/s37/lists"
   [ "$CODE" -eq 4 ] && [ "$(cat "$TMP/s37/lists/fake-iosxe")" = 'show version' ] && grep -q '^commands_file_in_collection: \(client planning: \)\{0,1\}a --cf file is the collection file of fake-iosxe$' "$TMP/err.s37coll" || fail "S37 a collection onto the file: exit $CODE, $(head -1 "$TMP/err.s37coll")"
-  stop_fake
+  fake_stop FAKE_PID
   grep -q '^connections=0 sessions=0$' "$TMP/fake.err" || fail "S37 refusals: the fake counted $(grep '^connections=' "$TMP/fake.err")"
   printf '%s\n' 'native smoke: S37 a command list per device: the order written and its two refusals, a folder through the daemon (each list, the copies with their \r, no commands.txt named, the audit start, schema-check), the rerun of its failures and a copy'"'"'s \r, one list'"'"'s commands.txt and its rerun, a device without its file, two with one, a collection over the folder and the file: ok'
 fi
 
 [ "$(host_store_digest "$OWN_STORE")" = "$OWN_BEFORE" ] || fail "the operator's trust store $OWN_STORE changed"
-stop_fake
+fake_stop FAKE_PID
 if pgrep -f "$TMP/bin/fake" >/dev/null 2>&1 || pgrep -f "daemon serve.*$TMP" >/dev/null 2>&1; then
   fail "a fake or a daemon is still running"
 fi

@@ -105,16 +105,14 @@ result() {  # row, check, disposition, detail
   say "$1 $2: $3${4:+ ($4)}"
   [ "$3" != fail ] || FAILED=$((FAILED + 1))
 }
-stop_daemon() {
-  [ -S "${SOCK:-}" ] || return 0
-  HOME=$WORK/home "$KARVI" --quiet --config "$WORK/karvi.toml" daemon stop --force >/dev/null 2>&1 || true
-}
+# stop_daemon: the run's daemon stopped (scripts/lib/lab.sh); 1 when it stays.
+stop_daemon() { daemon_stop_force "$SOCK" env HOME="$WORK/home" "$KARVI" --quiet --config "$WORK/karvi.toml"; }
 cleanup() {
-  stop_daemon
-  [ -z "$FAKE_PID" ] || { kill "$FAKE_PID" 2>/dev/null || true; wait "$FAKE_PID" 2>/dev/null || true; }
+  stop_daemon || :
+  fake_stop FAKE_PID
   [ -z "${SOCKDIR:-}" ] || rm -rf "$SOCKDIR"
 }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 wanted() { [ -z "${ROWS:-}" ] && return 0; for r in $ROWS; do [ "$1" != "$r" ] || return 0; done; return 1; }
 
 [ ! -e "$EVIDENCE" ] || { echo "device qualification: $EVIDENCE exists; name another EVIDENCE" >&2; exit 2; }
@@ -133,6 +131,7 @@ if [ -n "${FAKE:-}" ]; then
   (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$WORK/bin/fake" ./cmd/karvi-fake-device)
   : >"$WORK/port"
   "$WORK/bin/fake" -host-key-file "$WORK/hostkey" -big-lines 2000 -password "$NETPASS" -enable "$NETENABLE" 2>"$EVIDENCE/fake.err" >"$WORK/port" &
+  # shellcheck disable=SC2034 # read by name: fake_stop FAKE_PID (scripts/lib/lab.sh)
   FAKE_PID=$!
   i=0
   while [ ! -s "$WORK/port" ] && [ $i -lt 100 ]; do sleep 0.05; i=$((i + 1)); done
@@ -219,7 +218,7 @@ qrun() {
   # shellcheck disable=SC2086
   HOME=$WORK/home "$KARVI" --config "$WORK/karvi.toml" $q_sub --format "${FORMAT:-jsonl}" --transport "$q_tr" "$@" >"$OUT" 2>"$ERR" </dev/null || CODE=$?
   echo "$CODE" >"$q_dir/$q_tag.exit"
-  stop_daemon
+  stop_daemon || result "$q_row" "the daemon stopped after $q_tag" fail "$SOCK remains"
   cp "$WORK/karvi.toml" "$q_dir/$q_tag.karvi.toml"
   [ ! -d "$WORK/base" ] || { rm -rf "$WORK/base/socket" "$WORK/base/cap"; mv "$WORK/base" "$q_dir/$q_tag.base"; }
 }
@@ -514,7 +513,7 @@ if [ -x "$SECRET_SCAN" ]; then
 else result ALL 'no secret in the evidence' skip "no $SECRET_SCAN (make tools-build)"; fi
 [ "$(host_store_digest "$OWN_STORE")" = "$OWN_BEFORE" ] && result ALL "the operator's trust store unchanged" pass '' || result ALL "the operator's trust store unchanged" fail "$OWN_STORE changed"
 
-cleanup; FAKE_PID=
+cleanup
 rm -rf "$WORK"
 (cd "$EVIDENCE" && find . -type f ! -name SHA256SUMS -exec sha256sum {} + | sort -k2 >SHA256SUMS)
 say "$(cut -f3 "$RESULTS" | sed 1d | sort | uniq -c | tr '\n' ' ')"

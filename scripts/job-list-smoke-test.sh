@@ -21,23 +21,18 @@ FAKE_PID=
 unset NETUSER NETPASS NETENABLE
 
 fail() { echo "job list smoke: FAIL: $*" >&2; exit 1; }
-stop_daemon() {
-  [ -S "$TMP/base/socket/d.sock" ] || return 0
-  HOME=$TMP/home "$KARVI" --quiet --config "$TMP/karvi.toml" daemon stop --force >/dev/null 2>&1 || true
-  i=0
-  while [ -S "$TMP/base/socket/d.sock" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
-}
 cleanup() {
-  stop_daemon
-  if [ -n "$FAKE_PID" ]; then kill "$FAKE_PID" 2>/dev/null || true; wait "$FAKE_PID" 2>/dev/null || true; fi
+  daemon_stop_force "$TMP/base/socket/d.sock" env HOME="$TMP/home" "$KARVI" --quiet --config "$TMP/karvi.toml" || :
+  fake_stop FAKE_PID
   chmod -R u+rwX "$TMP" 2>/dev/null || true
   rm -rf "$TMP"
 }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
 install -d -m 700 "$TMP/bin" "$TMP/home" "$TMP/base" "$TMP/score" "$TMP/crun"
 (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)
 "$TMP/bin/fake" -host-key-file "$TMP/hostkey" -slow 20s -port 0 >"$TMP/port" 2>"$TMP/fake.err" &
+# shellcheck disable=SC2034 # read by name: fake_stop FAKE_PID (scripts/lib/lab.sh)
 FAKE_PID=$!
 i=0
 while [ ! -s "$TMP/port" ] && [ $i -lt 100 ]; do sleep 0.05; i=$((i + 1)); done

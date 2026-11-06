@@ -44,13 +44,11 @@ unset NETUSER NETPASS NETENABLE
 
 fail() { echo "output scale: FAIL: $*" >&2; exit 1; }
 cleanup() {
-  if [ -S "$TMP/base/socket/d.sock" ]; then
-    HOME=$TMP/home "$KARVI" --quiet --config "$TMP/karvi.toml" daemon stop --force >/dev/null 2>&1 || true
-  fi
-  [ -z "$FAKE_PID" ] || { kill "$FAKE_PID" 2>/dev/null || true; wait "$FAKE_PID" 2>/dev/null || true; }
+  daemon_stop_force "$TMP/base/socket/d.sock" env HOME="$TMP/home" "$KARVI" --quiet --config "$TMP/karvi.toml" || :
+  fake_stop FAKE_PID
   rm -rf "$TMP"
 }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
 install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store" "$TMP/home" "$TMP/base"
 (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)
@@ -73,6 +71,7 @@ case $CHANNEL in
 esac
 : >"$TMP/port"
 "$TMP/bin/fake" -host-key-file "$TMP/hostkey" -big-lines "$BIG_LINES" "$@" 2>"$TMP/fake.err" >"$TMP/port" &
+# shellcheck disable=SC2034 # read by name: fake_stop FAKE_PID (scripts/lib/lab.sh)
 FAKE_PID=$!
 i=0
 while [ ! -s "$TMP/port" ] && [ $i -lt 100 ]; do sleep 0.05; i=$((i + 1)); done
@@ -171,8 +170,8 @@ records=$(wc -l <"$JOB/commands.jsonl")
 ok=$(jsonl_records "$JOB/commands.jsonl" status output_bytes | grep -cx "$(printf 'success\t%s' "$WANT_BYTES")" || true)
 [ "$records" -eq "$N" ] || fail "$records records, expected $N"
 [ "$ok" -eq "$N" ] || fail "$ok records succeeded with $WANT_BYTES output bytes, expected $N"
-karvi --quiet daemon stop --force >/dev/null 2>&1 || true
-kill "$FAKE_PID" 2>/dev/null || true; wait "$FAKE_PID" 2>/dev/null || true; FAKE_PID=
+daemon_stop_force "$TMP/base/socket/d.sock" karvi --quiet || fail "the daemon socket remains"
+fake_stop FAKE_PID
 grep -q "^connections=$N sessions=$SESSIONS\$" "$TMP/fake.err" || fail "the fake saw $(grep '^connections=' "$TMP/fake.err"), expected $N connections and $SESSIONS shells"
 [ "$(host_store_digest "$OWN_STORE")" = "$OWN_BEFORE" ] || fail "the operator's trust store $OWN_STORE changed"
 
