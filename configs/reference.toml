@@ -605,8 +605,6 @@ approved-admin-users = ["root"]
 allow-credential-symlinks = false
 # Explicit second gate.
 allow-telnet = false
-# Startup verifies build/runtime mode.
-require-fips = false
 # Names only; secret values not shown by config explain.
 child-environment-allowlist = ["LANG", "LC_ALL", "LC_CTYPE", "TERM", "COLORTERM", "SSH_AUTH_SOCK"]
 

@@ -26,9 +26,10 @@ import (
 // takes crun.mask and a platform table's masks; 32 removes
 // ssh.transports.native, the native transport having one implementation, and
 // a key's sensitive mark, set on none; 33 removes a platform table's
-// legacy-class, read by nothing.
+// legacy-class, read by nothing; 34 removes security.require-fips, which
+// enforced nothing.
 const (
-	RegistrySchemaVersion = 33
+	RegistrySchemaVersion = 34
 	ConfigSchemaVersion   = 6
 )
 

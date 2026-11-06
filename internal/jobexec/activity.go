@@ -614,7 +614,7 @@ func writeActivityAudit(s *audit.Sink, req Request, id, event, outcome string, c
 			return "info"
 		}
 		return "warning"
-	}(), Operator: osutil.RecordOperator(req.Operator), LoginUser: req.Operator.LoginUser, Process: map[string]any{"pid": os.Getpid(), "executable": buildinfo.AppName, "version": buildinfo.Version, "host": hostname()}, JobID: id, Action: action, Policy: map[string]any{"telnet": telnet, "fips_required": req.Config.Bool("security.require-fips"), "ssh_host_key_policy": req.Config.String("ssh.host-key-policy"), "ssh_halt_run_on_host_key_mismatch": req.Config.Bool("ssh.halt-run-on-host-key-mismatch")}, Result: map[string]any{"code": exitcode.ExitName(code), "exit_code": code, "reason": reason}, Source: map[string]any{"client": "karvi"}, Details: auditDetails(len(req.Plan.Targets), extra...)})
+	}(), Operator: osutil.RecordOperator(req.Operator), LoginUser: req.Operator.LoginUser, Process: map[string]any{"pid": os.Getpid(), "executable": buildinfo.AppName, "version": buildinfo.Version, "host": hostname()}, JobID: id, Action: action, Policy: map[string]any{"telnet": telnet, "ssh_host_key_policy": req.Config.String("ssh.host-key-policy"), "ssh_halt_run_on_host_key_mismatch": req.Config.Bool("ssh.halt-run-on-host-key-mismatch")}, Result: map[string]any{"code": exitcode.ExitName(code), "exit_code": code, "reason": reason}, Source: map[string]any{"client": "karvi"}, Details: auditDetails(len(req.Plan.Targets), extra...)})
 }
 
 // jobMasks is the job's one mask list, the plan's masks of every target

@@ -170,7 +170,9 @@ func draftOptions(commands []string) DraftOptions {
 // moved.
 // Re-pinned at schema 16, sleeps_ns, each command's --sleep (EXAMPLES
 // chapter 95); nothing else moved.
-const goldenK03Draft = "3fc2667ad748ab670e4f12293d8a81a17228171116c6c39cee8eef9672078c4b"
+// Re-pinned when security.require-fips was removed (EXAMPLES chapter 101):
+// the configuration block's key and its digest; nothing else moved.
+const goldenK03Draft = "d75ffe21fa308232179902aa10ae707ee7308ebf2b8c8fdb3d75d56688f6260c"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

@@ -21508,12 +21508,13 @@ The operator asked for the options for a configuration setting that holds
 karvi to FIPS 140-3 crypto. The session read what the tree has, and what Go
 1.27's FIPS 140-3 module and x/crypto's SSH package (v0.58.0) do in FIPS mode,
 on a lab build of `04f4df4` against the fake device; it raised five issues and
-stopped at the first, when the operator ruled that the mode waits. Nothing in
-karvi changed; the ROADMAP holds the item.
+stopped at the first, when the operator ruled that the mode waits, and the
+ROADMAP holds the item. The key the tree had for the mode, which enforced
+nothing, was then removed.
 
 **What it would gain.** A site under a federal rule could show that karvi's
-SSH sessions use only approved algorithms, performed by a validated module,
-and the audit's `fips_required` would mean what it says. A device in FIPS mode
+SSH sessions use only approved algorithms, performed by a validated module.
+A device in FIPS mode
 needs none of it: one offering FIPS names alone is reached on karvi's defaults
 today,
 
@@ -21652,7 +21653,8 @@ at its first point when the operator ruled, so none is settled:
 1. The key and its promise: `security.require-fips`, already lockable and in
    the audit, a hard stop at start unless the binary runs the certified module
    in FIPS mode (recommended); not a new `ssh-algorithms.source = "fips"`,
-   which holds the SSH lists alone.
+   which holds the SSH lists alone. The key is removed since (below), and
+   which options the mode takes and enforces is decided when it opens.
 2. Where the approved names come from: the module's own set, through the
    offer filter karvi has, less the names x/crypto passes and the module
    refuses (recommended); not karvi's own table of approved names, a second
@@ -21671,13 +21673,61 @@ at its first point when the operator ruled, so none is settled:
 mode on an ordinary build under `GODEBUG=fips140=on`, whose module is not the
 certified snapshot.
 
-**Left open.** The ROADMAP item, opened by its test above. Two findings of
-the tree as it is, taken up next one at a time: `security.require-fips`
-promises a check nothing performs, and the `fips_mode` line reports a label.
+**The first finding, agreed: `security.require-fips` removed.** The
+operator's word: the key is of no utility now and is not coming back; when Go's
+module offers the mode, the options it takes and enforces are decided then. On
+`e68d406` the key set to true changed nothing in the session, and the audit
+said FIPS was required:
 
-**Checks.** The runs above, by one script on the tree at `04f4df4` with the
-ROADMAP item: karvi and the fake device built from the tree, a
+```text
+$ karvi --set security.require-fips=true command --target router1 -c 'show clock'
+exit=0
+  audit cmd.end policy: {"fips_required":true,"ssh_halt_run_on_host_key_mismatch":false,"ssh_host_key_policy":"accept-new","telnet":false}
+```
+
+The registry's row is gone (registry 34), and with it the reference's and the
+configuration schema's; `fips_required` leaves the policy of a job's and a
+login's audit events (audit schema 4), and `karvi-audit` reads schema 4 alone.
+As every removal since [chapter
+61](#61-a-list-of-jobs-karvi-job-list-2026-10-15), the key is refused as
+unknown, with no row in `internal/configload/removed.go`, from every layer:
+
+```text
+$ karvi --set security.require-fips=true command --target router1 -c 'show clock'
+config_unknown_key: unknown configuration key for security.require-fips at --set[2]
+exit=2
+$ KARVI__SECURITY__REQUIRE_FIPS=true karvi command --target router1 -c 'show clock'
+config_unknown_environment: unknown KARVI__ environment variable at KARVI__SECURITY__REQUIRE_FIPS
+exit=2
+$ karvi command --target router1 -c 'show clock'   # [security] require-fips = true in the file
+config_unknown_key: unknown configuration key for security.require-fips at $TMP/karvi.toml:35
+exit=2
+$ karvi command --target router1 -c 'show clock'   # the key unset
+exit=0
+  audit cmd.end schema_version: 4
+  audit cmd.end policy: {"ssh_halt_run_on_host_key_mismatch":false,"ssh_host_key_policy":"accept-new","telnet":false}
+```
+
+The plan's configuration block loses the key, so the k03 draft's pinned digest
+moved with its configuration digest, and nothing else
+(`internal/planner/draft_test.go`); `karvi-audit`'s tests typed the schema
+number in their events and its warning, and name 4. *Not taken:* the key kept
+with its documentation corrected to "recorded in the audit only", a setting
+that changes nothing.
+
+**Left open.** The ROADMAP item, opened by its test above. The second finding,
+taken up next: `karvi version`'s `fips_mode` line reports the Makefile's
+label, not the binary.
+
+**Checks.** The FIPS runs above, by one script on the tree at `04f4df4` with
+the ROADMAP item: karvi and the fake device built from the tree, a
 `GOFIPS140=certified` build beside them, the work directory (shown as `$TMP`)
 and its trust store in the session's scratch space and removed after. The
-evidence is kept beside the tree (`release-design-evidence/fips-2026-11-05/`:
-the script and its log).
+key's runs by a second script the same way, on `e68d406` and on the change;
+`go vet` and `go test ./...` over the whole tree, `make generated-clean`, a
+check build of the documents, and the full battery,
+`scripts/verify-release.sh` under `TMPDIR=/var/tmp`, in a copy of the tree with
+the change (03:52 to 04:02 UTC): 74 packages, then again under `-race`, and the
+19 suites, S9 narrowing 24 devices to what 16 GiB holds. The evidence is kept
+beside the tree (`release-design-evidence/fips-2026-11-05/`: the scripts and
+their logs, and the battery's).

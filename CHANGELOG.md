@@ -39,6 +39,15 @@
   `--set` list (its floor rows still set their own), and the parity suite
   through the environment layer, since its rows write their own `[output]`
   tables into its file.
+- **Breaking: `security.require-fips` is removed; registry 34, audit schema
+  4.** Its documentation said "Startup verifies build/runtime mode", and
+  nothing read it but the audit, which copied it into each event's policy as
+  `fips_required`: a site that set it to true ran exactly as before, its audit
+  saying FIPS was required. A configuration file or `--set` naming the key is
+  refused, `config_unknown_key`, and `KARVI__SECURITY__REQUIRE_FIPS`,
+  `config_unknown_environment`; the audit's policy no longer carries
+  `fips_required`. karvi has no FIPS 140-3 mode; what one waits on is in
+  [`ROADMAP.md`](ROADMAP.md).
 
 ## 0.40.0 - 2026-11-05
 

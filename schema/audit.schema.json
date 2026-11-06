@@ -9,7 +9,7 @@
     "severity", "operator", "process", "action", "policy", "result", "source",
     "details"],
   "properties": {
-    "schema_version": {"const": 3},
+    "schema_version": {"const": 4},
     "event_id": {"type": "string"},
     "event_name": {"type": "string",
       "pattern": "^((cmd|run|crun)\\.(start|command|cancel|end)|crun\\.after|login\\.(start|end))$"},
@@ -82,7 +82,6 @@
       "additionalProperties": false,
       "properties": {
         "telnet": {"type": "boolean"},
-        "fips_required": {"type": "boolean"},
         "ssh_host_key_policy": {"type": "string"},
         "ssh_halt_run_on_host_key_mismatch": {"type": "boolean"},
         "credential_policy": {"type": "string"},
