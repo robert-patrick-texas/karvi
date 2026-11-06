@@ -428,6 +428,20 @@ None chosen: the operator names the next item, from "Later" or anew.
   names, a restart cancelling what outlasts the grace. It waits on the
   release's signature: an install no one watches should not rest on a
   checksum alone.
+- **A FIPS 140-3 mode, once Go's module performs AES-256-GCM for SSH.** karvi
+  leads with the strongest algorithms its transports implement. FIPS 140-3 is
+  not the strongest set: it is the set one implementation, submitted and
+  passed in testing for federal data protection, performs in its approved
+  mode. An option for it waits until that set holds AES-256-GCM. Go 1.27's
+  certified module (`v1.0.0-c2097c7c`) has an SSH form of AES-GCM
+  (`NewGCMForSSH`, RFC 5647's nonce) inside the standard library alone;
+  x/crypto's SSH package (v0.58.0) calls `crypto/cipher.NewGCM`, which the
+  module counts as unapproved under `GODEBUG=fips140=on` and refuses under
+  `fips140=only`. The approved cipher left is AES-CTR, which karvi does not
+  lead with. The item opens when a `GOFIPS140=certified` build negotiates
+  `aes256-gcm@openssh.com` under `fips140=only`; what the design then starts
+  from is in [`docs/EXAMPLES.md`, chapter
+  101](docs/EXAMPLES.md#101-a-fips-140-3-mode-waits-on-aes-256-gcm-for-ssh-2026-11-05).
 
 ## The device-qualification track
 

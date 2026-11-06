@@ -21501,3 +21501,183 @@ the 19 suites, S9 narrowing 25 devices to what 17 GiB holds. The evidence is
 kept beside the tree (`release-design-evidence/shell-script-review-2026-11-04/`:
 each finding's runs and patch, the two batteries' logs, and in `floor-class/`
 the four suites' runs before and after, and their patch).
+
+## 101. A FIPS 140-3 mode waits on AES-256-GCM for SSH (2026-11-05)
+
+The operator asked for the options for a configuration setting that holds
+karvi to FIPS 140-3 crypto. The session read what the tree has, and what Go
+1.27's FIPS 140-3 module and x/crypto's SSH package (v0.58.0) do in FIPS mode,
+on a lab build of `04f4df4` against the fake device; it raised five issues and
+stopped at the first, when the operator ruled that the mode waits. Nothing in
+karvi changed; the ROADMAP holds the item.
+
+**What it would gain.** A site under a federal rule could show that karvi's
+SSH sessions use only approved algorithms, performed by a validated module,
+and the audit's `fips_required` would mean what it says. A device in FIPS mode
+needs none of it: one offering FIPS names alone is reached on karvi's defaults
+today,
+
+```text
+# the fake: ecdh-sha2-nistp384,ecdh-sha2-nistp256; aes256-ctr,aes128-ctr; hmac-sha2-256
+-- ordinary build: exit 0
+   negotiated: kex=ecdh-sha2-nistp384 hostkey=ssh-ed25519 cipher=aes256-ctr mac=hmac-sha2-256
+```
+
+**The rule, the operator's.** karvi leads with the strongest algorithms its
+transports implement. FIPS 140-3 is not the strongest set: it is the set one
+implementation, submitted and passed in testing for federal data protection,
+performs in its approved mode. Today that set, for SSH through Go, holds AES-CTR
+and not AES-GCM, and karvi does not lead with AES-CTR to have it; so the mode
+waits until Go's module performs AES-256-GCM for SSH in its approved form, the
+ROADMAP's "A FIPS 140-3 mode, once Go's module performs AES-256-GCM for SSH".
+Its test: a `GOFIPS140=certified` build negotiates `aes256-gcm@openssh.com`
+under `GODEBUG=fips140=only`.
+
+**Go's module.** Go 1.27 names its certified module and the one in process in
+`lib/fips140` (`certified: v1.0.0-c2097c7c`, `inprocess: v1.26.0`). A build
+with `GOFIPS140=certified` links that snapshot and turns FIPS mode on by
+default:
+
+```text
+build	-tags=fips140v1.0
+build	DefaultGODEBUG=fips140=on
+build	GOFIPS140=v1.0.0-c2097c7c
+```
+
+An ordinary build run under `GODEBUG=fips140=on` is in FIPS mode too, but with
+the module the toolchain carries, which `crypto/fips140.Version()` reports as
+`latest`: the same code, not the snapshot the certificate covers. Under `on`
+the module performs unapproved functions as well; under `only` it refuses them.
+
+**The native transport narrows itself.** In FIPS mode x/crypto leaves out at
+start the key exchanges, ciphers, and MACs it does not count as approved, two
+below excepted, and karvi's offer asks x/crypto what it performs
+(`xcryptoImplements` in `internal/transport/native/dial.go`), so the offer
+narrowed with no change in karvi, against the fake on x/crypto's server
+defaults:
+
+```text
+-- ordinary build, fips140 off: exit 0
+   offered: kex=mlkem768x25519-sha256,curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group16-sha512,diffie-hellman-group-exchange-sha256,diffie-hellman-group14-sha256,diffie-hellman-group14-sha1 ciphers=aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr macs=hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,hmac-sha1
+-- ordinary build, fips140=on: exit 0
+   offered: kex=mlkem768x25519-sha256,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256 ciphers=aes256-gcm@openssh.com,aes256-ctr macs=hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256
+   negotiated: kex=mlkem768x25519-sha256 hostkey=ssh-ed25519 cipher=aes256-gcm@openssh.com mac=<implicit>
+-- GOFIPS140=certified build: exit 0
+   negotiated: kex=mlkem768x25519-sha256 hostkey=ssh-ed25519 cipher=aes256-gcm@openssh.com mac=<implicit>
+-- ordinary build, fips140=only: exit 110
+   error=native_session_open_failed: SSH handshake with 127.0.0.1:PORT: ssh: handshake failed: curve25519: crypto/ecdh: use of X25519 is not allowed in FIPS 140-only mode
+```
+
+Two names stay in the offer under `on` that the module refuses under `only`:
+the ML-KEM hybrid, whose other half is X25519, and AES-GCM. A device whose
+offer holds none of the names left fails the negotiation, both offers named;
+one offering a SHA-1 host key alone fails later in the handshake, in
+x/crypto's words, karvi's host-key list holding `ssh-rsa` from its own table:
+
+```text
+# the fake: curve25519-sha256, chacha20-poly1305@openssh.com
+-- fips140=on: exit 110
+   error=ssh_algorithm_negotiation_failed: no key exchange algorithm in common: karvi offered mlkem768x25519-sha256,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256; the device offered curve25519-sha256,curve25519-sha256@libssh.org
+# the fake: diffie-hellman-group14-sha256
+-- fips140=on: exit 110
+   error=ssh_algorithm_negotiation_failed: no key exchange algorithm in common: karvi offered mlkem768x25519-sha256,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256; the device offered diffie-hellman-group14-sha256
+# the fake: aes256-ctr, hmac-sha1
+-- fips140=on: exit 110
+   error=ssh_algorithm_negotiation_failed: no MAC algorithm in common: karvi offered hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256; the device offered hmac-sha1
+# the fake: one RSA host key signing only with ssh-rsa
+-- fips140=on: exit 110
+   error=native_session_open_failed: SSH handshake with 127.0.0.1:PORT: ssh: handshake failed: ssh: hash algorithm for format "ssh-rsa" not allowed in FIPS 140 mode
+```
+
+Each of the four connects with FIPS mode off. NIST still lists the
+finite-field groups 14 to 18 and HMAC-SHA-1; Go's module performs no
+finite-field Diffie-Hellman, and x/crypto drops HMAC-SHA-1 in FIPS mode, so
+over native a device offering only those is not reached: the module's limit,
+as UMAC is x/crypto's ([chapter
+54](#54-the-transports-own-ssh-algorithm-lists-2026-10-10)).
+
+**AES-256-GCM.** The certified module holds AES-GCM and an SSH form of it,
+`NewGCMForSSH`, which enforces RFC 5647's nonce construction ("This complies
+with FIPS 140-3 IG C.H Scenario 1.d", `aes/gcm/gcm_nonces.go` in the module's
+snapshot), but inside the standard library alone: `crypto/cipher` offers `NewGCM`, whose caller supplies the IVs,
+and `NewGCMWithRandomNonce`. x/crypto calls `NewGCM`; its comment in
+`cipher.go` says it will "wire it up to NewGCMForSSH in Go 1.26" and, for now,
+works "with fips140=on but not fips140=only". With karvi's lists narrowed to a
+key exchange the module performs, the cipher alone decides:
+
+```text
+# kex ecdh-sha2-nistp256, ciphers aes256-gcm@openssh.com
+-- GOFIPS140=certified build, fips140=only: exit 110
+   error=native_session_open_failed: SSH handshake with 127.0.0.1:PORT: ssh: handshake failed: crypto/cipher: use of GCM with arbitrary IVs is not allowed in FIPS 140-only mode, use NewGCMWithRandomNonce
+# kex ecdh-sha2-nistp256, ciphers aes256-ctr
+-- GOFIPS140=certified build, fips140=only: exit 0
+   negotiated: kex=ecdh-sha2-nistp256 hostkey=ssh-ed25519 cipher=aes256-ctr mac=hmac-sha2-512-etm@openssh.com
+```
+
+The second row is the FIPS 140-3 SSH session Go performs today, and the reason
+the mode waits.
+
+**Under `only`, a hashed trust-store entry.** The same row with the trust
+store's entry hashed (`ssh-keygen -H`, OpenSSH's `|1|` form, HMAC-SHA-1 over
+the host name) makes karvi itself panic, in the match in
+`internal/hostkey/inspect.go` that calls `hmac.New(sha1.New, salt)`:
+
+```text
+-- GOFIPS140=certified build, fips140=only, hashed entry: exit 2
+   stderr: panic: crypto/hmac: use of hash functions other than SHA-2 or SHA-3 is not allowed in FIPS 140-only mode
+```
+
+No release runs under `only`, so nothing in production meets it; a design
+that uses `only` starts there.
+
+**What the tree has today.** `security.require-fips` is documented "Startup
+verifies build/runtime mode", and nothing reads it but the audit, which records
+it as `fips_required`. `karvi version`'s `fips_mode` is the Makefile's
+`FIPS_MODE` label, not the binary:
+
+```text
+ordinary build:                 fips_mode: false
+ordinary build, fips140=on:     fips_mode: false
+GOFIPS140=certified build:      fips_mode: false
+```
+
+The system transport's module is the host's OpenSSH and OpenSSL; on this host
+`OpenSSH_10.2p1 Ubuntu-2ubuntu3.8, OpenSSL 3.5.5`, the default provider
+alone, no FIPS provider among OpenSSL's modules (`legacy.so`), and no
+`/proc/sys/crypto/fips_enabled`.
+
+**The issues the design opens with.** Raised in this order, the first stopped
+at its first point when the operator ruled, so none is settled:
+
+1. The key and its promise: `security.require-fips`, already lockable and in
+   the audit, a hard stop at start unless the binary runs the certified module
+   in FIPS mode (recommended); not a new `ssh-algorithms.source = "fips"`,
+   which holds the SSH lists alone.
+2. Where the approved names come from: the module's own set, through the
+   offer filter karvi has, less the names x/crypto passes and the module
+   refuses (recommended); not karvi's own table of approved names, a second
+   copy of the module's security policy that would already disagree with
+   x/crypto's (the finite-field groups, HMAC-SHA-1).
+3. The system transport and telnet under the key: refused until a FIPS host is
+   tested (recommended).
+4. `on` or `only`: `on`, with the offer narrowed as in issue 2 (recommended),
+   since `only` needs the hashed-entry match above scoped out of its
+   enforcement.
+5. `karvi version` from the running binary (`crypto/fips140.Enabled()` and
+   `Version()`), the `FIPS_MODE` label removed, a `GOFIPS140` knob in the
+   Makefile, and whether a release ships a second build (the operator's).
+
+*Not taken:* AES-CTR as the FIPS mode's cipher, the operator's rule above; the
+mode on an ordinary build under `GODEBUG=fips140=on`, whose module is not the
+certified snapshot.
+
+**Left open.** The ROADMAP item, opened by its test above. Two findings of
+the tree as it is, taken up next one at a time: `security.require-fips`
+promises a check nothing performs, and the `fips_mode` line reports a label.
+
+**Checks.** The runs above, by one script on the tree at `04f4df4` with the
+ROADMAP item: karvi and the fake device built from the tree, a
+`GOFIPS140=certified` build beside them, the work directory (shown as `$TMP`)
+and its trust store in the session's scratch space and removed after. The
+evidence is kept beside the tree (`release-design-evidence/fips-2026-11-05/`:
+the script and its log).

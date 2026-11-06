@@ -1620,6 +1620,21 @@ which would name a failed handshake's; OpenSSH's log level raised under
 `--debug`, which changes the standard error karvi classifies; the line in the
 command record ([`docs/EXAMPLES.md`, chapter 94](EXAMPLES.md#94-the-negotiated-ssh-algorithms-in---debug-2026-11-03)).
 
+**No FIPS 140-3 mode until Go's module performs AES-256-GCM for SSH.** karvi
+leads with the strongest algorithms its transports implement, and has no mode
+that holds it to FIPS 140-3: the set one implementation, submitted and passed
+in testing for federal data protection, performs in its approved mode. For SSH
+through Go 1.27's certified module that set holds AES-CTR and not AES-GCM:
+x/crypto calls `crypto/cipher.NewGCM`, which the module refuses under
+`GODEBUG=fips140=only`, and the module's SSH form of GCM is inside the standard
+library alone. The mode waits on the ROADMAP until a `GOFIPS140=certified`
+build negotiates `aes256-gcm@openssh.com` under `fips140=only`. *Why:* FIPS
+140-3 names a validated implementation's set, not the strongest one, and karvi
+does not lead with AES-CTR to have it. *Not taken:* AES-CTR as the mode's
+cipher; the mode on an ordinary build under `GODEBUG=fips140=on`, whose module
+is not the certified snapshot ([`docs/EXAMPLES.md`, chapter
+101](EXAMPLES.md#101-a-fips-140-3-mode-waits-on-aes-256-gcm-for-ssh-2026-11-05)).
+
 ## 7. The plan, the daemon, and the credential channel
 
 **The client plans; the daemon validates and executes.** The client owns
