@@ -530,17 +530,20 @@ sudo karvi-sysutil daemon install
 ```
 
 It runs `karvi setup shared` (the shared trees, in the operators' group,
-`netops` unless `--group NAME` names another); makes the system user `karvi`,
-its group, and its home `/opt/karvi/users/karvi` (0750), with no login shell;
-adds it to the operators' group; writes its configuration,
-`/opt/karvi/users/karvi/.config/karvi/config.toml` (0600), with `[daemon]
-launch = "systemd"`; and enables and starts `karvi-daemon@karvi.service`,
-checking `karvi daemon status` as the account. Each part is entered in the
-record `/etc/karvi/service-karvi.installed` as it is made or found. Run again,
-it changes nothing over a whole install and repairs what has drifted from what
-it made; `karvi-sysutil(8)` lists every step and refusal. The account is a
-system user, so logind's `RemoveIPC` leaves its files under `/dev/shm` alone,
-and it needs no user manager and no `loginctl enable-linger`.
+`netops` unless `--group NAME` names another); makes the system user `karvi`
+and its group, with no login shell; adds it to the operators' group; makes its
+home `/opt/karvi/users/karvi` (0750); writes, as the account, its
+configuration, `/opt/karvi/users/karvi/.config/karvi/config.toml` (0600), with
+`[daemon] launch = "systemd"`; and enables and starts
+`karvi-daemon@karvi.service`, checking `karvi daemon status` as the account.
+Each part is entered in the record `/etc/karvi/service-karvi.installed` as it
+is made or found. Run again, it changes nothing over a whole install and
+repairs what has drifted from what it made, inside the home as the account; a
+home it did not make, or a link or another owner's file where it made the home
+or the configuration, is refused. `karvi-sysutil(8)` lists every step and
+refusal. The account is a system user, so logind's `RemoveIPC` leaves its
+files under `/dev/shm` alone, and it needs no user manager and no
+`loginctl enable-linger`.
 
 Under `daemon.launch = "systemd"` the account's client neither drains nor
 starts a daemon:
@@ -583,12 +586,12 @@ the builds stacked.
 
 **Removal.** `sudo karvi-sysutil daemon remove` disables and stops the
 instance, the stop waiting for its jobs as at a shutdown, and removes the
-configuration file and the group membership it made. The account and its home
-stay, so that their files keep their owner, and a later `daemon install` takes
-the account back. `--purge` also gives every file the account owns in the
-shared trees and the shared scratch to root, their group and mode unchanged,
-and removes the account, its home, its spool directories, and the record. The
-shared trees and the template unit stay.
+configuration file, as the account, and the group membership it made. The
+account and its home stay, so that their files keep their owner, and a later
+`daemon install` takes the account back. `--purge` also gives every file the
+account owns in the shared trees and the shared scratch to root, their group
+and mode unchanged, and removes the account, its home, its spool directories,
+and the record. The shared trees and the template unit stay.
 
 ## Linux servers
 

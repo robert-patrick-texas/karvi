@@ -41,17 +41,20 @@ which reports each place
 .B exists
 on a host already set up; makes the system user
 .B karvi
-with its group, its home
-.I /opt/karvi/users/karvi
-(0750), which is also its private root, and no login shell, an existing
-account of that name taken only when it is a system user with that home;
-adds it to the operators' group,
+with its group and no login shell, an existing account of that name taken
+only when it is a system user with the home below; adds it to the
+operators' group,
 .B netops
 unless
 .B \-\-group
-names another; writes its configuration,
+names another, whose
+.I users
+directory holds the account's home; makes its home
+.I /opt/karvi/users/karvi
+(0750), which is also its private root; writes, as the account, its
+configuration,
 .I /opt/karvi/users/karvi/.config/karvi/config.toml
-(0600, the account's), with
+(0600), with
 .BR "daemon.launch = \(dqsystemd\(dq" ,
 under which no client of the account drains or starts a daemon; checks as
 the account that karvi reads that value, which a global file setting
@@ -72,11 +75,18 @@ Run again,
 finishes an install that failed partway and, over a whole one, changes
 nothing. It repairs what the record lists as made: a part missing is made
 again, the account with its recorded uid, so that its files keep their
-owner; the account's home and login shell, the owner and mode of its home
-and of its configuration, and its group membership are set back; and the
+owner; the account's home and login shell, its group membership, and the
+group and mode of its home and of its configuration are set back; and the
 instance is enabled and started when it is not. A repaired part's value as
-found is shown over the value set. It never rewrites the configuration's
-content, refusing a
+found is shown over the value set. The account owns its home and may
+replace what is in it, so root makes only the home itself, and everything
+inside it is made and repaired as the account: an existing home the install
+did not make is refused, and so is a link, another type, or another owner's
+in place of the home,
+.IR .config ,
+.IR .config/karvi ,
+or the configuration, what was found shown over what is wanted. It never
+rewrites the configuration's content, refusing a
 .B daemon.launch
 other than
 .BR systemd ,
@@ -87,7 +97,13 @@ administrator's
 .B daemon remove
 undoes what the record lists as made, in reverse: it disables and stops the
 instance, the stop waiting for the daemon's jobs under its grace as at a
-shutdown, and removes the configuration file and the group membership. The
+shutdown, and removes the configuration file and the group membership. It
+checks the home and the configuration as the install does before it changes
+anything, and removes the configuration as the account; when the account
+cannot reach it, removed by hand or out of the operators' group, the
+removal is refused, and
+.B daemon install
+takes the account back first. The
 account and its home stay, so that its files keep their owner, and their
 lines stay in the record; a later
 .B daemon install

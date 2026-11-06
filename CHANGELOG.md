@@ -55,6 +55,35 @@
   `FIPS_MODE=true`. The line, the version JSON's `fips_mode`, a job manifest's
   `app.build.fips_mode`, and the Makefile's `FIPS_MODE` are gone; the job
   schema stays 5, the manifest's `app` being free-form.
+- **`karvi-sysutil` never acts as root on what the service account owns.**
+  The account owns its home and could replace the home, `.config`, or
+  `config.toml` with a link. `daemon install`'s repair then gave the link's
+  target to the account as root: a `config.toml` linked to `/etc/shadow` made
+  it the account's, mode 0600, and a `.config` linked to `/etc` made `/etc`
+  the account's, mode 0700, and wrote the global layer as the account.
+  `daemon remove` removed `config.toml` through such a link, taking
+  `/etc/karvi/config.toml`, the site's global file, with it. Root now makes
+  only the home itself, and the configuration and its folders are made,
+  repaired, and removed as the account. Before anything changes, both refuse
+  a home the install did not make, and a link, another type, or another
+  owner's in place of the home, `.config`, `.config/karvi`, or the
+  configuration, what was found shown over what is wanted. The account joins
+  the operators' group before its home is made, since it reaches the home
+  through that group's `users` directory, and the record lists `membership`
+  before `home`. A removal the account cannot carry out (removed by hand, or
+  out of the operators' group) is refused; `daemon install` takes the
+  account back first. `scripts/sysutil-smoke-test.sh` plants each link and
+  checks that the link's target and the host stay as they were.
+- **`karvi-sysutil` stops when it cannot write its record.** A refusal to
+  write `/etc/karvi/service-karvi.installed` ended only a pipeline, so a full
+  or read-only `/etc/karvi` let the install go on and exit 0, the record
+  short of what it made; the refusal now ends the run, exit 1, and removes
+  its temporary file. A removal that empties the record, after an install
+  refused at the account step with `/etc/karvi` already there, no longer
+  reports that it cannot write it or leaves a `.service-karvi.*` file behind.
+- **`karvi-sysutil` reads `daemon status` without colour.** Under a global
+  file's `display.color = "always"`, the install read a painted
+  `compatible:` value and warned of "another build" on every run.
 
 ## 0.40.0 - 2026-11-05
 

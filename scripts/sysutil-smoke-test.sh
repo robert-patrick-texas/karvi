@@ -10,13 +10,18 @@
 # systemd's halt signal. The steps:
 #   1. the refusals, each exit 1 with the accounts and karvi's places as
 #      before: not root, no template, the group missing, a karvi account not
-#      a system user, a configuration the record does not list;
+#      a system user, a home the install did not make;
 #   2. the install, each part created, daemon.launch systemd for the account,
 #      the unit's stop settings and order, the daemon running, and daemon
 #      stop refused daemon_managed;
-#   3. the install again, each part exists and nothing changed;
+#   3. the install again, each part exists and nothing changed; under a
+#      global file colouring every pipe, no warning; with /etc/karvi
+#      read-only, exit 1 at the record;
 #   4. the repair: the membership, the modes, and the instance broken, then
 #      the account removed, each part repaired or created, the uid the same;
+#      then a link the account plants, refused with its target and the host
+#      as before: config.toml to a file, .config to a directory, the home
+#      renamed and a link left in its place;
 #   5. a --group other than the record's, refused;
 #   6. the shutdown: a 12-second job, docker stop 3 s into it, and after
 #      docker start the job's summary completed, its folder's modes FILES';
@@ -40,10 +45,14 @@
 #      HTTPS proxy; the update through the HTTP proxy, the package at the
 #      newer version, the instance named for its restart and its pid the
 #      same, the work folder gone; and the update again, current;
-#  11. the removal: the account and its home kept, a part gone reported
-#      absent, a second removal, an install taking the account back, --purge
-#      giving the account's shared files to root, their modes the same, and a
-#      removal without a record refused;
+#  11. the removal: .config a link to /etc refused, the global file kept;
+#      the account out of its group refused, then taken back by install;
+#      the account and its home kept, a part gone reported absent, a second
+#      removal, a configuration the record does not list refused, an install
+#      taking the account back, --purge giving the account's shared files to
+#      root, their modes the same, a removal without a record refused, and
+#      an install refused at the account step removed, /etc/karvi left as it
+#      was found;
 #  12. dpkg -r: the template gone and systemd reloaded;
 #  13. the bundle on the host without the package (chapter 57, issue 19):
 #      package update refused, the package not installed;
@@ -158,8 +167,8 @@ x groupadd netops
 x useradd -u 1500 -M -s /bin/bash karvi
 refused "an ordinary karvi account" "account karvi exists and is not a system user (uid 1500)" sysutil install
 x userdel karvi
-xsh "install -d $HOME_DIR/.config/karvi && echo '# the site' >$CONFIG"
-refused "a configuration not the install's" "$CONFIG exists and is not the install's" sysutil install
+xsh "install -d $HOME_DIR"
+refused "a home not the install's" "$HOME_DIR exists and is not the install's" sysutil install
 xsh 'rm -rf /opt/karvi'
 
 # 2. The install.
@@ -174,8 +183,8 @@ KUID=$(x id -u karvi)
   fail "the account: uid $KUID, $(xsh 'getent passwd karvi')"
 [ "$(x stat -c '%U:%G %a' "$HOME_DIR")" = "karvi:karvi 750" ] && [ "$(x stat -c '%U:%G %a' "$CONFIG")" = "karvi:karvi 600" ] ||
   fail "the home's or the configuration's owner and mode"
-want=$(printf '%s\n' "dir /etc/karvi made" "group netops found" "account karvi made $KUID" "home $HOME_DIR made" \
-  "membership netops made" "config $CONFIG made" "instance $UNIT made")
+want=$(printf '%s\n' "dir /etc/karvi made" "group netops found" "account karvi made $KUID" "membership netops made" \
+  "home $HOME_DIR made" "config $CONFIG made" "instance $UNIT made")
 [ "$(record)" = "$want" ] || fail "the record: $(record)"
 [ "$(as_karvi karvi config show daemon.launch | sed -n 's/^value: *//p')" = '"systemd"' ] || fail "daemon.launch for the account"
 [ "$(prop KillMode)" = mixed ] && [ "$(prop TimeoutStopUSec)" = infinity ] && [ "$(prop User)" = karvi ] ||
@@ -195,6 +204,19 @@ done <<<"$out"
 [ "$(snap)" = "$before" ] && [ "$(record)" = "$record_before" ] && [ "$(prop MainPID)" = "$pid" ] ||
   fail "install again changed the host"
 ok "install again: each part exists, nothing changed"
+# A global file colouring every pipe: daemon status read plain.
+xsh "printf '[display]\\ncolor = \"always\"\\n' >/etc/karvi/config.toml"
+out=$(sysutil install 2>&1) || fail "install under display.color always: $out"
+[[ $out != *"another build"* ]] || fail "install under display.color always: $out"
+x rm /etc/karvi/config.toml
+# The record cannot be written: the install stops there.
+xsh 'mount --bind /etc/karvi /etc/karvi && mount -o remount,bind,ro /etc/karvi' || fail "/etc/karvi read-only"
+out=$(sysutil install 2>&1)
+rc=$?
+x umount /etc/karvi
+[ $rc -eq 1 ] && has "$out" "karvi-sysutil: cannot write $RECORD" && [[ $out != *"running  daemon"* ]] ||
+  fail "install with /etc/karvi read-only: exit $rc: $out"
+ok "install again: under display.color always no warning; with /etc/karvi read-only exit 1 at the record"
 
 # 4. The repair.
 xsh "gpasswd -d karvi netops >/dev/null && chmod 0644 $CONFIG && chmod 0755 $HOME_DIR && systemctl disable --quiet --now $UNIT"
@@ -210,6 +232,35 @@ has "$out" "created  account karvi  uid $KUID" && has "$out" "repaired membershi
 [ "$(x stat -c '%U:%G %a' "$HOME_DIR")" = "karvi:karvi 750" ] && [ "$(x stat -c '%U:%G %a' "$CONFIG")" = "karvi:karvi 600" ] ||
   fail "the home's or the configuration's owner after the account came back"
 ok "repair: membership, modes, and instance set back; the account made again with uid $KUID"
+# A link the account plants where the install made a path: refused, its
+# target as before; the plant undone.
+tree() { xsh "find $1 -printf '%p %u %g %m\n' | sort; find $1 -type f -exec sha256sum {} + | sort"; }
+# planted NAME TARGET PLANT UNDO FOUND WANT: PLANT's link refused, saying
+# FOUND over WANT, its TARGET as before; then UNDO.
+planted() {
+  local before
+  xsh "$3" || fail "$1: the plant"
+  before=$(tree "$2")
+  refused "$1" "$5"$'\n'"  want  $6, owner karvi" sysutil install
+  [ "$(tree "$2")" = "$before" ] || fail "$1: the target changed: $(tree "$2")"
+  xsh "$4" || fail "$1: the undo"
+}
+xsh 'install -d -m 0755 /srv/dir /srv/file && echo secret >/srv/file/shadow && chmod 0640 /srv/file/shadow'
+planted "config.toml a link to a file" /srv/file \
+  "runuser -u karvi -- mv $CONFIG $CONFIG.aside && runuser -u karvi -- ln -s /srv/file/shadow $CONFIG" \
+  "runuser -u karvi -- mv -f $CONFIG.aside $CONFIG" \
+  "$CONFIG is not as the install made it; nothing changed"$'\n'"  found link to /srv/file/shadow, owner karvi" file
+planted ".config a link to a directory" /srv/dir \
+  "runuser -u karvi -- mv $HOME_DIR/.config $HOME_DIR/.config.aside && runuser -u karvi -- ln -s /srv/dir $HOME_DIR/.config" \
+  "runuser -u karvi -- rm $HOME_DIR/.config && runuser -u karvi -- mv $HOME_DIR/.config.aside $HOME_DIR/.config" \
+  "$HOME_DIR/.config is not as the install made it; nothing changed"$'\n'"  found link to /srv/dir, owner karvi" directory
+planted "the home renamed, a link left" /srv/dir \
+  "runuser -u karvi -- mv $HOME_DIR $HOME_DIR.aside && runuser -u karvi -- ln -s /srv/dir $HOME_DIR" \
+  "runuser -u karvi -- rm $HOME_DIR && runuser -u karvi -- mv $HOME_DIR.aside $HOME_DIR" \
+  "$HOME_DIR is not as the install made it; nothing changed"$'\n'"  found link to /srv/dir, owner karvi" directory
+x rm -r /srv/dir /srv/file
+out=$(sysutil install 2>&1) || fail "install after the links: $out"
+ok "links: config.toml to a file, .config to a directory, the home to a directory, each refused with its target as before"
 
 # 5. Another group.
 x groupadd ops2
@@ -389,7 +440,30 @@ refused "update, an asset missing" \
 x pkill -x release-fixture
 ok "package update: refusals; an older release current; --check newer, through the HTTPS proxy under -k; $V0 to 99.0.0 through the HTTP proxy, $UNIT named, its pid $pid the same; again current"
 
-# 11. The removal.
+# 11. The removal. A link the account plants: refused, nothing changed.
+xsh "printf '# the site\\n' >/etc/karvi/config.toml
+  runuser -u karvi -- mv $HOME_DIR/.config $HOME_DIR/.config.aside && runuser -u karvi -- ln -s /etc $HOME_DIR/.config" ||
+  fail "remove's plant"
+refused "remove, .config a link to /etc" \
+  "$HOME_DIR/.config is not as the install made it; nothing changed"$'\n'"  found link to /etc, owner karvi"$'\n'"  want  directory, owner karvi" \
+  sysutil remove
+[ "$(x cat /etc/karvi/config.toml)" = "# the site" ] || fail "remove, .config a link to /etc: the global file"
+xsh "runuser -u karvi -- rm $HOME_DIR/.config && runuser -u karvi -- mv $HOME_DIR/.config.aside $HOME_DIR/.config && rm /etc/karvi/config.toml" ||
+  fail "remove's plant undone"
+# The account out of its group cannot reach its home to remove its
+# configuration: refused, and install takes it back.
+x gpasswd -d karvi netops >/dev/null
+out=$(sysutil remove 2>&1)
+rc=$?
+if [ $rc -ne 1 ] || ! has "$out" "karvi-sysutil: cannot remove $CONFIG as karvi; nothing more changed; karvi-sysutil daemon install takes the account back"; then
+  fail "remove, the account out of its group: exit $rc: $out"
+fi
+x test -f "$CONFIG" || fail "remove, the account out of its group: the configuration removed"
+out=$(sysutil install 2>&1) || fail "install after the refused remove: $out"
+if ! has "$out" "repaired membership karvi in netops" || ! has "$out" "created  instance $UNIT  enabled, active"; then
+  fail "install after the refused remove: $out"
+fi
+ok "remove: .config a link to /etc refused, the global file kept; the account out of its group refused, then taken back"
 x rm "$CONFIG"
 out=$(sysutil remove 2>&1) || fail "remove: $out"
 for line in "removed  instance $UNIT  stopped, disabled" "absent   config $CONFIG" "removed  membership karvi in netops" "kept     account karvi"; do
@@ -399,6 +473,9 @@ done
 x getent passwd karvi >/dev/null && x test -d "$HOME_DIR" && [ "$(x systemctl is-enabled "$UNIT")" = disabled ] || fail "after remove"
 out=$(sysutil remove 2>&1) || fail "remove again: $out"
 [ "$out" = "kept     account karvi and its home $HOME_DIR; karvi-sysutil daemon remove --purge removes them" ] || fail "remove again: $out"
+xsh "echo '# the site' >$CONFIG"
+refused "a configuration not the install's" "$CONFIG exists and is not the install's" sysutil install
+x rm "$CONFIG"
 out=$(sysutil install 2>&1) || fail "install after remove: $out"
 has "$out" "exists   account karvi  uid $KUID" && has "$out" "created  config $CONFIG  mode 0600" && has "$out" "created  instance $UNIT  enabled, active" ||
   fail "install after remove: $out"
@@ -413,7 +490,16 @@ while read -r path mode; do
 done <"$TMP/owned"
 ! x getent passwd karvi >/dev/null && x test ! -e "$HOME_DIR" && x test ! -e /etc/karvi || fail "after --purge"
 refused "remove without a record" "no service installed: $RECORD absent" sysutil remove
-ok "remove: the account kept, a gone part absent, taken back by install; --purge gave $(wc -l <"$TMP/owned") files to root, modes the same"
+# An install refused at the account step, /etc/karvi there before: the
+# removal writes its record empty and leaves /etc/karvi as it was found.
+xsh 'install -d -m 0755 /etc/karvi /root/fakebin && printf "#!/bin/sh\nexit 1\n" >/root/fakebin/addgroup && chmod 0755 /root/fakebin/addgroup'
+out=$(docker exec -w / -e PATH=/root/fakebin:/usr/sbin:/usr/bin:/sbin:/bin "$TAG" karvi-sysutil --nocolor daemon install 2>&1)
+rc=$?
+if [ $rc -ne 1 ] || ! has "$out" "karvi-sysutil: addgroup karvi failed"; then fail "install with addgroup failing: exit $rc: $out"; fi
+out=$(sysutil remove 2>&1) || fail "remove after the refused install: $out"
+[ "$out" = "removed  record $RECORD" ] && [ -z "$(x ls -A /etc/karvi)" ] || fail "remove after the refused install: $out; /etc/karvi: $(x ls -A /etc/karvi)"
+x rmdir /etc/karvi && x rm -r /root/fakebin
+ok "remove: the account kept, a gone part absent, taken back by install; --purge gave $(wc -l <"$TMP/owned") files to root, modes the same; after an install refused at the account step, /etc/karvi as found"
 
 # 12. dpkg -r: the template gone and systemd reloaded.
 mark=$(x date +%s)

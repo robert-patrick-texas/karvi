@@ -100,15 +100,15 @@ say() { local state=$1; shift; printf '%-8s %s\n' "$state" "$*"; }
 # [UID]", in the order the install makes them.
 record_line() { [ -f "$RECORD" ] && awk -v p="$1" '$1 == p { print; exit }' "$RECORD"; }
 record_field() { record_line "$1" | awk -v f="$2" '{ print $f }'; }
-record_write() { # the record's lines, from standard input, replacing it
-  local body tmp global
-  body=$(cat)
+record_write() { # BODY: the record, its lines BODY, replacing it; refused
+  # (the script ends) when it cannot be written, its temporary file removed.
+  local body=$1 tmp global f
   global=none
   for f in /etc/karvi/config.toml /opt/karvi/config.toml; do
     [ -f "$f" ] && { global=$f; break; }
   done
   tmp=$(mktemp "$RECORD_DIR/.service-$ACCOUNT.XXXXXX") || refuse "cannot write $RECORD"
-  {
+  if {
     echo "# karvi-sysutil daemon install (karvi-sysutil(8))."
     echo "# The unit $UNIT runs the daemon as the account $ACCOUNT"
     echo "# with the configuration karvi reads for it, in order:"
@@ -116,38 +116,76 @@ record_write() { # the record's lines, from standard input, replacing it
     echo "#   the account's:   $CONFIG"
     echo "# Each line below is a part the install made or found; daemon remove"
     echo "# undoes what it made, in reverse."
-    [ -n "$body" ] && printf '%s\n' "$body"
-  } >"$tmp" && chmod 0644 "$tmp" && mv "$tmp" "$RECORD" || refuse "cannot write $RECORD"
+    if [ -n "$body" ]; then printf '%s\n' "$body"; fi
+  } >"$tmp" && chmod 0644 "$tmp" && mv "$tmp" "$RECORD"; then
+    return 0
+  fi
+  rm -f "$tmp"
+  refuse "cannot write $RECORD"
 }
+# record_body: the record's lines, its comments left out.
+record_body() { grep -v '^#' "$RECORD"; }
 record_set() { # PART NAME STATE [UID]
   local lines
-  lines=$( [ -f "$RECORD" ] && grep -v '^#' "$RECORD" | awk -v p="$1" '$1 != p')
-  { [ -n "$lines" ] && printf '%s\n' "$lines"; echo "$*"; } | record_write
+  lines=$( [ -f "$RECORD" ] && record_body | awk -v p="$1" '$1 != p')
+  if [ -n "$lines" ]; then record_write "$lines"$'\n'"$*"; else record_write "$*"; fi
 }
 record_drop() { # PART
-  local lines
-  lines=$(grep -v '^#' "$RECORD" | awk -v p="$1" '$1 != p')
-  printf '%s' "$lines" | record_write
+  record_write "$(record_body | awk -v p="$1" '$1 != p')"
 }
 # The parts in the order the install makes them.
-PARTS=(dir group account home membership config instance)
+PARTS=(dir group account membership home config instance)
 record_sorted() { # rewrite the record's lines in PARTS order
   local lines out p
-  lines=$(grep -v '^#' "$RECORD")
+  lines=$(record_body)
   out=
   for p in "${PARTS[@]}"; do
     out+=$(awk -v p="$p" '$1 == p' <<<"$lines")$'\n'
   done
-  printf '%s' "$out" | sed '/^$/d' | record_write
+  record_write "$(printf '%s' "$out" | sed '/^$/d')"
 }
 
 # member GROUP: whether the account is in GROUP, its groups read whole.
 member() { [[ " $(id -nG "$ACCOUNT" 2>/dev/null) " == *" $1 "* ]]; }
 
+# as_account CMD...: CMD run as the account, from /, as its unit's daemon
+# runs. Whatever is made, repaired, or removed inside the account's home runs
+# through it, so that a link the account planted there reaches only what the
+# account may change.
+as_account() { (cd / && runuser -u "$ACCOUNT" -- "$@"); }
+
+# path_kind PATH: directory, file, link to TARGET, or stat's word for
+# another type; a link is never followed.
+path_kind() {
+  if [ -L "$1" ]; then
+    printf 'link to %s\n' "$(readlink -- "$1")"
+  elif [ -d "$1" ]; then
+    echo directory
+  elif [ -f "$1" ]; then
+    echo file
+  else
+    stat -c %F -- "$1"
+  fi
+}
+# check_path PATH KIND UID: refused, nothing changed, when PATH exists and
+# is a link, not of KIND, or not owned by UID, found shown over want; an
+# absent PATH passes.
+check_path() {
+  local path=$1 kind=$2 uid=$3 found
+  [ -e "$path" ] || [ -L "$path" ] || return 0
+  found=$(path_kind "$path")
+  [ "$found" = "$kind" ] && [ "$(stat -c %u -- "$path")" = "$uid" ] && return 0
+  refuse "$path is not as the install made it; nothing changed
+  found $found, owner $(stat -c %U -- "$path")
+  want  $kind, owner $ACCOUNT"
+}
+
 # owner_mode PATH: "user:group mode", the mode in four digits.
 owner_mode() { stat -c '%U:%G %a' "$1" | awk '{ printf "%s %04d\n", $1, $2 }'; }
-# set_owner_mode PART PATH MODE: the path the account's at MODE, repaired
-# and reported stacked when it was not, else reported exists.
+# set_owner_mode PART PATH MODE: the account's path in its group at MODE,
+# repaired as the account and reported stacked when it was not, else
+# reported exists. Its owner is the account's, checked before anything
+# changed.
 set_owner_mode() {
   local part=$1 path=$2 mode=$3 was want
   was=$(owner_mode "$path")
@@ -156,13 +194,14 @@ set_owner_mode() {
     say exists "$part $path"
     return
   fi
-  chown "$ACCOUNT:$ACCOUNT" "$path" && chmod "$mode" "$path" || refuse "cannot set $path to $want"
+  as_account chgrp "$ACCOUNT" "$path" || refuse "cannot set $path to $want"
+  as_account chmod "$mode" "$path" || refuse "cannot set $path to $want"
   say repaired "$part $path"
   printf '  found %s\n  set   %s\n' "$was" "$want"
 }
 
 install_daemon() {
-  local group=$1 rec_group rec_uid uid home shell holder value source enabled active out answered
+  local group=$1 rec_group rec_uid uid='' home shell holder value source enabled active out answered
   # The refusals, every one before anything changes.
   [ -x "$KARVI" ] || refuse "karvi not found in /usr/local/bin or /usr/bin; install the karvi package, or the bundle with scripts/install.sh"
   [ -n "$(systemctl list-unit-files --no-legend "$TEMPLATE" 2>/dev/null)" ] ||
@@ -188,9 +227,20 @@ install_daemon() {
   elif [ -n "$rec_uid" ] && holder=$(getent passwd "$rec_uid" | cut -d: -f1) && [ -n "$holder" ]; then
     refuse "uid $rec_uid, the account's, is held by $holder; nothing changed"
   fi
-  if [ -e "$CONFIG" ] && [ "$(record_field config 3)" != made ]; then
+  # The account's home and configuration, which the account may replace, as
+  # the install made them: a home it did not make, or a link, another type,
+  # or another owner's in their place, refused. What is repaired there is
+  # repaired as the account; root makes only the home.
+  if [ -e "$HOME_DIR" ] || [ -L "$HOME_DIR" ]; then
+    [ "$(record_field home 3)" = made ] || refuse "$HOME_DIR exists and is not the install's; nothing changed"
+  fi
+  if { [ -e "$CONFIG" ] || [ -L "$CONFIG" ]; } && [ "$(record_field config 3)" != made ]; then
     refuse "$CONFIG exists and is not the install's; nothing changed"
   fi
+  check_path "$HOME_DIR" directory "${uid:-$rec_uid}"
+  check_path "$HOME_DIR/.config" directory "${uid:-$rec_uid}"
+  check_path "${CONFIG%/*}" directory "${uid:-$rec_uid}"
+  check_path "$CONFIG" file "${uid:-$rec_uid}"
 
   # The site's shared trees, which report exists on a host already set up.
   "$KARVI" setup shared --group "$group" || refuse "karvi setup shared failed; nothing more changed"
@@ -229,19 +279,8 @@ install_daemon() {
     say exists "account $ACCOUNT  uid $uid"
   fi
 
-  # Its home, which is also its private root.
-  if [ ! -d "$HOME_DIR" ]; then
-    install -d -o "$ACCOUNT" -g "$ACCOUNT" -m 0750 "$HOME_DIR" || refuse "cannot make $HOME_DIR"
-    record_set home "$HOME_DIR" made
-    say created "home $HOME_DIR  mode 0750"
-  elif [ "$(record_field home 3)" = made ]; then
-    set_owner_mode home "$HOME_DIR" 0750
-  else
-    [ -n "$(record_line home)" ] || record_set home "$HOME_DIR" found
-    say exists "home $HOME_DIR"
-  fi
-
-  # The operators' group.
+  # The operators' group, whose users directory holds the account's home:
+  # joined first, so that the account reaches its home.
   if member "$group"; then
     [ -n "$(record_line membership)" ] || record_set membership "$group" found
     say exists "membership $ACCOUNT in $group"
@@ -256,10 +295,23 @@ install_daemon() {
     fi
   fi
 
-  # Its configuration, the account's own, never edited once written.
-  if [ ! -e "$CONFIG" ]; then
-    install -d -o "$ACCOUNT" -g "$ACCOUNT" -m 0700 "$HOME_DIR/.config" "${CONFIG%/*}" ||
-      refuse "cannot make ${CONFIG%/*}"
+  # Its home, which is also its private root: made by root as the path
+  # itself (mkdir never follows a link) and given to the account; repaired
+  # as the account.
+  if [ ! -e "$HOME_DIR" ] && [ ! -L "$HOME_DIR" ]; then
+    mkdir -m 0750 "$HOME_DIR" || refuse "cannot make $HOME_DIR"
+    chown -h "$ACCOUNT:$ACCOUNT" "$HOME_DIR" || refuse "cannot make $HOME_DIR"
+    record_set home "$HOME_DIR" made
+    say created "home $HOME_DIR  mode 0750"
+  else
+    set_owner_mode home "$HOME_DIR" 0750
+  fi
+
+  # Its configuration, the account's own, made as the account and never
+  # edited once written.
+  if [ ! -e "$CONFIG" ] && [ ! -L "$CONFIG" ]; then
+    as_account install -d -m 0700 "$HOME_DIR/.config" "${CONFIG%/*}" || refuse "cannot make ${CONFIG%/*}"
+    # shellcheck disable=SC2016 # $1 is the account's shell's
     printf '%s\n' \
       "# The service account's configuration, written by karvi-sysutil daemon" \
       "# install (karvi-sysutil(8)): its daemon is the unit $UNIT's," \
@@ -267,7 +319,7 @@ install_daemon() {
       "# this file." \
       "[daemon]" \
       'launch = "systemd"' |
-      install -o "$ACCOUNT" -g "$ACCOUNT" -m 0600 /dev/stdin "$CONFIG" || refuse "cannot write $CONFIG"
+      as_account sh -c 'umask 0177 && cat >"$1"' sh "$CONFIG" || refuse "cannot write $CONFIG"
     record_set config "$CONFIG" made
     say created "config $CONFIG  mode 0600"
   else
@@ -276,7 +328,7 @@ install_daemon() {
 
   # The account's karvi reads it: a global file that sets
   # config.allow-user-layer = false, or an edit, is found here.
-  out=$(cd / && runuser -u "$ACCOUNT" -- "$KARVI" config show daemon.launch 2>&1) ||
+  out=$(as_account "$KARVI" config show daemon.launch 2>&1) ||
     refuse "karvi config show as $ACCOUNT failed; nothing more changed
 $out"
   value=$(sed -n 's/^value: *//p' <<<"$out" | tr -d '"')
@@ -309,7 +361,7 @@ $out"
   # The daemon answers the account, under its build or another's.
   answered=no
   for _ in $(seq 1 50); do
-    out=$(cd / && runuser -u "$ACCOUNT" -- "$KARVI" daemon status 2>&1) && { answered=yes; break; }
+    out=$(as_account "$KARVI" --nocolor daemon status 2>&1) && { answered=yes; break; }
     sleep 0.2
   done
   [ "$answered" = yes ] || refuse "the daemon does not answer $ACCOUNT; journalctl -u $UNIT
@@ -328,6 +380,18 @@ uid_min() {
 remove_daemon() {
   local purge=$1 group uid n place
   [ -f "$RECORD" ] || refuse "no service installed: $RECORD absent"
+  # The account's home and configuration, checked as the install checks
+  # them before anything changes: the configuration is removed as the
+  # account, the home by --purge without following a link.
+  uid=$(id -u "$ACCOUNT" 2>/dev/null || record_field account 4)
+  if [ "$(record_field home 3)" = made ]; then
+    check_path "$HOME_DIR" directory "$uid"
+  fi
+  if [ "$(record_field config 3)" = made ]; then
+    check_path "$HOME_DIR/.config" directory "$uid"
+    check_path "${CONFIG%/*}" directory "$uid"
+    check_path "$CONFIG" file "$uid"
+  fi
   # The instance: the stop waits for the daemon's jobs under its grace.
   if [ "$(record_field instance 3)" = made ]; then
     if [ "$(systemctl is-enabled "$UNIT" 2>/dev/null)" = enabled ] || systemctl is-active --quiet "$UNIT"; then
@@ -341,8 +405,9 @@ remove_daemon() {
   # The configuration and the directories made for it, when empty.
   if [ "$(record_field config 3)" = made ]; then
     if [ -e "$CONFIG" ]; then
-      rm -f "$CONFIG" || refuse "cannot remove $CONFIG"
-      rmdir --ignore-fail-on-non-empty "${CONFIG%/*}" "$HOME_DIR/.config" 2>/dev/null
+      as_account rm -f -- "$CONFIG" ||
+        refuse "cannot remove $CONFIG as $ACCOUNT; nothing more changed; karvi-sysutil daemon install takes the account back"
+      as_account rmdir --ignore-fail-on-non-empty "${CONFIG%/*}" "$HOME_DIR/.config" 2>/dev/null
       say removed "config $CONFIG"
     else
       say absent "config $CONFIG"
