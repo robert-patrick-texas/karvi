@@ -324,7 +324,10 @@ id=$(sed -n 's/^job_id: //p' <<<"$receipt") && art=$(sed -n 's/^artifact_dir: //
 [[ $art == /opt/karvi/shared/jobs/* ]] || fail "the account's job is not in the shared tree: $art"
 out=$(member op1 daemon status 2>&1)
 [ $? -eq 110 ] && [[ $out == daemon_unreachable:* ]] || fail "op1 has a daemon: $out"
-[ "$(xsh "grep -c '\"final_status\"' $art/summary.json")" = 0 ] || fail "the account's job ended before op1's follow"
+# The summary read on the host: the container has no python3 for json.sh.
+xsh "cat $art/summary.json" >"$TMP/art-summary.json" || fail "the account's job has no summary at $art"
+st=0; json_has "$TMP/art-summary.json" final_status || st=$?
+[ "$st" -eq 1 ] || fail "the account's job ended before op1's follow (json_has final_status: status $st)"
 out=$(member op1 job follow "$id" 2>&1)
 rc=$?
 [ $rc -eq 0 ] && has "$out" "slow output" && has "$out" "! exit=0 " || fail "op1's follow of the account's live job: exit $rc: $out"

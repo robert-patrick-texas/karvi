@@ -134,7 +134,7 @@ chmod 600 "$TMP/karvi.toml"
 
 karvi() { HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" "$@"; }
 karvi --quiet daemon start >/dev/null || fail "the daemon did not start"
-DPID=$(karvi daemon status --format json | sed -n 's/.*"pid": *\([0-9]*\).*/\1/p' | head -1)
+DPID=$(daemon_pid karvi)
 [ -n "$DPID" ] || fail "no daemon pid in daemon status"
 # VmRSS is the resident set now, VmHWM the kernel's own high-water mark for
 # the process, so the peak needs no sampling loop; the client is sampled

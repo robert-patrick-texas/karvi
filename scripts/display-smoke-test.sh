@@ -156,7 +156,7 @@ HOME="$HOME_DIR" NETUSER=smoke NETPASS=test "$KARVI" $(common_args) \
   >"$TMP/jsonl.out" 2>"$TMP/jsonl.err"
 [ "$(wc -l < "$TMP/jsonl.out" | tr -d ' ')" -eq 1 ]
 grep -q '^{' "$TMP/jsonl.out"
-grep -q '"command":"show clock"' "$TMP/jsonl.out"
+[ "$(jsonl_records "$TMP/jsonl.out" command)" = "show clock" ]
 absent 'SHOULD-NOT-APPEAR' "$TMP/jsonl.out"
 
 echo 'display smoke: pass'

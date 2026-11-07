@@ -31,12 +31,12 @@ file bin/karvi-audit-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
 . "$ROOT/scripts/lib/host.sh"
 home=$(host_passwd_home)
 before=$(host_places "$home")
-./bin/karvi-linux-amd64 version --format json | grep -q '"id": "system"'
+. "$ROOT/scripts/lib/json.sh"
+./bin/karvi-linux-amd64 version --format json | json_get - 'ssh_transports.*.id' | grep -qx system
 ./bin/karvi-linux-amd64 --version | grep -q '^  system: external-executable$'
 ./bin/karvi-linux-amd64 --version | grep -q '^  native: compiled-in$'
 # The executable names its build, the Go build ID's last part: without it
 # its daemon would refuse to start (docs/EXAMPLES.md chapter 57, issue 8).
-. "$ROOT/scripts/lib/json.sh"
 version=$(./bin/karvi-linux-amd64 version --format json)
 # The release's number is written once, in VERSION; the executable reports
 # it, and the manifest records it.

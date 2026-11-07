@@ -296,8 +296,11 @@ if wanted D4; then
     fresh_store; write_config accept-new
     both D4 'success,success,success' 0 -- --cmd 'configure terminal' --cmd 'end' --cmd 'show clock'
     for f in "$EVIDENCE"/D4/command.*.out "$EVIDENCE"/D4/run.*.out; do
-      head -1 "$f" | grep -q '"prompt":"[^"]*(config[^"]*)#"' && result D4 "$(basename "$f" .out) prompt level" pass "$(head -1 "$f" | grep -o '"prompt":"[^"]*"')" \
-        || result D4 "$(basename "$f" .out) prompt level" fail "the first record's prompt is $(head -1 "$f" | grep -o '"prompt":"[^"]*"')"
+      d4_prompt=$(jsonl_records "$f" prompt | head -1)
+      case $d4_prompt in
+        *'(config'*')#') result D4 "$(basename "$f" .out) prompt level" pass "prompt $d4_prompt" ;;
+        *) result D4 "$(basename "$f" .out) prompt level" fail "the first record's prompt is ${d4_prompt:-absent}" ;;
+      esac
     done
   else result D4 'configuration mode' skip 'CONFIG_ROW is not set'; fi
 fi
@@ -432,7 +435,7 @@ if wanted D9; then
       fresh_store; write_config accept-new '[execution]
 command-timeout = "600s"'
       qrun D9 "default.$tr" command "$tr" -- --target "$DEVICE" --cmd "$BIG_COMMAND"; expect_exit D9 "default.$tr" 0
-      result D9 "default.$tr output" observe "$(grep -o '"output_bytes":[0-9]*' "$OUT" | head -1)"
+      result D9 "default.$tr output" observe "output_bytes $(jsonl_records "$OUT" output_bytes | head -1)"
       OUTPUT="max-command-bytes = $BIG_LIMIT" write_config accept-new '[execution]
 command-timeout = "600s"'
       qrun D9 "limit.$tr" command "$tr" -- --target "$DEVICE" --cmd "$BIG_COMMAND"; expect_exit D9 "limit.$tr" 111

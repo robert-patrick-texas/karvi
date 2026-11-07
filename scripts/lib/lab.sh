@@ -21,6 +21,13 @@
 # cleanup also runs after a Ctrl-C in the middle of a row: the daemon would
 # outlive its removed folder, drain its job, and write the folder again.
 #
+# daemon_pid COMMAND... prints the pid of the daemon COMMAND reaches, read
+# from `COMMAND daemon status --format json` by json_get (so a script
+# sourcing lab.sh for it sources scripts/lib/json.sh too), or nothing when
+# none answers. Its status is 0 either way; the caller tests the answer:
+#
+#   pid=$(daemon_pid env HOME="$HOME_DIR" "$KARVI" ...); [ -n "$pid" ] || fail ...
+#
 # fake_stop VAR stops the process whose pid the variable VAR holds (TERM,
 # then its wait, as a child of the script) and empties VAR, so a later stop
 # never reaches a process that took the number since; nothing when VAR is
@@ -46,6 +53,10 @@ daemon_stop_force() {
   [ -S "$ds_sock" ] || return 0
   echo "$0: the daemon at $ds_sock outlived daemon stop --force" >&2
   return 1
+}
+
+daemon_pid() {
+  "$@" daemon status --format json 2>/dev/null | json_get - pid 2>/dev/null || :
 }
 
 fake_stop() {

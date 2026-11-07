@@ -6,6 +6,7 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-v080-smoke-XXXXXX")
+. "$ROOT/scripts/lib/json.sh"
 . "$ROOT/scripts/lib/host.sh"; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 HOME_DIR=$TMP/home
 BASE=$TMP/state
@@ -126,8 +127,7 @@ grep -q 'target=vzn-ftc status=connection_error error=' "$TMP/run.out"
 job=$(find "$BASE/jobs" -name commands.jsonl -type f | head -n 1)
 [ -n "$job" ]
 [ "$(wc -l <"$job" | tr -d ' ')" -eq 2 ]
-grep -q '"input_target":"vzn-ohio"' "$job"
-grep -q '"input_target":"vzn-ftc"' "$job"
+[ "$(jsonl_records "$job" input_target | sort | paste -sd' ' -)" = "vzn-ftc vzn-ohio" ]
 
 # Pretty JSON is a valid indented array; compact JSONL remains line-oriented.
 HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a-real-secret "$KARVI" --config "$CFG" \

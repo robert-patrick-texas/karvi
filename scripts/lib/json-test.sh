@@ -9,7 +9,7 @@ cleanup() { rm -rf "$TMP"; }
 . "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 failures=0
 check() { # check NAME WANT GOT
-  if [ "$2" = "$3" ]; then echo "json lib: $1: pass"; else echo "json lib: $1: FAIL: want [$2] got [$3]" >&2; failures=$((failures + 1)); fi
+  if [ "$2" = "$3" ]; then echo "json lib: $1: pass"; else printf '%s\n' "json lib: $1: FAIL: want [$2] got [$3]" >&2; failures=$((failures + 1)); fi
 }
 code() { set +e; "$@" >/dev/null 2>&1; echo $?; set -e; }
 
@@ -81,5 +81,17 @@ check "events count" 2 "$(audit_events "$TMP/audit.jsonl" event_name | wc -l | t
 check "events no outcome empty" "run.start${TAB}" "$(audit_events "$TMP/audit.jsonl" event_name outcome | head -1)"
 check "events nested" "run.command${TAB}fake-iosxe" "$(audit_events "$TMP/audit.jsonl" event_name device.canonical_name | sed -n 2p)"
 check "events not records" r1 "$(jsonl_records "$TMP/audit.jsonl" record_id)"
+
+# Over the tree: no script reads a JSON document's text by grep, sed, or
+# awk, that is a pattern holding a key (`"pid":`, `'"version"'`) or a JSON
+# stream piped into one; each reads it through the functions above, by path.
+# A text match stays only where the layout is the subject (v080's indented
+# array, `^    {`), which names no key.
+text_reads=$(cd "$ROOT" && grep -nE \
+  -e '\b(grep|sed|awk)\b[^|;&]*\\?"[A-Za-z_][A-Za-z0-9_]*\\?" *:' \
+  -e "\\bgrep\\b[^|;&]*'\\\\?\"[A-Za-z_][A-Za-z0-9_]*\\\\?\"'" \
+  -e '--format jsonl?\b[^|;]*\|[[:space:]]*(grep|sed|awk|cut)\b' \
+  scripts/*.sh scripts/lib/*.sh | grep -vE '^scripts/lib/json(-test)?\.sh:|^[^:]+:[0-9]+:[[:space:]]*#' || true)
+check "no JSON read by grep or sed" "" "$text_reads"
 [ "$failures" -eq 0 ] || { echo "json lib: $failures failed" >&2; exit 1; }
 echo "json lib: pass"

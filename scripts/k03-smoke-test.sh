@@ -163,7 +163,7 @@ run t9 4 -- command 127.0.0.1 --target localhost --address 127.0.0.1 show clock;
 run t10 5 -- run --no-daemon --target 127.0.0.1 --exclude 127.0.0.1 show clock; code t10 target_set_empty; nothing_sent t10
 run t11 5 -- --config "$TMP/inv.toml" command --site nowhere show clock;  code t11 inventory_empty_selection; nothing_sent t11
 run t12 0 -- command --target 127.0.0.1 --cmd "show clock" --format jsonl
-grep -q '"candidate_count":1' "$TMP/out" || fail "t12: command record lacks candidate_count: $(head -c 300 "$TMP/out")"
+[ "$(jsonl_records "$TMP/out" candidate_count)" = 1 ] || fail "t12: command record lacks candidate_count: $(head -c 300 "$TMP/out")"
 
 echo "== target folders"
 # hosts/: files in byte order; README, .hidden, and backups skipped; a
@@ -317,10 +317,10 @@ rc=0; "$PRUNE" --basedir "$R" --sharedroot none --days 0 --dry-run >"$TMP/out" 2
 rc=0; "$PRUNE" --basedir "$R" --sharedroot none --scoreboards "$TMP/scoreboards" --minfree 0 --dry-run --verbose --format jsonl >"$TMP/out" 2>"$TMP/err" || rc=$?
 [ "$rc" -eq 0 ] && [ ! -s "$TMP/err" ] || fail "p8: exit $rc $(head -1 "$TMP/err")"
 while IFS= read -r p8_line; do printf '%s\n' "$p8_line" >"$TMP/p8.json"; json_get "$TMP/p8.json" event >/dev/null || fail "p8: not a document: $p8_line"; done <"$TMP/out"
-grep '"event":"kept"' "$TMP/out" | head -1 >"$TMP/p8.json"
-json_is "$TMP/p8.json" kind activity && json_is "$TMP/p8.json" reason young || fail "p8: the kept document: $(cat "$TMP/p8.json")"
-grep '"event":"walk"' "$TMP/out" | head -1 >"$TMP/p8.json"
-json_is "$TMP/p8.json" path "$R/jobs" || fail "p8: the walk document: $(cat "$TMP/p8.json")"
+p8_kept=$(jsonl_lines event "$TMP/out" event kind reason | awk -F"$TAB" '$1 == "kept" { print $2 " " $3; exit }')
+[ "$p8_kept" = "activity young" ] || fail "p8: the kept document's kind and reason: ${p8_kept:-no kept document}"
+p8_walk=$(jsonl_lines event "$TMP/out" event path | awk -F"$TAB" '$1 == "walk" { print $2; exit }')
+[ "$p8_walk" = "$R/jobs" ] || fail "p8: the walk document's path: ${p8_walk:-no walk document}"
 tail -1 "$TMP/out" >"$TMP/p8.json"
 json_is "$TMP/p8.json" event summary && json_is "$TMP/p8.json" examined 1 && json_is "$TMP/p8.json" removed 0 && json_is "$TMP/p8.json" dry_run true || fail "p8: the summary document: $(cat "$TMP/p8.json")"
 rc=0; "$PRUNE" --basedir "$R" --sharedroot none --dry-run --format yaml >"$TMP/out" 2>"$TMP/err" || rc=$?
@@ -341,7 +341,7 @@ run o3 0 -- --set 'dispatch.order="shuffle"' --set 'dispatch.shuffle-key="k"' ru
 job=$(sed -n 's/^! exit=.* artifacts=//p' "$TMP/out" | tail -1)
 json_is "$job/manifest.json" plan.dispatch.dispatch_order shuffle && json_is "$job/manifest.json" plan.dispatch.shuffle_key k || fail "o3: manifest lacks shuffle order and key"
 json_is "$job/summary.json" shuffle_key k || fail "o3: summary lacks shuffle_key"
-grep -q '"dispatch_order":"shuffle"' "$job/commands.jsonl" && grep -q '"shuffle_key":"k"' "$job/commands.jsonl" || fail "o3: command record lacks order and key"
+[ "$(jsonl_records "$job/commands.jsonl" dispatch_order shuffle_key | sort -u)" = "shuffle${TAB}k" ] || fail "o3: command record lacks order and key"
 sed -n 's/^\([^ ]*\) \[.*/\1/p' "$TMP/out" >"$TMP/o3"
 run o3b 0 -- --set 'dispatch.order="shuffle"' --set 'dispatch.shuffle-key="k"' run --no-daemon --target localhost --target 127.0.0.1 show clock
 sed -n 's/^\([^ ]*\) \[.*/\1/p' "$TMP/out" | cmp -s - "$TMP/o3" || fail "o3b: the same key must give the same order whatever the input order"
@@ -349,8 +349,8 @@ run o4 0 -- run --no-daemon --target 127.0.0.1 --target localhost --order random
 job=$(sed -n 's/^! exit=.* artifacts=//p' "$TMP/out" | tail -1)
 json_is "$job/manifest.json" plan.dispatch.dispatch_order random && json_get "$job/manifest.json" plan.dispatch.shuffle_key | grep -Eqx '[0-9]{10}' || fail "o4: random must record epoch seconds as the key"
 run o5 0 -- command --target localhost --target 127.0.0.1 --order sorted --cmd "show clock" --format jsonl
-grep -q '"dispatch_order":"sorted"' "$TMP/out" && grep -q '"candidate_count":2' "$TMP/out" || fail "o5: command record lacks order or candidate count"
-grep -q '"canonical_name":"127.0.0.1"' "$TMP/out" || fail "o5: sorted must select 127.0.0.1 first"
+[ "$(jsonl_records "$TMP/out" dispatch_order candidate_count)" = "sorted${TAB}2" ] || fail "o5: command record lacks order or candidate count"
+[ "$(jsonl_records "$TMP/out" device.canonical_name)" = 127.0.0.1 ] || fail "o5: sorted must select 127.0.0.1 first"
 run o6 2 -- --set 'dispatch.order="inventory"' run --no-daemon --target 127.0.0.1 show clock;     code o6 config_dispatch_order_inventory_removed; mentions o6 default
 run o7 2 -- --set 'dispatch.order="random-seeded"' run --no-daemon --target 127.0.0.1 show clock; code o7 config_dispatch_order_random_seeded_removed; mentions o7 shuffle
 run o8 2 -- --set 'dispatch.random-seed="k"' run --no-daemon --target 127.0.0.1 show clock;       code o8 config_unknown_key
@@ -394,9 +394,9 @@ run c17 4 -- command -4 -6 127.0.0.1 show clock;    code c17 address_family_conf
 run c18 4 -- command --border --noborder 127.0.0.1 show clock; code c18 border_options_conflict
 run c19 4 -- login --all=false;                     code c19 cli_device_missing
 run c20 4 -- config generate --minimal --full;      code c20 config_generate_mode_conflict
-run c21 0 -- config validate --format json;          grep -q '"valid": *true' "$TMP/out" || fail "c21: $(cat "$TMP/out")"
+run c21 0 -- config validate --format json;          json_is "$TMP/out" valid true || fail "c21: $(cat "$TMP/out")"
 run c22 4 -- config sh --format json --explain basedir; code c22 config_show_format_conflict
-run c23 0 -- version --format json;                  grep -q '"version"' "$TMP/out" || fail "c23"
+run c23 0 -- version --format json;                  json_has "$TMP/out" version || fail "c23"
 
 if [ "$failures" -ne 0 ]; then
   echo "k03-smoke-test: $failures failure(s)" >&2

@@ -257,6 +257,28 @@
   seconds, as for the shutdown rows. The sysutil suite checked 13 s after
   the operator's logout for the file logind removes 10 s after it; it waits
   up to 30 s and reports the time.
+- **The ICMP rows skip only on a host karvi reports without a method.** The
+  canary suite's p1 to p3 and the v0100 suite's g1 to g7 read `icmp_method`
+  from `karvi version --format json` with sed, and skipped when the read
+  found nothing, so the version JSON laid out with a space before each colon,
+  or the key moved into an object, skipped the rows and both suites passed on
+  every host. They read it with `json_get`, skip on `unavailable` alone, and
+  fail on any other answer, the key's absence included.
+- **The suites read JSON by its path, not its text.** Forty-one lines of
+  eleven scripts (the canary, k03, v0100, transcript, v080, display, parity,
+  and sysutil suites, the qualification, the output scale run, and
+  `scripts/verify-shipped.sh`) matched a document's text with grep or sed,
+  which holds for one layout and finds a key at any depth: the canary
+  suite's audit check took any field named `username` for the device's user,
+  and its report checks a key of the name anywhere in the report.
+  Each reads through `scripts/lib/json.sh`, a JSON Lines stream line by line,
+  the transcript suite's start record field by field; the sysutil suite
+  reads the job's summary on the host, the container having no python3. A
+  daemon's pid is read through `daemon_pid` in `scripts/lib/lab.sh` (the
+  canary and v0100 suites, the output scale run, the replay).
+  `scripts/lib/json-test.sh` fails on a grep, sed, or awk whose pattern
+  names a JSON key, or a JSON stream piped into one, and
+  `scripts/lib/lab-test.sh` on a daemon's pid read outside `daemon_pid`.
 
 ## 0.40.0 - 2026-11-05
 

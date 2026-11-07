@@ -120,7 +120,7 @@ find "$BASE/jobs" -name manifest.json -type f | grep -q . || fail "r1: no job ma
 # allow-list only.
 rows=$((rows + 1))
 # shellcheck disable=SC2046
-pid=$(HOME=$HOME_DIR "$KARVI" $(common_args) daemon status --format json 2>/dev/null | sed -n 's/.*"pid": *\([0-9]*\).*/\1/p' | head -1)
+pid=$(daemon_pid env HOME="$HOME_DIR" "$KARVI" $(common_args))
 [ -n "$pid" ] || fail "r2: daemon pid unknown"
 set +e
 KARVI_CANARY_PASS=$PASS KARVI_CANARY_ENABLE=$ENABLE "$SCAN" -canary-env KARVI_CANARY_PASS -canary-env KARVI_CANARY_ENABLE -proc "${pid:-0}" \
@@ -176,7 +176,7 @@ src=$?
 set -e
 [ "$src" -eq 0 ] || fail "s1: daemon start exit $src: $(head -1 "$TMP/streams/s1-start.err")"
 # shellcheck disable=SC2046
-s1_pid=$(HOME=$HOME_DIR "$KARVI" $(s1_args) daemon status --format json 2>/dev/null | sed -n 's/.*"pid": *\([0-9]*\).*/\1/p' | head -1)
+s1_pid=$(daemon_pid env HOME="$HOME_DIR" "$KARVI" $(s1_args))
 [ -n "$s1_pid" ] || fail "s1: daemon pid unknown"
 s1_env=$(tr '\0' '\n' <"/proc/${s1_pid:-0}/environ" 2>/dev/null | cut -d= -f1 | sort | tr '\n' ' ')
 [ "$s1_env" = "HOME PATH " ] || fail "s1: the daemon's environment is not HOME and PATH only: $s1_env"
@@ -201,7 +201,7 @@ db2=$(printf '%s' "$PASS_B2" | sha256sum | awk '{print $1}')
 if grep -Eq "^AUTH:show s1b DIGEST:$da2|^AUTH:show s1a DIGEST:$db2" "$FAKE.log"; then fail "s1: a job authenticated with the other job's password"; fi
 [ "$(jsonl_records "$TMP/streams/s1a.out" status)" = success ] && [ "$(jsonl_records "$TMP/streams/s1b.out" status)" = success ] || fail "s1: a job did not succeed"
 # shellcheck disable=SC2046
-s1_pid_after=$(HOME=$HOME_DIR "$KARVI" $(s1_args) daemon status --format json 2>/dev/null | sed -n 's/.*"pid": *\([0-9]*\).*/\1/p' | head -1)
+s1_pid_after=$(daemon_pid env HOME="$HOME_DIR" "$KARVI" $(s1_args))
 [ "$s1_pid_after" = "$s1_pid" ] || fail "s1: the daemon was replaced (pid $s1_pid then ${s1_pid_after:-none})"
 [ "$(find "$BASE_S1/jobs" -name manifest.json -type f | wc -l | tr -d ' ')" -eq 2 ] || fail "s1: expected two job manifests on the daemon's own state tree"
 set +e
@@ -218,9 +218,9 @@ before_log=$(wc -l <"$FAKE.log" | tr -d ' ')
 before_manifests=$(find "$BASE/jobs" -name manifest.json -type f | wc -l | tr -d ' ')
 before_ops=$(grep -Ec 'operation=(prepare_job|commit_job|provide_credentials)' "$BASE/logs/daemon.log" || true)
 row d1 0 -- run --dry-run --target 127.0.0.1 --target 127.0.0.2 --transport system --format json 'show clock'
-grep -q '"kind": "inspection"' "$TMP/streams/d1.out" || fail "d1: not an inspection report"
+json_is "$TMP/streams/d1.out" kind inspection || fail "d1: not an inspection report"
 json_is "$TMP/streams/d1.out" outcome plan || fail "d1: outcome is not plan"
-grep -q '"job_submitted": false' "$TMP/streams/d1.out" || fail "d1: job_submitted is not false"
+json_is "$TMP/streams/d1.out" job_submitted false || fail "d1: job_submitted is not false"
 json_is "$TMP/streams/d1.out" target_data_submitted false || fail "d1: target_data_submitted is not false"
 json_is "$TMP/streams/d1.out" device_contacted false || fail "d1: device_contacted is not false"
 json_is "$TMP/streams/d1.out" daemons.0.status running || fail "d1: the running daemon was not reported"
@@ -235,11 +235,11 @@ after_ops=$(grep -Ec 'operation=(prepare_job|commit_job|provide_credentials)' "$
 before_log=$(wc -l <"$FAKE.log" | tr -d ' ')
 before_manifests=$(find "$BASE/jobs" -name manifest.json -type f | wc -l | tr -d ' ')
 row e1 0 -- run --exercise --target 127.0.0.1 --target 127.0.0.2 --transport system --format json 'show clock'
-grep -q '"kind": "exercise"' "$TMP/streams/e1.out" || fail "e1: not an exercise report"
+json_is "$TMP/streams/e1.out" kind exercise || fail "e1: not an exercise report"
 json_is "$TMP/streams/e1.out" outcome exercise || fail "e1: outcome is not exercise"
-grep -q '"job_submitted": true' "$TMP/streams/e1.out" || fail "e1: job_submitted is not true"
-grep -q '"device_contacted": false' "$TMP/streams/e1.out" || fail "e1: device_contacted is not false"
-grep -q '"readiness": "ready"' "$TMP/streams/e1.out" || fail "e1: no target is ready"
+json_is "$TMP/streams/e1.out" job_submitted true || fail "e1: job_submitted is not true"
+json_is "$TMP/streams/e1.out" device_contacted false || fail "e1: device_contacted is not false"
+[ "$(json_get "$TMP/streams/e1.out" 'targets.*.readiness' | grep -cx ready)" -ge 1 ] || fail "e1: no target is ready"
 # The report carries the outcome; a run prints no result line.
 [ "$(wc -l <"$FAKE.log" | tr -d ' ')" -eq "$before_log" ] || fail "e1: the fake device saw a session"
 [ "$(find "$BASE/jobs" -name manifest.json -type f | wc -l | tr -d ' ')" -eq $((before_manifests + 1)) ] || fail "e1: expected one new job directory"
@@ -252,9 +252,10 @@ json_is "$(dirname "$e1_dir")/summary.json" final_status exercise || fail "e1: t
 # real pinger against one loopback target and one TEST-NET-1 target
 # (192.0.2.1, RFC 5737, never answered). The rows need an ICMP method on
 # this host, the ping socket or the system ping; when karvi version reports
-# neither they are skipped with the reason, so the bundle verifier passes
-# on a host without capability and the gate is claimed from a host with one.
-icmp_method=$("$KARVI" version --format json 2>/dev/null | sed -n 's/.*"icmp_method": *"\([a-z]*\)".*/\1/p')
+# it unavailable they are skipped with the reason, so the bundle verifier
+# passes on a host without capability and the gate is claimed from a host
+# with one. Any other answer, the key absent included, fails.
+icmp_method=$("$KARVI" version --format json 2>/dev/null | json_get - icmp_method) || icmp_method=
 if [ "$icmp_method" = socket ] || [ "$icmp_method" = system ]; then
   before_auth=$(grep -c '^AUTH:' "$FAKE.log" || true)
   before_manifests=$(find "$BASE/jobs" -name manifest.json -type f | wc -l | tr -d ' ')
@@ -265,14 +266,14 @@ if [ "$icmp_method" = socket ] || [ "$icmp_method" = system ]; then
   printf '%s\n' "$p1" | grep -qx "$(printf '192.0.2.1\t.*\tskip')" || fail "p1: the skipped record's ping decision is not skip"
   printf '%s\n' "$p1" | grep -qx "$(printf '127.0.0.1\tsuccess\t.*')" || fail "p1: the reachable target did not succeed"
   printf '%s\n' "$p1" | grep -qx "$(printf '127.0.0.1\t.*\tproceed')" || fail "p1: the reachable record's ping decision is not proceed"
-  grep -q "\"method\":\"$icmp_method\"" "$TMP/streams/p1.out" || fail "p1: the records do not name the method $icmp_method"
+  [ "$(jsonl_records "$TMP/streams/p1.out" ping.method | sort -u)" = "$icmp_method" ] || fail "p1: the records do not name the method $icmp_method"
   [ "$(grep -c '^AUTH:' "$FAKE.log" || true)" -eq $((before_auth + 1)) ] || fail "p1: expected exactly one new session at the fake device"
   p1_summary=$(find "$BASE/jobs" -name summary.json -type f -newer "$TMP/streams/e1.out" | head -1)
   [ -n "$p1_summary" ] || fail "p1: no summary"
   json_is "$p1_summary" ping.devices.gated 2 && json_is "$p1_summary" ping.devices.skip 1 && json_is "$p1_summary" ping.devices.proceed 1 || fail "p1: the summary's ping block does not count one skip and one proceed"
   # The gate's own duration is the ping object's total_ns (the device's
   # timing.total_ns also covers queueing and the failure set).
-  skip_ns=$(grep '"selected_address":"192.0.2.1"' "$TMP/streams/p1.out" | grep -o '"decision":"skip","total_ns":[0-9]*' | sed 's/.*://' | head -1)
+  skip_ns=$(jsonl_records "$TMP/streams/p1.out" selected_address ping.decision ping.total_ns | awk -F"$TAB" '$1 == "192.0.2.1" && $2 == "skip" { print $3; exit }')
   [ "${skip_ns:-0}" -gt 0 ] && [ "$skip_ns" -le 2000000000 ] || fail "p1: the skipped gate took ${skip_ns:-?} ns, want within two timeouts plus a second"
   [ "$(find "$BASE/jobs" -name manifest.json -type f | wc -l | tr -d ' ')" -eq $((before_manifests + 1)) ] || fail "p1: expected one new job directory"
   # p2: login with the gate against the unreachable target exits 110 before
@@ -285,8 +286,10 @@ if [ "$icmp_method" = socket ] || [ "$icmp_method" = system ]; then
   # p3: both flags are refused before anything runs.
   row p3 4 -- command --ping --noping --management-address 127.0.0.1 canary-device 'show version'
   grep -q '^ping_flag_conflict: ' "$TMP/streams/p3.err" || fail "p3: no ping_flag_conflict"
+elif [ "$icmp_method" = unavailable ]; then
+  echo "p1-p3 SKIP: no ICMP method on this host (icmp_method=$icmp_method); widen net.ipv4.ping_group_range or install ping"
 else
-  echo "p1-p3 SKIP: no ICMP method on this host (icmp_method=${icmp_method:-unknown}); widen net.ipv4.ping_group_range or install ping"
+  fail "p1-p3: karvi version --format json names no ICMP method (icmp_method=${icmp_method:-absent})"
 fi
 # login, recorded, under a pseudo-terminal; "exit" typed at the prompt ends
 # the session so the transcript pair is complete.
@@ -315,7 +318,7 @@ grep -q '^scanned: ' "$TMP/scan.txt" || fail "scanner reported no summary"
 files=$(sed -n 's/^scanned: \([0-9]*\) files.*/\1/p' "$TMP/scan.txt")
 [ "${files:-0}" -ge 8 ] || fail "scanner saw only ${files:-0} files"
 # The password did flow: the fake device accepted it and the audit names the user.
-grep -q '"device_username":"u"' "$BASE/audit.jsonl" 2>/dev/null || grep -q '"username":"u"' "$BASE/audit.jsonl" || fail "audit lacks the device username"
+[ "$(audit_events "$BASE/audit.jsonl" device_identity.device_username | grep -cx u)" -ge 1 ] || fail "audit lacks the device username"
 
 if [ "$failures" -ne 0 ]; then
   echo "canary-smoke: $failures failure(s) over $rows rows" >&2

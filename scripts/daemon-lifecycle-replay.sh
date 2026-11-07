@@ -20,6 +20,7 @@ NEW=${KARVI:-./bin/karvi-linux-amd64}
 [ -x "$OLD" ] || { echo "old executable $OLD is not executable" >&2; exit 2; }
 [ -x "$NEW" ] || { echo "build the executable first: make build" >&2; exit 2; }
 TMP=$(mktemp -d); BASE=$TMP/state; H=$TMP/home
+. ./scripts/lib/json.sh
 . ./scripts/lib/host.sh; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 install -d -m 700 "$BASE" "$H"
 # Both executables keep their trees and their spool directory under the base
@@ -39,7 +40,7 @@ cleanup() {
 . ./scripts/lib/exit.sh; . ./scripts/lib/lab.sh; on_exit cleanup
 failures=0
 fail() { echo "FAIL: $*" >&2; failures=$((failures + 1)); }
-pid() { HOME=$H "$NEW" "${A[@]}" daemon status 2>/dev/null | sed -n 's/^pid: //p'; }
+pid() { daemon_pid env HOME="$H" "$NEW" "${A[@]}"; }   # scripts/lib/lab.sh
 # gone PID waits for the old daemon's process to exit: an older executable
 # removes its socket as it exits, and a new daemon bound in the meantime
 # would lose its socket file.

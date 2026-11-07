@@ -97,13 +97,15 @@ grep -q 'transcript-device \[127\.0\.0\.1\] platform=generic user=smoke' "$TMP/b
 [ "$(tr -d '\r' <"$TMP/before.out" | head -1)" = "! transcript=$transcript" ]
 [ "$(tr -d '\r' <"$TMP/before.out" | tail -1)" = "! transcript=$transcript" ]
 [ "$(wc -l <"$meta")" = 2 ]
-head -1 "$meta" | grep -q '^{"schema_version":1,"record":"start","session_id":"[^"]*","operator":{"username":"[^"]*","uid":[0-9]*},"input_target":"transcript-device","device":{"name":"transcript-device","canonical_name":"transcript-device","platform":"generic"},"transport":"system","dispatch_order":"default","candidate_count":1,"transcript_file":"'"$(basename "$transcript")"'","transcript_format":"text","terminal":{"rows":[0-9]*,"columns":[0-9]*},"started_at":"'
-tail -1 "$meta" | grep -q '"record":"end"'
-tail -1 "$meta" | grep -q '"exit_classification":"ExitSuccess"'
-tail -1 "$meta" | grep -q '"recording_failed":false'
+# The metadata's start record and end record, by field (jsonl_lines, the
+# lines holding record).
+[ "$(jsonl_lines record "$meta" record schema_version input_target device.name device.canonical_name device.platform transport dispatch_order candidate_count transcript_file transcript_format | head -1)" = \
+  "$(printf 'start\t1\ttranscript-device\ttranscript-device\ttranscript-device\tgeneric\tsystem\tdefault\t1\t%s\ttext' "$(basename "$transcript")")" ]
+jsonl_lines record "$meta" session_id operator.username operator.uid terminal.rows terminal.columns started_at | head -1 |
+  grep -Eqx "[^${TAB}]+${TAB}[^${TAB}]+(${TAB}[0-9]+){3}${TAB}[^${TAB}]+"
 sum=$(sha256sum "$transcript" | cut -d' ' -f1)
-tail -1 "$meta" | grep -q "\"transcript_sha256\":\"$sum\""
-session=$(head -1 "$meta" | sed 's/.*"session_id":"\([^"]*\)".*/\1/')
+[ "$(jsonl_lines record "$meta" record exit_classification recording_failed transcript_sha256 | tail -1)" = "end${TAB}ExitSuccess${TAB}false${TAB}$sum" ]
+session=$(jsonl_lines record "$meta" session_id | head -1)
 [ "$(audit_events "$BASE/audit.jsonl" login_id | grep -cx "$session")" -ge 1 ]   # the child used the wrapper's session ID
 # The session ID is the job form, reserved by the scoreboard file the child
 # wrote: every job ID on the watch screen has
@@ -195,7 +197,7 @@ cat "$TMP/badtemplate.out" "$TMP/badtemplate.err" | grep -q 'config_display_temp
 
 recorded json "--set 'transcript.metadata-format=\"json\"'" "--record=$TMP/rec-json --address 127.0.0.1 transcript-device"
 jmeta=$(ls "$TMP/rec-json"/transcript-device.meta.json)
-grep -q '"record":"end"' "$jmeta"; [ "$(wc -l <"$jmeta")" = 1 ]
+json_is "$jmeta" record end; [ "$(wc -l <"$jmeta")" = 1 ]
 
 # karvi's own lines reach the terminal while script(1) holds it raw, so each
 # ends in a carriage return before its line feed and the next starts at the

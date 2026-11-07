@@ -2,10 +2,12 @@
 # The check of scripts/lib/lab.sh: under sh and bash, daemon_stop_force
 # against a model executable and a socket file (a daemon that stops, one
 # whose stop fails, one that goes late, one that ignores the stop), a
-# cleanup that reaches its removal past a daemon that stays, fake_stop, and
-# absent (a file without the pattern, with it, a pattern that begins with
-# --, a file that cannot be read); and over the tree, no `daemon stop` whose
-# status is ignored outside lab.sh and none in a cleanup, no copy of absent,
+# cleanup that reaches its removal past a daemon that stays, daemon_pid (an
+# indented and a compact status, a pid only inside another object, no
+# daemon), fake_stop, and absent (a file without the pattern, with it, a
+# pattern that begins with --, a file that cannot be read); and over the
+# tree, no `daemon stop` whose status is ignored outside lab.sh and none in
+# a cleanup, no daemon pid read but through daemon_pid, no copy of absent,
 # and no must-not-appear line that cannot stop its script.
 set -eu
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
@@ -15,7 +17,7 @@ cleanup() { rm -rf "$TMP"; }
 on_exit cleanup
 failures=0
 check() { # check NAME WANT GOT
-  if [ "$2" = "$3" ]; then echo "lab lib: $1: pass"; else echo "lab lib: $1: FAIL: want [$2] got [$3]" >&2; failures=$((failures + 1)); fi
+  if [ "$2" = "$3" ]; then echo "lab lib: $1: pass"; else printf '%s\n' "lab lib: $1: FAIL: want [$2] got [$3]" >&2; failures=$((failures + 1)); fi
 }
 
 # The model executable: its HOME and arguments on a line of MODEL_LOG, then
@@ -29,6 +31,10 @@ case $MODEL_DO in
   late) (sleep 0.3; rm -f "$MODEL_SOCK") >/dev/null 2>&1 & ;;
   ignores) ;;
   ignores-fails) exit 1 ;;
+  status-indented) printf '{\n  "status": "running",\n  "pid": 4242,\n  "uid": 1000\n}\n' ;;
+  status-compact) printf '{"status":"running","pid":4242}\n' ;;
+  status-nested) printf '{"status":"running","daemon":{"pid":4242}}\n' ;;
+  status-fails) echo 'daemon_unreachable: no daemon' >&2; exit 110 ;;
 esac
 EOF
 chmod 755 "$TMP/model"
@@ -37,7 +43,7 @@ chmod 755 "$TMP/model"
 # case; lab_stop_tenths 5 (half a second) for the socket that stays.
 cat >"$TMP/caller.sh" <<'EOF'
 set -eu
-. "$1/exit.sh"; . "$1/lab.sh"; W=$2; shift 2
+. "$1/exit.sh"; . "$1/lab.sh"; . "$1/json.sh"; W=$2; shift 2
 lab_stop_tenths=5
 export MODEL_LOG=$W/log MODEL_SOCK=$W/d.sock
 case $1 in
@@ -56,6 +62,9 @@ case $1 in
     on_exit cleanup
     mkdir "$W/work"
     exit "$2" ;;
+  pid)
+    rc=0; p=$(daemon_pid env HOME="$W/home" MODEL_DO="$2" "$W/../model" --quiet) || rc=$?
+    echo "status $rc pid [$p]" ;;
   fake)
     sleep 30 & FAKE_PID=$!
     p=$FAKE_PID
@@ -127,6 +136,14 @@ for sh in sh bash; do
   check "$sh absent, a pattern that begins with --" "1 |$TMP/caller.sh: W/f must not match: --address .*Alias for --target" "$(lab "$sh" absent dash)|$(sed "s|$LAB_W|W|" "$LAB_W/err")"
   fresh nosocket
   check "$sh absent, a file that cannot be read: the script ends" "1 |$TMP/caller.sh: cannot read W/missing, which must not match: SECRET" "$(lab "$sh" absent missing)|$(sed "s|$LAB_W|W|" "$LAB_W/err")"
+  fresh nosocket
+  check "$sh daemon_pid, an indented status" "0 status 0 pid [4242]|HOME=W/home --quiet daemon status --format json|" "$(lab "$sh" pid status-indented)|$(logged)"
+  fresh nosocket
+  check "$sh daemon_pid, a compact status" "0 status 0 pid [4242]" "$(lab "$sh" pid status-compact)"
+  fresh nosocket
+  check "$sh daemon_pid, a pid only inside another object: none" "0 status 0 pid []" "$(lab "$sh" pid status-nested)"
+  fresh nosocket
+  check "$sh daemon_pid, no daemon answers: none, status 0" "0 status 0 pid []|" "$(lab "$sh" pid status-fails)|$(cat "$LAB_W/err")"
 done
 
 # Over the tree: a daemon stop whose status is ignored is daemon_stop_force's
@@ -142,6 +159,11 @@ in_cleanup=$(cd "$ROOT" && for f in scripts/*.sh scripts/lib/*.sh; do
   ' "$f"
 done)
 check "no daemon stop in a cleanup" "" "$in_cleanup"
+
+# Over the tree: a daemon's pid is read through daemon_pid alone.
+pid_reads=$(cd "$ROOT" && grep -nE '^[^#]*daemon status[^|]*\|.*\bpid\b' scripts/*.sh scripts/lib/*.sh |
+  grep -vE '^scripts/lib/lab(-test)?\.sh:' || true)
+check "no daemon pid read but through daemon_pid" "" "$pid_reads"
 
 # Over the tree: absent is lab.sh's alone, and every must-not-appear line
 # can stop its script: a command that begins with `!` (a negated pipeline,

@@ -157,8 +157,9 @@ parity_case() {
     fi
     [ -z "${WARNING:-}" ] || grep -q "$WARNING" "$TMP/err.$tag" || fail "$label $tag: no warning holding '$WARNING'"
     if [ -n "${AUTH:-}" ]; then
-      grep '"credential"' "$TMP/out.$tag" | head -1 >"$TMP/first.$tag"
-      json_is "$TMP/first.$tag" credential.auth "$AUTH" || fail "$label $tag: the record's credential.auth is $(json_get "$TMP/first.$tag" credential.auth 2>&1), expected $AUTH"
+      # The first record that holds a credential, and its auth.
+      pc_auth=$(jsonl_records "$TMP/out.$tag" credential credential.auth | awk -F"$TAB" '$1 != "" { print $2; exit }')
+      [ "$pc_auth" = "$AUTH" ] || fail "$label $tag: the record's credential.auth is ${pc_auth:-absent}, expected $AUTH"
     fi
     [ -z "${KEYLOGIN:-}" ] || [ "$(sed -n 's/^key: //p' "$TMP/fake.err")" = "$KEYLOGIN" ] || fail "$label $tag: the fake's key logins: $(sed -n 's/^key: //p' "$TMP/fake.err" | tr '\n' ' '), expected $KEYLOGIN"
     streams="$streams $TMP/out.$tag"
