@@ -61,12 +61,13 @@ func checkTargetSources(inv *Invocation, w io.Writer) (int, bool) {
 // targets.recursion-max-depth. targets.max-created-names bounds the names a
 // target value's ranges create (app.CheckCreatedNames): every command-line
 // value is counted first, before any target file is read, and a file's or
-// standard input's lines as they are read.
+// standard input's lines as they are read. Under targets.inventory-only a
+// range creates nothing and is not counted.
 func targetInputs(inv *Invocation, cfg configload.Snapshot, streams app.IO) ([]app.TargetInput, int, bool) {
 	emptyRule, maxDepth := cfg.String("targets.empty-source"), cfg.Int("targets.recursion-max-depth")
-	maxCreated := cfg.Int("targets.max-created-names")
+	maxCreated, counted := cfg.Int("targets.max-created-names"), !cfg.Bool("targets.inventory-only")
 	for _, t := range inv.Targets {
-		if t.Kind != "target" {
+		if t.Kind != "target" || !counted {
 			continue
 		}
 		if err := app.CheckCreatedNames(t.Label, t.Value, maxCreated); err != nil {
@@ -97,6 +98,9 @@ func targetInputs(inv *Invocation, cfg configload.Snapshot, streams app.IO) ([]a
 			for _, name := range names {
 				if err := checkSelector("target file "+source+" entry", name, false); err != nil {
 					return nil, inv.Global.reportError(streams.Stderr, "target_selector_pattern_invalid", err), false
+				}
+				if !counted {
+					continue
 				}
 				if err := app.CheckCreatedNames("target file "+source+" entry", name, maxCreated); err != nil {
 					return nil, inv.Global.reportError(streams.Stderr, "target_created_names_exceeded", err), false

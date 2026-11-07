@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"net/netip"
@@ -17,6 +18,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/jobexec"
 	"github.com/robert-patrick-texas/karvi/internal/matching"
 	"github.com/robert-patrick-texas/karvi/internal/planner"
+	"github.com/robert-patrick-texas/karvi/internal/resolver"
 	"github.com/robert-patrick-texas/karvi/inventory"
 	"github.com/robert-patrick-texas/karvi/records"
 )
@@ -68,7 +70,7 @@ func assembleTargets(ctx context.Context, cfg configload.Snapshot, operator cred
 	if err != nil {
 		return TargetSet{}, errorcodes.Ensure(err, "inventory_load_failed")
 	}
-	devices, err := assemble(configured, inputs, excludes, planner.SetPlatformFunc(cfg), cfg.Int("targets.max-created-names"))
+	devices, err := assemble(configured, inputs, excludes, planner.SetPlatformFunc(cfg), rulesOf(cfg))
 	if err != nil {
 		return TargetSet{}, err
 	}
@@ -79,6 +81,21 @@ func assembleTargets(ctx context.Context, cfg configload.Snapshot, operator cred
 	}
 	inventory.Sort(devices, order, keyValue)
 	return TargetSet{Devices: devices, Provenance: provenance, Order: order, ShuffleKey: key}, nil
+}
+
+// targetRules are the configuration's rules for a target name the
+// inventory may lack.
+type targetRules struct {
+	// maxCreated is targets.max-created-names, the most words one name's
+	// numeric ranges may spell.
+	maxCreated int
+	// inventoryOnly is targets.inventory-only: only inventory devices run.
+	inventoryOnly bool
+}
+
+// rulesOf reads the target rules from cfg.
+func rulesOf(cfg configload.Snapshot) targetRules {
+	return targetRules{maxCreated: cfg.Int("targets.max-created-names"), inventoryOnly: cfg.Bool("targets.inventory-only")}
 }
 
 // assemble is the pure assembly rule: each input contributes at its
@@ -98,17 +115,22 @@ func assembleTargets(ctx context.Context, cfg configload.Snapshot, operator cred
 // written order, as if each were typed in its place (matching.Spell): a
 // word with no other glob is a name, an inventory device or a direct target
 // recorded under the word as typed (input_target), and a word holding a
-// glob selects. maxCreated is targets.max-created-names, the most words one
-// name may spell; the command line checks it before any target file is
-// read (CheckCreatedNames), so here it refuses only a name that did not
-// come through it. A "!" name and --exclude match the range and spell
-// nothing.
+// glob selects. rules.maxCreated is the most words one name may spell; the
+// command line checks it before any target file is read
+// (CheckCreatedNames), so here it refuses only a name that did not come
+// through it. A "!" name and --exclude match the range and spell nothing.
+//
+// Under rules.inventoryOnly nothing is spelled or made: a name holding a
+// range or a glob selects the inventory's devices it matches, at any size,
+// and a plain name the inventory lacks is gathered, once, as first typed;
+// after every input the gathered names refuse the set, before any other
+// empty-set code (notInInventoryError).
 //
 // setPlatform is the platform a device is matched on for --select-platform
 // (planner.SetPlatformFunc): blank for a
 // device whose platform is not set or falls back, which no --select-platform value
 // matches.
-func assemble(configured []inventory.Device, inputs []TargetInput, excludes []string, setPlatform func(inventory.Device) string, maxCreated int) ([]inventory.Device, error) {
+func assemble(configured []inventory.Device, inputs []TargetInput, excludes []string, setPlatform func(inventory.Device) string, rules targetRules) ([]inventory.Device, error) {
 	out := []inventory.Device{}
 	seen := map[string]bool{}
 	add := func(d inventory.Device) {
@@ -130,6 +152,8 @@ func assemble(configured []inventory.Device, inputs []TargetInput, excludes []st
 		}
 	}
 	var removals []func(inventory.Device) bool
+	var absent []string // plain names the inventory lacks, under rules.inventoryOnly
+	absentSeen := map[string]bool{}
 	// addWord adds one name as typed, or the inventory's matches of one
 	// glob; p is typed compiled.
 	addWord := func(typed string, p matching.Pattern) error {
@@ -142,6 +166,13 @@ func assemble(configured []inventory.Device, inputs []TargetInput, excludes []st
 				add(d)
 				return nil
 			}
+		}
+		if rules.inventoryOnly {
+			if key := strings.ToLower(typed); !absentSeen[key] {
+				absentSeen[key] = true
+				absent = append(absent, typed)
+			}
+			return nil
 		}
 		d := inventory.Direct(strings.ToLower(typed), "", "", 0) // Name and CanonicalName are the lowercase name; the platform is not set
 		d.InputToken = typed                                     // as supplied (records: input_target)
@@ -165,12 +196,12 @@ func assemble(configured []inventory.Device, inputs []TargetInput, excludes []st
 			removals = append(removals, func(d inventory.Device) bool { return deviceMatchesName(d, sel.Pattern) })
 			return nil
 		}
-		if !sel.Pattern.Spells() {
+		if !sel.Pattern.Spells() || rules.inventoryOnly {
 			return addWord(typed, sel.Pattern)
 		}
-		words, ok := sel.Pattern.Spell(maxCreated)
+		words, ok := sel.Pattern.Spell(rules.maxCreated)
 		if !ok {
-			return createdNamesError(option, typed, sel.Pattern, maxCreated)
+			return createdNamesError(option, typed, sel.Pattern, rules.maxCreated)
 		}
 		for _, w := range words {
 			p, err := matching.Compile(w) // a word of a compiled pattern compiles
@@ -236,6 +267,9 @@ func assemble(configured []inventory.Device, inputs []TargetInput, excludes []st
 			return nil, err
 		}
 	}
+	if len(absent) > 0 {
+		return nil, notInInventoryError(absent)
+	}
 	for _, glob := range excludes {
 		sel, err := parseSelector("--exclude", glob)
 		if err != nil {
@@ -294,6 +328,26 @@ func createdNamesError(label, typed string, p matching.Pattern, limit int) error
 		return nil
 	}
 	return errorcodes.Errorf("target_created_names_exceeded", "%s %s creates too many names\n  names: %s\n  limit: %d (targets.max-created-names)", label, typed, words, limit)
+}
+
+// notInInventoryError is the refusal of the plain names the inventory
+// lacks under targets.inventory-only: the count, then the names stacked,
+// resolver.ListedFailures of them and then the count left.
+func notInInventoryError(absent []string) error {
+	var b strings.Builder
+	if len(absent) == 1 {
+		b.WriteString("1 target name is not in the inventory (targets.inventory-only)")
+	} else {
+		fmt.Fprintf(&b, "%d target names are not in the inventory (targets.inventory-only)", len(absent))
+	}
+	for i, name := range absent {
+		if i == resolver.ListedFailures {
+			fmt.Fprintf(&b, "\n  and %d more", len(absent)-i)
+			break
+		}
+		fmt.Fprintf(&b, "\n  %s", name)
+	}
+	return errorcodes.Errorf("target_not_in_inventory", "%s", b.String())
 }
 
 // hasPositiveInput reports whether any input can select a device: every

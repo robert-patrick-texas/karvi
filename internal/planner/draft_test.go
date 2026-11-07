@@ -174,7 +174,9 @@ func draftOptions(commands []string) DraftOptions {
 // the configuration block's key and its digest; nothing else moved.
 // Re-pinned at targets.max-created-names (EXAMPLES chapter 103): the
 // configuration block's new key and its digest; nothing else moved.
-const goldenK03Draft = "667c1d7f2272dff7e477ce2a294f190fd355a30a3d8718ab2549c772c0e0dbb5"
+// Re-pinned at targets.inventory-only (EXAMPLES chapter 103): the
+// configuration block's new key and its digest; nothing else moved.
+const goldenK03Draft = "80d685c962bd34fd0c4eb3a6b8cb22835754290133cb4bc1c957e36808f4bddd"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

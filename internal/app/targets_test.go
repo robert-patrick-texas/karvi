@@ -30,8 +30,9 @@ func invDevice(name, site, platform string, groups ...string) inventory.Device {
 // the set platform as named, blank for not set (planner.SetPlatformFunc).
 var setPlatformAsIs = planner.SetPlatformFunc(configload.Snapshot{})
 
-// testMaxCreated is the targets.max-created-names the tests assemble under.
-const testMaxCreated = 1000
+// testRules are the target rules the tests assemble under: the default
+// targets.max-created-names, targets.inventory-only false.
+var testRules = targetRules{maxCreated: 1000}
 
 func names(devices []inventory.Device) []string {
 	out := []string{}
@@ -75,7 +76,7 @@ func TestAssembleKeepsCommandLineOrder(t *testing.T) {
 			[]string{"Core-1", "core-2"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := assemble(testInventory, tc.inputs, nil, setPlatformAsIs, testMaxCreated)
+			got, err := assemble(testInventory, tc.inputs, nil, setPlatformAsIs, testRules)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -92,7 +93,7 @@ func TestAssembleKeepsCommandLineOrder(t *testing.T) {
 func TestAssembleIdentityIsLowercase(t *testing.T) {
 	got, err := assemble(testInventory, []TargetInput{
 		{Kind: "target", Value: "R9"}, {Kind: "names", Names: []string{"r9", "Edge-1"}}, {Kind: "target", Value: "EDGE-1"}, {Kind: "target", Value: " r9 "},
-	}, nil, setPlatformAsIs, testMaxCreated)
+	}, nil, setPlatformAsIs, testRules)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,14 +116,14 @@ func TestAssembleIdentityIsLowercase(t *testing.T) {
 func TestAssembleExcludeAppliesToWholeList(t *testing.T) {
 	got, err := assemble(testInventory, []TargetInput{
 		{Kind: "target", Value: "r9"}, {Kind: "target", Value: "r8"}, {Kind: "site", Value: "hq"},
-	}, []string{"R8", "core-1"}, setPlatformAsIs, testMaxCreated)
+	}, []string{"R8", "core-1"}, setPlatformAsIs, testRules)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(names(got), []string{"r9", "core-2"}) {
 		t.Fatalf("names=%q", names(got))
 	}
-	got, err = assemble(testInventory, []TargetInput{{Kind: "all"}}, []string{"core-*", "edge-?"}, setPlatformAsIs, testMaxCreated)
+	got, err = assemble(testInventory, []TargetInput{{Kind: "all"}}, []string{"core-*", "edge-?"}, setPlatformAsIs, testRules)
 	if err != nil || !reflect.DeepEqual(names(got), []string{"lab-1"}) {
 		t.Fatalf("glob exclude: %q %v", names(got), err)
 	}
@@ -159,7 +160,7 @@ func TestAssembleSelectorGrammar(t *testing.T) {
 		{"escaped ! is literal", []TargetInput{{Kind: "all"}}, []string{`\!x`, "nyc-?"}, []string{"Core-1", "core-2", "edge-1", "lab-1"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := assemble(inv, tc.inputs, tc.excludes, setPlatformAsIs, testMaxCreated)
+			got, err := assemble(inv, tc.inputs, tc.excludes, setPlatformAsIs, testRules)
 			if tc.want == nil {
 				if errorcodes.Of(err) != "target_set_empty" {
 					t.Fatalf("got %q %v, want target_set_empty", names(got), err)
@@ -180,7 +181,7 @@ func TestAssembleSelectorGrammar(t *testing.T) {
 		{[]TargetInput{{Kind: "names", Names: []string{"core$"}, Source: "list.txt"}}, nil},
 		{[]TargetInput{{Kind: "all"}}, []string{"!core-1"}},
 	} {
-		if _, err := assemble(inv, tc.inputs, tc.excludes, setPlatformAsIs, testMaxCreated); errorcodes.Of(err) != "target_selector_pattern_invalid" {
+		if _, err := assemble(inv, tc.inputs, tc.excludes, setPlatformAsIs, testRules); errorcodes.Of(err) != "target_selector_pattern_invalid" {
 			t.Errorf("%+v %q: %v", tc.inputs, tc.excludes, err)
 		}
 	}
@@ -214,17 +215,17 @@ func TestAssembleNumericRange(t *testing.T) {
 		{"a not site range", []TargetInput{{Kind: "site", Value: "pod*"}, {Kind: "site", Value: "!pod[1-11]"}}, []string{"router12", "router13", "router01"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := assemble(inv, tc.inputs, nil, setPlatformAsIs, testMaxCreated)
+			got, err := assemble(inv, tc.inputs, nil, setPlatformAsIs, testRules)
 			if err != nil || !reflect.DeepEqual(names(got), tc.want) {
 				t.Fatalf("names=%q err=%v, want %q", names(got), err, tc.want)
 			}
 		})
 	}
-	if got, err := assemble(inv, []TargetInput{{Kind: "all"}}, []string{"router[1-11]"}, setPlatformAsIs, testMaxCreated); err != nil || !reflect.DeepEqual(names(got), []string{"router12", "router13", "router01"}) {
+	if got, err := assemble(inv, []TargetInput{{Kind: "all"}}, []string{"router[1-11]"}, setPlatformAsIs, testRules); err != nil || !reflect.DeepEqual(names(got), []string{"router12", "router13", "router01"}) {
 		t.Errorf("--exclude router[1-11]: %q %v", names(got), err)
 	}
 	for _, v := range []string{"pod[1-]", "pod[12-1]"} {
-		if _, err := assemble(inv, []TargetInput{{Kind: "site", Value: v}}, nil, setPlatformAsIs, testMaxCreated); errorcodes.Of(err) != "target_selector_pattern_invalid" {
+		if _, err := assemble(inv, []TargetInput{{Kind: "site", Value: v}}, nil, setPlatformAsIs, testRules); errorcodes.Of(err) != "target_selector_pattern_invalid" {
 			t.Errorf("--site %s: %v", v, err)
 		}
 	}
@@ -251,7 +252,7 @@ func TestAssembleEmptyCodes(t *testing.T) {
 				// The no-input rule runs before configuration or inventory is touched.
 				_, err = assembleTargets(context.Background(), configload.Snapshot{}, credentials.Operator{}, nil, nil, io.Discard)
 			} else {
-				_, err = assemble(testInventory, tc.inputs, tc.excludes, setPlatformAsIs, testMaxCreated)
+				_, err = assemble(testInventory, tc.inputs, tc.excludes, setPlatformAsIs, testRules)
 			}
 			if errorcodes.Of(err) != tc.code {
 				t.Fatalf("code=%q err=%v, want %s", errorcodes.Of(err), err, tc.code)
@@ -461,18 +462,18 @@ func TestAssemblePlatformNotSet(t *testing.T) {
 	blank := invDevice("blank-1", "lab", "")
 	generic := invDevice("gen-1", "lab", "generic")
 	inv := []inventory.Device{blank, generic}
-	got, err := assemble(inv, []TargetInput{{Kind: "target", Value: "r9"}, {Kind: "platform", Value: "generic"}, {Kind: "platform", Value: "*"}}, nil, setPlatformAsIs, testMaxCreated)
+	got, err := assemble(inv, []TargetInput{{Kind: "target", Value: "r9"}, {Kind: "platform", Value: "generic"}, {Kind: "platform", Value: "*"}}, nil, setPlatformAsIs, testRules)
 	if err != nil || !reflect.DeepEqual(names(got), []string{"r9", "gen-1"}) {
 		t.Fatalf("names=%q err=%v", names(got), err)
 	}
 	if got[0].Platform != "" {
 		t.Fatalf("direct target platform %q, want blank", got[0].Platform)
 	}
-	got, err = assemble(inv, []TargetInput{{Kind: "all"}, {Kind: "platform", Value: "!*"}}, nil, setPlatformAsIs, testMaxCreated)
+	got, err = assemble(inv, []TargetInput{{Kind: "all"}, {Kind: "platform", Value: "!*"}}, nil, setPlatformAsIs, testRules)
 	if err != nil || !reflect.DeepEqual(names(got), []string{"blank-1"}) {
 		t.Fatalf("a not selector removes only set platforms: names=%q err=%v", names(got), err)
 	}
-	got, err = assemble(inv, []TargetInput{{Kind: "target", Value: "blank-1"}}, nil, setPlatformAsIs, testMaxCreated)
+	got, err = assemble(inv, []TargetInput{{Kind: "target", Value: "blank-1"}}, nil, setPlatformAsIs, testRules)
 	if err != nil || len(got) != 1 || got[0].Platform != "" {
 		t.Fatalf("by name: %+v %v", got, err)
 	}
@@ -506,7 +507,7 @@ func TestAssemblePlatformFallbackNotMatched(t *testing.T) {
 		{"by name under warn", warn, []TargetInput{{Kind: "target", Value: "sw-typo"}}, []string{"sw-typo"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := assemble(inv, tc.inputs, nil, planner.SetPlatformFunc(tc.cfg), testMaxCreated)
+			got, err := assemble(inv, tc.inputs, nil, planner.SetPlatformFunc(tc.cfg), testRules)
 			if err != nil || !reflect.DeepEqual(names(got), tc.want) {
 				t.Fatalf("names=%q err=%v, want %q", names(got), err, tc.want)
 			}
@@ -566,7 +567,7 @@ func TestAssembleCreatesRangeNames(t *testing.T) {
 			[]string{"router1", "router12"}, nil, direct("router1")},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := assemble(inv, tc.inputs, tc.excludes, setPlatformAsIs, testMaxCreated)
+			got, err := assemble(inv, tc.inputs, tc.excludes, setPlatformAsIs, testRules)
 			if err != nil || !reflect.DeepEqual(names(got), tc.want) {
 				t.Fatalf("names=%q err=%v, want %q", names(got), err, tc.want)
 			}
@@ -612,16 +613,86 @@ func TestCreatedNamesLimit(t *testing.T) {
 			t.Errorf("CheckCreatedNames(%q, %d) = %v, want ok %v", tc.value, tc.limit, err, tc.ok)
 		}
 	}
-	if _, err := assemble(testInventory, []TargetInput{{Kind: "target", Value: "box[1-6]"}}, nil, setPlatformAsIs, 5); errorcodes.Of(err) != "target_created_names_exceeded" || !strings.Contains(err.Error(), "--target box[1-6] creates too many names") {
+	if _, err := assemble(testInventory, []TargetInput{{Kind: "target", Value: "box[1-6]"}}, nil, setPlatformAsIs, targetRules{maxCreated: 5}); errorcodes.Of(err) != "target_created_names_exceeded" || !strings.Contains(err.Error(), "--target box[1-6] creates too many names") {
 		t.Errorf("assemble over the limit: %v", err)
 	}
-	if got, err := assemble(testInventory, []TargetInput{{Kind: "target", Value: "box[1-5]"}}, nil, setPlatformAsIs, 5); err != nil || len(got) != 5 {
+	if got, err := assemble(testInventory, []TargetInput{{Kind: "target", Value: "box[1-5]"}}, nil, setPlatformAsIs, targetRules{maxCreated: 5}); err != nil || len(got) != 5 {
 		t.Errorf("assemble at the limit: %q %v", names(got), err)
 	}
-	if _, err := assemble(testInventory, []TargetInput{{Kind: "names", Names: []string{"box[1-6]"}, Source: "f.txt"}}, nil, setPlatformAsIs, 5); !strings.Contains(fmt.Sprint(err), "target file f.txt entry box[1-6] creates too many names") {
+	if _, err := assemble(testInventory, []TargetInput{{Kind: "names", Names: []string{"box[1-6]"}, Source: "f.txt"}}, nil, setPlatformAsIs, targetRules{maxCreated: 5}); !strings.Contains(fmt.Sprint(err), "target file f.txt entry box[1-6] creates too many names") {
 		t.Errorf("a target file entry over the limit: %v", err)
 	}
-	if got, err := assemble(testInventory, []TargetInput{{Kind: "all"}, {Kind: "target", Value: "!core-[1-99]"}, {Kind: "site", Value: "pod[1-99]"}}, []string{"x[1-99]"}, setPlatformAsIs, 5); err != nil || len(got) != 2 {
+	if got, err := assemble(testInventory, []TargetInput{{Kind: "all"}, {Kind: "target", Value: "!core-[1-99]"}, {Kind: "site", Value: "pod[1-99]"}}, []string{"x[1-99]"}, setPlatformAsIs, targetRules{maxCreated: 5}); err != nil || len(got) != 2 {
 		t.Errorf("matchers under a limit of 5: %q %v", names(got), err)
+	}
+}
+
+// TestAssembleInventoryOnly: under targets.inventory-only nothing is made. A
+// name holding a range or a glob selects the inventory's devices it matches,
+// in inventory order as a glob does, by number and at any size (the limit
+// not applied); a plain name the
+// inventory lacks is gathered, once, as first typed, from every input, and
+// after every input the gathered names refuse the set,
+// target_not_in_inventory, before any empty-set code. A "!" name and
+// --exclude only remove. Without the key the same names are direct targets
+// (TestAssembleCreatesRangeNames).
+func TestAssembleInventoryOnly(t *testing.T) {
+	var inv []inventory.Device
+	for _, n := range []string{"router01", "router02", "router03", "router05", "router10", "router11", "router12"} {
+		inv = append(inv, invDevice(n, "nyc", "cisco_ios"))
+	}
+	only := targetRules{maxCreated: 5, inventoryOnly: true}
+	for _, tc := range []struct {
+		name     string
+		inputs   []TargetInput
+		excludes []string
+		want     []string
+	}{
+		{"a range selects among its names", []TargetInput{{Kind: "target", Value: "router0[1-5]"}}, nil, []string{"router01", "router02", "router03", "router05"}},
+		{"by number and width", []TargetInput{{Kind: "target", Value: "ROUTER[1-12]"}}, nil, []string{"router10", "router11", "router12"}},
+		{"at any size", []TargetInput{{Kind: "target", Value: "router[1-99999999]"}}, nil, []string{"router10", "router11", "router12"}},
+		{"in inventory order, as a glob", []TargetInput{{Kind: "target", Value: "router[11,5,01,10]"}}, nil, []string{"router01", "router10", "router11"}},
+		{"a range and a glob", []TargetInput{{Kind: "target", Value: "router[1,0]?"}}, nil, []string{"router01", "router02", "router03", "router05", "router10", "router11", "router12"}},
+		{"a plain inventory name", []TargetInput{{Kind: "names", Names: []string{"Router05", "router01"}, Source: "f.txt"}}, nil, []string{"router05", "router01"}},
+		{"! and --exclude are not checked", []TargetInput{{Kind: "target", Value: "router0[1-3]"}, {Kind: "target", Value: "!router04"}, {Kind: "target", Value: "!router02"}}, []string{"router09", "router03"}, []string{"router01"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := assemble(inv, tc.inputs, tc.excludes, setPlatformAsIs, only)
+			if err != nil || !reflect.DeepEqual(names(got), tc.want) {
+				t.Fatalf("names=%q err=%v, want %q", names(got), err, tc.want)
+			}
+			for _, d := range got {
+				if d.Source.Name == "direct" {
+					t.Errorf("%s is a direct target", d.CanonicalName)
+				}
+			}
+		})
+	}
+	twelve := []string{}
+	for i := 1; i <= 12; i++ {
+		twelve = append(twelve, fmt.Sprintf("b%d", i))
+	}
+	for _, tc := range []struct {
+		name   string
+		inputs []TargetInput
+		code   string
+		want   string
+	}{
+		{"absent names, every input", []TargetInput{{Kind: "target", Value: "router04"}, {Kind: "target", Value: "router01"}, {Kind: "names", Names: []string{"Router07", "router04"}, Source: "f.txt"}}, "target_not_in_inventory",
+			"2 target names are not in the inventory (targets.inventory-only)\n  router04\n  Router07"},
+		{"one name, as first typed", []TargetInput{{Kind: "target", Value: "Router04"}, {Kind: "target", Value: "ROUTER04"}}, "target_not_in_inventory",
+			"1 target name is not in the inventory (targets.inventory-only)\n  Router04"},
+		{"after ten, the count left", []TargetInput{{Kind: "names", Names: twelve, Source: "f.txt"}}, "target_not_in_inventory",
+			"12 target names are not in the inventory (targets.inventory-only)\n  b1\n  b2\n  b3\n  b4\n  b5\n  b6\n  b7\n  b8\n  b9\n  b10\n  and 2 more"},
+		{"before an empty selection", []TargetInput{{Kind: "target", Value: "router04"}, {Kind: "site", Value: "nowhere"}}, "target_not_in_inventory",
+			"1 target name is not in the inventory (targets.inventory-only)\n  router04"},
+		{"a range matching none", []TargetInput{{Kind: "target", Value: "switch0[1-3]"}}, "inventory_empty_selection", "the target selectors matched no devices"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := assemble(inv, tc.inputs, nil, setPlatformAsIs, only)
+			if errorcodes.Of(err) != tc.code || !strings.HasSuffix(fmt.Sprint(err), tc.want) {
+				t.Fatalf("names=%q err=%v, want %s ending %q", names(got), err, tc.code, tc.want)
+			}
+		})
 	}
 }

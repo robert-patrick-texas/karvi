@@ -590,6 +590,7 @@ Active failure causes.
 | `tabular_row_malformed` | inventory | 5 | no | A tabular source row is not valid CSV. |
 | `tabular_row_short` | inventory | 5 | no | A tabular row has fewer columns than mapped while short rows are errors. |
 | `target_created_names_exceeded` | usage | 4 | no | A target value's numeric ranges create more names than `targets.max-created-names` allows: a `--target`, a `--tl` name, a positional device, or a target-file or standard-input line; refused before any name is made. |
+| `target_not_in_inventory` | inventory | 5 | no | Under `targets.inventory-only` a plain target name (no numeric range, no glob) that no inventory device has: a `--target`, a `--tl` name, a positional device, or a target-file or standard-input line. The job is refused after the inventory is read and before planning, naming every such name once, as first typed, after ten the count left; a range or glob selects only the inventory's devices, and a `!` value or `--exclude` only removes. |
 | `target_selector_pattern_invalid` | usage | 4 | no | A command-line selector or target-file entry is not a valid selector: a malformed class or escape, a bare `!`, a `!` in `--exclude`, or an unescaped `^` or `$`. |
 | `target_set_empty` | inventory | 5 | no | The target set is empty after duplicate removal, `--exclude`, and the `!` selectors. |
 | `target_source_depth_exceeded` | inventory | 5 | no | A `--tfr` folder is deeper than `targets.recursion-max-depth`. |

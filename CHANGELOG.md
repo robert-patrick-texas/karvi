@@ -401,6 +401,19 @@
   split and refused, and a backslash keeps the character after it
   (`a\,b`). The help's `--target` and `--tl` lines say to single-quote a
   pattern or list, and its selector paragraph names the range.
+- **`targets.inventory-only` runs only the inventory's devices.** The new
+  boolean key (default false, lockable, `KARVI__TARGETS__INVENTORY_ONLY`)
+  makes a name the inventory lacks a refusal where it was a direct target.
+  Under it a plain target name the inventory lacks (a `--target`, a `--tl`
+  name, a positional device, or a target-file or standard-input line) stops
+  the job after the inventory is read and before planning, with
+  `target_not_in_inventory` (exit 5): every such name once, as first typed,
+  one per line under the count, after ten the count left, ahead of
+  `inventory_empty_selection`. A name holding a range or a glob creates
+  nothing: it selects the inventory's devices it matches, in inventory order,
+  at any size, so `--tl 'router0[1-5]'` runs the ones of router01 to
+  router05 the inventory holds, with no direct router04, and
+  `targets.max-created-names` is not applied. A `!` value and `--exclude` only remove, as before.
 
 ## 0.40.0 - 2026-11-05
 

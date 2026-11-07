@@ -885,6 +885,18 @@
       "since": "0.2.0"
     },
     {
+      "path": "targets.inventory-only",
+      "kind": "boolean",
+      "default_literal": "false",
+      "required": false,
+      "lock_eligible": true,
+      "reload_class": "next-job",
+      "environment": "KARVI__TARGETS__INVENTORY_ONLY",
+      "cli_flags": null,
+      "documentation": "`true` runs only the inventory's devices: a plain target name the inventory lacks refuses the job before planning, `target_not_in_inventory`, naming each; a numeric range or a glob selects the inventory's devices among the names it matches, at any size, `targets.max-created-names` not applied. `false` makes a name the inventory lacks, typed or created by a range, a direct target.",
+      "since": "0.2.0"
+    },
+    {
       "path": "targets.max-created-names",
       "kind": "integer",
       "default_literal": "1000",
@@ -895,7 +907,7 @@
       "cli_flags": null,
       "min": "1",
       "max": "100000",
-      "documentation": "1–100,000; the most names one target value's numeric ranges may create, brackets multiplying (`--target 'router[01-12]'` creates 12): a `--target`, a `--tl` name, or a positional device is counted after the configuration is read and before any target file, the inventory, or DNS, and a target-file or standard-input line as it is read; over it the value is refused, `target_created_names_exceeded`, and nothing is made. A `!` value, `--exclude`, and the inventory selectors match a range of any size and create nothing.",
+      "documentation": "1–100,000; the most names one target value's numeric ranges may create, brackets multiplying (`--target 'router[01-12]'` creates 12): a `--target`, a `--tl` name, or a positional device is counted after the configuration is read and before any target file, the inventory, or DNS, and a target-file or standard-input line as it is read; over it the value is refused, `target_created_names_exceeded`, and nothing is made. A `!` value, `--exclude`, and the inventory selectors match a range of any size and create nothing; under `targets.inventory-only` no range creates or is counted.",
       "since": "0.2.0"
     },
     {
