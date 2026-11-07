@@ -64,7 +64,7 @@ func draftClient(ctx context.Context, opts RunOptions, dryRun bool, streams IO) 
 	if err != nil {
 		return nil, "platform_option_unknown", err
 	}
-	set, err := assembleTargets(ctx, cfg, operator, opts.Targets, opts.Excludes, streams.Stderr)
+	set, err := assembleTargets(ctx, opts.CommonOptions, opts.Targets, opts.Excludes, streams.Stderr)
 	if err != nil {
 		return nil, "inventory_load_failed", err
 	}

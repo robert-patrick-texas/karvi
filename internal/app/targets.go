@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/inventoryload"
@@ -51,11 +50,13 @@ func resolveOrder(cfg configload.Snapshot, now func() time.Time) (order string, 
 // assembles the target set for inputs. The login recorder wrapper uses it to
 // learn the device a session will connect to.
 func AssembleTargets(ctx context.Context, common CommonOptions, inputs []TargetInput, excludes []string, stderr io.Writer) (TargetSet, error) {
-	return assembleTargets(ctx, common.Config, common.Operator, inputs, excludes, stderr)
+	return assembleTargets(ctx, common, inputs, excludes, stderr)
 }
 
-// assembleTargets loads the inventory and assembles the target set.
-func assembleTargets(ctx context.Context, cfg configload.Snapshot, operator credentials.Operator, inputs []TargetInput, excludes []string, stderr io.Writer) (TargetSet, error) {
+// assembleTargets loads the inventory, the --inventory files in place of
+// the configured sources when given, and assembles the target set.
+func assembleTargets(ctx context.Context, common CommonOptions, inputs []TargetInput, excludes []string, stderr io.Writer) (TargetSet, error) {
+	cfg := common.Config
 	if !hasPositiveInput(inputs) {
 		return TargetSet{}, errorcodes.Errorf("inventory_positive_selector_missing", "a target input that selects is required: DEVICE, --target, --tf, --site, --device-group, --select-platform, or --all (a value beginning with \"!\" only removes devices)")
 	}
@@ -65,7 +66,7 @@ func assembleTargets(ctx context.Context, cfg configload.Snapshot, operator cred
 	if err := checkPlatformSelectors(cfg, inputs); err != nil {
 		return TargetSet{}, err
 	}
-	loader := inventoryload.Loader{Config: cfg, Home: operator.Home, Warn: func(s string) { jobexec.WriteWarning(stderr, cfg, s) }}
+	loader := inventoryload.Loader{Config: cfg, Home: common.Operator.Home, Files: common.Inventory, Warn: func(s string) { jobexec.WriteWarning(stderr, cfg, s) }}
 	configured, provenance, err := loader.Load(ctx)
 	if err != nil {
 		return TargetSet{}, errorcodes.Ensure(err, "inventory_load_failed")
@@ -327,7 +328,7 @@ func createdNamesError(label, typed string, p matching.Pattern, limit int) error
 	if words.Cmp(big.NewInt(int64(limit))) <= 0 {
 		return nil
 	}
-	return errorcodes.Errorf("target_created_names_exceeded", "%s %s creates too many names\n  names: %s\n  limit: %d (targets.max-created-names)", label, typed, words, limit)
+	return errorcodes.Errorf("target_created_names_exceeded", "%s %s creates too many names\n  names: %s\n  limit: %d (targets.max-created-names)\n  with --i it selects from the inventory", label, typed, words, limit)
 }
 
 // notInInventoryError is the refusal of the plain names the inventory

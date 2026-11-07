@@ -60,7 +60,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	// The target set is assembled as run does; login connects to
 	// its first device. The interactive implementation replaces the device's
 	// transport because login resolved it above.
-	set, err := assembleTargets(ctx, cfg, operator, opts.Targets, opts.Excludes, streams.Stderr)
+	set, err := assembleTargets(ctx, opts.CommonOptions, opts.Targets, opts.Excludes, streams.Stderr)
 	if err != nil {
 		return failedResult("inventory_load_failed", err)
 	}

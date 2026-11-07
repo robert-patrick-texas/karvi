@@ -80,6 +80,18 @@ func (g globalOptions) flags() map[string]configload.FlagValue {
 	return values
 }
 
+// read is a work command's read (globalOptions.read) under flags, with the
+// --inventory files the assembly reads in place of the configured sources.
+func (inv *Invocation) read(flags map[string]configload.FlagValue, stderr io.Writer) (app.CommonOptions, int, bool) {
+	common, code, ok := inv.global().read(flags, stderr)
+	for _, file := range inv.Strings(optInventory) {
+		if file != "" { // a bare --inventory adds no file
+			common.Inventory = append(common.Inventory, file)
+		}
+	}
+	return common, code, ok
+}
+
 // read is the invocation's one read of its configuration (app.ReadConfig)
 // under flags, the keys its options set, and the common options every stage
 // takes from it; a stream's job makes its snapshot from the stream's reading
@@ -242,8 +254,9 @@ func (inv *Invocation) global() globalOptions {
 }
 
 // flags are the keys the invocation's options set: the global options' and
-// the command's host-key policy and file, --order, the dispatch options, and
-// --ping or --noping; run and command add their own (workRead).
+// the command's host-key policy and file, --order, --inventory in any form,
+// the dispatch options, and --ping or --noping; run and command add their
+// own (workRead).
 func (inv *Invocation) flags() map[string]configload.FlagValue {
 	values := inv.global().flags()
 	if inv.Set(optHostKeyPolicy) {
@@ -254,6 +267,9 @@ func (inv *Invocation) flags() map[string]configload.FlagValue {
 	}
 	if inv.Set(optOrder) {
 		setKey(values, longName(optOrder), "dispatch.order", inv.String(optOrder))
+	}
+	if inv.Set(optInventory) {
+		setKey(values, longName(optInventory), "targets.inventory-only", true)
 	}
 	for _, d := range dispatchOptionKeys {
 		if !inv.Set(d.opt) {

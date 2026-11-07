@@ -79,7 +79,7 @@ func ResolvePlatforms(cfg configload.Snapshot, devices []inventory.Device, warn 
 				used = "generic"
 			}
 			out[i] = PlatformResolution{Platform: used}
-			if d.Source.Name == "direct" {
+			if d.IsDirect() {
 				continue // setup-free direct work takes no notice
 			}
 			out[i].Notice = &executionplan.TargetNotice{

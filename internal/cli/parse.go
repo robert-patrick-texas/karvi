@@ -250,6 +250,9 @@ func (p *parser) takeOption(opts []*option, where string, i *int) (*option, stri
 		}
 		return o, "true", nil
 	case kindOptional:
+		if hasInline && o == optInventory && strings.TrimSpace(inline) == "" {
+			return nil, "", errorcodes.Errorf("cli_option_value_missing", "--%s= names no file; --%s alone uses the configured inventory", o.name, o.name)
+		}
 		if hasInline {
 			return o, inline, nil
 		}
@@ -292,7 +295,7 @@ func pathForm(word string) bool {
 }
 
 // detachedValue is the refusal of a value given to an option that takes
-// its value with = alone (--of, --record, --cd, --fs) as a separate word: on the
+// its value with = alone (--of, --record, --cd, --fs, --inventory) as a separate word: on the
 // command line a word of a path's form, on a stream line any text after a
 // space.
 func detachedValue(o *option, value string) error {

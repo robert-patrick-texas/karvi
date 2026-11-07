@@ -326,7 +326,7 @@ func workRead(inv *Invocation, word string, stderr io.Writer) (app.CommonOptions
 	if code, ok := liveOptions(inv, word, flags, stderr); !ok {
 		return app.CommonOptions{}, c, code, false
 	}
-	common, code, ok := inv.global().read(flags, stderr)
+	common, code, ok := inv.read(flags, stderr)
 	return common, c, code, ok
 }
 
@@ -833,7 +833,7 @@ func commandLogin(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if code, ok := checkTargetSources(inv, streams.Stderr); !ok {
 		return code
 	}
-	common, code, ok := inv.global().read(inv.flags(), streams.Stderr)
+	common, code, ok := inv.read(inv.flags(), streams.Stderr)
 	if !ok {
 		return code
 	}

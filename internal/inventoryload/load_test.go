@@ -408,3 +408,51 @@ func TestSecretColumnRefused(t *testing.T) {
 		t.Errorf("numeric mode: %v", err)
 	}
 }
+
+// TestLoaderFiles: the --inventory files are the whole inventory, the
+// configured sources unread (a required source matching nothing is not an
+// error beside them); each is a source named as typed, its ~ resolved from
+// the operator's home and its path recorded resolved; a file reached twice,
+// by name and by a glob, is read once, under the first value, with no
+// coalesce warning.
+func TestLoaderFiles(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "inv"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for name, body := range map[string]string{"a.csv": "name,management_address\nbox01,127.0.0.1\n", "b.csv": "name,management_address\npod01,127.0.0.1\n"} {
+		if err := os.WriteFile(filepath.Join(dir, "inv", name), []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cfgPath := filepath.Join(dir, "karvi.toml")
+	if err := os.WriteFile(cfgPath, []byte("[[inventory-source]]\nname = \"site\"\ntype = \"csv\"\npath = \""+filepath.Join(dir, "absent.csv")+"\"\nrequired = true\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := configload.Load(configload.Options{ExplicitRoots: []string{cfgPath}, HomeDir: dir, SkipAuto: true, Environment: []string{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var warnings []string
+	devices, prov, err := Loader{Config: cfg, Home: dir, Files: []string{"~/inv/a.csv", filepath.Join(dir, "inv", "*.csv")}, Warn: func(s string) { warnings = append(warnings, s) }}.Load(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := []string{}
+	for _, d := range devices {
+		got = append(got, d.Name+" "+d.Source.Name+" "+d.Source.Path)
+	}
+	want := []string{
+		"box01 ~/inv/a.csv " + filepath.Join(dir, "inv", "a.csv"),
+		"pod01 " + filepath.Join(dir, "inv", "*.csv") + " " + filepath.Join(dir, "inv", "b.csv"),
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("devices\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	if len(prov.Sources) != 2 || len(warnings) != 0 {
+		t.Fatalf("provenance %+v, warnings %q: want two sources, no warning", prov.Sources, warnings)
+	}
+	if _, _, err := (Loader{Config: cfg, Home: dir}).Load(context.Background()); errorcodes.Of(err) != "inventory_missing" {
+		t.Fatalf("without files the configured source is read: %v, want inventory_missing", err)
+	}
+}

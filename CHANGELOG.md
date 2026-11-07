@@ -414,6 +414,35 @@
   at any size, so `--tl 'router0[1-5]'` runs the ones of router01 to
   router05 the inventory holds, with no direct router04, and
   `targets.max-created-names` is not applied. A `!` value and `--exclude` only remove, as before.
+- **`--inventory`, `--inv`, and `--i` run only the inventory's devices, from
+  files given on the line.** login, command, run, crun, and stream lines take
+  the option, one dash or two alike (`-i` was refused as ambiguous between
+  `--ipv4` and `--ipv6`). Bare, it is `targets.inventory-only` for the
+  invocation, through the lock-aware layer, so a site's lock refuses it as it
+  refuses `--order`. Each `--inventory=FILE`, in command-line order, is a CSV
+  read with the loader's defaults (a header row, karvi's own column names):
+  together they are the run's whole inventory, the configured sources unread,
+  and the key is on as well. A file is a source named as typed
+  (`--inv=boxes.csv`, `--inv='pods/*.csv'`), its `~` and glob resolved by
+  karvi as a configured path's; a missing file or a glob matching none is
+  `inventory_missing`; a file reached twice, named again or by a glob, is read
+  once, under the first value, where two configured sources on one file
+  coalesce each device with a warning. The value attaches with `=` alone:
+  `--inv ./boxes.csv` is `cli_option_value_detached`, and an empty `--inv=`
+  (what `--inv=$F` gives with F unset) is `cli_option_value_missing`, never
+  read as a bare `--inv`, which would put the configured inventory in the
+  file's place. A stream's `--inv` line stays from job to job and `--reset`
+  clears it. `target_created_names_exceeded` gains a last line, `with --i it
+  selects from the inventory`; the help lists the option, and its selector
+  paragraph says a range under `--i` selects.
+- **A configured inventory source named `direct` is an inventory source.**
+  karvi told a direct target by its source name, `direct`, so a source given
+  that name lost what only a direct target should: its devices without a
+  platform had no `platform_not_set` notice, and `karvi DEVICE` refused an
+  inventory name one slip from a command word (`karvi lgoin`) as
+  `cli_command_near_miss`. A direct target is told by its source path, `cli`,
+  which no inventory path can be (the loader makes each absolute), so a
+  source's name, and an `--inventory` value, is a label alone.
 
 ## 0.40.0 - 2026-11-05
 

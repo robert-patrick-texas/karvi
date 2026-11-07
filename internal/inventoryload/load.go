@@ -29,7 +29,14 @@ import (
 type Loader struct {
 	Config configload.Snapshot
 	Home   string
-	Warn   func(string)
+	// Files are the --inventory=FILE values in command-line order, as
+	// typed. When any is given they are the whole inventory and the
+	// configured sources are unread: each a required CSV source named by
+	// its value, read with the loader's defaults, its ~ and glob resolved as
+	// a configured path's, and a file reached twice read once, under the
+	// first value that reached it.
+	Files []string
+	Warn  func(string)
 }
 
 // logicalFields are the inventory columns the loader reads. `credkeyref`
@@ -52,9 +59,16 @@ func (l Loader) Load(ctx context.Context) ([]inventory.Device, inventory.Provena
 		return nil, inventory.Provenance{}, err
 	}
 	sources := l.Config.IndexedTables("inventory-source")
+	if len(l.Files) > 0 {
+		sources = make([]map[string]any, len(l.Files))
+		for i, f := range l.Files {
+			sources[i] = map[string]any{"name": f, "path": f}
+		}
+	}
 	all := []inventory.Device{}
 	prov := inventory.Provenance{}
 	seen := map[string]inventory.Device{}
+	read := map[string]bool{} // the command-line files read
 	for i, src := range sources {
 		name, _ := src["name"].(string)
 		path, _ := src["path"].(string)
@@ -79,6 +93,12 @@ func (l Loader) Load(ctx context.Context) ([]inventory.Device, inventory.Provena
 			continue
 		}
 		for _, file := range paths {
+			if len(l.Files) > 0 {
+				if read[file] {
+					continue
+				}
+				read[file] = true
+			}
 			devices, ref, err := l.readFile(ctx, i, name, file, src, profiles)
 			if err != nil {
 				return nil, prov, err

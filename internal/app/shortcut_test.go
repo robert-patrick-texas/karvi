@@ -12,6 +12,8 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
+	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/inventory"
 )
 
 // TestShortcutModes: the device shortcut's rules 4 and 5 in login and
@@ -110,5 +112,21 @@ func TestShortcutModes(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+// TestShortcutGuardByPath: the guard refuses a near miss only when the word
+// made a direct target, told by its source path: an inventory device from a
+// source named "direct" goes ahead as any inventory name does (DECISIONS S4
+// point 2).
+func TestShortcutGuardByPath(t *testing.T) {
+	listed := inventory.Direct("lgoin", "cisco_ios", "system", 0)
+	listed.Source = inventory.SourceRef{Name: "direct", Path: "/srv/inv/boxes.csv", Line: 3}
+	if err := CheckShortcut(TargetSet{Devices: []inventory.Device{listed}}, Shortcut{"lgoin", "login"}); err != nil {
+		t.Errorf("an inventory name from a source named direct: %v", err)
+	}
+	err := CheckShortcut(TargetSet{Devices: []inventory.Device{inventory.Direct("lgoin", "", "system", 0)}}, Shortcut{"lgoin", "login"})
+	if errorcodes.Of(err) != "cli_command_near_miss" {
+		t.Errorf("a direct target: %v, want cli_command_near_miss", err)
 	}
 }

@@ -322,10 +322,11 @@ ansi = "auto"
 [targets]
 # warn or error for a target file or folder that yields no targets.
 empty-source = "error"
-# true runs only the inventory's devices: a plain target name the inventory lacks refuses the
-# job before planning, target_not_in_inventory, naming each; a numeric range or a glob selects
-# the inventory's devices among the names it matches, at any size, targets.max-created-names
-# not applied. false makes a name the inventory lacks, typed or created by a range, a direct
+# true runs only the inventory's devices, and --inventory (--inv, --i) sets it for the
+# invocation, bare or with its files: a plain target name the inventory lacks refuses the job
+# before planning, target_not_in_inventory, naming each; a numeric range or a glob selects the
+# inventory's devices among the names it matches, at any size, targets.max-created-names not
+# applied. false makes a name the inventory lacks, typed or created by a range, a direct
 # target.
 inventory-only = false
 # 1–100,000; the most names one target value's numeric ranges may create, brackets

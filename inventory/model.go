@@ -115,6 +115,10 @@ type Selector interface {
 	Select(ctx context.Context, devices []Device, query Query) ([]Device, error)
 }
 
+// DirectPath is a direct target's source path (Direct), which no inventory
+// device has: the loader makes every inventory path absolute.
+const DirectPath = "cli"
+
 // Direct constructs the deterministic ad-hoc device required for direct modes.
 // An empty platformName stays blank: a direct target without --platform is
 // not set, and the planner resolves it at planning.
@@ -128,7 +132,7 @@ func Direct(target, platformName, transport string, port uint16) Device {
 		Name: target, CanonicalName: canonical, Platform: strings.ToLower(strings.TrimSpace(platformName)),
 		Transport: strings.ToLower(transport), Port: port, Groups: []string{},
 		NameTransform: "default", Attributes: map[string]string{},
-		Source: SourceRef{Name: "direct", Path: "cli"},
+		Source: SourceRef{Name: "direct", Path: DirectPath},
 	}
 	if addr, err := netip.ParseAddr(canonical); err == nil {
 		addr = addr.Unmap()
@@ -137,6 +141,11 @@ func Direct(target, platformName, transport string, port uint16) Device {
 	}
 	return d
 }
+
+// IsDirect reports whether d is a direct target, a name no inventory lists
+// (Direct). It is told by the source path, never the source name: a
+// configured source or an --inventory value may be named "direct" too.
+func (d Device) IsDirect() bool { return d.Source.Path == DirectPath }
 
 // SuppliedName returns the target token as supplied (records: input_target).
 func (d Device) SuppliedName() string {

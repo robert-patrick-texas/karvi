@@ -95,9 +95,9 @@ Active failure causes.
 | `cli_option_ambiguous` | usage | 4 | no | An option prefix matches more than one option; the message names every candidate. |
 | `cli_option_unavailable` | usage | 4 | no | An option, or a combination of options, that is specified but this executable does not implement yet. |
 | `cli_option_unknown` | usage | 4 | no | An option matches no option valid at its position. |
-| `cli_option_value_detached` | usage | 4 | no | An option that takes its value with `=` alone (`--of`, `--record`, `--cd`, `--fs`) is followed by its value as a separate word: on the command line a word of a path's form after the bare option (beginning with `/`, `~`, `./`, or `../`, or `.` or `..` whole), on a stream line any text after a space. The message names the `--NAME=VALUE` form; refused before any device is contacted or transcript claimed. |
+| `cli_option_value_detached` | usage | 4 | no | An option that takes its value with `=` alone (`--of`, `--record`, `--cd`, `--fs`, `--inventory`) is followed by its value as a separate word: on the command line a word of a path's form after the bare option (beginning with `/`, `~`, `./`, or `../`, or `.` or `..` whole), on a stream line any text after a space. The message names the `--NAME=VALUE` form; refused before any device is contacted or transcript claimed. |
 | `cli_option_value_invalid` | usage | 4 | no | An option value does not fit the option's declared type: an on/off option given an inline value other than `true` or `false`, or an integer, duration, or enumerated option given a value outside its type; `--sudo` given a blank command. |
-| `cli_option_value_missing` | usage | 4 | no | An option that takes a value is the last argument. |
+| `cli_option_value_missing` | usage | 4 | no | An option that takes a value is the last argument, or one whose value attaches with `=` alone is given none where it needs one: a bare or empty `--cd` or `--fs`, and an empty `--inventory=` (white space alone too), never read as a bare `--inventory`, which uses the configured inventory. |
 | `cli_positional_missing` | usage | 4 | no | A command that requires a positional argument receives none (`job cancel JOB-ID`, `job follow JOB-ID`). |
 | `cli_positional_unexpected` | usage | 4 | no | A command that accepts no or a limited number of positional arguments receives more. |
 | `cli_subcommand_ambiguous` | usage | 4 | no | The subcommand prefix matches more than one subcommand; the message names every candidate. |
@@ -422,7 +422,7 @@ Active failure causes.
 | `inventory_empty_selection` | inventory | 5 | no | The target selectors matched no devices. |
 | `inventory_load_failed` | inventory | 5 | no | Unclassified. Inventory loading or selection fails without a specific code. |
 | `inventory_management_address_invalid` | inventory | 5 | no | An inventory row's `management_address` is not an IP address. |
-| `inventory_missing` | inventory | 5 | no | A required inventory source path matches no files. |
+| `inventory_missing` | inventory | 5 | no | A required inventory source path, or an `--inventory=FILE` value, matches no files: a missing file or a glob matching none, named by the source's name (an `--inventory` value as typed) and the path resolved. |
 | `inventory_name_transform_unknown` | inventory | 5 | no | An inventory row's `name_transform` names a name-transform table that is not defined. |
 | `inventory_port_invalid` | inventory | 5 | no | An inventory row's `port` is not 1..65535. |
 | `inventory_positive_selector_missing` | inventory | 5 | no | A selection has no positive target selector. |

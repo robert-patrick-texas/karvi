@@ -19,7 +19,7 @@ type Shortcut struct {
 // direct reports whether d is the direct target the shortcut's word made: the
 // word matched no inventory row.
 func (s Shortcut) direct(d inventory.Device) bool {
-	return s.Word != "" && d.Source.Name == "direct" && d.ID == "name:"+strings.ToLower(strings.TrimSpace(s.Word))
+	return s.Word != "" && d.IsDirect() && d.ID == "name:"+strings.ToLower(strings.TrimSpace(s.Word))
 }
 
 // CheckShortcut is rule 4's guard, where the target set is assembled and

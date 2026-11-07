@@ -36,7 +36,7 @@ func ExecuteCommand(ctx context.Context, opts CommandOptions, streams IO) Activi
 	if err != nil {
 		return failedResult("platform_option_unknown", err)
 	}
-	set, err := assembleTargets(ctx, cfg, operator, opts.Targets, opts.Excludes, streams.Stderr)
+	set, err := assembleTargets(ctx, opts.CommonOptions, opts.Targets, opts.Excludes, streams.Stderr)
 	if err != nil {
 		return failedResult("inventory_load_failed", err)
 	}
@@ -103,7 +103,7 @@ func ExecuteRunLocal(ctx context.Context, opts RunOptions, streams IO) ActivityR
 	if err != nil {
 		return failedResult("platform_option_unknown", err)
 	}
-	set, err := assembleTargets(ctx, cfg, operator, opts.Targets, opts.Excludes, streams.Stderr)
+	set, err := assembleTargets(ctx, opts.CommonOptions, opts.Targets, opts.Excludes, streams.Stderr)
 	if err != nil {
 		return failedResult("inventory_load_failed", err)
 	}

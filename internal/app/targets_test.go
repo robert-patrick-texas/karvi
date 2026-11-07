@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/planner"
@@ -185,7 +184,7 @@ func TestAssembleSelectorGrammar(t *testing.T) {
 			t.Errorf("%+v %q: %v", tc.inputs, tc.excludes, err)
 		}
 	}
-	_, err := assembleTargets(context.Background(), configload.Snapshot{}, credentials.Operator{}, []TargetInput{{Kind: "site", Value: "!nyc"}, {Kind: "target", Value: " !r1"}}, nil, io.Discard)
+	_, err := assembleTargets(context.Background(), CommonOptions{}, []TargetInput{{Kind: "site", Value: "!nyc"}, {Kind: "target", Value: " !r1"}}, nil, io.Discard)
 	if errorcodes.Of(err) != "inventory_positive_selector_missing" {
 		t.Fatalf("only not selectors: %v", err)
 	}
@@ -250,7 +249,7 @@ func TestAssembleEmptyCodes(t *testing.T) {
 			var err error
 			if tc.inputs == nil {
 				// The no-input rule runs before configuration or inventory is touched.
-				_, err = assembleTargets(context.Background(), configload.Snapshot{}, credentials.Operator{}, nil, nil, io.Discard)
+				_, err = assembleTargets(context.Background(), CommonOptions{}, nil, nil, io.Discard)
 			} else {
 				_, err = assemble(testInventory, tc.inputs, tc.excludes, setPlatformAsIs, testRules)
 			}
@@ -428,7 +427,7 @@ func TestAssemblePlatformSelectorKnown(t *testing.T) {
 		t.Run(tc.value, func(t *testing.T) {
 			inputs := []TargetInput{{Kind: "all"}, {Kind: "platform", Value: tc.value}}
 			err := checkPlatformSelectors(cfg, inputs)
-			_, assembled := assembleTargets(context.Background(), cfg, credentials.Operator{}, inputs, nil, io.Discard)
+			_, assembled := assembleTargets(context.Background(), CommonOptions{Config: cfg}, inputs, nil, io.Discard)
 			if !tc.refused {
 				if err != nil || errorcodes.Of(assembled) == "platform_selector_unknown" {
 					t.Fatalf("refused: %v / %v", err, assembled)
@@ -575,7 +574,7 @@ func TestAssembleCreatesRangeNames(t *testing.T) {
 				if tc.supplied != nil && d.SuppliedName() != tc.supplied[i] {
 					t.Errorf("%s: input_target %q, want %q", d.CanonicalName, d.SuppliedName(), tc.supplied[i])
 				}
-				if isDirect := d.Source.Name == "direct"; isDirect != tc.direct[d.CanonicalName] {
+				if isDirect := d.IsDirect(); isDirect != tc.direct[d.CanonicalName] {
 					t.Errorf("%s: direct %v, want %v", d.CanonicalName, isDirect, !isDirect)
 				}
 			}
@@ -585,11 +584,12 @@ func TestAssembleCreatesRangeNames(t *testing.T) {
 
 // TestCreatedNamesLimit: targets.max-created-names bounds the words one
 // target name spells, brackets multiplying, counted without spelling them;
-// the refusal names the value and stacks the count over the limit; a "!"
-// name, a name without a range, and a selector option create nothing.
+// the refusal names the value, stacks the count over the limit, and says
+// what --i does; a "!" name, a name without a range, and a selector option
+// create nothing.
 func TestCreatedNamesLimit(t *testing.T) {
 	err := CheckCreatedNames("--tl", "box[78000-99999]", 1000)
-	const want = "--tl box[78000-99999] creates too many names\n  names: 22000\n  limit: 1000 (targets.max-created-names)"
+	const want = "--tl box[78000-99999] creates too many names\n  names: 22000\n  limit: 1000 (targets.max-created-names)\n  with --i it selects from the inventory"
 	if errorcodes.Of(err) != "target_created_names_exceeded" || !strings.HasSuffix(err.Error(), want) {
 		t.Fatalf("CheckCreatedNames = %v, want target_created_names_exceeded ending %q", err, want)
 	}
@@ -662,7 +662,7 @@ func TestAssembleInventoryOnly(t *testing.T) {
 				t.Fatalf("names=%q err=%v, want %q", names(got), err, tc.want)
 			}
 			for _, d := range got {
-				if d.Source.Name == "direct" {
+				if d.IsDirect() {
 					t.Errorf("%s is a direct target", d.CanonicalName)
 				}
 			}

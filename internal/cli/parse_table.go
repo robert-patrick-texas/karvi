@@ -126,11 +126,19 @@ var (
 	// login, command, and run take the same target inputs and assemble one
 	// target set.
 	optExclude = valueOpt("exclude", "GLOB").repeatable()
-	optOrder   = enumOpt("order", "default", "sorted", "shuffle", "random") // sets dispatch.order through the lock-aware flag layer
-	optCmd     = valueOpt("cmd", "TEXT", "command", "c").repeatable().as(roleCmd)
-	optCf      = valueOpt("cf", "PATH|-").as(roleCf)
-	optSleep   = durationOpt("sleep").repeatable().as(roleSleep)
-	optSudo    = valueOpt("sudo", "TEXT").repeatable().as(roleSudo)
+	// --inventory[=FILE], --inv, --i: only inventory devices run
+	// (targets.inventory-only for the invocation, through the lock-aware
+	// flag layer); each =FILE, in command-line order, is a CSV, together the
+	// run's whole inventory, the configured sources unread
+	// (CommonOptions.Inventory). = form only, as --of: the next word may be
+	// a device. An empty FILE is refused, never read as the bare form,
+	// which would put the configured inventory in the file's place.
+	optInventory = (&option{name: "inventory", aliases: []string{"inv", "i"}, kind: kindOptional, placeholder: "[=FILE]"}).repeatable()
+	optOrder     = enumOpt("order", "default", "sorted", "shuffle", "random") // sets dispatch.order through the lock-aware flag layer
+	optCmd       = valueOpt("cmd", "TEXT", "command", "c").repeatable().as(roleCmd)
+	optCf        = valueOpt("cf", "PATH|-").as(roleCf)
+	optSleep     = durationOpt("sleep").repeatable().as(roleSleep)
+	optSudo      = valueOpt("sudo", "TEXT").repeatable().as(roleSudo)
 	// --platform names the platform definition the activity's devices run
 	// as, in login, command, and run alike; selecting inventory devices by
 	// their platform is --select-platform, a target input at its position
@@ -335,9 +343,9 @@ var commandTable = []*command{
 	// although config and crun begin with it, s is stream although setup
 	// does, and a word added later never makes r or l ambiguous.
 	{path: "login", word: "login", aliases: []string{"l"}, shape: shapePlain, maxPos: -1, help: func() string { return loginHelp },
-		options: []*option{optPlatform, optPI, optPN, optPR, optPJ, optPA, optPL, optPS, optPG, optTarget, optTf, optTfr, optExclude, optSite, optGroup, optSelectPlatform, optAll, optOrder, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optRecord, optSSHOption, optQuiet, optDebug, optIPv4, optIPv6, optPing, optNoPing, optNoCredh, optAddrAuthority, optHelp}},
+		options: []*option{optPlatform, optPI, optPN, optPR, optPJ, optPA, optPL, optPS, optPG, optTarget, optTf, optTfr, optExclude, optSite, optGroup, optSelectPlatform, optAll, optInventory, optOrder, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optRecord, optSSHOption, optQuiet, optDebug, optIPv4, optIPv6, optPing, optNoPing, optNoCredh, optAddrAuthority, optHelp}},
 	{path: "command", word: "command", aliases: []string{"cmd", "c"}, shape: shapeFreeformDevice, help: func() string { return commandHelp },
-		options: []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optSudo, optCf, optSleep, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPL, optPS, optPG, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optFormat, optEcho, optLive, optBorder, optNoBorder, optQuiet, optDebug, optContinue, optExpect, optBlind, optBlindReturn, optTimeout, optMaxBytes, optBlindWait, optLiteral, optNof, optOf, optCd, optFs, optIPv4, optIPv6, optPing, optNoPing, optNoCredh, optAddrAuthority, optHelp}},
+		options: []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optInventory, optOrder, optCmd, optSudo, optCf, optSleep, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPL, optPS, optPG, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optFormat, optEcho, optLive, optBorder, optNoBorder, optQuiet, optDebug, optContinue, optExpect, optBlind, optBlindReturn, optTimeout, optMaxBytes, optBlindWait, optLiteral, optNof, optOf, optCd, optFs, optIPv4, optIPv6, optPing, optNoPing, optNoCredh, optAddrAuthority, optHelp}},
 	{path: "run", word: "run", aliases: []string{"r"}, shape: shapeFreeform, help: runHelpText, options: runOptions},
 	// stream, s, or -, reads a run line by line from standard input: the
 	// lines carry run's options and the commands; the word itself takes
@@ -405,4 +413,4 @@ func lookupCommand(path string) *command {
 }
 
 // runOptions is run's option slice, shared with crun.
-var runOptions = []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optSudo, optCf, optSleep, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPL, optPS, optPG, optDispatch, optDP, optDW, optDS, optWorkers, optStartWidth, optMaxWidth, optHaltCount, optHaltPercent, optGateCount, optGatePercent, optWaveDelay, optContinue, optExpect, optBlind, optBlindReturn, optTimeout, optMaxBytes, optBlindWait, optLiteral, optTransport, optHostKeyPolicy, optKnownHosts, optAddress, optFormat, optEcho, optLive, optBorder, optNoBorder, optNoDaemon, optNof, optOf, optCd, optFs, optDetach, optFollow, optDryRun, optExercise, optDebug, optIPv4, optIPv6, optPing, optNoPing, optNoCredh, optAddrAuthorityRun, optHelp}
+var runOptions = []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optInventory, optOrder, optCmd, optSudo, optCf, optSleep, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPL, optPS, optPG, optDispatch, optDP, optDW, optDS, optWorkers, optStartWidth, optMaxWidth, optHaltCount, optHaltPercent, optGateCount, optGatePercent, optWaveDelay, optContinue, optExpect, optBlind, optBlindReturn, optTimeout, optMaxBytes, optBlindWait, optLiteral, optTransport, optHostKeyPolicy, optKnownHosts, optAddress, optFormat, optEcho, optLive, optBorder, optNoBorder, optNoDaemon, optNof, optOf, optCd, optFs, optDetach, optFollow, optDryRun, optExercise, optDebug, optIPv4, optIPv6, optPing, optNoPing, optNoCredh, optAddrAuthorityRun, optHelp}

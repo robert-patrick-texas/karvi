@@ -187,3 +187,22 @@ func TestDraftCarriesPlatformNotices(t *testing.T) {
 		t.Fatalf("set target: platform=%s notices=%+v", b.Device.Platform, b.Notices)
 	}
 }
+
+// TestDirectTargetByPath: a direct target is told by its source path, not
+// its source name, so an inventory source named "direct" is an inventory
+// source like any other: its device without a platform takes the
+// platform_not_set notice, as a direct target does not (DECISIONS S4 point 2).
+func TestDirectTargetByPath(t *testing.T) {
+	named := inventory.Direct("box01", "", "system", 0)
+	named.Source = inventory.SourceRef{Name: "direct", Path: "/srv/inv/boxes.csv", Line: 2}
+	out, err := ResolvePlatforms(testConfig(t, `platform-resolution.default="cisco_ios"`), []inventory.Device{named, inventory.Direct("router9", "", "system", 0)}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out[0].Notice == nil || out[0].Notice.Code != "platform_not_set" || out[0].Notice.Details["source"] != "direct line 2" {
+		t.Errorf("a source named direct: notice %+v, want platform_not_set from direct line 2", out[0].Notice)
+	}
+	if out[1].Notice != nil {
+		t.Errorf("a direct target: notice %+v, want none", out[1].Notice)
+	}
+}

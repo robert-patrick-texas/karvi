@@ -20,8 +20,11 @@ type IO = jobexec.IO
 // CommonOptions are an invocation's one read of its configuration
 // (ReadConfig) and the options every stage takes beside it.
 type CommonOptions struct {
-	Config          configload.Snapshot
-	Operator        credentials.Operator
+	Config   configload.Snapshot
+	Operator credentials.Operator
+	// Inventory is the --inventory=FILE values in command-line order, as
+	// typed: when set, the run's whole inventory (inventoryload.Loader.Files).
+	Inventory       []string
 	Quiet           bool
 	Debug           bool
 	DebugShowSecret bool

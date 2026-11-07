@@ -117,6 +117,18 @@ Options:
   --help, -h                     Show this help
 `
 
+// inventoryHelp is the --inventory line, in each command's target inputs
+// after --exclude.
+const inventoryHelp = `  --inventory[=FILE], --inv, --i
+                                 Only inventory devices run: a plain name the
+                                 inventory lacks refuses the job
+                                 (targets.inventory-only); each =FILE, a CSV
+                                 with karvi's column names (~ and a glob
+                                 karvi's), makes the files in this order the
+                                 whole inventory, the configured sources
+                                 unread; = form only, repeatable
+`
+
 // globHelp is the selector grammar's paragraph, in each command's target
 // inputs.
 const globHelp = `  A GLOB matches the whole value without regard to case: * ? [a-c] [!a-c],
@@ -124,10 +136,10 @@ const globHelp = `  A GLOB matches the whole value without regard to case: * ? [
   hyphens, and commas is a numeric range: [1-12], [01-12] (padded to the
   lower bound's width), [1,4,7-9]. A target name holding one creates the
   names it spells, each an inventory device or a direct target, at most
-  targets.max-created-names; an inventory selector, --exclude, or ! value
-  matches them. A selector value beginning with ! removes the devices it
-  matches and selects none; in a target file, lines beginning with # or !
-  are comments.
+  targets.max-created-names; under --i it selects from the inventory, at any
+  size. An inventory selector, --exclude, or ! value matches them. A
+  selector value beginning with ! removes the devices it matches and selects
+  none; in a target file, lines beginning with # or ! are comments.
 `
 
 const selectPlatformHelp = `  A --select-platform value is a selector over the known platforms (the
@@ -228,7 +240,7 @@ device of the assembled set):
   --site GLOB, --device-group GLOB, --select-platform GLOB, --all
                                  Inventory selectors, matches at this position
   --exclude GLOB                 Remove name matches after duplicate removal
-` + globHelp + selectPlatformHelp + `  --order default|sorted|shuffle|random
+` + inventoryHelp + globHelp + selectPlatformHelp + `  --order default|sorted|shuffle|random
                                  Dispatch order for this invocation (sets the
                                  lock-aware dispatch.order; the shuffle key
                                  comes from dispatch.shuffle-key)
@@ -419,7 +431,7 @@ of a name keeps its position, names are lowercase):
   --site GLOB, --device-group GLOB, --select-platform GLOB, --all
                                  Inventory selectors, matches at this position
   --exclude GLOB                 Remove name matches after duplicate removal
-` + globHelp + selectPlatformHelp + `  An unknown row platform in the set refuses the run under the default, fail.
+` + inventoryHelp + globHelp + selectPlatformHelp + `  An unknown row platform in the set refuses the run under the default, fail.
   --order default|sorted|shuffle|random
                                  Dispatch order for this invocation (sets the
                                  lock-aware dispatch.order; the shuffle key
@@ -612,7 +624,7 @@ Target inputs (command-line order is kept):
   --site GLOB, --device-group GLOB, --select-platform GLOB, --all
                                  Inventory selectors, matches at this position
   --exclude GLOB                 Remove name matches after duplicate removal
-` + globHelp + selectPlatformHelp + `  --order default|sorted|shuffle|random
+` + inventoryHelp + globHelp + selectPlatformHelp + `  --order default|sorted|shuffle|random
                                  Dispatch order for this invocation (sets the
                                  lock-aware dispatch.order; the shuffle key
                                  comes from dispatch.shuffle-key)

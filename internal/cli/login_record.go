@@ -62,7 +62,7 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	if code, ok := checkTargetSources(inv, stderr); !ok {
 		return code
 	}
-	common, code, ok := inv.global().read(inv.flags(), stderr)
+	common, code, ok := inv.read(inv.flags(), stderr)
 	if !ok {
 		return code
 	}

@@ -44,16 +44,25 @@ Inventory selectors, matches at this position
 .TP
 \fB\-\-exclude\fR \fIGLOB\fR
 Remove name matches after duplicate removal
+.TP
+\fB\-\-inventory[=FILE]\fR, \fB\-\-inv\fR, \fB\-\-i\fR
+Only inventory devices run: a plain name the
+inventory lacks refuses the job
+(targets.inventory\-only); each =FILE, a CSV
+with karvi's column names (~ and a glob
+karvi's), makes the files in this order the
+whole inventory, the configured sources
+unread; = form only, repeatable
 .PP
 A GLOB matches the whole value without regard to case: * ? [a\-c] [!a\-c],
 and \e escapes the next character; ^ and $ are refused. A bracket of digits,
 hyphens, and commas is a numeric range: [1\-12], [01\-12] (padded to the
 lower bound's width), [1,4,7\-9]. A target name holding one creates the
 names it spells, each an inventory device or a direct target, at most
-targets.max\-created\-names; an inventory selector, \-\-exclude, or ! value
-matches them. A selector value beginning with ! removes the devices it
-matches and selects none; in a target file, lines beginning with # or !
-are comments.
+targets.max\-created\-names; under \-\-i it selects from the inventory, at any
+size. An inventory selector, \-\-exclude, or ! value matches them. A
+selector value beginning with ! removes the devices it matches and selects
+none; in a target file, lines beginning with # or ! are comments.
 A \-\-select\-platform value is a selector over the known platforms (the
 built\-ins and the configured [platform.NAME] tables) and matches the
 platform set on a device's row or source default, before any \-\-platform
