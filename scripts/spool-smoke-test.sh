@@ -137,6 +137,24 @@ check_record() {
   [ "$(json_get "$TMP/rec.json" output | head -c -1 | wc -c)" -eq "$(json_get "$TMP/rec.json" output_bytes)" ] || fail "$1: output_bytes does not count the output"
 }
 BIG_BYTES=65700000
+# streaming ROW: wait until a beat of the scoreboard counts bytes for the
+# client's target, the response streaming (each file copied before it is
+# read, as S8 reads it), checking every tenth of a second up to 20 s; the
+# row fails if the client ends first or no beat does.
+streaming() {
+  st_n=0
+  while kill -0 "$CLIENT" 2>/dev/null; do
+    for st_f in "$SCORE"/*.json; do
+      [ -s "$st_f" ] || continue
+      cp "$st_f" "$TMP/snap.json" 2>/dev/null || continue
+      [ "$(json_get "$TMP/snap.json" targets.0.bytes 2>/dev/null || echo 0)" -gt 0 ] && return 0
+    done
+    [ "$st_n" -lt 200 ] || fail "$1: no beat counted the response's bytes in 20 s"
+    sleep 0.1
+    st_n=$((st_n + 1))
+  done
+  fail "$1: the client ended before a beat counted the response's bytes"
+}
 
 # S1: threshold 0 spools a small answer from its first byte; the record is
 # the memory form's, the spool opened and removed.
@@ -203,22 +221,27 @@ record s4t; check_record "S4 timeout" timeout
 json_is "$TMP/rec.json" error.code command_timeout || fail "S4 timeout: $(json_get "$TMP/rec.json" error.code)"
 [ "$(json_get "$TMP/rec.json" output_bytes)" -gt 1048576 ] || fail "S4 timeout: only $(json_get "$TMP/rec.json" output_bytes) bytes settled by the cut"
 spool_empty "S4 timeout"
-# The cancel: the client interrupted 0.7 s into the command, past the fake's
-# build of its answer and inside the stream.
+# The cancel: the client interrupted once the scoreboard counts the
+# response's bytes, inside the stream.
+rm -f "$SCORE"/*.json
 HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" cmd fake-iosxe --format jsonl --transport native --cmd 'show big' >"$TMP/out.s4c" 2>"$TMP/err.s4c" &
 CLIENT=$!
-sleep 0.7; kill -INT "$CLIENT"
+streaming "S4 cancel"; kill -INT "$CLIENT"
 CODE=0; wait "$CLIENT" || CODE=$?
 [ "$CODE" -ne 0 ] || fail "S4 cancel: the client exited 0"
 record s4c; check_record "S4 cancel" cancel
+[ "$(json_get "$TMP/rec.json" output_bytes)" -gt 0 ] || fail "S4 cancel: no bytes settled before the cut"
 spool_empty "S4 cancel"
-# The lost session: the fake killed 0.7 s in, then the same device again.
+# The lost session: the fake killed once the scoreboard counts the
+# response's bytes, then the same device again.
+rm -f "$SCORE"/*.json
 HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" cmd fake-iosxe --format jsonl --transport native --cmd 'show big' >"$TMP/out.s4x" 2>"$TMP/err.s4x" &
 CLIENT=$!
-sleep 0.7; kill -9 "$FAKE_PID" 2>/dev/null || true; wait "$FAKE_PID" 2>/dev/null || true; FAKE_PID=
+streaming "S4 lost"; kill -9 "$FAKE_PID" 2>/dev/null || true; wait "$FAKE_PID" 2>/dev/null || true; FAKE_PID=
 CODE=0; wait "$CLIENT" || CODE=$?
 [ "$CODE" -ne 0 ] || fail "S4 lost: the client exited 0"
 record s4x; check_record "S4 lost" connection_error
+[ "$(json_get "$TMP/rec.json" output_bytes)" -gt 0 ] || fail "S4 lost: no bytes settled before the cut"
 spool_empty "S4 lost"
 start_fake
 echo "spool smoke: S4 the limit (20000 held, $observed observed), the timeout, the cancel, and the lost session record their settled bytes"

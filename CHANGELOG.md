@@ -237,6 +237,26 @@
   `completed`, `halted`, `errored`, `cancelled`, and `exercised`; the words
   are `complete`, `halt`, `error`, `cancel`, `incomplete`, and `exercise`
   (`records.FinalStatuses`), as `docs/PRUNE.md` has them.
+- **The spool suite's cut rows cut inside the stream.** S4's cancel and lost
+  session sent SIGINT to the client, and killed the fake device, 0.7 s after
+  the client started. On the build host the 65.7 MB answer had not begun by
+  then, so both records held 0 bytes and the rows passed, their status,
+  digest, and count checks holding for an empty output; a client started a
+  second late took the SIGINT before karvi ran and exited 0. Each row now
+  waits for a beat of the scoreboard counting the target's bytes (up to 20
+  s), then cuts, and checks that the record holds bytes: 12 to 31 MB on the
+  build host.
+- **Three more suites wait on what a row needs, not a fixed time.** The job
+  list suite killed its run 2 s after the start, so a run slow to reserve
+  its folder left the exercise's folder taken for it; it waits for the run's
+  folder and the summary written at acceptance. Its folder without a summary
+  was the last ID of the killed run's second, so a run made in that second
+  sorted below it and was missed; the folder is the ID after the killed
+  run's. The v0100 suite's i1 interrupted a one-second command a second
+  after the client started, 0.3 s to spare; the device holds it three
+  seconds, as for the shutdown rows. The sysutil suite checked 13 s after
+  the operator's logout for the file logind removes 10 s after it; it waits
+  up to 30 s and reports the time.
 
 ## 0.40.0 - 2026-11-05
 

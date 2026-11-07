@@ -139,7 +139,11 @@ row t2 0 -- run --detach --target 127.0.0.1 --transport system --format json 'sh
 grep -q '"job_id": ' "$TMP/streams/t2.out" && grep -q '"mode": "live"' "$TMP/streams/t2.out" || fail "t2: json receipt"
 wait_summaries $((before + 2)) || fail "t2: the detached job did not finish"
 
-# SIGINT during the follow: exit 113, the job continues to completion.
+# SIGINT during the follow: exit 113, the job continues to completion. The
+# device holds the command three seconds, as for the s-rows, so the
+# interrupt a second in lands while the client follows; a second again
+# from p1.
+printf 3 >"$TMP/slow"
 rows=$((rows + 1))
 before=$(summaries)
 set +e
@@ -157,6 +161,7 @@ grep -q '^cancelled: ' "$TMP/streams/i1.err" || fail "i1: no cancelled code"
 wait_summaries $((before + 1)) || fail "i1: the interrupted job did not finish"
 i1_dir=$(sed -n 's/^interrupted: job [^ ]* continues in the daemon; artifacts \([^;]*\);.*/\1/p' "$TMP/streams/i1.err")
 [ -n "$i1_dir" ] && json_is "$i1_dir/summary.json" final_status complete || fail "i1: the job did not complete after the interrupt"
+printf 1 >"$TMP/slow"
 
 # Broken stdout during the follow: exit 111, the job continues.
 # Two targets in serial give a second record to write after head has

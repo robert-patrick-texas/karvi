@@ -376,9 +376,9 @@ None chosen: the operator names the next item, from "Later" or anew.
   three ([`docs/EXAMPLES.md`, chapter
   79](docs/EXAMPLES.md#79-a-command-file-per-target-2026-10-25)). The item: the
   row asserts the cut's settled bytes whatever the disk's pace. The questions: a
-  cut timed from the answer's first byte rather than from the send; the row's
-  threshold; and the rows that time a fixed cut beside it (the cancel and the
-  lost session at 0.7 s).
+  cut timed from the answer's first byte rather than from the send; and the
+  row's threshold. The cancel and the lost session beside it cut once the
+  scoreboard counts the answer's bytes and check that some settled.
 - **`verify-shipped.sh` reviewed for what it leaves.** Its `STATELESS`
   folder, made to show that `--help` and `version` create no home, is removed
   only when that check passes, so a failing check leaves it in `/tmp`. The

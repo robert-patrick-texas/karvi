@@ -94,20 +94,34 @@ karvi() {
 expect() { [ "$CODE" = "$2" ] || fail "$1: exit $CODE, want $2: $(head -3 "$TMP/err.$1")"; }
 # newest: the newest job folder's name, the last a glob sorts.
 newest() { for nw_dir in "$TMP/base/jobs"/*/*; do :; done; basename "$nw_dir"; }
+# day ID: the job folder of ID, under its day.
+day() { printf '%s' "$TMP/base/jobs/${1%%-*}/$1"; }
+# next_id ID: the ID after ID in its second, the sequences 00 to zz in
+# karvi's order 0-9a-z.
+next_id() {
+  awk -v id="$1" 'BEGIN {
+    a = "0123456789abcdefghijklmnopqrstuvwxyz"; s = substr(id, length(id) - 1)
+    n = (index(a, substr(s, 1, 1)) - 1) * 36 + index(a, substr(s, 2, 1))
+    print substr(id, 1, length(id) - 2) substr(a, int(n / 36) + 1, 1) substr(a, n % 36 + 1, 1)
+  }'
+}
 
 karvi cmd command fake-iosxe 'show version';                                        expect cmd 0;   J1=$(newest)
 karvi two run --no-daemon --target fake-iosxe --target dead-iosxe --cmd 'show version'; expect two 101; J2=$(newest)
 karvi crun crun --no-daemon --target fake-iosxe --cmd 'show version';               expect crun 0;  J3=$(newest)
 karvi ex run --exercise --target fake-iosxe --cmd 'show version';                    expect ex 0;    J4=$(newest)
-# A run killed two seconds into show slow: its summary stays the one
-# written at acceptance. The background is karvi itself, so $! is its pid.
+# A run killed in show slow (20 s) once its folder holds the summary written
+# at acceptance: that summary stays. The background is karvi itself, so $!
+# is its pid.
 HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" run --no-daemon --target fake-iosxe --cmd 'show slow' >"$TMP/out.kill" 2>"$TMP/err.kill" &
 KILLED=$!
-sleep 2
-kill -9 "$KILLED"; wait "$KILLED" 2>/dev/null || true
+i=0
+while [ "$(newest)" = "$J4" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
 J5=$(newest)
+[ "$J5" != "$J4" ] || fail "the killed run made no folder in 10 s: $(head -3 "$TMP/err.kill")"
+json_wait "$(day "$J5")/summary.json" kind || fail "the killed run's folder has no summary after 10 s"
+kill -9 "$KILLED"; wait "$KILLED" 2>/dev/null || true
 for j in "$J1" "$J2" "$J3" "$J4" "$J5"; do [ -n "$j" ] || fail "a job made no folder"; done
-day() { printf '%s' "$TMP/base/jobs/${1%%-*}/$1"; }
 for pair in "$J1 cmd" "$J2 run" "$J3 crun" "$J4 run" "$J5 run"; do
   # shellcheck disable=SC2086
   set -- $pair
@@ -121,8 +135,10 @@ HOME=$TMP/home NETUSER=netops "$KARVI" --config "$TMP/karvi.toml" run --target f
 expect nocred 6
 [ "$(newest)" = "$J5" ] || fail "the refused run left a folder: $(newest)"
 # A folder without a summary, as a job cut short before its summary's first
-# write leaves it: the last ID of J5's second, so it stands just above J5.
-J8=${J5%-*}-zz
+# write leaves it: the ID after J5's, so it stands just above J5 and below
+# r6 and r7, which take the first free ID of their second, J5's or a later
+# one.
+J8=$(next_id "$J5")
 mkdir "$(day "$J8")"
 UNREADABLE=
 if [ "$(id -u)" != 0 ]; then

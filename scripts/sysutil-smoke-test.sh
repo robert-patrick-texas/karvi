@@ -303,10 +303,14 @@ xsh 'adduser --quiet --disabled-password --comment "" op1 >/dev/null 2>&1 && add
   install -d -m 0700 /root/.ssh /home/op1/.ssh && ssh-keygen -q -t ed25519 -N "" -f /root/.ssh/id_ed25519
   cp /root/.ssh/id_ed25519.pub /home/op1/.ssh/authorized_keys && chown -R op1:op1 /home/op1/.ssh'
 x ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null op1@127.0.0.1 'touch /dev/shm/op1-file' || fail "the operator's login"
-sleep 13
-x test ! -e /dev/shm/op1-file || fail "logind kept the operator's file: RemoveIPC is not in force"
+# logind removes it when the user's manager stops, UserStopDelaySec (10 s)
+# after the logout: up to 30 s allowed.
+t0=$(date +%s.%N)
+x timeout 30 sh -c 'while [ -e /dev/shm/op1-file ]; do sleep 0.1; done' ||
+  fail "logind kept the operator's file 30 s after the logout: RemoveIPC is not in force"
+took=$(awk -v a="$t0" -v b="$(date +%s.%N)" 'BEGIN { printf "%.1f", b - a }')
 [ "$(xsh "find /dev/shm/karvi -uid $KUID | wc -l")" = "$n" ] || fail "the account's files under /dev/shm changed after the operator's logout"
-ok "RemoveIPC: the operator's file gone 13 s after the logout, the account's $n kept"
+ok "RemoveIPC: the operator's file gone $took s after the logout, the account's $n kept"
 
 # 8. job follow across members: op1 follows the account's job, op2 op1's,
 # from the shared tree, none of them through a daemon of their own.
