@@ -9,7 +9,10 @@
 # the verifier alone, as timeout(1) does): each running suite's cleanup run,
 # no lane's process left, the output printed, the lane folder removed, and
 # the verifier ended with 129, 130, or 143, its cleanup run once. A second
-# Ctrl-C while the suites' cleanups run: ignored, each cleanup completed.
+# Ctrl-C while the suites' cleanups run: ignored, each cleanup completed. A
+# host whose configuration reaches karvi (a model karvi naming a file):
+# refused, the file named, no suite run. Every run's environment is the
+# row's own (env -i), never the operator's KARVI__ variables.
 set -eu
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
 . "$ROOT/scripts/lib/exit.sh"
@@ -23,10 +26,17 @@ check() { # check NAME WANT GOT
   if [ "$2" = "$3" ]; then echo "suites lib: $1: pass"; else echo "suites lib: $1: FAIL: want [$2] got [$3]" >&2; failures=$((failures + 1)); fi
 }
 
-# The scratch root: the library under test, exit.sh, a passing stub for each
-# library test run_suites runs first, the model suites, and the verifier.
-mkdir -p "$TMP/root/scripts/lib"
-ln -s "$ROOT/scripts/lib/suites.sh" "$ROOT/scripts/lib/exit.sh" "$TMP/root/scripts/lib/"
+# The scratch root: the library under test, exit.sh, json.sh and host.sh, a
+# passing stub for each library test run_suites runs first, a model karvi
+# whose configuration names CONFIGURED's file or none, the model suites, and
+# the verifier.
+mkdir -p "$TMP/root/scripts/lib" "$TMP/root/bin"
+ln -s "$ROOT/scripts/lib/suites.sh" "$ROOT/scripts/lib/exit.sh" "$ROOT/scripts/lib/json.sh" "$ROOT/scripts/lib/host.sh" "$TMP/root/scripts/lib/"
+cat >"$TMP/root/bin/karvi-linux-amd64" <<'EOF'
+#!/bin/sh
+if [ -n "${CONFIGURED:-}" ]; then printf '{"sources":["%s"]}\n' "$CONFIGURED"; else printf '{"sources":null}\n'; fi
+EOF
+chmod +x "$TMP/root/bin/karvi-linux-amd64"
 for t in "$ROOT"/scripts/lib/*-test.sh; do
   printf '#!/bin/sh\n' >"$TMP/root/scripts/lib/${t##*/}"
   chmod +x "$TMP/root/scripts/lib/${t##*/}"
@@ -86,7 +96,7 @@ run() {
   : >"$D/marks"
   slow=
   [ "${5:-}" != again ] || slow=1
-  terminal_job env TMPDIR="$D/tmp" STATE="$D" FAIL="$2" SLOW="$slow" "$1" ./verifier.sh >"$D/out" 2>"$D/err"
+  terminal_job env -i PATH="$PATH" TMPDIR="$D/tmp" STATE="$D" FAIL="$2" SLOW="$slow" "$1" ./verifier.sh >"$D/out" 2>"$D/err"
   pid=$!
   first='a b d'
   [ "$2" != model-b ] || first='a d'
@@ -160,6 +170,16 @@ for sh in sh bash; do
     check "$name: output printed" 'model-a output model-b output model-d output' "$(suite_lines "$D/out")"
     check "$name: no lane folder" '' "$(ls -A "$D/tmp")"
   done
+
+  D=$(mktemp -d "$TMP/row.XXXXXX")
+  mkdir "$D/tmp"
+  : >"$D/marks"
+  status=0
+  env -i PATH="$PATH" TMPDIR="$D/tmp" STATE="$D" FAIL=none SLOW= CONFIGURED=/etc/karvi/config.toml "$sh" ./verifier.sh >"$D/out" 2>"$D/err" || status=$?
+  check "$sh a configured host: status" 1 "$status"
+  check "$sh a configured host: refused, the file named" "karvi reads this host's configuration; run where it reads none (docs/BUILD-QUALIFICATION.md):   file: /etc/karvi/config.toml" "$(lines "$D/err")"
+  check "$sh a configured host: no suite run, the verifier's cleanup" 'verifier cleanup' "$(lines "$D/marks")"
+  check "$sh a configured host: no lane folder" '' "$(ls -A "$D/tmp")"
 
   run "$sh" none INT group again
   check "$sh a second Ctrl-C: status" 130 "$status"

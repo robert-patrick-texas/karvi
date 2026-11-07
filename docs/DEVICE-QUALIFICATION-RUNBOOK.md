@@ -22,6 +22,7 @@ rows of [section 9](#9-a-production-server).
 | Need | For | Notes |
 |---|---|---|
 | A host that reaches the device's management address over SSH, with the released bundle unpacked and `scripts/verify-bundle.sh` passed | every row | The OpenSSH client for `system`; `go` only to build `tools/paritycheck` (without it the comparison is marked skip and is run afterwards over the kept streams) |
+| A host and account where karvi reads no configuration | every row | No `/etc/karvi/config.toml`, `/opt/karvi/config.toml`, or `~/.config/karvi/config.toml`, and no exported `KARVI__` variable: the rows run under the script's own settings alone, and the script names any it finds and stops at its start |
 | `python3` | the script's JSON reads (`scripts/lib/json.sh`: the executable's transports, the records' statuses and error codes) | A prerequisite of [`BUILD-HOWTO.md` §1](../BUILD-HOWTO.md#1-install-operating-system-prerequisites); the script stops at its start without it |
 | `bin/secret-scan` (`make tools-build`) | the final scan | Without it the scan is marked skip and the evidence must not leave the host unreviewed |
 | The device's inventory name, management address, and SSH port | every row | `DEVICE`, `ADDRESS`, `PORT` |
@@ -456,6 +457,10 @@ For the operators qualifying a Cisco IOS XE device on the production
 network. Section 2 is the development environment's and is not theirs to
 repeat. A run that departs from these steps still counts: the evidence is
 read row by row, beside a note of what was done otherwise.
+
+**The host**: one where karvi reads no configuration, neither the site's
+file nor the account's nor a `KARVI__` variable ([section
+1](#1-what-the-run-needs)); the script names any it finds and stops.
 
 **The run**, from the unpacked bundle's folder, the account's secrets in the
 environment alone:

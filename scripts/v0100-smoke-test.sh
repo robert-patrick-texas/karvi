@@ -9,8 +9,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 KARVI=${KARVI:-./bin/karvi-linux-amd64}
-. scripts/lib/json.sh
+. scripts/lib/json.sh; . scripts/lib/host.sh
 [ -x "$KARVI" ] || { echo "build the executable first: make build" >&2; exit 1; }
+host_config_clean "$KARVI"   # refused on a host whose configuration reaches karvi
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-v0100-smoke-XXXXXX")
 BASE=$TMP/base; HOME_DIR=$TMP/home; SCORE=$TMP/score; CAP=$TMP/cap
 mkdir -p "$BASE" "$HOME_DIR" "$SCORE" "$CAP" "$TMP/streams"

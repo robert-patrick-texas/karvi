@@ -13,8 +13,9 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 . "$ROOT/scripts/lib/json.sh"
+. "$ROOT/scripts/lib/host.sh"; host_config_clean "$KARVI"   # refused on a host whose configuration reaches karvi
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-transcript-smoke-XXXXXX")
-. "$ROOT/scripts/lib/host.sh"; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
+host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 HOME_DIR=$TMP/home
 BASE=$TMP/state
 FAKE_SSH=$TMP/fake-ssh

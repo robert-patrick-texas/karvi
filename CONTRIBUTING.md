@@ -83,6 +83,11 @@ pipeline.
 karvi takes its home from the passwd entry, not `$HOME`: a script whose
 karvi runs must write nothing there compares karvi's places under that home
 through `host_places` and `host_places_unchanged` in `scripts/lib/host.sh`.
+Every suite, lab, and verifier calls `host_config_clean` there before it
+makes anything, and `run_suites` before its lanes, so a host whose
+configuration reaches karvi (a global or user file, an inherited `KARVI__`
+variable) is refused, each one named; `scripts/lib/host-test.sh` fails on a
+script sourcing host.sh, or a suite, that does not call it first.
 
 ## Branches and releases
 

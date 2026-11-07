@@ -31,6 +31,7 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 . "$ROOT/scripts/lib/json.sh"
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
+. "$ROOT/scripts/lib/host.sh"; host_config_clean "$KARVI"   # refused on a host whose configuration reaches karvi
 GO=${GO:-go}
 N=${N:-8}
 TRANSPORT=${TRANSPORT:-native}
@@ -55,7 +56,6 @@ install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store" "$TMP/home" "$TMP/base"
 
 # The operator's own trust store must not change (ssh.known-hosts-file is
 # under TMP; HOME does not move the store).
-. "$ROOT/scripts/lib/host.sh"
 OWN_STORE=$(host_own_store "$KARVI")
 OWN_BEFORE=$(host_store_digest "$OWN_STORE")
 

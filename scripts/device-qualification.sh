@@ -61,7 +61,8 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 SECRET_SCAN=${SECRET_SCAN:-$ROOT/bin/secret-scan}
-. "$ROOT/scripts/lib/json.sh"
+. "$ROOT/scripts/lib/json.sh"; . "$ROOT/scripts/lib/host.sh"
+host_config_clean "$KARVI"   # refused on a host whose configuration reaches karvi
 GO=${GO:-go}
 PLATFORM=${PLATFORM:-cisco_ios}
 PORT=${PORT:-22}
@@ -120,7 +121,6 @@ install -d -m 700 "$EVIDENCE" "$WORK" "$WORK/bin" "$WORK/store" "$WORK/home"
 printf 'row\tcheck\tdisposition\tdetail\n' >"$RESULTS"
 
 # The operator's own trust store must not change.
-. "$ROOT/scripts/lib/host.sh"
 OWN_STORE=$(host_own_store "$KARVI")
 OWN_BEFORE=$(host_store_digest "$OWN_STORE")
 

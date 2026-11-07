@@ -13,8 +13,10 @@ ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 KARVI=${KARVI:-./bin/karvi-linux-amd64}
 GO=${GO:-go}
+. "$ROOT/scripts/lib/json.sh"; . "$ROOT/scripts/lib/host.sh"
+host_config_clean "$KARVI"   # refused on a host whose configuration reaches karvi
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-daemon-upgrade-smoke-XXXXXX")
-. "$ROOT/scripts/lib/host.sh"; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
+host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 BASE="$TMP/state"
 HOME_DIR="$TMP/home"
 SOCKET="$BASE/socket/d.sock"

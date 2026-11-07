@@ -25,8 +25,11 @@ unformatted=$(find . -path ./vendor -prune -o -name '*.go' -type f -print | xarg
 [ -s vendor/modules.txt ] || { echo 'vendor/modules.txt is missing; run make vendor' >&2; exit 1; }
 # The host's shared places must be as they were after the tests and the
 # suites: no test or suite writes to the host's shared trees or scoreboard
-# directory (scripts/lib/host.sh).
-. "$ROOT/scripts/lib/host.sh"
+# directory (scripts/lib/host.sh). verify-shipped.sh has already refused a
+# host whose configuration reaches karvi; the call stands here as in every
+# script sourcing host.sh.
+. "$ROOT/scripts/lib/json.sh"; . "$ROOT/scripts/lib/host.sh"
+host_config_clean ./bin/karvi-linux-amd64
 host_before=$(host_shared_entries)
 GOTOOLCHAIN=local go test -count=1 -mod=vendor ./...
 GOTOOLCHAIN=local go vet -mod=vendor ./...

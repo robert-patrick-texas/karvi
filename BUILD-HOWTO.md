@@ -148,7 +148,12 @@ It checks the checksums, the executable's schema counters against
 source that `gofmt` would change, tests and vets offline from `vendor/`,
 compares the generated files, validates the example configurations, and runs
 every smoke suite, the canary suite, and the parity suite against `bin/` as
-shipped. To reproduce the shipped bytes, rebuild with the release identity:
+shipped. On a host where karvi reads a configuration, a global or user file
+or an exported `KARVI__` variable, it stops once the checksums pass and
+names each one ([`docs/BUILD-QUALIFICATION.md`](docs/BUILD-QUALIFICATION.md)):
+the suites assert karvi's defaults. Verify the bundle on a build host or in
+a container with an init (`docker run --init`), then install it. To
+reproduce the shipped bytes, rebuild with the release identity:
 
 ```bash
 make build COMMIT=source-release-v$(cat VERSION)
@@ -418,8 +423,10 @@ documents are in the bundle and the repository.
 
 Without the package, the bundle installs itself into `/usr/local`, from the
 extracted bundle after `./scripts/verify-bundle.sh` has passed
-([§4.2](#42-verify-the-shipped-executables-without-rebuilding)); running an
-earlier bundle's script rolls back:
+([§4.2](#42-verify-the-shipped-executables-without-rebuilding)); on a host
+karvi is already configured on, as at an upgrade, the verifier refuses to
+run, so verify the same bundle on a build host or in a container with an
+init and install it here. Running an earlier bundle's script rolls back:
 
 ```bash
 sudo ./scripts/install.sh

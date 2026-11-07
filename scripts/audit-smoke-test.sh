@@ -19,8 +19,9 @@ KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 AUDIT=${KARVI_AUDIT:-$(dirname "$KARVI")/karvi-audit}
 GO=${GO:-go}
 . "$ROOT/scripts/lib/json.sh"
+. "$ROOT/scripts/lib/host.sh"; host_config_clean "$KARVI"   # refused on a host whose configuration reaches karvi
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-audit-smoke-XXXXXX")
-. "$ROOT/scripts/lib/host.sh"; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
+host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 FAKE_PID=
 FOLLOW_PID=
 unset NETUSER NETPASS NETENABLE NO_COLOR

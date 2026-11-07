@@ -19,9 +19,10 @@ OLD=${1:?usage: daemon-lifecycle-replay.sh OLD_KARVI_EXECUTABLE}
 NEW=${KARVI:-./bin/karvi-linux-amd64}
 [ -x "$OLD" ] || { echo "old executable $OLD is not executable" >&2; exit 2; }
 [ -x "$NEW" ] || { echo "build the executable first: make build" >&2; exit 2; }
+. ./scripts/lib/json.sh; . ./scripts/lib/host.sh
+host_config_clean "$NEW"   # refused on a host whose configuration reaches karvi
 TMP=$(mktemp -d); BASE=$TMP/state; H=$TMP/home
-. ./scripts/lib/json.sh
-. ./scripts/lib/host.sh; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
+host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 install -d -m 700 "$BASE" "$H"
 # Both executables keep their trees and their spool directory under the base
 # (sharedroot none), so neither daemon's start reaches the host's shared root

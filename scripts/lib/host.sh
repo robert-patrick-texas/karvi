@@ -19,6 +19,11 @@
 # host_trust_store with its work directory as soon as it has one, and the
 # suites that compare the operator's store before and after name it with
 # host_own_store.
+#
+# And the host's configuration: a suite asserts karvi's defaults and passes
+# its own settings by --config and --set, which a site's file changes or its
+# [config-lock] refuses; every suite, lab, and verifier calls
+# host_config_clean first, and run_suites before its lanes.
 
 # host_shared_entries prints one line per entry under the host's shared
 # places (a place that does not exist contributes nothing), sorted, so two
@@ -48,10 +53,11 @@ host_shared_unchanged() {
 }
 
 # host_entries_diff BEFORE AFTER prints on stderr the lines that went (<)
-# and came (>) between two listings.
+# and came (>) between two listings. An empty listing is no line, not an
+# empty one: a host with no shared entry (a container) compared a blank line.
 host_entries_diff() {
-  printf '%s\n' "$1" > "${TMPDIR:-/tmp}/karvi-host-before.$$"
-  printf '%s\n' "$2" | diff "${TMPDIR:-/tmp}/karvi-host-before.$$" - >&2 || true
+  { [ -z "$1" ] || printf '%s\n' "$1"; } > "${TMPDIR:-/tmp}/karvi-host-before.$$"
+  { [ -z "$2" ] || printf '%s\n' "$2"; } | diff "${TMPDIR:-/tmp}/karvi-host-before.$$" - >&2 || true
   rm -f "${TMPDIR:-/tmp}/karvi-host-before.$$"
 }
 
@@ -122,4 +128,38 @@ host_own_store() {
 # calls compare as text.
 host_store_digest() {
   if [ -f "$1" ]; then cksum <"$1"; else echo absent; fi
+}
+
+# host_config_clean KARVI refuses, status 1, a host whose configuration
+# reaches karvi, naming each part on its own line: the files karvi reads on
+# its own, the global and user layers with their includes, as KARVI's
+# `config show --format json` names them in `sources` (the paths are
+# karvi's alone, docs/FILES.md; --show-sources adds only a line per file on
+# stderr); and the KARVI__ variables the script inherited, which outrank a
+# suite's files and which karvi refuses when it knows no such key. KARVI
+# reads its files with those variables left out, so a variable it would
+# refuse does not hide a file. A script calls it before it makes anything
+# or exports a variable of its own (host_trust_store); a host so configured
+# verifies the bundle on a build host or in a container with an init
+# (docs/BUILD-QUALIFICATION.md). Source scripts/lib/json.sh first.
+#
+#   . "$ROOT/scripts/lib/json.sh"; . "$ROOT/scripts/lib/host.sh"
+#   host_config_clean "$KARVI"
+host_config_clean() {
+  command -v json_get >/dev/null 2>&1 || { echo "host_config_clean: source scripts/lib/json.sh first" >&2; return 2; }
+  hcc_vars=$(awk 'BEGIN { for (n in ENVIRON) if (n ~ /^KARVI__[A-Za-z0-9_]*$/) print n }' | sort)
+  hcc_unset=
+  for hcc_v in $hcc_vars; do hcc_unset="$hcc_unset -u $hcc_v"; done
+  # shellcheck disable=SC2086 # the -u NAME words; a name holds no space
+  hcc_json=$(env $hcc_unset "$1" config show --format json) || {
+    echo "host_config_clean: $1 config show failed: the host's configuration does not load" >&2; return 1; }
+  hcc_sources=$(printf '%s\n' "$hcc_json" | json_get - sources 2>/dev/null) || {
+    echo "host_config_clean: $1 config show names no sources" >&2; return 1; }
+  hcc_files=
+  [ "$hcc_sources" = null ] || hcc_files=$(printf '%s\n' "$hcc_json" | json_get - 'sources.*' 2>/dev/null) || :
+  [ -n "$hcc_files$hcc_vars" ] || return 0
+  echo "karvi reads this host's configuration; run where it reads none (docs/BUILD-QUALIFICATION.md):" >&2
+  [ -z "$hcc_files" ] || printf '%s\n' "$hcc_files" | sed 's/^/  file: /' >&2
+  [ -z "$hcc_vars" ] || printf '%s\n' "$hcc_vars" | sed 's/^/  variable: /' >&2
+  return 1
 }

@@ -34,6 +34,21 @@ without the package), never on the build host. It rebuilds `bin/` and
 rewrites `CHECKSUMS.sha256`; with the release's `COMMIT` the bytes do not
 change. A build is stamped with its version and its commit, and no build time.
 
+Both verifiers, every suite and lab, and `run_suites` before its lanes
+refuse a host whose configuration reaches karvi, before they make
+anything: a global file (`/etc/karvi/config.toml` or
+`/opt/karvi/config.toml`), the operator's (`~/.config/karvi/config.toml`
+under the home of the passwd entry), or an inherited `KARVI__` variable, each
+named on its own line (`host_config_clean` in `scripts/lib/host.sh`, which
+takes the files from the `sources` of `karvi config show --format json`). A
+suite asserts karvi's defaults and passes its own settings by `--config` and
+`--set`; a site's file changes the defaults and its `[config-lock]` refuses
+the settings, and a variable outranks both. On a configured host, verify the
+bundle on a build host or in a container with an init (`docker run
+--init`), then install it: under a PID 1 that reaps nothing, as `sleep` or a
+shell, the processes a suite ends stay as zombies, and
+`scripts/lib/suites-test.sh`'s signal rows see their groups still there.
+
 A must-not-appear check in a script MUST be able to stop it: a bare
 `! command` line is exempt from `set -e`. The
 smoke suites use `absent PATTERN FILE` (`scripts/lib/lab.sh`) or

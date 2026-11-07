@@ -279,6 +279,37 @@
   `scripts/lib/json-test.sh` fails on a grep, sed, or awk whose pattern
   names a JSON key, or a JSON stream piped into one, and
   `scripts/lib/lab-test.sh` on a daemon's pid read outside `daemon_pid`.
+- **The suites refuse a host whose configuration reaches karvi.** A karvi
+  run reads the site's global file (`/etc/karvi/config.toml` or
+  `/opt/karvi/config.toml`) and the operator's (`~/.config/karvi/config.toml`
+  under the home of the passwd entry) beneath a suite's `--config` and
+  `--set`, and an inherited `KARVI__` variable above them, so on a configured
+  host the suites tested the site's configuration: a global file's
+  `[telnet] read-timeout = "120s"` failed the v090 suite's default row, its
+  `[config-lock]` on `sharedroot` refused the suite's `--set` with
+  `config_lock_violation`, and an inherited `KARVI__` variable that names no
+  key failed `scripts/verify-shipped.sh`'s removed-key rows with
+  `config_unknown_environment`. `host_config_clean` in `scripts/lib/host.sh`
+  refuses such a host before a script makes anything, naming on its own line
+  each file in the `sources` of `karvi config show --format json` and each
+  inherited `KARVI__` variable; every suite and lab, the three verifiers, and
+  `run_suites` before its lanes call it. A configured host verifies the
+  bundle on a build host or in a container with an init (`docker run
+  --init`; [`docs/BUILD-QUALIFICATION.md`](docs/BUILD-QUALIFICATION.md)), and
+  `scripts/device-qualification.sh` runs from a host and account where karvi
+  reads no configuration ([`docs/DEVICE-QUALIFICATION-RUNBOOK.md`](docs/DEVICE-QUALIFICATION-RUNBOOK.md)).
+  `scripts/lib/host-test.sh` checks the function against a fake karvi and
+  fails on a script sourcing host.sh, or a suite, that does not call it
+  first; `scripts/lib/suites-test.sh` checks that `run_suites` refuses before
+  any lane starts, and runs its model verifier, as host-test.sh runs its
+  rows, under `env -i`.
+- **The library tests pass on a host with no shared entry.** On such a host
+  (a container, where the new rule sends a configured host's verification)
+  `host_shared_entries` lists nothing, and `host_entries_diff` wrote the
+  empty listing as a blank line, so every difference also named a blank
+  entry and six of `scripts/lib/host-test.sh`'s rows failed, stopping
+  `run_suites` before its first suite; the build host passed only because
+  `/tmp/karvi-<uid>` was there. An empty listing is no line.
 
 ## 0.40.0 - 2026-11-05
 

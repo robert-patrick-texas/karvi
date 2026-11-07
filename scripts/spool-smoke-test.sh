@@ -12,6 +12,7 @@ ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 GO=${GO:-go}
 . "$ROOT/scripts/lib/json.sh"
+. "$ROOT/scripts/lib/host.sh"; host_config_clean "$KARVI"   # refused on a host whose configuration reaches karvi
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-spool-smoke-XXXXXX")
 KH=$TMP/store/known_hosts
 SPOOL=$TMP/spool
@@ -31,7 +32,6 @@ install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store" "$TMP/home" "$TMP/base" "$SPOOL
 
 # The operator's own trust store must not change (ssh.known-hosts-file is
 # under TMP; HOME does not move the store).
-. "$ROOT/scripts/lib/host.sh"
 OWN_STORE=$(host_own_store "$KARVI")
 OWN_BEFORE=$(host_store_digest "$OWN_STORE")
 

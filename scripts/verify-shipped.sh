@@ -27,11 +27,13 @@ file bin/karvi-audit-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
 [ "$(readlink bin/karvi-audit)" = karvi-audit-linux-amd64 ]
 # From here karvi runs: nothing it does before the stateless check below may
 # write in its places under the home of the passwd entry, which it takes in
-# place of $HOME, or in the host's shared places (scripts/lib/host.sh).
-. "$ROOT/scripts/lib/host.sh"
+# place of $HOME, or in the host's shared places (scripts/lib/host.sh). A
+# host whose configuration reaches karvi is refused first: a site's file or
+# an inherited KARVI__ variable changes what the rows below answer.
+. "$ROOT/scripts/lib/json.sh"; . "$ROOT/scripts/lib/host.sh"
 home=$(host_passwd_home)
 before=$(host_places "$home")
-. "$ROOT/scripts/lib/json.sh"
+host_config_clean ./bin/karvi-linux-amd64
 ./bin/karvi-linux-amd64 version --format json | json_get - 'ssh_transports.*.id' | grep -qx system
 ./bin/karvi-linux-amd64 --version | grep -q '^  system: external-executable$'
 ./bin/karvi-linux-amd64 --version | grep -q '^  native: compiled-in$'

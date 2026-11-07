@@ -7,7 +7,9 @@
 # reader, clean up through on_exit, stop their daemons and fakes and assert
 # what must not appear through lab.sh, and compare the home's places through
 # host.sh, and run_suites's lanes are the subject of suites-test.sh, which
-# runs them over model suites.
+# runs them over model suites. Then a host whose configuration reaches karvi
+# ($KARVI, or bin/'s) is refused once, before the lanes start
+# (host_config_clean in host.sh), rather than by each suite in its lane.
 #
 # The suites run in three lanes at once: the parity suite alone, the v0100
 # suite alone, and the seventeen others in order. Each suite keeps its
@@ -86,6 +88,8 @@ run_suites() {
   ./scripts/lib/lab-test.sh >/dev/null || return 1
   ./scripts/lib/host-test.sh >/dev/null || return 1
   ./scripts/lib/suites-test.sh >/dev/null || return 1
+  . ./scripts/lib/json.sh; . ./scripts/lib/host.sh
+  host_config_clean "${KARVI:-./bin/karvi-linux-amd64}" || return 1
   if [ "${KARVI_SUITE_LANES:-3}" = 1 ]; then
     # shellcheck disable=SC2086
     rs_run $RS_LANE1 $RS_LANE2 $RS_LANE3

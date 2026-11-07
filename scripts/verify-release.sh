@@ -34,12 +34,15 @@ go test -race -count=1 -mod=vendor ./...
 # The commit is the Makefile's: COMMIT from the environment when set (a
 # release's source-release-vVERSION), else the checkout's.
 make build
+# A host whose configuration reaches karvi is refused before the first
+# karvi run, the build's (scripts/lib/host.sh).
+. "$ROOT/scripts/lib/json.sh"
+host_config_clean ./bin/karvi-linux-amd64
 
 # Each output is read whole before it is checked: under pipefail a reader
 # that stops early, as grep -q does, leaves karvi's next write to a closed
 # pipe, and karvi's SIGPIPE fails the line on a loaded host (--version
 # writes its transports a line at a time; docs/EXAMPLES.md chapter 98).
-. "$ROOT/scripts/lib/json.sh"
 version_json=$(./bin/karvi-linux-amd64 version --format json)
 version_text=$(./bin/karvi-linux-amd64 --version)
 [[ $(json_get - version <<<"$version_json") == "$(cat VERSION)" ]] \
