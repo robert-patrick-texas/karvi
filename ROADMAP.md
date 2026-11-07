@@ -379,15 +379,6 @@ None chosen: the operator names the next item, from "Later" or anew.
   cut timed from the answer's first byte rather than from the send; and the
   row's threshold. The cancel and the lost session beside it cut once the
   scoreboard counts the answer's bytes and check that some settled.
-- **`verify-shipped.sh` reviewed for what it leaves.** Its `STATELESS`
-  folder, made to show that `--help` and `version` create no home, is removed
-  only when that check passes, so a failing check leaves it in `/tmp`. The
-  release verifier's package folder had the same gap: a failed baseline left it
-  ([`docs/EXAMPLES.md`, chapter
-  73](docs/EXAMPLES.md#73-the-release-0340-2026-10-19)), and
-  `verify-release.sh` now removes it on a trap at its exit. The item: every
-  folder and file the script makes removed at its exit, passed, failed, or
-  interrupted.
 - **The release's signature.** `karvi-sysutil package update` checks the
   package against its `.sha256`, which comes from the same release over the
   same connection: it finds a damaged download, and proves nothing of where
@@ -431,6 +422,26 @@ None chosen: the operator names the next item, from "Later" or anew.
   `aes256-gcm@openssh.com` under `fips140=only`; what the design then starts
   from is in [`docs/EXAMPLES.md`, chapter
   101](docs/EXAMPLES.md#101-a-fips-140-3-mode-waits-on-aes-256-gcm-for-ssh-2026-11-05).
+- **Every shell script in bash, under one header.** The scripts stay POSIX sh
+  after the shell-script review, most under `#!/bin/sh` (dash), eight under
+  bash, two of them through `/usr/bin/env`; the review's fixes put their
+  shared code in `scripts/lib` functions whose bodies a conversion changes and
+  whose callers it does not ([`docs/EXAMPLES.md`, chapter
+  102](docs/EXAMPLES.md#102-the-shell-script-review-of-2026-11-06-and-its-fixes-2026-11-07)).
+  The item: every script under `#!/bin/bash` (not `/usr/bin/env bash`: the
+  PATH would choose the interpreter of root's and cron's scripts, and lintian
+  refuses env in a maintainer script, `unknown-control-interpreter`), `set
+  -euo pipefail`, and `shopt -s inherit_errexit`, without which bash's `$( ...
+  )` ignores `set -e` where dash's stops. Its test: the battery passes, and
+  every suite still fails a broken expected value. Its method: four batches of
+  about a quarter of the lines each; per batch a converter in its own
+  worktree, changing the header and what it forces alone, with three hazards
+  checked in each script (a `$( ... )` of several commands, a pipe into `grep
+  -q` or `head` under pipefail, an `echo` reading escapes), and a different,
+  adversarial reviewer given the diff alone, who breaks one expected value per
+  suite and writes a case per hazard site; the suites run under three `flock`
+  slots; the orchestrator checks every issue, merges, and runs the battery,
+  the container suite, and the release path in a copy.
 
 ## The device-qualification track
 

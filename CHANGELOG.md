@@ -57,8 +57,9 @@
   The account owns its home and could replace the home, `.config`, or
   `config.toml` with a link. `daemon install`'s repair then gave the link's
   target to the account as root: a `config.toml` linked to `/etc/shadow` made
-  it the account's, mode 0600, and a `.config` linked to `/etc` made `/etc`
-  the account's, mode 0700, and wrote the global layer as the account.
+  it the account's, mode 0600, and a `.config` linked to `/etc` set `/etc` to
+  mode 0700, closing it to every other user, and gave the account the global
+  layer.
   `daemon remove` removed `config.toml` through such a link, taking
   `/etc/karvi/config.toml`, the site's global file, with it. Root now makes
   only the home itself, and the configuration and its folders are made,
@@ -153,10 +154,11 @@
   `~/.config/karvi`, by their existence) and the host's shared places before
   and after, through `host_places` and `host_places_unchanged` in
   `scripts/lib/host.sh`; verify-shipped makes its work folder, its cleanup
-  set, before the stateless runs. `scripts/lib/host-test.sh`, which
-  `run_suites` runs with the other library tests, runs both functions under
-  sh and bash over a scratch home against a model executable, never the
-  operator's home.
+  set, before the stateless runs, so a failed check or a signal leaves none
+  of its folders behind, and ROADMAP's item for it is closed.
+  `scripts/lib/host-test.sh`, which `run_suites` runs with the other library
+  tests, runs both functions under sh and bash over a scratch home against a
+  model executable, never the operator's home.
 - **A guard of several tests fails on any of them.** `set -e` ignores a
   failure before the last command of an `&&` list, so two guards checked only
   their last test: `scripts/verify-shipped.sh` passed whole with

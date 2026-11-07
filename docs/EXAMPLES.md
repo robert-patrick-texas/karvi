@@ -21768,3 +21768,578 @@ third script the same way, on `b189505` and on the change; `go vet`, `go test
 tree with that change (04:23 to 04:33 UTC), alike. The evidence is kept beside
 the tree (`release-design-evidence/fips-2026-11-05/`: the scripts and their
 logs, and the two batteries').
+
+## 102. The shell-script review of 2026-11-06 and its fixes (2026-11-07)
+
+Opened on the operator's request, as [chapter
+88](#88-the-code-review-of-2026-10-31-and-its-fixes-2026-11-01) had left it,
+"later, on its own": a read-only review of every shell script in the tree, two
+reviewers reading in opposite directions and every finding checked, on `dev` at
+`6a341e2` ([chapter
+101](#101-a-fips-140-3-mode-waits-on-aes-256-gcm-for-ssh-2026-11-05)). The
+review found 24 defects and ten repeated patterns; the operator decided the
+eight that needed a rule and approved a plan of eleven sections, the scripts
+staying POSIX sh and their conversion to bash going on the ROADMAP. The fixes
+found three more defects, #25 to #27, each fixed in the section that found it.
+Ten commits on `dev`, `e126e8e` to `729dd3e`, carry the code, each message
+naming its section and findings, and the eleventh this record; nothing is
+pushed. The findings and the plan are kept in the operator's private archive.
+
+**What it gains.** The scripts are how a release is shown sound:
+`scripts/verify-bundle.sh`, `scripts/verify-release.sh`, and the suites
+`run_suites` runs. Before the fixes, seven of their checks could not fail; a
+Ctrl-C ran a script's cleanup and its rows went on against the removed folder;
+the three lanes ran on after the verifier had ended; and on a host with a
+configuration of its own every suite tested that configuration under its
+settings. Three of the scripts ship: `karvi-sysutil`, which as root followed
+links the service account could plant (the one high finding); `karvi-crun`,
+whose lock another user could take first; and the source bundle's script,
+whose bundle followed the checkout's umask. Each is fixed beside a test that
+failed on the tree as it was. It waits on nothing. None of the CHANGELOG's
+entries for it is Breaking; the next release's source bundle carries other
+modes, so its bytes differ from what the same tree gave before.
+
+**The review.** Every shell file outside `vendor/`, 42 files and 8,247 lines,
+and at the operator's word the Makefile and `packaging/debian/rules` (181
+lines), with shellcheck 0.11.0 and checkbashisms as the reviewers' lead list
+(both checkbashisms errors parser artifacts, `dash -n` accepting the files).
+One reviewer read the files top to bottom and one bottom to top, under one
+brief; the orchestrator merged the duplicates and checked every finding
+against the code it cites, by experiment where the claim was the shells'
+behaviour. 35 raw findings became 24: 13 found by both reviewers, 5 by the
+bottom reader alone, 6 by the top; none rejected and one narrowed (#15). One
+is high, ten medium, twelve low, and one is a manual page's. A
+capture-recapture estimate (18 × 19 / 13) put the total near 26; the fixes
+found three more. `packaging/debian/rules` had none. The patterns, R1 to R10
+and the build line known before the review, are code repeated across the
+scripts, each to become one tested function of `scripts/lib`.
+
+**The sections**, in the plan's order (the CHANGELOG's `Unreleased` block says
+what each changed):
+
+| Section | Findings | Commit |
+|---|---|---|
+| S1 karvi-sysutil | #1 #4 #15 #16 #25 | `e126e8e` |
+| S2 the traps | #2 #26 R9 | `27a3f83` |
+| S3 the lanes | #3 | `b246ce3` |
+| S4 cleanup | #9 #10 R2 R3 | `d4e5f93` |
+| S5 the false passes | #5-#8 #12 #18 #21 R4 | `a083406` |
+| S6 shipped and release | #11 #13 #14 #22-#24 | `80cf65e` |
+| S7 the fixed sleeps | #17 | `690eb6d` |
+| S8 JSON by path | #19 R8 | `7c5fe29` |
+| S9 the configuration layers | #20 #27 | `9de5698` |
+| S10 the shared functions | R1 R5-R7 R10, build line | `729dd3e` |
+
+S11 is this chapter, the ROADMAP's items, and the CHANGELOG's `Unreleased`
+block read whole.
+
+**How the fixes ran.** Per section: a test that fails on the tree as it was,
+its run kept; the fix; `sh -n`, `dash -n`, or `bash -n`, and shellcheck
+against the review's list, no new note; the suites it touched run by their
+shebang against the released `bin/`, `TMPDIR` under `/var/tmp`; its CHANGELOG
+entry and the documents it names. The sections ran one after another on
+`dev`'s tree, since S2 and S10 touch nearly every suite; in S10 one agent moved
+the 23 callers in a worktree of its own, and its diff was read whole before it
+was applied. Before each section that removed code (S5, S6, S8, S10) the
+operator's mirror of the repository was fetched, so what went has an archive.
+The new code is functions of `scripts/lib`, POSIX sh with each function's
+variables prefixed, written so that a later conversion changes their bodies and
+not their callers. Each library file has a test beside it, run under sh and
+bash, which `run_suites` runs before its lanes and which also fails when a
+script goes around the file's functions: `json-test.sh` (59 rows),
+`exit-test.sh` (16), `suites-test.sh` (67), `lab-test.sh` (88),
+`host-test.sh` (53), and `rows-test.sh` (31). [`CONTRIBUTING.md`, "Writing
+code"](../CONTRIBUTING.md#writing-code), states the rules. The battery ran
+after S1, S4, S7, and S10, in a copy of the tree under `/var/tmp` built by
+`make build tools-build`: vet, `make generated-clean`, `go test` over 74
+packages, and `run_suites` with `KARVI` the copy's build (244, 254, 251, and
+262 s); after S1 and S10 also the sysutil container suite on a package built in
+the copy, and after S10 `scripts/verify-bundle.sh` whole on the released
+`bin/` (366 s). After each, the host held nothing of karvi's but
+`/tmp/karvi-1000`, an empty folder found before the work.
+
+**#1, root never acts on what the account owns, agreed.** `karvi-sysutil
+daemon install` repaired the service account's home and configuration as root,
+through `chown`, `chmod`, and `install -d -o karvi`, and `stat -c` reports a
+link itself, so a link always differed and was repaired through. The account
+owns its home: code running as it (its daemon, a hook) could put a link at
+`config.toml`, at `.config`, or at the home itself, and the administrator's
+next `daemon install`, the documented repair, gave the link's target to the
+account. In an ubuntu:26.04 container booting systemd, the 0.40.0 package
+installed and `config.toml` replaced by a link to a root file of mode 0640:
+
+```text
+repaired config /opt/karvi/users/karvi/.config/karvi/config.toml
+  found karvi:karvi 0777
+  set   karvi:karvi 0600
+# the link's target after: /srv/a/shadow karvi:karvi 600
+```
+
+A `.config` linked to a root directory set that directory to mode 0700, its
+owner kept, and made `karvi/config.toml` in it the account's; linked to `/etc`,
+the same closes `/etc` to every other user and gives the account the global
+layer. As decided, root makes only the home
+(`mkdir`, which never follows a link, then `chown -h`); everything inside it is
+made and repaired as the account (`runuser -u karvi -- ...`); and a link,
+another type, or another owner's at the home, `.config`, `.config/karvi`, or
+the configuration, or an existing home the install did not make, is refused
+before anything changes, what was found over what is wanted:
+
+```text
+karvi-sysutil: /opt/karvi/users/karvi/.config/karvi/config.toml is not as the install made it; nothing changed
+  found link to /srv/a/shadow, owner karvi
+  want  file, owner karvi
+```
+
+Two facts the fix met: the account reaches its home only through the
+operators' group (`/opt/karvi/users` is 1770), so the install joins the group
+before it makes or repairs the home, and the record lists `membership` before
+`home`; and `install /dev/stdin` fails under `runuser` when standard input is
+root's pipe, so the configuration is written by `sh -c 'umask 0177 && cat
+>"$1"'` as the account. *Not taken:* root acting inside the home after a check
+alone, the account able to swap a path between the check and the action.
+
+**#25, found while writing S1's tests, agreed.** `daemon remove` removed the
+account's configuration as root, so the same `.config` linked to `/etc` took
+the site's global file with it, exit 0:
+
+```text
+removed  config /opt/karvi/users/karvi/.config/karvi/config.toml
+# /etc/karvi/config.toml after: gone
+```
+
+Remove runs the install's check first and removes the file and its two
+folders as the account; when the account cannot (removed by hand, or out of
+the operators' group), the removal is refused, naming `daemon install` to take
+the account back first. *Not taken:* root's `rm` after the check alone; root
+changing into the checked folder (`cd -P`, the physical path confirmed) and
+removing from inside it, correct and subtler to read. S1 also stops the
+install when its record cannot be written (#4: the refusal ended only a
+pipeline, and a read-only `/etc/karvi` let the install exit 0), writes an
+empty record without refusing (#15), and reads `daemon status` with
+`--nocolor` (#16), not through `scripts/lib/json.sh`, which the package does
+not ship.
+
+**The order, agreed: the fixes first, in POSIX sh.** After the operator's
+questions on sh and bash, the fixes went first as planned, #1 first, and the
+conversion to bash onto the ROADMAP ("Left open", below); every new function
+shell-neutral, so the conversion changes bodies, not callers.
+
+**#2, the traps, agreed: one `on_exit`.** Twenty-four scripts set their
+cleanup with `trap cleanup EXIT HUP INT TERM`. A signal trap that does not
+exit returns to the script in both shells: the cleanup runs, the rows go on
+against the removed work folder, and the cleanup runs again at the end. Under
+dash a trap on EXIT alone runs nothing when a signal ends the script. The
+device qualification against the fake device, a Ctrl-C after five rows:
+
+```text
+# the script as it was
+device qualification: 46 failed
+ctrlc: status 1, 10.2 s after the Ctrl-C
+rows after the Ctrl-C: 77
+# through on_exit
+ctrlc: status 130, 0.1 s after the Ctrl-C
+rows after the Ctrl-C: 0
+```
+
+On a laboratory device those rows would have gone on to D13's `reload`.
+`on_exit CLEANUP` in `scripts/lib/exit.sh` sets `trap CLEANUP EXIT` and
+`trap 'exit 129' HUP`, `trap 'exit 130' INT`, `trap 'exit 143' TERM`, the same
+form right under bash and dash; every script calls it. Under `set -e` a
+failing command inside the cleanup ends the cleanup there, the status then 1,
+so a cleanup's commands carry `|| :` or return a status (S4).
+
+**#26, found while writing S2, agreed.** `make generated-clean` removed its
+scratch folder with a trap on EXIT alone, and make runs a recipe under
+`/bin/sh`, dash: a Ctrl-C left the folder in `TMPDIR` with its three generated
+files, about 270 KB. The recipe sources `scripts/lib/exit.sh` and calls
+`on_exit`; after, make's `Error 130` and nothing of the recipe's left. A
+`go-build` folder left beside it both times is Go's own, `go run` interrupted.
+
+**S2's reach, agreed: the five bash scripts on EXIT alone too.** The
+completion, k03, and v0100 suites, the lifecycle replay, and
+`scripts/verify-release.sh` trapped EXIT alone, which bash runs when a signal
+ends the script; the review counted them correct. A TERM sent to such a script
+alone, 0.5 s into a 3 s command:
+
+```text
+bash exitonly lone TERM 0.5 s in: status 143, ended 0.5 s after start; the 3 s command still running: 1; output: cleanup ran
+bash on_exit  lone TERM 0.5 s in: status 143, ended 3.0 s after start; the 3 s command still running: 0; output: cleanup ran
+```
+
+They call `on_exit` too, one function and a check with no exception
+(`exit-test.sh` fails on a trap on EXIT set any other way, the Makefile
+included). *Not taken:* the five left as they were (two forms, an exception in
+the check); `on_exit` choosing EXIT alone under bash (a branch tested both
+ways, the command left running). The ROADMAP's "The scripts' traps on the
+signals" closed with S2.
+
+**#3, the lanes, agreed as restated.** `run_suites` started its three lanes as
+asynchronous commands, which a non-interactive shell starts with INT ignored,
+and no trap can undo that: a Ctrl-C ended the verifier and the lanes ran on.
+Each lane now runs under `setsid`, its id kept as its group's; while the lanes
+run, HUP, INT, and TERM call `rs_stop`, which sends TERM to each group (`kill
+-TERM "-$pg"`, the pid for a lane not yet in its group), waits up to 30 s for
+the groups to empty, prints the lanes' output, removes the lane folder, and
+ends 129, 130, or 143; after the lanes, the signal traps are `on_exit`'s again.
+A Ctrl-C 45 s into a run against the released `bin/`: before, the verifier
+ended at once and, 15 s later, the v0100 and smoke suites, their two daemons,
+and a fake were still running, their work folders and the lane folder in
+`TMPDIR`; after, status 130 in 0.65 s, nothing running then or 15 s later,
+`TMPDIR` empty, the lanes' output printed. `suites-test.sh` runs a model
+verifier over model suites in a scratch root, starting it as a terminal starts
+a job (`terminal_job`: `setsid env --default-signal=INT`).
+
+**S3's second signal, agreed.** While `rs_stop` waited, the plan's form left
+the signals on `rs_stop`, so a second Ctrl-C ran it again and its second TERM
+cut the suites' cleanups short. Model suites whose cleanup takes 1 s, a second
+INT once all three had started:
+
+```text
+unguarded, verifier under sh: verifier gone after .162 s; marks 1.5 s later:
+  model-a cleanup start
+  model-b cleanup start
+  model-d cleanup start
+  verifier cleanup
+guarded, verifier under sh: verifier gone after 1.07 s; marks 1.5 s later:
+  model-a cleanup done
+  model-a cleanup start
+  model-b cleanup done
+  model-b cleanup start
+  model-d cleanup done
+  model-d cleanup start
+  verifier cleanup
+```
+
+The same under bash. `rs_stop` begins with `trap '' HUP INT TERM`, its wait
+bounded at 30 s. *Not taken:* a run-once flag in `rs_stop` (the nested call
+returns and exits, ending the verifier before the lanes and leaving the lane
+folder); no guard.
+
+**#9 and #10, the plan's fix (S4).** Two suites stopped their daemon in the
+cleanup through a function whose `fail` is `exit 1`, which `|| true` does not
+catch inside a trap, so a daemon still listening ended the cleanup before its
+removal: a model daemon that ignores the stop left the work folder and the fake,
+the suite's passing rows ending 1. Five more stopped it without `--force`,
+which a daemon holding a job refuses (`daemon_active_jobs`, exit 112); after
+the folder went, the daemon finished its job and wrote the removed folder
+again (its scoreboard, capacity lock, and the job's summary). Every cleanup
+stops through `daemon_stop_force SOCKET COMMAND...` in `scripts/lib/lab.sh`,
+which returns 1, never exits, when the socket stays, and `fake_stop`: the same
+job stopped in 0.6 s with nothing left.
+
+**#5, S5's home places, agreed.** karvi takes its home from the passwd entry,
+`$HOME` only as a fallback, so the checks that `--help`, `version`, and the
+completion's hidden words write nothing, which looked under a fresh `$HOME`,
+passed whatever karvi wrote into the operator's own places: a model executable
+that made its private root under a folder standing for the passwd home passed
+`scripts/verify-shipped.sh`'s block as it was. `host_places HOME` watches
+`HOME/.local/share/karvi` and `HOME/.config/karvi` by their existence, beside
+the host's shared places, and `host_places_unchanged` compares; its test passes
+a scratch folder as the home, never the operator's. By existence, not every
+entry inside them: the private root is where the operator's own daemon writes,
+so a full listing would fail a run beside a working daemon; on a host where
+neither exists, the build host, any write is seen. *Not taken:* the full
+listing. The follow-up, agreed then and done in S10: `scripts/verify-bundle.sh`
+and `scripts/verify-release.sh` compare `host_places` of the passwd home around
+the Go tests and the suites, where they compared the shared places alone.
+
+**`verify-shipped.sh`'s folders, closed by S2 and S5.** The ROADMAP's
+"`verify-shipped.sh` reviewed for what it leaves" asked that every folder the
+script makes be removed at its exit, passed, failed, or interrupted. At
+`6a341e2` the stateless folder was made before the trap and removed only when
+its check passed; on the tree it is under the work folder, made after
+`on_exit`. Each form with a `false` after its stateless check, and sent TERM
+once its first folder appeared, `TMPDIR` an empty folder:
+
+```text
+head  passed exit 0   TMPDIR after: []
+head  failed exit 1   TMPDIR after: [tmp.hRqK17i92S ]
+head  term   exit 143 TMPDIR after: [tmp.ubZcRgeY3f ]
+tree  passed exit 0   TMPDIR after: []
+tree  failed exit 1   TMPDIR after: []
+tree  term   exit 143 TMPDIR after: []
+```
+
+The item is removed from the ROADMAP.
+
+**#6, agreed: removed, not repaired.** The spool suite's S5 ran `karvi-prune
+--days 0`, a usage error since 0.39.0 (exit 2), its status never read, so the
+row held because nothing ran. karvi-prune walks the jobs, the transcripts, and
+the two scoreboard folders, never the spool, and the Go tests cover what it
+leaves inside them: the row and the suite's need for karvi-prune went, S5
+keeping its admission sweep. *Not taken:* the review's repair, `--days 1` with
+the spool files' times set back, testing what karvi-prune never reaches.
+
+**#11, the cron lock, agreed and refined.** `karvi-crun` locked
+`${TMPDIR:-/tmp}/karvi-crun.<uid>.lock`, a name another user can make first.
+In an ubuntu:26.04 container, alice's planted file and bob's tick:
+
+```text
+/usr/local/bin/karvi-crun: 20: cannot create /tmp/karvi-crun.1501.lock: Permission denied
+```
+
+Exit 2, every night, under the host's `protected_regular`; without it, a file
+alice held locked would skip every tick. Also found: a hand run with `TMPDIR`
+set took another lock and ran beside the tick. Decided: the lock is
+`<basedir>/state/crun.lock`, basedir as karvi resolves it from the passwd home
+(`config show --explain basedir`), so the cron, a hand run, and `sudo -u` take
+one lock; `KARVI_CRUN_LOCK` still names another. The decided `(umask 077;
+mkdir -p "$base/state")` left three gaps, run in the same container: a first
+tick made the root's missing folders 0700 where karvi makes them 0750; an
+explicit basedir that does not exist, which karvi refuses, was made (an
+unmounted mount point collected into); and a basedir karvi refuses printed
+`resolved:   error: ...` with exit 0, which the line took for a path. Refined
+and agreed: a `resolved:` that is not absolute is refused, exit 1; the root's
+missing folders are made at 0750 only when the value is `"auto"`; a root that
+is not a directory is refused, exit 1:
+
+```text
+karvi-crun: cannot take the lock: the private root /srv/kb/hank is not a directory
+karvi-crun: cannot take the lock: basedir resolved: error: lstat /opt/karvi/users/ivan: permission denied
+```
+
+A tick under a held lock is still skipped, exit 75. *Not taken:*
+`$XDG_RUNTIME_DIR` (unset under cron, so a hand run takes another lock);
+`$HOME/.cache` (karvi takes the passwd home, and the place is outside its
+tree); a private folder under `/tmp` (its name can be planted); crun taking the
+lock itself (DESIGN declines refusing a second crun, and it is a Go change);
+the decided line as it was.
+
+**#14's mode, agreed.** The source bundle fixed its owner, group, and mtime,
+not its modes. Clones of the tree under umask 0022, 0002, 0027, and 0077, each
+bundled:
+
+```text
+head: 4 distinct checksums over the four umasks
+decided: 3 distinct checksums over the four umasks
+tree: 1 distinct checksums over the four umasks
+```
+
+The decided `--mode=go-w` joined 0022 and 0002, the plan's test, but 0027 and
+0077 kept their read bits. Agreed: `--mode=a+rX,u+w,go-w`, every mode from the
+owner's execute bit alone (files 0644, executables and folders 0755, the two
+modes git keeps), and an explicit `--format`. *Not taken:* `go-w` as decided.
+With it, #13: the bundle script and `scripts/build-deb.sh` write tar's archive
+to a file first and stop when tar fails, where a pipe without `pipefail` lost
+its status and a clone holding an unreadable file gave a bundle, or a package,
+without it, exit 0.
+
+**#22 with #23, agreed: the smoke targets removed.** The Makefile's six smoke
+targets depended on `build`, so each overwrote `bin/`'s executables, a
+release's qualified build among them. A suite runs by its shebang against
+`bin/` or `KARVI`, `run_suites` runs them all, and `build` (with `all` through
+it) alone writes `bin/`; `tools-build` stays and joins `.PHONY`. Its check,
+`make -n` of every target and a search of the documents for a removed one,
+gave eight failures on the old tree and none after.
+*Not taken:* smoke targets building into a lab folder (a second build place,
+its helpers beside it, and still a partial list); keeping them documented.
+
+**S7's job-list folder, agreed.** The job-list suite killed its run 2 s after
+the start; waiting for the run's folder and summary instead made a second race
+reachable. Its folder without a summary was named `<J5's second>-zz`, the last
+ID of that second, and karvi gives a job the first free ID of its second, so a
+run in J5's second sorted below it: the wait alone, five runs, three failing,
+J5 `261106-191546-01`, r6 `…-191546-03`, and the folder `…-191546-zz` taken
+for r6. Agreed: the folder is the ID after J5's (`next_id`, karvi's order
+0-9a-z), above J5 and below any job reserved after it. *Not taken:* a wait for
+the clock to pass J5's second (karvi's IDs follow its effective time zone, not
+`date`'s).
+
+**S7's settled bytes, agreed.** The spool suite's cancel and lost rows cut 0.7
+s after the client's start; on the build host that landed before the 65.7 MB
+answer began, and the rows passed, their status, digest, and count checks
+holding for an empty output. Each row now waits for a beat of the scoreboard
+counting the target's bytes, then cuts:
+
+```text
+head, held:   cancel  0 bytes, lost  0 bytes, pass
+head, unheld: cancel  0 bytes, lost  0 bytes, pass
+tree, held:   cancel 12550254 bytes, lost 26058143 bytes, pass
+tree, unheld: cancel 22639754 bytes, lost 31084710 bytes, pass
+```
+
+Agreed: both rows also check `output_bytes > 0`, as the timeout row checks its
+bound; the old timing with the check fails at the cancel row, 0 bytes. *Not
+taken:* the wait alone. The v0100 suite's i1 had 0.30 to 0.36 s to spare and
+now 2.30 to 2.40 s (the device holds its command 3 s); the sysutil suite polls
+up to 30 s for the file logind removes 10 s after a logout.
+
+**S8, JSON read by its path: three points, agreed.** Forty-one lines of eleven
+scripts matched a JSON document's text. The worst were the two `icmp_method`
+reads, which skipped the ICMP rows when they found nothing. The plan's
+demonstration said "a compact layout", but the old sed reads the compact
+document; the layouts that skip the rows are a space before the colon (valid
+JSON) and the key moved into an object, as a rename leaves it. Against a karvi
+whose version JSON is laid out again: at `690eb6d`, spaced and moved, "p1-p3
+SKIP", both suites passing on a host with the socket method; on the tree,
+moved:
+
+```text
+FAIL: p1-p3: karvi version --format json names no ICMP method (icmp_method=absent)
+```
+
+Agreed: the rows run on `socket` or `system`, skip with the reason on
+`unavailable` alone (karvi writes one of the three on every host), and fail on
+any other answer, the key's absence included, since `json_get` with an absent
+key read as empty would have skipped as before. Read by path, four checks
+assert other than their text matches did, each to its message, agreed: canary
+p1 checks every record's `ping.method`, not one; k03 o3 every record's
+`dispatch_order` and `shuffle_key`; o5 the record's own
+`device.canonical_name`, not the name anywhere in the stream; and the
+transcript suite's start record is checked by field, its order and further
+fields no longer fixed (its subject is the values). `json-test.sh` fails on a
+grep, sed, or awk whose pattern names a JSON key; a layout stays a text match
+only where it is the row's subject (v080's indented array).
+
+**#20, the configuration layers, agreed.** A karvi run reads the site's global
+file and the operator's beneath a suite's `--config` and `--set`, and an
+inherited `KARVI__` variable above them. In an ubuntu:26.04 container: with
+`/etc/karvi/config.toml` holding `[telnet] read-timeout = "120s"` the v090
+suite's default row failed with no line; with `[config-lock] "sharedroot" =
+true`, the suite stopped at
+
+```text
+config_lock_violation: write blocked by lock "sharedroot" declared at /etc/karvi/config.toml:2 for sharedroot at --set[2]
+```
+
+Agreed: a hard precondition, `host_config_clean KARVI` in
+`scripts/lib/host.sh`, reading karvi's own `config show --format json`
+`sources` (the paths stay in karvi alone) and the inherited `KARVI__`
+variables, called by every suite and lab before it makes anything, and by
+`run_suites` before its lanes; the site's file and jsmith's together:
+
+```text
+karvi reads this host's configuration; run where it reads none (docs/BUILD-QUALIFICATION.md):
+  file: /etc/karvi/config.toml
+  file: /home/jsmith/.config/karvi/config.toml
+```
+
+A configured host verifies the bundle on a build host or in a container.
+*Not taken:* per-row `--explain` skips (every other key and lock stays); a
+karvi switch skipping the automatic layers (it would escape the site's
+authority layer); unsetting `KARVI__` silently.
+
+**S9's four points, agreed.** The verifiers: the check covers
+`scripts/verify-shipped.sh`, `verify-bundle.sh`, and `verify-release.sh`, which
+the decision's list did not name, and they are reached: an exported
+`KARVI__NOPE=1` ended verify-shipped at `7c5fe29` with exit 2,
+`config_unknown_environment`, and on the tree it is refused, `variable:
+KARVI__NOPE`. verify-shipped calls it where karvi first runs, verify-bundle
+beside its library line, verify-release after its `make build`. *Not taken:*
+an exemption list in the check; verify-bundle calling it first, `bin/` run
+before its checksums are checked. The qualification: `device-qualification.sh`
+refuses a host or account where karvi reads a configuration, making nothing,
+since a site's file sets every key its own `--config` leaves unset and its
+locks refuse its settings;
+[`docs/DEVICE-QUALIFICATION-RUNBOOK.md`](DEVICE-QUALIFICATION-RUNBOOK.md) §1
+and §10 name the need. *Not taken:* the qualification exempt on a real device;
+the host's sources recorded in the evidence instead. #27, found demonstrating
+#20: `host_entries_diff` wrote an empty listing as a blank line, so on a host
+with no shared entry (a container) six of `host-test.sh`'s rows failed and
+stopped `run_suites` at its library tests; an empty listing is now no line.
+And a container's PID 1 must reap: under `sleep infinity` the processes a
+signal row ends stay as zombies, `kill -0 -GROUP` still finds their groups, and
+`suites-test.sh` failed eight rows with 23 zombies; under `docker run --init`,
+none. The documents name a container with an init. *Not taken:* "no lane left"
+skipping zombies.
+
+**The patterns, agreed: all eleven, each one tested function.** R9 with #2
+(`on_exit`); R2 and R3 with #9 and #10 (`daemon_stop_force`, `fake_stop`); R4
+with #7 (`absent`); R8 with #19 (`daemon_pid`); and in S10 R1 (`fake_start`),
+R7 (`newest_job`), R10 (`row`, `row_open`, `fail`, `finish` in
+`scripts/lib/rows.sh`), the build line (`lab_build`), and R5 with R6 merged:
+`lab_places FILE BASE` writes the suite's places (the private and shared
+roots, the spool, the scoreboards, the capacity root, the audit file, the
+floor) into a file every suite passes first with `--config`, its own file and
+`--set` rows after. Several `--config` flags are layers, a later one outranking
+an earlier key by key and their tables merged, so a suite's own `[output]`
+table never meets a second header. The evidence for it was the floor fix of
+[chapter
+100](#100-the-daemon-upgrade-suites-fixture-and-the-suites-floor-2026-11-05),
+which took three mechanisms in four suites.
+
+**S10's seven points, agreed.** Each as built:
+
+- The places file sets the floor to 0 for every script passing it, so the
+  qualification, the output scale run, and the replay ask no floor of the
+  host; under `freecheck = "auto"` each job still needs its estimated finished
+  size free, only the 2 GiB margin above it goes, and a refusal for the host's
+  free space says nothing of the device. *Not taken:* the qualification's own
+  file setting the default floor back (a floor mechanism of its own again).
+- One layout under the base (`BASE/spool`, `BASE/scoreboards`,
+  `BASE/capacity`, `BASE/audit.jsonl`) where four stood. These are the
+  scripts' own per-run settings: karvi with no configuration resolves as
+  before, nothing in the Go code, the reference, or the package changing. *Not
+  taken:* `lab_places FILE BASE SPOOL SCORE CAP`, each suite keeping its
+  layout.
+- The file carries `audit.journald-required = false`, set beside the audit
+  file in every list that named one; the audit suite's own file keeps `true`,
+  a later layer. `tempdir` stays each script's own. *Not taken:* the line in
+  each suite's list; a tempdir argument.
+- Every test helper is built as the Makefile builds the release,
+  `CGO_ENABLED=0 -trimpath`: the fake device built the old way was
+  dynamically linked with 34 tree paths, through `lab_build` static with none.
+  karvi's own executables were already built so. *Not taken:* an option for
+  static builds.
+- `row` prints a line per row, so the k03 suite ends `k03-smoke-test: pass (135
+  rows)`; the library tests keep `check NAME WANT GOT`. *Not taken:* a quiet
+  mode.
+- A row whose subject is another root or floor keeps its setting, its line
+  saying `# the row's own`, which `lab-test.sh`'s check reads. *Not taken:* a
+  list of exceptions in the test; a second places file for every such row.
+- The verifier follow-up placed in S10, the end of the code work. *Not
+  taken:* a code piece inside S11.
+
+**Facts learned**, each run here or in the review's experiments:
+
+- A trap on `EXIT HUP INT TERM` that does not exit runs on a signal and
+  returns, in dash and bash alike; dash runs a trap on EXIT alone at a normal
+  end, never when a signal ends it; bash's EXIT alone runs when a signal ends
+  the script, which ends at once, a command it waits on left running when the
+  signal reached the script alone.
+- A non-interactive shell starts an asynchronous command with INT ignored,
+  which no trap in it can undo; HUP stays at its default. A session of its own
+  (`setsid`) and TERM to its group (`kill -TERM -PGID`) stop it, and `setsid
+  env --default-signal=INT` starts a command as a terminal starts a job.
+- A zombie keeps its process group visible to `kill -0 -PGID`: under a PID 1
+  that reaps nothing, ended lanes look alive.
+- `pkill -f` or `pgrep -f` from a shell whose own command line holds the
+  pattern finds that shell; the review's first lane experiment did, and S4's
+  driver's `pgrep` of the fake's path also found the daemon, whose arguments
+  name the fake.
+- `set -e` ignores a failure before the last command of an `&&` list, and a
+  pipeline beginning with `!`; inside a trap, `exit` ends the cleanup, and `||
+  true` does not catch it.
+- A function in a pipeline runs in a subshell, so its `exit` ends only the
+  pipeline.
+- `stat -c` reports a link itself, and `chown` and `chmod` follow it by
+  default.
+- dash's `echo` reads backslash escapes in its argument (`\b` printed as a
+  backspace, `\1` as a control character), so a library line printing a path,
+  a pattern, or a message uses `printf '%s\n'`.
+- make runs a recipe under `/bin/sh`, dash on this host.
+- karvi takes its home from the passwd entry, not `$HOME`; several `--config`
+  flags are layers; `config show --format json` carries `sources` without
+  `--show-sources`.
+- karvi gives a job the first free ID of its second, in its effective time
+  zone, the sequence ordered 0-9a-z.
+- The lifecycle replay has no prior release to replay today: the daemon IPC
+  schema is 12 since v0.30.0, and v0.29.0's daemon predates the drain that
+  exits. Run against v0.29.0 under `timeout 300`, it fails its row 2 and waits
+  in row 5 until the timeout, its cleanup then leaving nothing.
+
+**Left open.** The conversion itself: the ROADMAP's "Every shell script in
+bash, under one header", with its test and method. The script items the
+review left as they were: "A suite's failure that names its call", "The spool
+suite's timeout row waiting on a condition" (its cancel and lost rows now
+wait), and "The tests' events out of the host's journal".
+
+**Checks.** Each section's runs as above, before and after, kept beside the
+tree (`release-design-evidence/shell-fixes-2026-11/`, a folder per section with
+its README, its scripts, and their output, the four batteries' among them).
+For S11, the `verify-shipped.sh` runs above by one script on copies of
+`6a341e2` and of the tree under `/var/tmp`, removed after (`S11/`); the
+documents checked by grep against the CHANGELOG, the findings, and the
+sections' READMEs, `make generated-clean`, and the documents' links through
+`tools/md-to-html`.
