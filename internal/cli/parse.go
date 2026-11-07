@@ -98,7 +98,7 @@ func (inv *Invocation) String(o *option) string {
 	return v[len(v)-1]
 }
 
-// Strings returns every value of a repeatable option in order.
+// Strings returns every value of an option in the order given.
 func (inv *Invocation) Strings(o *option) []string { return append([]string(nil), inv.values[o]...) }
 
 // Int returns the last value of an integer option, or 0. The parser has

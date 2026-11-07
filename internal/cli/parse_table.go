@@ -49,7 +49,6 @@ type option struct {
 	kind        optKind
 	typ         valueType
 	enum        []string
-	repeat      bool
 	role        optRole
 	pending     bool
 	placeholder string
@@ -99,7 +98,6 @@ func (o *option) inputKind() string {
 	return o.name
 }
 
-func (o *option) repeatable() *option  { o.repeat = true; return o }
 func (o *option) as(r optRole) *option { o.role = r; return o }
 func (o *option) notBuilt() *option    { o.pending = true; return o }
 
@@ -111,21 +109,21 @@ var (
 	optIPv6   = flagOpt("ipv6", "6")
 	optDebug  = flagOpt("debug")
 	optQuiet  = flagOpt("quiet")
-	optTarget = valueOpt("target", "DEVICE", "host", "t").repeatable().as(roleTarget)
-	optTf     = valueOpt("tf", "FILE|PATH|-").repeatable().as(roleTargetInput)
-	optTfr    = valueOpt("tfr", "PATH").repeatable().as(roleTargetInput)
+	optTarget = valueOpt("target", "DEVICE", "host", "t").as(roleTarget)
+	optTf     = valueOpt("tf", "FILE|PATH|-").as(roleTargetInput)
+	optTfr    = valueOpt("tfr", "PATH").as(roleTargetInput)
 	// --tl LIST is a list of --target values in one argument: names
 	// separated by commas or whitespace, the shell's quotes grouping a
 	// whitespace list. The parser
 	// hands each name to --target at the list's position, so a handler, the
 	// plan, and the manifest see target inputs and never a list.
-	optTl    = valueOpt("tl", "LIST").repeatable().as(roleTargetList)
-	optSite  = valueOpt("site", "GLOB").repeatable().as(roleTargetInput)
-	optGroup = valueOpt("device-group", "GLOB").repeatable().as(roleTargetInput)
+	optTl    = valueOpt("tl", "LIST").as(roleTargetList)
+	optSite  = valueOpt("site", "GLOB").as(roleTargetInput)
+	optGroup = valueOpt("device-group", "GLOB").as(roleTargetInput)
 	optAll   = flagOpt("all").as(roleTargetInput)
 	// login, command, and run take the same target inputs and assemble one
 	// target set.
-	optExclude = valueOpt("exclude", "GLOB").repeatable()
+	optExclude = valueOpt("exclude", "GLOB")
 	// --inventory[=FILE], --inv, --i: only inventory devices run
 	// (targets.inventory-only for the invocation, through the lock-aware
 	// flag layer); each =FILE, in command-line order, is a CSV, together the
@@ -133,19 +131,19 @@ var (
 	// (CommonOptions.Inventory). = form only, as --of: the next word may be
 	// a device. An empty FILE is refused, never read as the bare form,
 	// which would put the configured inventory in the file's place.
-	optInventory = (&option{name: "inventory", aliases: []string{"inv", "i"}, kind: kindOptional, placeholder: "[=FILE]"}).repeatable()
+	optInventory = &option{name: "inventory", aliases: []string{"inv", "i"}, kind: kindOptional, placeholder: "[=FILE]"}
 	optOrder     = enumOpt("order", "default", "sorted", "shuffle", "random") // sets dispatch.order through the lock-aware flag layer
-	optCmd       = valueOpt("cmd", "TEXT", "command", "c").repeatable().as(roleCmd)
+	optCmd       = valueOpt("cmd", "TEXT", "command", "c").as(roleCmd)
 	optCf        = valueOpt("cf", "PATH|-").as(roleCf)
-	optSleep     = durationOpt("sleep").repeatable().as(roleSleep)
-	optSudo      = valueOpt("sudo", "TEXT").repeatable().as(roleSudo)
+	optSleep     = durationOpt("sleep").as(roleSleep)
+	optSudo      = valueOpt("sudo", "TEXT").as(roleSudo)
 	// --platform names the platform definition the activity's devices run
 	// as, in login, command, and run alike; selecting inventory devices by
 	// their platform is --select-platform, a target input at its position
 	// in all three.
 	optPlatform       = valueOpt("platform", "NAME")
 	optSelectPlatform = func() *option {
-		o := valueOpt("select-platform", "GLOB").repeatable().as(roleTargetInput)
+		o := valueOpt("select-platform", "GLOB").as(roleTargetInput)
 		o.input = "platform"
 		return o
 	}()
@@ -181,13 +179,13 @@ var (
 	optNoCredh       = flagOpt("no-credh")
 	optAddrAuthority = enumOpt("address-authority", "client", "daemon") // command, login: the first device
 	// In run the value names the target: TARGET=client|daemon.
-	optAddrAuthorityRun = valueOpt("address-authority", "TARGET=client|daemon").repeatable()
+	optAddrAuthorityRun = valueOpt("address-authority", "TARGET=client|daemon")
 )
 
 // Global options, matched before the command word.
 var (
-	optConfig      = valueOpt("config", "PATH", "cfg").repeatable()
-	optSet         = valueOpt("set", "KEY=VALUE").repeatable()
+	optConfig      = valueOpt("config", "PATH", "cfg")
+	optSet         = valueOpt("set", "KEY=VALUE")
 	optDebugShow   = flagOpt("debug-show-secrets")
 	optTimezone    = valueOpt("timezone", "ZONE")
 	optAnsi        = enumOpt("ansi", "auto", "strip", "preserve")
@@ -200,7 +198,7 @@ var globalOptionTable = []*option{optConfig, optSet, optQuiet, optDebug, optDebu
 // login options.
 var (
 	optRecord    = &option{name: "record", aliases: []string{"rec"}, kind: kindOptional, placeholder: "[=PATH]"}
-	optSSHOption = valueOpt("ssh-option", "KEY=VALUE").repeatable().notBuilt()
+	optSSHOption = valueOpt("ssh-option", "KEY=VALUE").notBuilt()
 )
 
 // command and run options: the interactive-prompt declarations and the blind
@@ -213,7 +211,7 @@ var (
 // blind_return_conflict; --timeout and --maxbytes are not, a second one on a
 // command being declaration_repeated.
 var (
-	optExpect      = valueOpt("expect", "PATTERN=RESPONSE").repeatable().as(roleDeclaration)
+	optExpect      = valueOpt("expect", "PATTERN=RESPONSE").as(roleDeclaration)
 	optBlind       = flagOpt("blind").as(roleDeclaration)
 	optBlindReturn = intOpt("blind-return").as(roleDeclaration)
 	optTimeout     = durationOpt("timeout").as(roleDeclaration)
@@ -269,7 +267,7 @@ var (
 var (
 	optLast     = intOpt("last")
 	optFailed   = flagOpt("failed")
-	optOperator = valueOpt("operator", "NAME").repeatable()
+	optOperator = valueOpt("operator", "NAME")
 )
 
 // daemon options.
