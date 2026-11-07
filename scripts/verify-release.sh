@@ -24,10 +24,11 @@ unformatted=$(find . -path ./vendor -prune -o -name '*.go' -type f -print | xarg
 [[ -z "$unformatted" ]] || { echo "gofmt would change:" >&2; echo "$unformatted" >&2; exit 1; }
 
 go mod verify
-# The host's shared places must be as they were after the tests and the
-# suites (scripts/lib/host.sh).
+# The host's shared places and karvi's places under the passwd home must be
+# as they were after the tests and the suites (scripts/lib/host.sh).
 . "$ROOT/scripts/lib/host.sh"
-host_before=$(host_shared_entries)
+home=$(host_passwd_home)
+host_before=$(host_places "$home")
 go test -count=1 -mod=vendor ./...
 go vet -mod=vendor ./...
 go test -race -count=1 -mod=vendor ./...
@@ -64,7 +65,7 @@ done
 make tools-build
 . "$ROOT/scripts/lib/suites.sh"
 run_suites
-host_shared_unchanged "$host_before"
+host_places_unchanged "$home" "$host_before"
 # The package of this tree (docs/EXAMPLES.md chapter 43), before the checksums
 # are rewritten: under a release's heading bin/ is the build CHECKSUMS.sha256
 # lists, on the dev line a build of its own identity. Built into a directory

@@ -86,6 +86,7 @@ run_suites() {
   ./scripts/lib/json-test.sh >/dev/null || return 1
   ./scripts/lib/exit-test.sh >/dev/null || return 1
   ./scripts/lib/lab-test.sh >/dev/null || return 1
+  ./scripts/lib/rows-test.sh >/dev/null || return 1
   ./scripts/lib/host-test.sh >/dev/null || return 1
   ./scripts/lib/suites-test.sh >/dev/null || return 1
   . ./scripts/lib/json.sh; . ./scripts/lib/host.sh

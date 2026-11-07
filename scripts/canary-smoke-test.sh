@@ -19,18 +19,22 @@ SCAN=${SECRET_SCAN:-$ROOT/bin/secret-scan}
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-canary-smoke-XXXXXX")
 host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 BASE=$TMP/state
-SCORE=$TMP/scoreboards
-CAP=$TMP/capacity
+SCORE=$BASE/scoreboards
+CAP=$BASE/capacity
 HOME_DIR=$TMP/home
 FAKE=$TMP/fake-ssh
 BASE_S1=$TMP/state-s1
 cleanup() {
-  daemon_stop_force "$BASE/socket/d.sock" "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' --set "daemon.sockets=\"$BASE/socket\"" || :
-  daemon_stop_force "$BASE_S1/socket/d.sock" "$KARVI" --set "basedir=\"$BASE_S1\"" || :
+  daemon_stop_force "$BASE/socket/d.sock" "$KARVI" --config "$TMP/places.toml" --set 'platform-resolution.default=""' --set "daemon.sockets=\"$BASE/socket\"" || :
+  daemon_stop_force "$BASE_S1/socket/d.sock" "$KARVI" --config "$TMP/places.toml" --config "$TMP/places-s1.toml" || :
   rm -rf "$TMP"
 }
 . "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 install -d -m 700 "$BASE" "$BASE_S1" "$SCORE" "$CAP" "$HOME_DIR" "$TMP/streams"
+lab_places "$TMP/places.toml" "$BASE"
+lab_places "$TMP/places-s1.toml" "$BASE_S1"   # row s1's daemon, on its own state tree
+# shellcheck disable=SC2034 # read by scripts/lib/rows.sh
+row_dir=$TMP/streams; . "$ROOT/scripts/lib/rows.sh"
 
 seed() { printf 'ndcanary-%s' "$(tr -dc '0-9abcdefghjkmnpqrstvwxyz' </dev/urandom | head -c 20)"; }
 PASS=$(seed)
@@ -72,54 +76,38 @@ chmod 755 "$FAKE"
 
 common_args() {
   printf '%s\n' \
-    --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' \
+    --config "$TMP/places.toml" \
+    --set 'platform-resolution.default=""' \
     --set "ssh.transports.system=\"$FAKE\"" \
     --set 'ssh.command.transport="system"' \
-    --set audit.journald-required=false \
-    --set "audit.file=\"$BASE/audit.jsonl\"" \
-    --set "scoreboards=\"$SCORE\"" \
-    --set "sessions.shared-capacity-root=\"$CAP\"" \
-    --set output.min-free-bytes-after-job=0 \
     --set display.color=never \
     --set 'ssh.host-key-policy="insecure"'
 }
 
-failures=0
-fail() { echo "FAIL: $*" >&2; failures=$((failures + 1)); }
-rows=0
-# row NAME EXPECTED_EXIT -- args...   streams land in $TMP/streams/NAME.{out,err}
-row() {
-  local name=$1 want=$2; shift 3
-  rows=$((rows + 1))
-  set +e
-  # shellcheck disable=SC2046
-  HOME=$HOME_DIR NETUSER=u NETPASS=$PASS NETENABLE=$ENABLE "$KARVI" $(common_args) "$@" \
-    >"$TMP/streams/$name.out" 2>"$TMP/streams/$name.err" </dev/null
-  local rc=$?
-  set -e
-  [ "$rc" -eq "$want" ] || fail "$name: exit $rc, want $want; stderr: $(head -1 "$TMP/streams/$name.err")"
-  printf '%-4s exit %d\n' "$name" "$rc"
-}
+# k ARGS: karvi under the suite's list with the row's canaries, the command
+# of each row (`row NAME WANT -- k ARGS`, streams in $TMP/streams/NAME.{out,err}).
+# shellcheck disable=SC2046
+k() { HOME=$HOME_DIR NETUSER=u NETPASS=$PASS NETENABLE=$ENABLE "$KARVI" $(common_args) "$@"; }
 
 echo "canary-smoke: rows"
 # command: the password flows through askpass to the fake device.
-row c1 0 -- command --management-address 127.0.0.1 canary-device 'show version'
+row c1 0 -- k command --management-address 127.0.0.1 canary-device 'show version'
 grep -q 'canary device output' "$TMP/streams/c1.out" || fail "c1: device output missing"
 grep -q '^SENT:show version$' "$FAKE.log" || fail "c1: the device did not receive the command"
 grep -q "DIGEST:$DPASS\$" "$FAKE.log" || fail "c1: the device did not receive the password through askpass"
 # command with debug, and with the secret form --debug-show-secrets allows.
-row c2 0 -- --debug command --management-address 127.0.0.1 canary-device 'show version'
+row c2 0 -- k --debug command --management-address 127.0.0.1 canary-device 'show version'
 grep -q 'DEBUG' "$TMP/streams/c2.err" || fail "c2: no debug output"
-row c3 0 -- --debug --debug-show-secrets command --management-address 127.0.0.1 canary-device 'show version'
+row c3 0 -- k --debug --debug-show-secrets command --management-address 127.0.0.1 canary-device 'show version'
 # run through the auto-launched daemon, with debug.
-row r1 0 -- --debug run --target 127.0.0.1 --target 127.0.0.2 --transport system --dispatch parallel --workers 2 --format jsonl 'show clock'
+row r1 0 -- k --debug run --target 127.0.0.1 --target 127.0.0.2 --transport system --dispatch parallel --workers 2 --format jsonl 'show clock'
 [ "$(wc -l <"$TMP/streams/r1.out" | tr -d ' ')" -eq 3 ] || fail "r1: expected two records and the summary line"
 find "$BASE/jobs" -name summary.json -type f | grep -q . || fail "r1: no job summary"
 find "$BASE/jobs" -name manifest.json -type f | grep -q . || fail "r1: no job manifest"
 # r2: the daemon r1 auto-launched carries no canary in its command line or
 # environment. The launcher passes the child
 # allow-list only.
-rows=$((rows + 1))
+row_open r2
 # shellcheck disable=SC2046
 pid=$(daemon_pid env HOME="$HOME_DIR" "$KARVI" $(common_args))
 [ -n "$pid" ] || fail "r2: daemon pid unknown"
@@ -134,7 +122,7 @@ grep -q '1 processes; 0 hits' "$TMP/streams/r2.out" || fail "r2: scanner did not
 # r3: two simultaneous clients of one operator, each with its own canary
 # password, against the same device. Every
 # session must authenticate with its own job's password.
-rows=$((rows + 1))
+row_open r3
 PASS_A=$(seed)
 PASS_B=$(seed)
 set +e
@@ -165,11 +153,12 @@ grep -q '^SENT:show a$' "$FAKE.log" && grep -q '^SENT:show b$' "$FAKE.log" || fa
 # canaries of this row exist; job a then job b run through it sequentially,
 # the device records each job's own password, the daemon is the same
 # process throughout, and its command line and environment hold neither.
-rows=$((rows + 1))
+row_open s1
 # s1's daemon runs under env -i (its environment is HOME and PATH only, the
 # row's own assertion), so the trust store's setting rides as an argument
-# here, not through host_trust_store's variable.
-s1_args() { common_args | sed "s|basedir=\"$BASE\"|basedir=\"$BASE_S1\"|; s|audit.file=\"$BASE/|audit.file=\"$BASE_S1/|"; printf '%s\n' --set "ssh.known-hosts-file=\"$BASE_S1/known_hosts\""; }
+# here, not through host_trust_store's variable. Its places are the second
+# file's, after the suite's list: a later --config outranks it key by key.
+s1_args() { common_args; printf '%s\n' --config "$TMP/places-s1.toml" --set "ssh.known-hosts-file=\"$BASE_S1/known_hosts\""; }
 set +e
 # shellcheck disable=SC2046
 env -i PATH="$PATH" HOME="$HOME_DIR" "$KARVI" $(s1_args) daemon start >"$TMP/streams/s1-start.out" 2>"$TMP/streams/s1-start.err"
@@ -218,7 +207,7 @@ grep -q '1 processes; 0 hits' "$TMP/streams/s1-scan.out" || fail "s1: scanner di
 before_log=$(wc -l <"$FAKE.log" | tr -d ' ')
 before_manifests=$(find "$BASE/jobs" -name manifest.json -type f | wc -l | tr -d ' ')
 before_ops=$(grep -Ec 'operation=(prepare_job|commit_job|provide_credentials)' "$BASE/logs/daemon.log" || true)
-row d1 0 -- run --dry-run --target 127.0.0.1 --target 127.0.0.2 --transport system --format json 'show clock'
+row d1 0 -- k run --dry-run --target 127.0.0.1 --target 127.0.0.2 --transport system --format json 'show clock'
 json_is "$TMP/streams/d1.out" kind inspection || fail "d1: not an inspection report"
 json_is "$TMP/streams/d1.out" outcome plan || fail "d1: outcome is not plan"
 json_is "$TMP/streams/d1.out" job_submitted false || fail "d1: job_submitted is not false"
@@ -235,7 +224,7 @@ after_ops=$(grep -Ec 'operation=(prepare_job|commit_job|provide_credentials)' "$
 # askpass invocation, and the report says so in every field.
 before_log=$(wc -l <"$FAKE.log" | tr -d ' ')
 before_manifests=$(find "$BASE/jobs" -name manifest.json -type f | wc -l | tr -d ' ')
-row e1 0 -- run --exercise --target 127.0.0.1 --target 127.0.0.2 --transport system --format json 'show clock'
+row e1 0 -- k run --exercise --target 127.0.0.1 --target 127.0.0.2 --transport system --format json 'show clock'
 json_is "$TMP/streams/e1.out" kind exercise || fail "e1: not an exercise report"
 json_is "$TMP/streams/e1.out" outcome exercise || fail "e1: outcome is not exercise"
 json_is "$TMP/streams/e1.out" job_submitted true || fail "e1: job_submitted is not true"
@@ -260,7 +249,7 @@ icmp_method=$("$KARVI" version --format json 2>/dev/null | json_get - icmp_metho
 if [ "$icmp_method" = socket ] || [ "$icmp_method" = system ]; then
   before_auth=$(grep -c '^AUTH:' "$FAKE.log" || true)
   before_manifests=$(find "$BASE/jobs" -name manifest.json -type f | wc -l | tr -d ' ')
-  row p1 101 -- run --ping --target 127.0.0.1 --target 192.0.2.1 --transport system --format jsonl 'show clock'
+  row p1 101 -- k run --ping --target 127.0.0.1 --target 192.0.2.1 --transport system --format jsonl 'show clock'
   [ "$(wc -l <"$TMP/streams/p1.out" | tr -d ' ')" -eq 3 ] || fail "p1: expected two records and the summary line"
   p1=$(jsonl_records "$TMP/streams/p1.out" selected_address status ping.decision)
   printf '%s\n' "$p1" | grep -qx "$(printf '192.0.2.1\ticmp_unreachable\t.*')" || fail "p1: the unreachable target was not skipped as icmp_unreachable"
@@ -280,12 +269,12 @@ if [ "$icmp_method" = socket ] || [ "$icmp_method" = system ]; then
   # p2: login with the gate against the unreachable target exits 110 before
   # any transport; the fake device sees no session.
   before_auth=$(grep -c '^AUTH:' "$FAKE.log" || true)
-  row p2 110 -- login --ping --management-address 192.0.2.1 canary-device
+  row p2 110 -- k login --ping --management-address 192.0.2.1 canary-device
   grep -q 'ping(1) timeout, ping(2) timeout, skip' "$TMP/streams/p2.err" || fail "p2: no one-line gate result"
   grep -q '^icmp_unreachable: ' "$TMP/streams/p2.err" || fail "p2: no icmp_unreachable failure"
   [ "$(grep -c '^AUTH:' "$FAKE.log" || true)" -eq "$before_auth" ] || fail "p2: the fake device saw a session for a skipped target"
   # p3: both flags are refused before anything runs.
-  row p3 4 -- command --ping --noping --management-address 127.0.0.1 canary-device 'show version'
+  row p3 4 -- k command --ping --noping --management-address 127.0.0.1 canary-device 'show version'
   grep -q '^ping_flag_conflict: ' "$TMP/streams/p3.err" || fail "p3: no ping_flag_conflict"
 elif [ "$icmp_method" = unavailable ]; then
   echo "p1-p3 SKIP: no ICMP method on this host (icmp_method=$icmp_method); widen net.ipv4.ping_group_range or install ping"
@@ -294,7 +283,7 @@ else
 fi
 # login, recorded, under a pseudo-terminal; "exit" typed at the prompt ends
 # the session so the transcript pair is complete.
-rows=$((rows + 1))
+row_open l1
 set +e
 # shellcheck disable=SC2046
 { sleep 1; printf 'exit\n'; } | HOME=$HOME_DIR NETUSER=u NETPASS=$PASS NETENABLE=$ENABLE timeout 20s script -qefc \
@@ -311,7 +300,7 @@ echo "canary-smoke: scan"
 set +e
 KARVI_CANARY_PASS=$PASS KARVI_CANARY_ENABLE=$ENABLE KARVI_CANARY_A=$PASS_A KARVI_CANARY_B=$PASS_B KARVI_CANARY_A2=$PASS_A2 KARVI_CANARY_B2=$PASS_B2 "$SCAN" \
   -canary-env KARVI_CANARY_PASS -canary-env KARVI_CANARY_ENABLE -canary-env KARVI_CANARY_A -canary-env KARVI_CANARY_B -canary-env KARVI_CANARY_A2 -canary-env KARVI_CANARY_B2 \
-  "$BASE" "$BASE_S1" "$SCORE" "$CAP" "$FAKE.log" "$TMP/streams" | tee "$TMP/scan.txt"
+  "$BASE" "$BASE_S1" "$FAKE.log" "$TMP/streams" | tee "$TMP/scan.txt"
 src=${PIPESTATUS[0]}
 set -e
 [ "$src" -eq 0 ] || fail "secret-scan exit $src"
@@ -321,8 +310,4 @@ files=$(sed -n 's/^scanned: \([0-9]*\) files.*/\1/p' "$TMP/scan.txt")
 # The password did flow: the fake device accepted it and the audit names the user.
 [ "$(audit_events "$BASE/audit.jsonl" device_identity.device_username | grep -cx u)" -ge 1 ] || fail "audit lacks the device username"
 
-if [ "$failures" -ne 0 ]; then
-  echo "canary-smoke: $failures failure(s) over $rows rows" >&2
-  exit 1
-fi
-echo "canary-smoke: pass ($rows rows, $files files scanned, 0 hits)"
+finish canary-smoke "$files files scanned, 0 hits"

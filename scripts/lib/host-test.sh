@@ -158,9 +158,11 @@ done)
 check "every script sourcing host.sh, and every suite, calls host_config_clean first" "" "$config_late"
 check "run_suites calls host_config_clean before its lanes" "" "$(awk '/^run_suites\(\)/ { b = 1 } b && !c && /host_config_clean/ { c = NR } b && !l && /rs_run|rs_start/ { l = NR } END { if (!c || c > l) print "run_suites: no host_config_clean before its lanes" }' "$ROOT/scripts/lib/suites.sh")"
 
-# Over the tree: the stateless check and the completion suite's hidden words
-# compare the passwd home's places, not only a fresh $HOME.
-for f in scripts/verify-shipped.sh scripts/completion-smoke-test.sh; do
+# Over the tree: the stateless check, the completion suite's hidden words,
+# and the bundle and release verifiers around the Go tests and the suites
+# compare the passwd home's places, not only a fresh $HOME or the shared
+# entries.
+for f in scripts/verify-shipped.sh scripts/completion-smoke-test.sh scripts/verify-bundle.sh scripts/verify-release.sh; do
   # The pattern names the scripts' $home literally.
   # shellcheck disable=SC2016
   check "$f compares the passwd home's places" "yes" "$(if grep -q '^[^#]*host_places_unchanged "\$home"' "$ROOT/$f"; then echo yes; else echo no; fi)"

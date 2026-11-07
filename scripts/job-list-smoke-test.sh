@@ -13,58 +13,40 @@ set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
-GO=${GO:-go}
 . "$ROOT/scripts/lib/json.sh"
 . "$ROOT/scripts/lib/host.sh"; host_config_clean "$KARVI"   # refused on a host whose configuration reaches karvi
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-job-list-smoke-XXXXXX")
 host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
+# shellcheck disable=SC2034 # set by fake_start, read by name: fake_stop FAKE_PID (scripts/lib/lab.sh)
 FAKE_PID=
 unset NETUSER NETPASS NETENABLE
 
 fail() { echo "job list smoke: FAIL: $*" >&2; exit 1; }
 cleanup() {
-  daemon_stop_force "$TMP/base/socket/d.sock" env HOME="$TMP/home" "$KARVI" --quiet --config "$TMP/karvi.toml" || :
+  daemon_stop_force "$TMP/base/socket/d.sock" env HOME="$TMP/home" "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" --quiet || :
   fake_stop FAKE_PID
   chmod -R u+rwX "$TMP" 2>/dev/null || true
   rm -rf "$TMP"
 }
 . "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
-install -d -m 700 "$TMP/bin" "$TMP/home" "$TMP/base" "$TMP/score" "$TMP/crun"
-(cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)
-"$TMP/bin/fake" -host-key-file "$TMP/hostkey" -slow 20s -port 0 >"$TMP/port" 2>"$TMP/fake.err" &
-# shellcheck disable=SC2034 # read by name: fake_stop FAKE_PID (scripts/lib/lab.sh)
-FAKE_PID=$!
-i=0
-while [ ! -s "$TMP/port" ] && [ $i -lt 100 ]; do sleep 0.05; i=$((i + 1)); done
-[ -s "$TMP/port" ] || fail "the fake did not start: $(head -1 "$TMP/fake.err")"
-PORT=$(cat "$TMP/port")
+install -d -m 700 "$TMP/bin" "$TMP/home" "$TMP/base" "$TMP/base/scoreboards" "$TMP/crun"
+lab_places "$TMP/places.toml" "$TMP/base"
+lab_build "$TMP/bin/fake" ./cmd/karvi-fake-device
+fake_start "$TMP" "$TMP/fake.err" -slow 20s -port 0 || exit 1
 
 # dead-iosxe's address is a loopback the fake does not listen on: refused.
 printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\ndead-iosxe,127.0.0.9,cisco_ios\n' >"$TMP/inv.csv"
 cat >"$TMP/karvi.toml" <<EOF_CFG
-basedir = "$TMP/base"
-sharedroot = "none"
-spooldir = "$TMP/spool"
-scoreboards = "$TMP/score"
 platform-resolution.default = ""
 [ssh]
 host-key-policy = "accept-new"
 known-hosts-file = "$TMP/store/known_hosts"
 connect-timeout = "2s"
-[audit]
-journald-required = false
-file = "$TMP/base/audit.jsonl"
-[sessions]
-shared-capacity-root = "$TMP/base/cap"
 [crun]
 directory = "$TMP/crun"
 [display]
 color = "never"
-[output]
-# No floor, as in the other suites: the rows' subject is not the host's
-# free space.
-min-free-bytes-after-job = 0
 [platform.cisco_ios]
 ssh-port = $PORT
 [[inventory-source]]
@@ -89,12 +71,12 @@ install -d -m 700 "$TMP/store"
 karvi() {
   tag=$1; shift
   CODE=0
-  HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" "$@" >"$TMP/out.$tag" 2>"$TMP/err.$tag" || CODE=$?
+  HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" "$@" >"$TMP/out.$tag" 2>"$TMP/err.$tag" || CODE=$?
 }
 # expect TAG CODE: the call's exit.
 expect() { [ "$CODE" = "$2" ] || fail "$1: exit $CODE, want $2: $(head -3 "$TMP/err.$1")"; }
 # newest: the newest job folder's name, the last a glob sorts.
-newest() { for nw_dir in "$TMP/base/jobs"/*/*; do :; done; basename "$nw_dir"; }
+newest() { nw_dir=$(newest_job "$TMP/base") && basename "$nw_dir"; }
 # day ID: the job folder of ID, under its day.
 day() { printf '%s' "$TMP/base/jobs/${1%%-*}/$1"; }
 # next_id ID: the ID after ID in its second, the sequences 00 to zz in
@@ -114,7 +96,7 @@ karvi ex run --exercise --target fake-iosxe --cmd 'show version';               
 # A run killed in show slow (20 s) once its folder holds the summary written
 # at acceptance: that summary stays. The background is karvi itself, so $!
 # is its pid.
-HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" run --no-daemon --target fake-iosxe --cmd 'show slow' >"$TMP/out.kill" 2>"$TMP/err.kill" &
+HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" run --no-daemon --target fake-iosxe --cmd 'show slow' >"$TMP/out.kill" 2>"$TMP/err.kill" &
 KILLED=$!
 i=0
 while [ "$(newest)" = "$J4" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
@@ -132,7 +114,7 @@ json_has "$(day "$J5")/summary.json" final_status && fail "the killed run's summ
 # A run through the daemon without NETPASS is refused at planning, exit 6,
 # and releases the folder it reserved.
 CODE=0
-HOME=$TMP/home NETUSER=netops "$KARVI" --config "$TMP/karvi.toml" run --target fake-iosxe --cmd 'show version' >"$TMP/out.nocred" 2>"$TMP/err.nocred" </dev/null || CODE=$?
+HOME=$TMP/home NETUSER=netops "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" run --target fake-iosxe --cmd 'show version' >"$TMP/out.nocred" 2>"$TMP/err.nocred" </dev/null || CODE=$?
 expect nocred 6
 [ "$(newest)" = "$J5" ] || fail "the refused run left a folder: $(newest)"
 # A folder without a summary, as a job cut short before its summary's first
@@ -216,7 +198,7 @@ grep -qx 'cli_option_value_invalid: --last takes 0 or more, not -1' "$TMP/err.ne
 
 # At a terminal of 80 columns TARGET is the 7 cells the fixed columns
 # leave: the run of two devices is +2, a ? row's path …; every line fits.
-script -qefc "stty cols 80; HOME='$TMP/home' '$KARVI' --config '$TMP/karvi.toml' job list" /dev/null >"$TMP/pty.raw" 2>"$TMP/pty.err" || fail "job list under script: $(head -1 "$TMP/pty.err")"
+script -qefc "stty cols 80; HOME='$TMP/home' '$KARVI' --config '$TMP/places.toml' --config '$TMP/karvi.toml' job list" /dev/null >"$TMP/pty.raw" 2>"$TMP/pty.err" || fail "job list under script: $(head -1 "$TMP/pty.err")"
 tr -d '\r' <"$TMP/pty.raw" >"$TMP/pty.txt"
 grep -q "^  $J2  .*  2/2       1  +2\$" "$TMP/pty.txt" || fail "80 columns: $(grep "$J2" "$TMP/pty.txt")"
 awk 'length > 80 { bad = 1 } END { exit bad }' "$TMP/pty.txt" || fail "80 columns: a line is wider"
@@ -224,7 +206,7 @@ if [ -n "$UNREADABLE" ]; then
   grep -q "^? $J7  .*  invalid  .*  …\$" "$TMP/pty.txt" || fail "80 columns: the ? row's path is not …: $(grep "$J7" "$TMP/pty.txt")"
 fi
 # Into a pipe under display.color = always, coloured; into a file never.
-HOME=$TMP/home "$KARVI" --config "$TMP/karvi.toml" --set display.color=always job list --last 1 | cat >"$TMP/out.pipe"
+HOME=$TMP/home "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" --set display.color=always job list --last 1 | cat >"$TMP/out.pipe"
 grep -q "$(printf '\033')\\[" "$TMP/out.pipe" || fail "display.color = always into a pipe: no colour"
 karvi colour --set display.color=always job list --last 1; expect colour 0
 grep -q "$(printf '\033')" "$TMP/out.colour" && fail "display.color = always into a file: coloured"

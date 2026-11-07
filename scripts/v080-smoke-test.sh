@@ -11,19 +11,20 @@ TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-v080-smoke-XXXXXX")
 host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 HOME_DIR=$TMP/home
 BASE=$TMP/state
-SCORE=$TMP/scoreboards
-CAP=$TMP/capacity
+SCORE=$BASE/scoreboards
+CAP=$BASE/capacity
 FAKE=$TMP/fake-ssh
 LOG=$FAKE.log
 CFG=$TMP/config.toml
 INV=$TMP/inventory.csv
 
 cleanup() {
-  daemon_stop_force "$BASE/socket/d.sock" "$KARVI" --config "$CFG" || :
+  daemon_stop_force "$BASE/socket/d.sock" "$KARVI" --config "$TMP/places.toml" --config "$CFG" || :
   rm -rf "$TMP"
 }
 . "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 install -d -m 700 "$HOME_DIR" "$BASE" "$SCORE" "$CAP"
+lab_places "$TMP/places.toml" "$BASE"
 
 cat >"$INV" <<'EOF_INV'
 name,management_address,platform
@@ -32,10 +33,6 @@ vzn-ftc,127.0.0.2,generic
 EOF_INV
 
 cat >"$CFG" <<EOF_CFG
-basedir = "$BASE"
-sharedroot = "none"
-spooldir = "$BASE/spool"
-scoreboards = "$SCORE"
 platform-resolution.default = ""
 
 [config]
@@ -46,16 +43,6 @@ system = "$FAKE"
 
 [ssh.command]
 transport = "system"
-
-[audit]
-journald-required = false
-file = "$BASE/audit.jsonl"
-
-[sessions]
-shared-capacity-root = "$CAP"
-
-[output]
-min-free-bytes-after-job = 0
 
 [display]
 color = "never"
@@ -114,7 +101,7 @@ chmod 755 "$FAKE"
 # Exact operator-style argument ordering. The second device intentionally
 # fails. Both targets must be attempted, persisted, and visible in text.
 set +e
-HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a-real-secret "$KARVI" --config "$CFG" \
+HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a-real-secret "$KARVI" --config "$TMP/places.toml" --config "$CFG" \
   run --target vzn-ohio --command 'show clock' --transport system \
   --format text --target vzn-ftc >"$TMP/run.out" 2>"$TMP/run.err"
 rc=$?
@@ -131,14 +118,14 @@ job=$(find "$BASE/jobs" -name commands.jsonl -type f | head -n 1)
 [ "$(jsonl_records "$job" input_target | sort | paste -sd' ' -)" = "vzn-ftc vzn-ohio" ]
 
 # Pretty JSON is a valid indented array; compact JSONL remains line-oriented.
-HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a-real-secret "$KARVI" --config "$CFG" \
+HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a-real-secret "$KARVI" --config "$TMP/places.toml" --config "$CFG" \
   --set display.json.indent=4 run --no-daemon --target vzn-ohio \
   --transport system --format json --cmd 'show clock' >"$TMP/run.json" 2>"$TMP/json.err"
 python3 -m json.tool "$TMP/run.json" >/dev/null
 grep -q '^    {' "$TMP/run.json"
 
 # --border replaces a configured border and follows the rendered header width.
-HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a-real-secret "$KARVI" --config "$CFG" \
+HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a-real-secret "$KARVI" --config "$TMP/places.toml" --config "$CFG" \
   --set 'display.command.header=target=<target>' \
   --set 'display.command.border=<repeat:=:4>' \
   --set display.command.last-border=true \
@@ -162,7 +149,7 @@ footer = "exit=<exit-code> elapsed=<elapsed> artifacts=<artifacts>"
 border = "<repeat:=:80>\n"
 last-border = true
 EOF_PTY
-  pty_command="stty cols 36; HOME='$HOME_DIR' NETUSER=smoke NETPASS=not-a-real-secret '$KARVI' --config '$CFG' --config '$TMP/pty-display.toml' command --host vzn-ohio --address 127.0.0.1 --cmd 'show clock'"
+  pty_command="stty cols 36; HOME='$HOME_DIR' NETUSER=smoke NETPASS=not-a-real-secret '$KARVI' --config '$TMP/places.toml' --config '$CFG' --config '$TMP/pty-display.toml' command --host vzn-ohio --address 127.0.0.1 --cmd 'show clock'"
   script -qefc "$pty_command" /dev/null >"$TMP/pty.raw" 2>"$TMP/pty-script.err"
   python3 - "$TMP/pty.raw" "$TMP/pty.txt" <<'PY_PTY'
 from pathlib import Path

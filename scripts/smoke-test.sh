@@ -9,19 +9,19 @@ TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-smoke-XXXXXX")
 host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 SECRET="karvi-smoke-secret-$$"
 BASE=$TMP/state
-SCORE=$TMP/scoreboards
-CAP=$TMP/capacity
+SCORE=$BASE/scoreboards
+CAP=$BASE/capacity
 FAKE=$TMP/fake-ssh
 
 cleanup() {
-  daemon_stop_force "$BASE/socket/d.sock" "$KARVI" \
-    --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' \
-    --set "daemon.sockets=\"$BASE/socket\"" || :
+  daemon_stop_force "$BASE/socket/d.sock" "$KARVI" --config "$TMP/places.toml" \
+    --set 'platform-resolution.default=""' --set "daemon.sockets=\"$BASE/socket\"" || :
   rm -rf "$TMP"
 }
 . "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
 install -d -m 700 "$BASE" "$SCORE" "$CAP"
+lab_places "$TMP/places.toml" "$BASE"
 printf '%s' "$SECRET" | sha256sum | awk '{print $1}' > "$FAKE.expected"
 cat > "$FAKE" <<'SH_INNER'
 #!/bin/sh
@@ -56,15 +56,11 @@ chmod 755 "$FAKE"
 
 common_args() {
   printf '%s\n' \
+    --config "$TMP/places.toml" \
     --quiet \
-    --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' \
+    --set 'platform-resolution.default=""' \
     --set "ssh.transports.system=\"$FAKE\"" \
-    --set 'ssh.command.transport="system"' \
-    --set audit.journald-required=false \
-    --set "audit.file=\"$BASE/audit.jsonl\"" \
-    --set "scoreboards=\"$SCORE\"" \
-    --set "sessions.shared-capacity-root=\"$CAP\"" \
-    --set output.min-free-bytes-after-job=0
+    --set 'ssh.command.transport="system"'
 }
 
 # shellcheck disable=SC2046
@@ -96,7 +92,7 @@ daemon_stop_force "$BASE/socket/d.sock" "$KARVI" $(common_args) || { echo "the r
 "$KARVI" $(common_args) --set daemon.shutdown-idle-timer=1m daemon start >/dev/null 2>"$TMP/idle.err"
 i=0
 # shellcheck disable=SC2046
-while "$KARVI" --quiet $(common_args) daemon status >/dev/null 2>&1; do
+while "$KARVI" $(common_args) --quiet daemon status >/dev/null 2>&1; do
   i=$((i + 1))
   [ $i -le 30 ] || { echo "the daemon did not leave within 150s of a 1m idle timer" >&2; exit 1; }
   sleep 5

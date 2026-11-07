@@ -26,6 +26,7 @@ cleanup() { rm -rf "$TMP"; }
 . "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
 install -d -m 700 "$HOME_DIR" "$BASE"
+lab_places "$TMP/places.toml" "$BASE"
 cat > "$FAKE_SSH" <<EOF_INNER
 #!/bin/sh
 printf '%s\r\n' '$MARKER'
@@ -34,12 +35,12 @@ exit 0
 EOF_INNER
 chmod 755 "$FAKE_SSH"
 
-# COMMON is karvi under the suite's environment (ENVS) and settings (SETS);
-# a case that starts karvi by another name puts its own between the two.
-# No floor, as in the other suites; the floor rows set their own, and a
-# later --set wins.
+# COMMON is karvi under the suite's environment (ENVS) and settings (SETS,
+# the places file first); a case that starts karvi by another name puts its
+# own between the two. No floor, as in the other suites (the places file
+# says 0); the floor rows set their own, and a --set outranks the file.
 ENVS="HOME='$HOME_DIR' NETUSER=smoke NETPASS=not-a-real-secret KARVI_TRANSCRIPT_DIR='$TMP/ignored'"
-SETS="--set 'basedir=\"$BASE\"' --set 'sharedroot=\"none\"' --set 'spooldir=\"$BASE/spool\"' --set 'tempdir=\"$BASE/tmp\"' --set 'platform-resolution.default=\"\"' --set 'scoreboards=\"$BASE/scoreboards\"' --set 'sessions.shared-capacity-root=\"$BASE/capacity\"' --set 'ssh.transports.system=\"$FAKE_SSH\"' --set output.min-free-bytes-after-job=0 --set display.color=never --set audit.journald-required=false --set 'audit.file=\"$BASE/audit.jsonl\"'"
+SETS="--config '$TMP/places.toml' --set 'tempdir=\"$BASE/tmp\"' --set 'platform-resolution.default=\"\"' --set 'ssh.transports.system=\"$FAKE_SSH\"' --set display.color=never"
 COMMON="$ENVS '$KARVI' $SETS"
 
 # recorded NAME EXTRA_GLOBALS LOGIN_ARGS: runs a recorded login under a pty.
@@ -58,14 +59,14 @@ recorded() {
 # lanes beside one another and free space moves by more than a byte.
 FLOOR=$(( $(df --output=avail -B1 "$BASE" | tail -1) + 1073741824 ))
 if [ "$FLOOR" -lt 1099511627776 ]; then
-  recorded floor "--set output.min-free-bytes-after-job=$FLOOR" "--record --address 127.0.0.1 transcript-device" && code=0 || code=$?
+  recorded floor "--set output.min-free-bytes-after-job=$FLOOR" "--record --address 127.0.0.1 transcript-device" && code=0 || code=$?  # the row's own floor
   [ "$code" -eq 111 ]
   # The wrapper's refusal reaches the recorder's pseudo-terminal, so it is
   # read from both streams with the terminal's carriage returns dropped.
   cat "$TMP/floor.out" "$TMP/floor.err" | tr -d '\r' | grep -q "output_preflight_space: $BASE/transcripts: need $FLOOR bytes free, only [0-9]* free"
   [ ! -d "$BASE/transcripts/$DAY" ]
   absent '! transcript=' "$TMP/floor.out"                     # nothing recorded, nothing named
-  recorded floornever "--set output.min-free-bytes-after-job=$FLOOR --set 'freecheck=\"never\"'" "--record --address 127.0.0.1 transcript-device"
+  recorded floornever "--set output.min-free-bytes-after-job=$FLOOR --set 'freecheck=\"never\"'" "--record --address 127.0.0.1 transcript-device"  # the row's own floor
   [ "$(ls "$BASE/transcripts/$DAY"/transcript-device-*.log | wc -l)" = 1 ]
   rm -rf "${BASE:?}/transcripts"
 fi

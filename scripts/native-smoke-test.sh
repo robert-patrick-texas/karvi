@@ -9,64 +9,43 @@ set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
-GO=${GO:-go}
 . "$ROOT/scripts/lib/json.sh"
 . "$ROOT/scripts/lib/host.sh"; host_config_clean "$KARVI"   # refused on a host whose configuration reaches karvi
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-native-smoke-XXXXXX")
 KH=$TMP/store/known_hosts
+# shellcheck disable=SC2034 # set by fake_start, read by name: fake_stop FAKE_PID (scripts/lib/lab.sh)
 FAKE_PID=
 unset NETUSER NETPASS NETENABLE
-# No floor, as in the other suites: the rows' subject is not the host's free
-# space. The environment layer carries it, since rows write their own
-# [output] tables into the file; the daemon a client launches inherits it,
-# and it outranks the file, so no row sets the floor there.
-KARVI__OUTPUT__MIN_FREE_BYTES_AFTER_JOB=0
-export KARVI__OUTPUT__MIN_FREE_BYTES_AFTER_JOB
 
 fail() { echo "native smoke: FAIL: $*" >&2; exit 1; }
 # stop_daemon: the suite's daemon stopped (scripts/lib/lab.sh); 1 when it stays.
-stop_daemon() { daemon_stop_force "$TMP/base/socket/d.sock" env HOME="$TMP/home" "$KARVI" --quiet --config "$TMP/karvi.toml"; }
+stop_daemon() { daemon_stop_force "$TMP/base/socket/d.sock" env HOME="$TMP/home" "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" --quiet; }
 cleanup() { fake_stop FAKE_PID; stop_daemon || :; rm -rf "$TMP"; }
 . "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
 install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store"
-(cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)
+# The places file lives outside the base, which each run removes; no floor,
+# as in the other suites (the places file's): the rows' subject is not the
+# host's free space, and the rows' own [output] tables are in the suite's
+# file, a later layer.
+lab_places "$TMP/places.toml" "$TMP/base"
+lab_build "$TMP/bin/fake" ./cmd/karvi-fake-device
 # tools/textfile derives a device's output.TARGET.txt from commands.jsonl (S27).
-(cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/textfile" ./tools/textfile)
-(cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/paritycheck" ./tools/paritycheck)
+lab_build "$TMP/bin/textfile" ./tools/textfile
+lab_build "$TMP/bin/paritycheck" ./tools/paritycheck
 
 # The operator's own trust store must not change (ssh.known-hosts-file is
 # under TMP in every configuration here; HOME does not move the store).
 OWN_STORE=$(host_own_store "$KARVI")
 OWN_BEFORE=$(host_store_digest "$OWN_STORE")
 
-start_fake() {  # fake flags...; sets PORT
-  : >"$TMP/port"
-  "$TMP/bin/fake" -host-key-file "$TMP/hostkey" "$@" 2>"$TMP/fake.err" >"$TMP/port" &
-  # shellcheck disable=SC2034 # read by name: fake_stop FAKE_PID (scripts/lib/lab.sh)
-  FAKE_PID=$!
-  i=0
-  while [ ! -s "$TMP/port" ] && [ $i -lt 100 ]; do sleep 0.05; i=$((i + 1)); done
-  [ -s "$TMP/port" ] || fail "the fake did not start: $(head -1 "$TMP/fake.err")"
-  PORT=$(cat "$TMP/port")
-}
-
 write_config() {  # policy, tables (PORT substituted)
   cat >"$TMP/karvi.toml" <<EOF_CFG
-basedir = "$TMP/base"
-sharedroot = "none"
-spooldir = "$TMP/spool"
-scoreboards = "$TMP/base/score"
 [ssh]
 host-key-policy = "$1"
 known-hosts-file = "$KH"
 connect-timeout = "2s"
 ${SSH:-}
-[audit]
-journald-required = false
-file = "$TMP/base/audit.jsonl"
-[sessions]
-shared-capacity-root = "$TMP/base/cap"
 [display]
 color = "never"
 [execution]
@@ -99,7 +78,7 @@ run_karvi() {  # tag, activity (command|run|daemon), transport, enable, karvi ar
   CODE=0
   # shellcheck disable=SC2086
   env ${enable:+NETENABLE=$enable} HOME="$TMP/home" NETUSER=netops NETPASS="${PASS:-pw}" \
-    "$KARVI" --config "$TMP/karvi.toml" --set 'platform-resolution.default=""' $sub --format jsonl --target fake-iosxe --transport "$tr" "$@" \
+    "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" --set 'platform-resolution.default=""' $sub --format jsonl --target fake-iosxe --transport "$tr" "$@" \
     >"$TMP/out.$tag" 2>"$TMP/err.$tag" || CODE=$?
   [ "$act" != daemon ] || stop_daemon || fail "the daemon socket remains"
 }
@@ -133,7 +112,7 @@ parity_case() {
   for combo in ${COMBOS:-command:system command:native run:system run:native}; do
     act=${combo%%:*}; tr=${combo##*:}; tag=$act.$tr
     # shellcheck disable=SC2086
-    start_fake -port "$PORT" $fflags
+    fake_start "$TMP" "$TMP/fake.err" -port "$PORT" $fflags || exit 1
     : >"$KH"; chmod 600 "$KH"
     [ -z "${OTHERKEY:-}" ] || printf '[fake-iosxe]:%s %s\n' "$PORT" "$OTHERKEY" >"$KH"
     write_config "$policy" "$tables"
@@ -375,7 +354,7 @@ cross_pair() {  # label, enrolling activity:transport, reading activity:transpor
   case $1 in "${ONLY:-}"*) ;; *) return 0 ;; esac
   label=$1
   printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\n' >"$TMP/inv.csv"
-  start_fake
+  fake_start "$TMP" "$TMP/fake.err" || exit 1
   : >"$KH"; chmod 600 "$KH"
   streams=
   for step in "accept-new:$2" "secure:$3"; do
@@ -525,7 +504,7 @@ parity_case 'S26 an unknown row platform falls back under warn with the notice' 
   'success' 0 "$OPEN"'"show clock"|"exit"|' \
   -- --cmd 'show clock'
 if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S26 ]; then
-  last=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
+  last=$(newest_job "$TMP/base" 2>/dev/null || :)
   jsonl_records "$last/commands.jsonl" platform 2>/dev/null | grep -qx cisco_ios || fail "S26: the record's platform is not the fallback cisco_ios"
   jsonl_records "$last/commands.jsonl" 'notices.*.code' 2>/dev/null | head -1 | tr , '\n' | grep -qx platform_unknown_fallback || fail "S26: the first record carries no platform_unknown_fallback notice"
 fi
@@ -540,7 +519,7 @@ parity_case 'S27 promptbefore across a mode change, and a statement with no answ
   'success,success,success,success' 0 "$OPEN"'"configure terminal"|"interface Loopback0"|"end"|"show clock"|"exit"|' \
   -- --cmd 'configure terminal' --cmd 'interface Loopback0' --cmd 'end' --cmd 'show clock'
 if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S27 ]; then
-  last=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
+  last=$(newest_job "$TMP/base" 2>/dev/null || :)
   # s27_row LINE PROMPTBEFORE PROMPT OUTPUT_BYTES
   s27_row() {
     # The line goes from sed to the reader: `echo` would expand the
@@ -586,7 +565,7 @@ unset EXECUTION
 if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S28 ]; then
   s28_hits=$(grep -rl -- "$S28_SECRET" "$TMP/base" "$TMP"/out.* "$TMP"/err.* 2>/dev/null || true)
   [ -z "$s28_hits" ] || fail "S28: the echoed enable secret is in $s28_hits"
-  s28_text=$(ls -d "$TMP"/base/jobs/*/* | tail -1)/output.fake-iosxe.txt
+  s28_text=$(newest_job "$TMP/base")/output.fake-iosxe.txt
   [ "$(sed -n '2,3p' "$s28_text" | tr '\n' '|')" = 'Router>enable|Password:|' ] || fail "S28: the text file's set-up lines are $(sed -n '2,3p' "$s28_text" | tr '\n' '|')"
 fi
 
@@ -614,13 +593,13 @@ job_run() {
   job_tag=$1; job_act=$2; job_tables=$3; job_fflags=$4; shift 4
   printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\n' >"$TMP/inv.csv"
   # shellcheck disable=SC2086
-  start_fake -port 0 $job_fflags
+  fake_start "$TMP" "$TMP/fake.err" -port 0 $job_fflags || exit 1
   : >"$KH"; chmod 600 "$KH"
   write_config accept-new "$BUILTIN
 $job_tables"
   run_karvi "$job_tag" "$job_act" native en "$@"
   fake_stop FAKE_PID
-  JOB_DIR=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
+  JOB_DIR=$(newest_job "$TMP/base" 2>/dev/null || :)
 }
 job_files() { ls "$JOB_DIR" | tr '\n' ' '; }
 if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S29 ]; then
@@ -767,13 +746,13 @@ if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S33 ]; then
     CODE=0
     # shellcheck disable=SC2086
     env NETENABLE=en HOME="$TMP/home" NETUSER=netops NETPASS=pw \
-      "$KARVI" --config "$TMP/karvi.toml" --set 'platform-resolution.default=""' $s33_sub --format jsonl --transport native "$@" \
+      "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" --set 'platform-resolution.default=""' $s33_sub --format jsonl --transport native "$@" \
       >"$TMP/out.$s33_tag" 2>"$TMP/err.$s33_tag" || CODE=$?
     [ "$s33_act" != daemon ] || stop_daemon || fail "the daemon socket remains"
-    JOB_DIR=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
+    JOB_DIR=$(newest_job "$TMP/base" 2>/dev/null || :)
   }
   printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\ndead,127.0.0.1,dead\n' >"$TMP/inv.csv"
-  start_fake -port 0 -hostname fake-iosxe
+  fake_start "$TMP" "$TMP/fake.err" -port 0 -hostname fake-iosxe || exit 1
   : >"$KH"; chmod 600 "$KH"
   rm -rf "${TMP:?}/crun" "${TMP:?}/crun2"; install -d -m 770 "$TMP/crun"
   echo 'old dead' >"$TMP/crun/dead"; : >"$TMP/crun/.fake-iosxe.260924-000000-00"
@@ -898,11 +877,11 @@ directory = \"$TMP/crun\""
 [crun]
 directory = \"$TMP/crun\""
   rm -rf "${TMP:?}/base" "${TMP:?}/home"; install -d -m 700 "$TMP/base" "$TMP/home"
-  printf '#!/bin/sh\nexec env NETENABLE=en HOME=%s NETUSER=netops NETPASS=pw %s --config %s --set '"'"'platform-resolution.default=""'"'"' "$@"\n' "$TMP/home" "$KARVI" "$TMP/karvi.toml" >"$TMP/bin/nd"
+  printf '#!/bin/sh\nexec env NETENABLE=en HOME=%s NETUSER=netops NETPASS=pw %s --config %s --config %s --set '"'"'platform-resolution.default=""'"'"' "$@"\n' "$TMP/home" "$KARVI" "$TMP/places.toml" "$TMP/karvi.toml" >"$TMP/bin/nd"
   chmod 755 "$TMP/bin/nd"
   rm -f "$TMP/s33l.done"
   # The two ticks are waited for by PID (a bare wait would also wait for the
-  # fake, which start_fake runs in the background), and each tick's status
+  # fake, which fake_start runs in the background), and each tick's status
   # is taken through an if, since the subshells inherit set -e.
   s33_tick() {  # label, karvi-crun args...; appends "label status" to s33l.done
     s33_label=$1; shift
@@ -945,12 +924,12 @@ if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S34 ]; then
     rm -rf "${TMP:?}/base" "${TMP:?}/home"; install -d -m 700 "$TMP/base" "$TMP/home"
     CODE=0
     env NETENABLE=en HOME="$TMP/home" NETUSER=netops NETPASS=pw \
-      "$KARVI" --config "$TMP/karvi.toml" --set 'platform-resolution.default=""' "$@" \
+      "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" --set 'platform-resolution.default=""' "$@" \
       >"$TMP/out.$s34_tag" 2>"$TMP/err.$s34_tag" || CODE=$?
-    JOB_DIR=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
+    JOB_DIR=$(newest_job "$TMP/base" 2>/dev/null || :)
   }
   printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\ndead,127.0.0.1,dead\n' >"$TMP/inv.csv"
-  start_fake -port 0 -hostname fake-iosxe
+  fake_start "$TMP" "$TMP/fake.err" -port 0 -hostname fake-iosxe || exit 1
   : >"$KH"; chmod 600 "$KH"
   rm -rf "${TMP:?}/cd"; install -d -m 770 "$TMP/cd"
   echo 'old dead' >"$TMP/cd/dead"
@@ -1024,16 +1003,16 @@ if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S36 ]; then
     rm -rf "${TMP:?}/base" "${TMP:?}/home"; install -d -m 700 "$TMP/base" "$TMP/home"
     CODE=0
     env NETENABLE="$S36_SECRET" HOME="$TMP/home" NETUSER=netops NETPASS=pw \
-      "$KARVI" --config "$TMP/karvi.toml" --set 'platform-resolution.default=""' "$@" \
+      "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" --set 'platform-resolution.default=""' "$@" \
       >"$TMP/out.$s36_tag" 2>"$TMP/err.$s36_tag" || CODE=$?
-    JOB_DIR=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
+    JOB_DIR=$(newest_job "$TMP/base" 2>/dev/null || :)
   }
   s36_no_secret() {  # tag: no file of the job or stream of the run holds the secret
     s36_hits=$(grep -rl -- "$S36_SECRET" "$TMP/base" "$TMP/out.$1" "$TMP/err.$1" 2>/dev/null || true)
     [ -z "$s36_hits" ] || fail "S36 $1: the echoed enable secret is in $s36_hits"
   }
   printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\nfake2,127.0.0.1,cisco_ios\n' >"$TMP/inv.csv"
-  start_fake -port 0 -hostname Router -drip 200ms -echo-secret -enable "$S36_SECRET"
+  fake_start "$TMP" "$TMP/fake.err" -port 0 -hostname Router -drip 200ms -echo-secret -enable "$S36_SECRET" || exit 1
   : >"$KH"; chmod 600 "$KH"
   write_config accept-new "$BUILTIN
 [dispatch]
@@ -1082,19 +1061,19 @@ fi
 # with one file name, and a collection over the run's own --cf folder or
 # file.
 if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S37 ]; then
-  (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/schema-check" ./tools/schema-check)
+  lab_build "$TMP/bin/schema-check" ./tools/schema-check
   s37_run() {  # tag, karvi args...; sets CODE, JOB_DIR
     s37_tag=$1; shift
     rm -rf "${TMP:?}/base" "${TMP:?}/home"; install -d -m 700 "$TMP/base" "$TMP/home"
     CODE=0
     env NETENABLE=en HOME="$TMP/home" NETUSER=netops NETPASS=pw \
-      "$KARVI" --config "$TMP/karvi.toml" --set 'platform-resolution.default=""' "$@" \
+      "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" --set 'platform-resolution.default=""' "$@" \
       >"$TMP/out.$s37_tag" 2>"$TMP/err.$s37_tag" </dev/null || CODE=$?
-    JOB_DIR=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
+    JOB_DIR=$(newest_job "$TMP/base" 2>/dev/null || :)
   }
   s37_sent() { jsonl_records "$JOB_DIR/commands.jsonl" device.canonical_name command | tr '\t' ' ' | paste -sd '|' -; }
   printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\nfake-b,127.0.0.1,cisco_ios\ndead,127.0.0.1,dead\nedge.example.net,127.0.0.1,cisco_ios\nedge.example.org,127.0.0.1,cisco_ios\n' >"$TMP/inv.csv"
-  start_fake -port 0 -hostname fake-iosxe
+  fake_start "$TMP" "$TMP/fake.err" -port 0 -hostname fake-iosxe || exit 1
   : >"$KH"; chmod 600 "$KH"
   write_config accept-new "$BUILTIN
 [platform.dead]
@@ -1156,7 +1135,7 @@ show clock' ] || fail "S37 one list: exit $CODE, commands.txt $(tr '\n' '|' <"$J
 
   # The planning refusals, no device contacted: a fresh fake counts none.
   fake_stop FAKE_PID
-  start_fake -port 0 -hostname fake-iosxe
+  fake_start "$TMP" "$TMP/fake.err" -port 0 -hostname fake-iosxe || exit 1
   write_config accept-new "$BUILTIN"
   s37_run s37missing run --no-daemon --transport native --target fake-iosxe --target edge.example.net --target edge.example.org --cmd 'show clock' --cf "$TMP/s37/lists"
   [ "$CODE" -eq 5 ] && grep -q '^commands_file_name_collision: ' "$TMP/err.s37missing" || fail "S37 two devices with one file: exit $CODE, $(head -1 "$TMP/err.s37missing")"

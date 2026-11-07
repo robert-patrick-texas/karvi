@@ -38,7 +38,7 @@ The executable suites live under `scripts/` and run against a built
 executable named by `KARVI` (default: the tree's `bin/karvi-linux-amd64`);
 `scripts/lib/suites.sh` runs them all in three lanes with `run_suites`. Every
 suite keeps its state under its own work directory and never touches the
-host's shared places. `scripts/verify-release.sh` is the release's verifier
+host's shared places or the operator's own. `scripts/verify-release.sh` is the release's verifier
 and `scripts/verify-bundle.sh` verifies a shipped bundle as bytes.
 
 Verification is proportionate to the change: gofmt, vet, and build for a
@@ -76,10 +76,19 @@ ends the script at a signal; `scripts/lib/exit-test.sh` fails on a trap of
 its own on EXIT. A suite or lab stops its daemon through `daemon_stop_force`
 in `scripts/lib/lab.sh` (`daemon stop --force`, then the socket's wait; a
 status the caller acts on, never an exit) and its fake through `fake_stop`,
-and reads its daemon's pid through `daemon_pid`; `scripts/lib/lab-test.sh`
-fails on a `daemon stop` whose status is ignored, on one in a cleanup, on a
-daemon's pid read elsewhere, on a copy of `absent`, and on a bare negated
-pipeline.
+and reads its daemon's pid through `daemon_pid`; it builds its helpers
+through `lab_build`, starts its fake through `fake_start`, finds its newest
+job through `newest_job`, and writes its places (the private and shared
+roots, the spool, the scoreboards, the capacity root, the audit file, the
+floor) through `lab_places` into a file it passes first, `--config`, a row
+whose subject is another root or floor saying so on its line ("the row's
+own"); `scripts/lib/lab-test.sh` fails on a `daemon stop` whose status is
+ignored, on one in a cleanup, on a daemon's pid read elsewhere, on a copy of
+`absent`, on a bare negated pipeline, and on a build, a fake's start, a
+newest-job lookup, or a place key outside lab.sh. A suite whose rows go on
+past a failure runs them through `row`, `row_open`, `fail`, and `finish` in
+`scripts/lib/rows.sh`; `scripts/lib/rows-test.sh` fails on a copy of them
+or a counted `fail` of a suite's own.
 karvi takes its home from the passwd entry, not `$HOME`: a script whose
 karvi runs must write nothing there compares karvi's places under that home
 through `host_places` and `host_places_unchanged` in `scripts/lib/host.sh`.

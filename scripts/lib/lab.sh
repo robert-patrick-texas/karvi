@@ -1,8 +1,9 @@
 #!/bin/sh
-# The labs' shared functions, in one place: the suites and the labs that
-# start a daemon or a fake device stop them here, in their rows and in their
-# cleanup, and a suite under set -e asserts what must not appear here. Source
-# it:
+# The labs' shared functions, in one place: the suites and the labs build
+# their helpers, write their places, and start a fake device here, stop
+# their daemon and their fake here, in their rows and in their cleanup, find
+# their newest job here, and a suite under set -e asserts what must not
+# appear here. Source it:
 #
 #   . "$ROOT/scripts/lib/lab.sh"
 #
@@ -39,10 +40,44 @@
 # nothing, since set -e ignores a pipeline that begins with `!` (POSIX), so
 # a suite's must-not-appear check goes through here or says `! ... || fail`.
 #
-# lab_stop_tenths, when set, bounds the socket's wait in tenths of a second
-# (150); scripts/lib/lab-test.sh, the check, shortens it.
-# POSIX sh: no local; the functions' variables carry the ds_, fs_, and ab_
-# prefixes.
+# lab_build OUT PACKAGE builds the tree's PACKAGE (./cmd/... or ./tools/...)
+# into OUT as the Makefile builds the release (static, -trimpath, the
+# vendored modules, the local toolchain), from ROOT, the tree, with GO, the
+# toolchain (go when unset). Its status is the build's, so `lab_build ... ||
+# fail ...` and a bare call under set -e both stop on a failed build.
+#
+# fake_start DIR ERR FLAG... starts the fake device DIR/bin/fake (built by
+# lab_build) in the background with its host key at DIR/hostkey and FLAGs,
+# its stderr into ERR, and waits up to 5 s for the port it prints into
+# DIR/port. It sets FAKE_PID (the fake's own pid, for fake_stop FAKE_PID)
+# and PORT. Its status is 0 once the port is read; 1 when none came, after a
+# line on stderr naming ERR's first line:
+#
+#   fake_start "$TMP" "$TMP/fake.err" -port 0 || exit 1
+#
+# newest_job BASE prints the path of BASE's newest job folder, the last a
+# glob of BASE/jobs/*/* sorts (the day folder, then the job's own name, both
+# by time). Its status is 0 with a path; 1 when BASE holds none, after a
+# line on stderr, so `JOB=$(newest_job "$BASE")` under set -e stops there.
+#
+# lab_places FILE BASE writes the suite's places into FILE (0600): basedir
+# BASE, sharedroot none, the spool, the scoreboards, the capacity root, and
+# the audit file under BASE (journald not required), and no floor. Every
+# suite passes FILE first, `--config FILE`, and its own file and --set rows
+# after: each --config is its own layer, a later one outranks it key by key,
+# so a suite's own [output] table never meets a second header, and the
+# daemon a client launches inherits the list. A row that needs another root
+# writes a second file, passed after the first, or says --set on a line
+# whose comment begins "# the row's own" (the row's own basedir, the row's
+# own floor), which the tree check in scripts/lib/lab-test.sh reads. Status 2,
+# nothing written, for a BASE that TOML would need escaped (a quote, a
+# backslash) or that is not absolute.
+#
+# lab_stop_tenths and lab_start_tenths, when set, bound the socket's wait
+# (150) and the fake's port wait (50) in tenths of a second;
+# scripts/lib/lab-test.sh, the check, shortens them.
+# POSIX sh: no local; the functions' variables carry the ds_, fs_, ab_, fk_,
+# nj_, and lp_ prefixes.
 
 daemon_stop_force() {
   ds_sock=$1; shift
@@ -51,7 +86,7 @@ daemon_stop_force() {
   ds_i=0
   while [ -S "$ds_sock" ] && [ "$ds_i" -lt "${lab_stop_tenths:-150}" ]; do sleep 0.1; ds_i=$((ds_i + 1)); done
   [ -S "$ds_sock" ] || return 0
-  echo "$0: the daemon at $ds_sock outlived daemon stop --force" >&2
+  printf '%s\n' "$0: the daemon at $ds_sock outlived daemon stop --force" >&2
   return 1
 }
 
@@ -61,7 +96,7 @@ daemon_pid() {
 
 fake_stop() {
   case $1 in
-    '' | [0-9]* | *[!A-Za-z0-9_]*) echo "fake_stop: not a variable name: $1" >&2; return 2 ;;
+    '' | [0-9]* | *[!A-Za-z0-9_]*) printf '%s\n' "fake_stop: not a variable name: $1" >&2; return 2 ;;
   esac
   eval "fs_pid=\${$1:-}"
   [ -n "$fs_pid" ] || return 0
@@ -75,8 +110,67 @@ absent() {
   grep -q -- "$1" "$2" 2>/dev/null || ab_rc=$?
   case $ab_rc in
     1) return 0 ;;
-    0) echo "$0: $2 must not match: $1" >&2 ;;
-    *) echo "$0: cannot read $2, which must not match: $1" >&2 ;;
+    0) printf '%s\n' "$0: $2 must not match: $1" >&2 ;;
+    *) printf '%s\n' "$0: cannot read $2, which must not match: $1" >&2 ;;
   esac
   exit 1
+}
+
+lab_build() {
+  (cd "$ROOT" && CGO_ENABLED=0 GOTOOLCHAIN=local "${GO:-go}" build -mod=vendor -trimpath -o "$1" "$2")
+}
+
+fake_start() {
+  fk_dir=$1; fk_err=$2; shift 2
+  : >"$fk_dir/port"
+  "$fk_dir/bin/fake" -host-key-file "$fk_dir/hostkey" "$@" 2>"$fk_err" >"$fk_dir/port" &
+  # shellcheck disable=SC2034 # the caller's: fake_stop FAKE_PID
+  FAKE_PID=$!
+  fk_i=0
+  while [ ! -s "$fk_dir/port" ] && [ "$fk_i" -lt "${lab_start_tenths:-50}" ]; do sleep 0.1; fk_i=$((fk_i + 1)); done
+  if [ ! -s "$fk_dir/port" ]; then
+    printf '%s\n' "$0: the fake did not start: $(head -1 "$fk_err" 2>/dev/null)" >&2
+    return 1
+  fi
+  # shellcheck disable=SC2034 # the caller's: the fake's port
+  PORT=$(cat "$fk_dir/port")
+}
+
+newest_job() {
+  nj_last=
+  for nj_dir in "$1"/jobs/*/*; do
+    [ -d "$nj_dir" ] && nj_last=$nj_dir
+  done
+  if [ -z "$nj_last" ]; then
+    printf '%s\n' "$0: no job folder under $1/jobs" >&2
+    return 1
+  fi
+  printf '%s\n' "$nj_last"
+}
+
+lab_places() {
+  case $2 in
+    /*) ;;
+    *) printf '%s\n' "lab_places: not an absolute path: $2" >&2; return 2 ;;
+  esac
+  case $2 in
+    *'"'* | *\\*) printf '%s\n' "lab_places: a path TOML would need escaped: $2" >&2; return 2 ;;
+  esac
+  lp_tmp=$1.lp$$
+  (umask 077 && cat >"$lp_tmp" <<EOF_PLACES
+basedir = "$2"
+sharedroot = "none"
+spooldir = "$2/spool"
+scoreboards = "$2/scoreboards"
+[audit]
+journald-required = false
+file = "$2/audit.jsonl"
+[sessions]
+shared-capacity-root = "$2/capacity"
+[output]
+min-free-bytes-after-job = 0
+EOF_PLACES
+  ) && mv -f "$lp_tmp" "$1" && return 0
+  rm -f "$lp_tmp"
+  return 1
 }

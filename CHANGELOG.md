@@ -34,11 +34,9 @@
   and transcript suites ran their jobs and recorded logins under the default
   2 GiB `output.min-free-bytes-after-job`, so on a volume short of it each
   stopped at its first job with `output_preflight_space`, the transcript suite
-  with no line. Each sets the floor to 0, as the other suites do: the audit and
-  job list suites in their configuration file, the transcript suite in its
-  `--set` list (its floor rows still set their own), and the parity suite
-  through the environment layer, since its rows write their own `[output]`
-  tables into its file.
+  with no line. Each sets the floor to 0, as the other suites do, through the
+  places file every suite now passes first (the transcript suite's floor rows
+  still set their own).
 - **Breaking: `security.require-fips` is removed; registry 34, audit schema
   4.** Its documentation said "Startup verifies build/runtime mode", and
   nothing read it but the audit, which copied it into each event's policy as
@@ -310,6 +308,50 @@
   entry and six of `scripts/lib/host-test.sh`'s rows failed, stopping
   `run_suites` before its first suite; the build host passed only because
   `/tmp/karvi-<uid>` was there. An empty listing is no line.
+- **The suites keep their places in one file.** Fourteen suites and labs
+  listed the private and shared roots, the spool, the scoreboards, the
+  capacity root, the audit file, and the floor as `--set` arguments, and
+  eight in their own configuration files, each in its own layout; the floor
+  alone took three mechanisms, the parity suite's riding the environment
+  layer because its rows write their own `[output]` tables. `lab_places` in
+  `scripts/lib/lab.sh` writes them into one file, everything under the
+  suite's base, and every suite passes it first with `--config`, its own
+  file and `--set` rows after: each `--config` is its own layer, so a later
+  one outranks it key by key and a suite's own tables never meet a second
+  header. A row whose subject is another root or another floor keeps its
+  own setting and says so on its line. The replay passes the file to the
+  prior release too; v0.28.0 and v0.29.0 read every key in it. The output
+  scale run, the replay, and `scripts/device-qualification.sh` take the same
+  file, so they too ask no floor of the host beyond each job's estimate; the
+  qualification keeps it in its evidence as `places.toml`, beside each run's
+  own `TAG.karvi.toml`, and each run's base now holds its scoreboards and
+  spool ([`docs/DEVICE-QUALIFICATION-RUNBOOK.md`](docs/DEVICE-QUALIFICATION-RUNBOOK.md)).
+  `scripts/lib/lab-test.sh` fails on a place key named outside the file.
+- **The suites share their builds, their fake device's start, their newest
+  job, and their row runner.** Thirteen build lines in eight scripts, six
+  copies of the fake device's start and port wait, fourteen lookups of the
+  newest job folder, and three row runners with their failure counters
+  are `lab_build`, `fake_start`, and `newest_job` in `scripts/lib/lab.sh`
+  and `row`, `row_open`, `fail`, and `finish` in the new
+  `scripts/lib/rows.sh`, each checked by the test beside it under sh and
+  bash. Every helper is built as the Makefile builds the release, static
+  and with `-trimpath`; a lookup that finds no job folder stops its suite
+  with a line saying so, where an empty path failed later at a file it
+  could not read; the k03 suite prints a line per row, as the canary and
+  v0100 suites do, and ends `k03-smoke-test: pass (135 rows)`; the
+  completion suite and the replay count their failures through `fail` and
+  `finish`. The library's lines print their paths, patterns, and messages
+  with `printf`, since dash's `echo` read a backslash in them as an escape
+  (`absent` named a pattern `\b` as a backspace). `scripts/lib/lab-test.sh`
+  and `scripts/lib/rows-test.sh` fail on a copy outside the library.
+- **The bundle and release verifiers watch the operator's own places.**
+  Around the Go tests and the suites they compared the host's shared
+  places alone, so a test or a suite that wrote the operator's private
+  root or configuration under the passwd home (`.local/share/karvi`,
+  `.config/karvi`) passed them. Both compare `host_places` of the passwd
+  home, as `scripts/verify-shipped.sh` and the completion suite do, and
+  `host_shared_unchanged`, which nothing else called, is removed;
+  `scripts/lib/host-test.sh` fails on either verifier comparing less.
 
 ## 0.40.0 - 2026-11-05
 

@@ -221,8 +221,12 @@ karvi-qualification-c9300-lab-20260921T140000Z/
   version.json          the same, as JSON
   device-release.txt    the release line of D1's `show version`
   results.tsv           row, check, disposition (pass, fail, skip, observe), detail
-  D1/ ... D14/          per invocation: TAG.out, TAG.err, TAG.exit, TAG.karvi.toml,
-                        and TAG.base/ (audit.jsonl, score/, and the job directory:
+  places.toml           every run's places, passed first: the private root, the
+                        spool, scoreboards, capacity root, and audit file under
+                        it, no shared root, no free-space floor
+  D1/ ... D14/          per invocation: TAG.out, TAG.err, TAG.exit, TAG.karvi.toml
+                        (the run's own settings, after places.toml), and TAG.base/
+                        (audit.jsonl, scoreboards/, spool/, and the job directory:
                         commands.jsonl, output.TARGET.txt (the session as text, on a
                         build that writes it), errors.jsonl, failed-devices.txt,
                         summary.json, metrics.json, manifest.json with the digests)

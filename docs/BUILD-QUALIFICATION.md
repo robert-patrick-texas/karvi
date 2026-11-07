@@ -84,11 +84,13 @@ smoke suites use `absent PATTERN FILE` (`scripts/lib/lab.sh`) or
   v0.34.0, v0.34.1, v0.35.0, v0.36.0, v0.37.0, v0.38.0, v0.39.0, and v0.40.0,
   which keep it, there was none: v0.29.0's daemon predates the drain that exits
   and listens on `daemon.sock`, which the new client never reaches).
-- The Go tests and the suites MUST leave the host's shared places as they
-  were: both verifiers list the shared scoreboard directory and the shared
-  trees under `/opt/karvi` and `/var/lib/karvi`, and whether
-  `/tmp/karvi-<uid>` and `/var/tmp/karvi-<uid>` exist, before the tests and
-  fail after the suites when the list changed (`scripts/lib/host.sh`).
+- The Go tests and the suites MUST leave the host's shared places and
+  karvi's places under the operator's home as they were: both verifiers list
+  the shared scoreboard directory and the shared trees under `/opt/karvi` and
+  `/var/lib/karvi`, and whether `/tmp/karvi-<uid>`, `/var/tmp/karvi-<uid>`,
+  and the passwd home's `.local/share/karvi` and `.config/karvi` exist,
+  before the tests and fail after the suites when the list changed
+  (`scripts/lib/host.sh`).
 
 ## v0.10.0 planning-boundary expectations
 

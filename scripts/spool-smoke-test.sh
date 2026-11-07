@@ -10,25 +10,25 @@ set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
-GO=${GO:-go}
 . "$ROOT/scripts/lib/json.sh"
 . "$ROOT/scripts/lib/host.sh"; host_config_clean "$KARVI"   # refused on a host whose configuration reaches karvi
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-spool-smoke-XXXXXX")
 KH=$TMP/store/known_hosts
-SPOOL=$TMP/spool
-SCORE=$TMP/base/score
+SPOOL=$TMP/base/spool
+SCORE=$TMP/base/scoreboards
 FAKE_PID=
 PORT=
 unset NETUSER NETPASS NETENABLE
 
 fail() { echo "spool smoke: FAIL: $*" >&2; exit 1; }
 # stop_daemon: the suite's daemon stopped (scripts/lib/lab.sh); 1 when it stays.
-stop_daemon() { daemon_stop_force "$TMP/base/socket/d.sock" env HOME="$TMP/home" "$KARVI" --quiet --config "$TMP/karvi.toml"; }
+stop_daemon() { daemon_stop_force "$TMP/base/socket/d.sock" env HOME="$TMP/home" "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" --quiet; }
 cleanup() { stop_daemon || :; fake_stop FAKE_PID; rm -rf "$TMP"; }
 . "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
 install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store" "$TMP/home" "$TMP/base" "$SPOOL"
-(cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)
+lab_places "$TMP/places.toml" "$TMP/base"
+lab_build "$TMP/bin/fake" ./cmd/karvi-fake-device
 
 # The operator's own trust store must not change (ssh.known-hosts-file is
 # under TMP; HOME does not move the store).
@@ -37,16 +37,8 @@ OWN_BEFORE=$(host_store_digest "$OWN_STORE")
 
 # start_fake: the fake on the port it took first (a restart is the same
 # device), `show big` at 65.7 MB, `show slow` at three seconds; its pid is
-# the fake's own.
-start_fake() {
-  : >"$TMP/port"
-  "$TMP/bin/fake" -host-key-file "$TMP/hostkey" -big-lines 900000 -slow 3s -port "${PORT:-0}" 2>"$TMP/fake.err" >"$TMP/port" &
-  FAKE_PID=$!
-  i=0
-  while [ ! -s "$TMP/port" ] && [ $i -lt 100 ]; do sleep 0.05; i=$((i + 1)); done
-  [ -s "$TMP/port" ] || fail "the fake did not start: $(head -1 "$TMP/fake.err")"
-  PORT=$(cat "$TMP/port")
-}
+# the fake's own (fake_start, scripts/lib/lab.sh).
+start_fake() { fake_start "$TMP" "$TMP/fake.err" -big-lines 900000 -slow 3s -port "${PORT:-0}" || exit 1; }
 start_fake
 : >"$KH"; chmod 600 "$KH"
 
@@ -63,22 +55,13 @@ DEVICES=$((FITS + 8))
   while [ "$i" -le "$DEVICES" ]; do printf 'wide-%03d,127.0.0.1,cisco_ios\n' "$i"; i=$((i + 1)); done
 } >"$TMP/inv.csv"
 cat >"$TMP/karvi.toml" <<EOF_CFG
-basedir = "$TMP/base"
-sharedroot = "none"
-spooldir = "$SPOOL"
-scoreboards = "$SCORE"
 platform-resolution.default = ""
 [ssh]
 host-key-policy = "accept-new"
 known-hosts-file = "$KH"
 connect-timeout = "5s"
-[audit]
-journald-required = false
-file = "$TMP/base/audit.jsonl"
 [watch]
 refresh = "250ms"
-[sessions]
-shared-capacity-root = "$TMP/base/cap"
 [display]
 color = "never"
 [execution]
@@ -87,10 +70,9 @@ command-timeout = "20s"
 # Every answer spools (the suites' way): the daemon's jobs read
 # the daemon's configuration, not a client's --set, so the threshold is
 # here; a row that wants memory sets 1 GiB. No floor, as in the other
-# suites: the rows' subject is the spool, not the host's free space; S9
-# reads this value and S10 sets its own floors.
+# suites (the places file's): the rows' subject is the spool, not the
+# host's free space; S9 reads that value and S10 sets its own floors.
 spool-threshold-bytes = 0
-min-free-bytes-after-job = 0
 [dispatch]
 default = "parallel"
 parallel-workers = 200
@@ -120,7 +102,7 @@ chmod 600 "$TMP/karvi.toml"
 karvi() {
   tag=$1; shift
   CODE=0
-  HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" "$@" >"$TMP/out.$tag" 2>"$TMP/err.$tag" || CODE=$?
+  HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" "$@" >"$TMP/out.$tag" 2>"$TMP/err.$tag" || CODE=$?
 }
 # record TAG: the first record of out.TAG into rec.json (a jsonl line).
 record() { head -1 "$TMP/out.$1" >"$TMP/rec.json"; [ -s "$TMP/rec.json" ] || fail "$1: no record"; }
@@ -182,7 +164,7 @@ for th in 1048576 1073741824 5000; do
   digest=$(json_get "$TMP/rec.json" output_sha256)
   [ -z "$prev_digest" ] || [ "$digest" = "$prev_digest" ] || fail "S2 ($th): digest $digest differs from $prev_digest"
   prev_digest=$digest
-  job=$(ls -d "$TMP"/base/jobs/*/* | tail -1)
+  job=$(newest_job "$TMP/base")
   # The text file: the header's time differs per run; the set-up lines
   # and the block after it hold the output whole and are the same size
   # on every path.
@@ -224,7 +206,7 @@ spool_empty "S4 timeout"
 # The cancel: the client interrupted once the scoreboard counts the
 # response's bytes, inside the stream.
 rm -f "$SCORE"/*.json
-HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" cmd fake-iosxe --format jsonl --transport native --cmd 'show big' >"$TMP/out.s4c" 2>"$TMP/err.s4c" &
+HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" cmd fake-iosxe --format jsonl --transport native --cmd 'show big' >"$TMP/out.s4c" 2>"$TMP/err.s4c" &
 CLIENT=$!
 streaming "S4 cancel"; kill -INT "$CLIENT"
 CODE=0; wait "$CLIENT" || CODE=$?
@@ -235,7 +217,7 @@ spool_empty "S4 cancel"
 # The lost session: the fake killed once the scoreboard counts the
 # response's bytes, then the same device again.
 rm -f "$SCORE"/*.json
-HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" cmd fake-iosxe --format jsonl --transport native --cmd 'show big' >"$TMP/out.s4x" 2>"$TMP/err.s4x" &
+HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" cmd fake-iosxe --format jsonl --transport native --cmd 'show big' >"$TMP/out.s4x" 2>"$TMP/err.s4x" &
 CLIENT=$!
 streaming "S4 lost"; kill -9 "$FAKE_PID" 2>/dev/null || true; wait "$FAKE_PID" 2>/dev/null || true; FAKE_PID=
 CODE=0; wait "$CLIENT" || CODE=$?
@@ -272,7 +254,7 @@ echo "spool smoke: S5 the sweep removed the dead pid's spool and kept the daemon
 # daemon spools every answer (the configuration's threshold 0).
 karvi s6a run --target fake-iosxe --format jsonl 'show running-config'
 [ "$CODE" -eq 0 ] || fail "S6 file: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s6a" | head -1)"
-job=$(ls -d "$TMP"/base/jobs/*/* | tail -1)
+job=$(newest_job "$TMP/base")
 # The records byte for byte, then the summary line.
 head -n "$(wc -l <"$job/commands.jsonl")" "$TMP/out.s6a" | cmp -s - "$job/commands.jsonl" || fail "S6 file: the follower's jsonl differs from commands.jsonl"
 record s6a; check_record "S6 file" success
@@ -308,7 +290,7 @@ echo "spool smoke: S7 --nof displayed the spooled answer without a job folder"
 # schema (`karvi version`), and both back to zero at the end. The file is copied before it is read: the heartbeat
 # rewrites it every 250 ms.
 rm -f "$SCORE"/*.json
-HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" cmd fake-iosxe --format jsonl --transport native --cmd 'show big' >"$TMP/out.s8" 2>"$TMP/err.s8" &
+HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" cmd fake-iosxe --format jsonl --transport native --cmd 'show big' >"$TMP/out.s8" 2>"$TMP/err.s8" &
 CLIENT=$!
 seen=0; inflight=0
 while kill -0 "$CLIENT" 2>/dev/null; do
@@ -375,14 +357,14 @@ fi
 AVAIL=$(df --output=avail -B1 "$TMP" | tail -1)
 FLOOR=$((AVAIL + 1073741824))
 if [ "$FLOOR" -lt 1099511627776 ]; then
-  karvi s10a --set 'freecheck="always"' --set output.min-free-bytes-after-job=$FLOOR cmd fake-iosxe --format jsonl --transport native --cmd 'show clock'
+  karvi s10a --set 'freecheck="always"' --set output.min-free-bytes-after-job=$FLOOR cmd fake-iosxe --format jsonl --transport native --cmd 'show clock'  # the row's own floor
   [ "$CODE" -eq 111 ] || fail "S10 always: exit $CODE, expected 111"
   grep -q "^output_preflight_space: $TMP/base/jobs/[0-9]*/[0-9-]*, $SPOOL: need $FLOOR bytes free, only [0-9]* free" "$TMP/err.s10a" || fail "S10 always: the refusal does not name both paths and the figures: $(head -1 "$TMP/err.s10a")"
   # The refused job's reserved folder is released: the path the refusal
   # names is gone.
   s10_dir=$(sed -n 's/^output_preflight_space: \([^,]*\),.*/\1/p' "$TMP/err.s10a")
   [ -n "$s10_dir" ] && [ ! -d "$s10_dir" ] || fail "S10 always: the refused job's folder $s10_dir was left behind"
-  karvi s10n --set 'freecheck="always"' --set output.min-free-bytes-after-job=$FLOOR cmd --nof fake-iosxe --format jsonl --transport native --cmd 'show clock'
+  karvi s10n --set 'freecheck="always"' --set output.min-free-bytes-after-job=$FLOOR cmd --nof fake-iosxe --format jsonl --transport native --cmd 'show clock'  # the row's own floor
   [ "$CODE" -eq 111 ] || fail "S10 nof: exit $CODE, expected 111"
   grep -q "^output_preflight_space: $SPOOL: need" "$TMP/err.s10n" || fail "S10 nof: the spool's volume alone is named: $(head -1 "$TMP/err.s10n")"
   echo "spool smoke: S10 always refused at the floor, the job's folder and the spool named; --nof asked the spool's volume"
@@ -393,13 +375,13 @@ SHM_AVAIL=$(df --output=avail -B1 /dev/shm 2>/dev/null | tail -1)
 SHM_FLOOR=$((${SHM_AVAIL:-0} + 1073741824))
 if [ -d /dev/shm ] && [ "$(stat -c %d /dev/shm)" != "$(stat -c %d "$TMP")" ] && [ -n "$SHM_AVAIL" ] && [ "$SHM_FLOOR" -lt "$AVAIL" ] && [ "$SHM_FLOOR" -lt 1099511627776 ]; then
   CRUN_SHM=$(mktemp -d /dev/shm/karvi-spool-smoke-XXXXXX)
-  karvi s10c --set output.min-free-bytes-after-job=$SHM_FLOOR --set "crun.directory=\"$CRUN_SHM\"" crun --no-daemon --target fake-iosxe --format jsonl
+  karvi s10c --set output.min-free-bytes-after-job=$SHM_FLOOR --set "crun.directory=\"$CRUN_SHM\"" crun --no-daemon --target fake-iosxe --format jsonl  # the row's own floor
   [ "$CODE" -eq 111 ] || { rm -rf "${CRUN_SHM:?}"; fail "S10 crun: exit $CODE, expected 111: $(head -1 "$TMP/err.s10c")"; }
   # The ask is the floor plus the collection's one copy of the device
   # estimate, so the row checks the path alone and the shortfall's shape.
   grep -q "^output_preflight_space: $CRUN_SHM: need [0-9]* bytes free, only [0-9]* free" "$TMP/err.s10c" || { rm -rf "${CRUN_SHM:?}"; fail "S10 crun: the other volume is named alone: $(head -1 "$TMP/err.s10c")"; }
   [ "$(ls -A "$CRUN_SHM" | wc -l)" -eq 0 ] || { rm -rf "${CRUN_SHM:?}"; fail "S10 crun: the refused crun wrote into $CRUN_SHM"; }
-  karvi s10cn --set 'freecheck="never"' --set output.min-free-bytes-after-job=$SHM_FLOOR --set "crun.directory=\"$CRUN_SHM\"" crun --no-daemon --target fake-iosxe --format jsonl
+  karvi s10cn --set 'freecheck="never"' --set output.min-free-bytes-after-job=$SHM_FLOOR --set "crun.directory=\"$CRUN_SHM\"" crun --no-daemon --target fake-iosxe --format jsonl  # the row's own floor
   [ "$CODE" -eq 0 ] && [ -s "$CRUN_SHM/fake-iosxe" ] || { rm -rf "${CRUN_SHM:?}"; fail "S10 crun never: exit $CODE, file $(ls -A "$CRUN_SHM")"; }
   rm -rf "${CRUN_SHM:?}"
   echo "spool smoke: S10 the collection directory on /dev/shm refused alone at its floor and written under never"

@@ -70,6 +70,7 @@ TRANSPORTS=${TRANSPORTS:-system native}
 INVALID_COMMAND=${INVALID_COMMAND:-show bogus}
 BIG_LIMIT=${BIG_LIMIT:-65536}
 RELOAD_WAIT=${RELOAD_WAIT:-900}
+# shellcheck disable=SC2034 # set by fake_start, read by name: fake_stop FAKE_PID (scripts/lib/lab.sh)
 FAKE_PID=
 
 if [ -n "${FAKE:-}" ]; then
@@ -107,7 +108,7 @@ result() {  # row, check, disposition, detail
   [ "$3" != fail ] || FAILED=$((FAILED + 1))
 }
 # stop_daemon: the run's daemon stopped (scripts/lib/lab.sh); 1 when it stays.
-stop_daemon() { daemon_stop_force "$SOCK" env HOME="$WORK/home" "$KARVI" --quiet --config "$WORK/karvi.toml"; }
+stop_daemon() { daemon_stop_force "$SOCK" env HOME="$WORK/home" "$KARVI" --config "$EVIDENCE/places.toml" --config "$WORK/karvi.toml" --quiet; }
 cleanup() {
   stop_daemon || :
   fake_stop FAKE_PID
@@ -118,6 +119,10 @@ wanted() { [ -z "${ROWS:-}" ] && return 0; for r in $ROWS; do [ "$1" != "$r" ] |
 
 [ ! -e "$EVIDENCE" ] || { echo "device qualification: $EVIDENCE exists; name another EVIDENCE" >&2; exit 2; }
 install -d -m 700 "$EVIDENCE" "$WORK" "$WORK/bin" "$WORK/store" "$WORK/home"
+# The runs' places (lab_places), one file for every run beside each run's own
+# TAG.karvi.toml: kept in the evidence, outside the base each run moves there
+# and the work folder removed at the end.
+lab_places "$EVIDENCE/places.toml" "$WORK/base"
 printf 'row\tcheck\tdisposition\tdetail\n' >"$RESULTS"
 
 # The operator's own trust store must not change.
@@ -125,18 +130,11 @@ OWN_STORE=$(host_own_store "$KARVI")
 OWN_BEFORE=$(host_store_digest "$OWN_STORE")
 
 if [ -z "${PARITYCHECK:-}" ] && command -v "$GO" >/dev/null 2>&1; then
-  (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$WORK/bin/paritycheck" ./tools/paritycheck) && PARITYCHECK=$WORK/bin/paritycheck
+  lab_build "$WORK/bin/paritycheck" ./tools/paritycheck && PARITYCHECK=$WORK/bin/paritycheck
 fi
 if [ -n "${FAKE:-}" ]; then
-  (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$WORK/bin/fake" ./cmd/karvi-fake-device)
-  : >"$WORK/port"
-  "$WORK/bin/fake" -host-key-file "$WORK/hostkey" -big-lines 2000 -password "$NETPASS" -enable "$NETENABLE" 2>"$EVIDENCE/fake.err" >"$WORK/port" &
-  # shellcheck disable=SC2034 # read by name: fake_stop FAKE_PID (scripts/lib/lab.sh)
-  FAKE_PID=$!
-  i=0
-  while [ ! -s "$WORK/port" ] && [ $i -lt 100 ]; do sleep 0.05; i=$((i + 1)); done
-  [ -s "$WORK/port" ] || { echo "device qualification: the fake did not start" >&2; exit 2; }
-  PORT=$(cat "$WORK/port")
+  lab_build "$WORK/bin/fake" ./cmd/karvi-fake-device
+  fake_start "$WORK" "$EVIDENCE/fake.err" -big-lines 2000 -password "$NETPASS" -enable "$NETENABLE" || exit 2
 fi
 if [ "$PORT" -eq 22 ]; then IDENTITY=$DEVICE; ADDRESS_IDENTITY=$ADDRESS
 else IDENTITY="[$DEVICE]:$PORT"; ADDRESS_IDENTITY="[$ADDRESS]:$PORT"; fi
@@ -159,22 +157,13 @@ write_config() {  # policy, further tables; NAMES (inventory names, default DEVI
     for n in ${NAMES:-$DEVICE}; do printf '%s,%s,%s\n' "$n" "$ADDRESS" "$PLATFORM"; done
   } >"$WORK/inv.csv"
   cat >"$WORK/karvi.toml" <<EOF_CFG
-basedir = "$WORK/base"
 tempdir = "$SOCKDIR/tmp"
-sharedroot = "none"
-spooldir = "$WORK/spool"
-scoreboards = "$WORK/base/score"
 [daemon]
 sockets = "$SOCKDIR"
 [ssh]
 host-key-policy = "$1"
 known-hosts-file = "$KH"
 ${SSH:-}
-[audit]
-journald-required = false
-file = "$WORK/base/audit.jsonl"
-[sessions]
-shared-capacity-root = "$WORK/base/cap"
 [display]
 color = "never"
 [platform-resolution]
@@ -216,11 +205,11 @@ qrun() {
   rm -rf "$WORK/base"; install -d -m 700 "$WORK/base"
   OUT=$q_dir/$q_tag.out; ERR=$q_dir/$q_tag.err; CODE=0
   # shellcheck disable=SC2086
-  HOME=$WORK/home "$KARVI" --config "$WORK/karvi.toml" $q_sub --format "${FORMAT:-jsonl}" --transport "$q_tr" "$@" >"$OUT" 2>"$ERR" </dev/null || CODE=$?
+  HOME=$WORK/home "$KARVI" --config "$EVIDENCE/places.toml" --config "$WORK/karvi.toml" $q_sub --format "${FORMAT:-jsonl}" --transport "$q_tr" "$@" >"$OUT" 2>"$ERR" </dev/null || CODE=$?
   echo "$CODE" >"$q_dir/$q_tag.exit"
   stop_daemon || result "$q_row" "the daemon stopped after $q_tag" fail "$SOCK remains"
   cp "$WORK/karvi.toml" "$q_dir/$q_tag.karvi.toml"
-  [ ! -d "$WORK/base" ] || { rm -rf "$WORK/base/socket" "$WORK/base/cap"; mv "$WORK/base" "$q_dir/$q_tag.base"; }
+  [ ! -d "$WORK/base" ] || { rm -rf "$WORK/base/socket" "$WORK/base/capacity"; mv "$WORK/base" "$q_dir/$q_tag.base"; }
 }
 statuses() { jsonl_records "$1" status | paste -sd, -; }  # the command records' statuses, in order
 first_code() { jsonl_records "$1" error.code | grep -m1 .; }  # the first record's error code
@@ -369,7 +358,7 @@ if wanted D7; then
     fresh_store
     rm -rf "$WORK/base"; install -d -m 700 "$WORK/base"
     for k in 1 2; do
-      HOME=$WORK/home "$KARVI" --config "$WORK/karvi.toml" command --format jsonl --transport "$tr" --target "$DEVICE" --cmd 'show clock' \
+      HOME=$WORK/home "$KARVI" --config "$EVIDENCE/places.toml" --config "$WORK/karvi.toml" command --format jsonl --transport "$tr" --target "$DEVICE" --cmd 'show clock' \
         >"$EVIDENCE/D7/h$k.$tr.out" 2>"$EVIDENCE/D7/h$k.$tr.err" </dev/null &
       eval "H$k=\$!"
     done
@@ -379,7 +368,7 @@ if wanted D7; then
     if [ "$hc" -eq 0 ] && [ "$dup" -eq 0 ] && [ -s "$KH" ]; then result D7 "h.$tr concurrent first enrollment" pass "$(wc -l <"$KH") entries, none twice"
     elif [ "$hc" -eq 0 ] && [ -s "$KH" ] && [ "$tr" = system ]; then result D7 "h.$tr concurrent first enrollment" observe "$(wc -l <"$KH") entries, $dup duplicated: OpenSSH writes the store without a lock"
     else result D7 "h.$tr concurrent first enrollment" fail "exit $hc, $dup duplicated entries"; fi
-    rm -rf "$WORK/base/socket" "$WORK/base/cap"; mv "$WORK/base" "$EVIDENCE/D7/h.$tr.base"
+    rm -rf "$WORK/base/socket" "$WORK/base/capacity"; mv "$WORK/base" "$EVIDENCE/D7/h.$tr.base"
     # i: a trust store of mode 0644. secure and
     # accept-new refuse it with the message an operator sees, insecure
     # continues, and none of the three changes the mode.

@@ -16,8 +16,9 @@ host_config_clean "$KARVI"   # refused on a host whose configuration reaches kar
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-completion-smoke-XXXXXX")
 host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 cleanup() { rm -rf "$TMP"; }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
-install -d -m 700 "$TMP/home" "$TMP/state" "$TMP/sb" "$TMP/bin"
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
+install -d -m 700 "$TMP/home" "$TMP/state" "$TMP/state/scoreboards" "$TMP/bin"
+lab_places "$TMP/places.toml" "$TMP/state"
 ln -s "$KARVI" "$TMP/bin/karvi"
 ln -s "$PRUNE" "$TMP/bin/karvi-prune"
 ln -s "$AUDIT" "$TMP/bin/karvi-audit"
@@ -25,14 +26,10 @@ export PATH=$TMP/bin:$PATH HOME=$TMP/home
 
 printf 'name,management_address,platform\ncore-nyc-01,192.0.2.1,cisco_ios\nedge-sfo-02,192.0.2.2,generic\n' >"$TMP/inv.csv"
 for id in 260925-101010-00 260925-090909-00; do
-  printf '{"schema_version":5,"activity_id":"%s","job_id":"%s","operator":{"username":"u"},"mode":"run","status":"complete","started_at":"2026-09-25T10:00:00Z","last_updated_at":"2026-09-25T10:00:01Z"}\n' "$id" "$id" >"$TMP/sb/$id.json"
+  printf '{"schema_version":5,"activity_id":"%s","job_id":"%s","operator":{"username":"u"},"mode":"run","status":"complete","started_at":"2026-09-25T10:00:00Z","last_updated_at":"2026-09-25T10:00:01Z"}\n' "$id" "$id" >"$TMP/state/scoreboards/$id.json"
 done
 CFG=$TMP/karvi.toml
 cat >"$CFG" <<EOF_CFG
-basedir = "$TMP/state"
-sharedroot = "none"
-spooldir = "$TMP/spool"
-scoreboards = "$TMP/sb"
 [[inventory-source]]
 name = "lab"
 type = "csv"
@@ -48,13 +45,13 @@ platform = ["platform"]
 EOF_CFG
 chmod 600 "$CFG"
 
-failures=0
-fail() { echo "FAIL: $*" >&2; failures=$((failures + 1)); }
+. "$ROOT/scripts/lib/rows.sh"
 
 # karvi takes its places under the home of the passwd entry, not $HOME: the
 # hidden words write nothing there or in the host's shared places.
 home=$(host_passwd_home)
 places_before=$(host_places "$home")
+state_before=$(cd "$TMP/state" && find . | sort)   # the scoreboards above, nothing else
 
 # The hidden word, as the function calls it: hidden EXE NAME CURSOR WORD...,
 # CURSOR the index of the word under the cursor (the last word, or one past
@@ -78,16 +75,16 @@ empty() { [ ! -s "$TMP/out" ] || fail "$1: got $(tr '\n' '|' <"$TMP/out"), want 
 
 word w1 1 karvi ru;                               lines w1 run
 word w2 2 karvi run --tar;                        lines w2 --target
-word w3 5 karvi --config "$CFG" run --target;     lines w3 core-nyc-01 edge-sfo-02
-word w4 5 karvi --config "$CFG" job follow;       has w4 260925-101010-00; has w4 --format
-word w5 7 karvi --config "$CFG" run --target core-nyc-01 show;  empty w5
+word w3 7 karvi --config "$TMP/places.toml" --config "$CFG" run --target;     lines w3 core-nyc-01 edge-sfo-02
+word w4 7 karvi --config "$TMP/places.toml" --config "$CFG" job follow;       has w4 260925-101010-00; has w4 --format
+word w5 9 karvi --config "$TMP/places.toml" --config "$CFG" run --target core-nyc-01 show;  empty w5
 word w6 2 karvi --set output.r;                   lines w6 output.reserve-multiplier= output.root=
 word w7 2 karvi --config;                         lines w7 :files
 word w8 3 karvi run --order;                      lines w8 default random shuffle sorted
 word w9 2 karvi setup t;                          lines w9 tab
 word w10 0 karvi;                                 empty w10
 word w11 1 karvi --set=display.col;               has w11 --set=display.color=; has w11 --set=display.colors.success=
-[ ! -e "$TMP/state" ] || [ -z "$(ls -A "$TMP/state")" ] || fail "the hidden word created state: $(ls -A "$TMP/state")"
+[ "$(cd "$TMP/state" && find . | sort)" = "$state_before" ] || fail "the hidden word created state: $(cd "$TMP/state" && find . | sort | tr '\n' ' ')"
 host_places_unchanged "$home" "$places_before" || fail "the hidden word wrote in karvi's places"
 places_before=$(host_places "$home")   # the helper's words judged on their own
 
@@ -163,10 +160,10 @@ if [ -r "$LIB" ]; then
   }
   tab b1 1 karvi ru;                                 lines b1 run
   tab b2 2 karvi run --tar;                          lines b2 --target
-  tab b3 5 karvi --config "$CFG" run --target "";    lines b3 core-nyc-01 edge-sfo-02
-  tab b4 5 karvi --config "$CFG" run --target e;     lines b4 edge-sfo-02
-  tab b5 5 karvi --config "$CFG" job follow "";      has b5 260925-090909-00; has b5 --echo
-  tab b6 7 karvi --config "$CFG" run --target core-nyc-01 show "";  lines b6 ""
+  tab b3 7 karvi --config "$TMP/places.toml" --config "$CFG" run --target "";    lines b3 core-nyc-01 edge-sfo-02
+  tab b4 7 karvi --config "$TMP/places.toml" --config "$CFG" run --target e;     lines b4 edge-sfo-02
+  tab b5 7 karvi --config "$TMP/places.toml" --config "$CFG" job follow "";      has b5 260925-090909-00; has b5 --echo
+  tab b6 9 karvi --config "$TMP/places.toml" --config "$CFG" run --target core-nyc-01 show "";  lines b6 ""
   tab b7 2 karvi --set output.r;                     lines b7 output.reserve-multiplier= output.root=
   tab b8 1 karvi --set=display.col;                  has b8 --set=display.color=
   tab b9 2 karvi setup "";                           lines b9 --help shared tab
@@ -186,5 +183,4 @@ else
   echo "completion-smoke: $LIB absent; the function was not driven (the hidden word was)"
 fi
 
-[ "$failures" -eq 0 ] || { echo "completion-smoke: $failures failure(s)" >&2; exit 1; }
-echo "completion-smoke: ok"
+finish completion-smoke

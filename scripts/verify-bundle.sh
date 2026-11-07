@@ -23,14 +23,16 @@ done
 unformatted=$(find . -path ./vendor -prune -o -name '*.go' -type f -print | xargs gofmt -l)
 [ -z "$unformatted" ] || { echo "gofmt would change:" >&2; echo "$unformatted" >&2; exit 1; }
 [ -s vendor/modules.txt ] || { echo 'vendor/modules.txt is missing; run make vendor' >&2; exit 1; }
-# The host's shared places must be as they were after the tests and the
-# suites: no test or suite writes to the host's shared trees or scoreboard
-# directory (scripts/lib/host.sh). verify-shipped.sh has already refused a
-# host whose configuration reaches karvi; the call stands here as in every
-# script sourcing host.sh.
+# The host's shared places and karvi's places under the passwd home must be
+# as they were after the tests and the suites: no test or suite writes to
+# the host's shared trees or scoreboard directory, or to the operator's own
+# private root or configuration (scripts/lib/host.sh). verify-shipped.sh
+# has already refused a host whose configuration reaches karvi; the call
+# stands here as in every script sourcing host.sh.
 . "$ROOT/scripts/lib/json.sh"; . "$ROOT/scripts/lib/host.sh"
 host_config_clean ./bin/karvi-linux-amd64
-host_before=$(host_shared_entries)
+home=$(host_passwd_home)
+host_before=$(host_places "$home")
 GOTOOLCHAIN=local go test -count=1 -mod=vendor ./...
 GOTOOLCHAIN=local go vet -mod=vendor ./...
 
@@ -51,6 +53,6 @@ for f in "$TMP"/man/*; do cmp "packaging/man/${f##*/}" "$f"; done
 # fake device from the tree).
 . "$ROOT/scripts/lib/suites.sh"
 run_suites
-host_shared_unchanged "$host_before"
+host_places_unchanged "$home" "$host_before"
 
 echo 'bundle verification: pass (the executables as shipped; devices not qualified here)'

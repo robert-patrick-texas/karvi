@@ -17,11 +17,11 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 AUDIT=${KARVI_AUDIT:-$(dirname "$KARVI")/karvi-audit}
-GO=${GO:-go}
 . "$ROOT/scripts/lib/json.sh"
 . "$ROOT/scripts/lib/host.sh"; host_config_clean "$KARVI"   # refused on a host whose configuration reaches karvi
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-audit-smoke-XXXXXX")
 host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
+# shellcheck disable=SC2034 # set by fake_start, read by name: fake_stop FAKE_PID (scripts/lib/lab.sh)
 FAKE_PID=
 FOLLOW_PID=
 unset NETUSER NETPASS NETENABLE NO_COLOR
@@ -66,15 +66,10 @@ if ! [ -S /run/systemd/journal/socket ] || ! command -v journalctl >/dev/null 2>
   exit 0
 fi
 
-install -d -m 700 "$TMP/bin" "$TMP/home" "$TMP/base" "$TMP/score" "$TMP/store"
-(cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)
-"$TMP/bin/fake" -host-key-file "$TMP/hostkey" -port 0 >"$TMP/port" 2>"$TMP/fake.err" &
-# shellcheck disable=SC2034 # read by name: fake_stop FAKE_PID (scripts/lib/lab.sh)
-FAKE_PID=$!
-i=0
-while [ ! -s "$TMP/port" ] && [ $i -lt 100 ]; do sleep 0.05; i=$((i + 1)); done
-[ -s "$TMP/port" ] || fail "the fake did not start: $(head -1 "$TMP/fake.err")"
-PORT=$(cat "$TMP/port")
+install -d -m 700 "$TMP/bin" "$TMP/home" "$TMP/base" "$TMP/base/scoreboards" "$TMP/store"
+lab_places "$TMP/places.toml" "$TMP/base"
+lab_build "$TMP/bin/fake" ./cmd/karvi-fake-device
+fake_start "$TMP" "$TMP/fake.err" -port 0 || exit 1
 
 # The devices are named for this run alone, so that the host's journal,
 # which holds every other run's events, matches this run's by device; the
@@ -84,10 +79,6 @@ UP=up-$T
 DEAD=dead-$T
 printf 'name,management_address,platform\n%s,127.0.0.1,cisco_ios\n%s,127.0.0.9,cisco_ios\n' "$UP" "$DEAD" >"$TMP/inv.csv"
 cat >"$TMP/karvi.toml" <<EOF_CFG
-basedir = "$TMP/base"
-sharedroot = "none"
-spooldir = "$TMP/spool"
-scoreboards = "$TMP/score"
 platform-resolution.default = ""
 [ssh]
 host-key-policy = "accept-new"
@@ -95,15 +86,8 @@ known-hosts-file = "$TMP/store/known_hosts"
 connect-timeout = "2s"
 [audit]
 journald-required = true
-file = "$TMP/base/audit.jsonl"
-[sessions]
-shared-capacity-root = "$TMP/base/cap"
 [display]
 color = "never"
-[output]
-# No floor, as in the other suites: the rows' subject is not the host's
-# free space.
-min-free-bytes-after-job = 0
 [platform.cisco_ios]
 ssh-port = $PORT
 [[inventory-source]]
@@ -126,9 +110,9 @@ chmod 600 "$TMP/karvi.toml"
 karvi() {
   tag=$1; shift
   CODE=0
-  HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" "$@" >"$TMP/out.$tag" 2>"$TMP/err.$tag" || CODE=$?
+  HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" "$@" >"$TMP/out.$tag" 2>"$TMP/err.$tag" || CODE=$?
 }
-newest() { for nw_dir in "$TMP/base/jobs"/*/*; do :; done; basename "$nw_dir"; }
+newest() { nw_dir=$(newest_job "$TMP/base") && basename "$nw_dir"; }
 
 # Every read names the run's start: the host's trail is every run's, and
 # read whole it takes seconds.

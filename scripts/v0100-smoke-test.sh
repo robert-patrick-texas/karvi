@@ -13,7 +13,7 @@ KARVI=${KARVI:-./bin/karvi-linux-amd64}
 [ -x "$KARVI" ] || { echo "build the executable first: make build" >&2; exit 1; }
 host_config_clean "$KARVI"   # refused on a host whose configuration reaches karvi
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-v0100-smoke-XXXXXX")
-BASE=$TMP/base; HOME_DIR=$TMP/home; SCORE=$TMP/score; CAP=$TMP/cap
+BASE=$TMP/base; HOME_DIR=$TMP/home; SCORE=$BASE/scoreboards; CAP=$BASE/capacity
 mkdir -p "$BASE" "$HOME_DIR" "$SCORE" "$CAP" "$TMP/streams"
 FAKE=$TMP/fake-ssh
 cat >"$FAKE" <<SH
@@ -37,39 +37,27 @@ chmod 755 "$FAKE"
 export HOME=$HOME_DIR NETUSER=u NETPASS=p
 common_args() {
   printf '%s\n' \
-    --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' \
+    --config "$TMP/places.toml" \
+    --set 'platform-resolution.default=""' \
     --set "ssh.transports.system=\"$FAKE\"" \
     --set 'ssh.command.transport="system"' \
-    --set audit.journald-required=false \
-    --set "audit.file=\"$BASE/audit.jsonl\"" \
-    --set "scoreboards=\"$SCORE\"" \
-    --set "sessions.shared-capacity-root=\"$CAP\"" \
-    --set output.min-free-bytes-after-job=0 \
     --set display.color=never \
     --set 'ssh.host-key-policy="insecure"' \
     --set "ssh.known-hosts-file=\"$TMP/known_hosts\""
 }
 cleanup() {
   # shellcheck disable=SC2046
-  daemon_stop_force "$BASE/socket/d.sock" "$KARVI" --quiet $(common_args) || :
+  daemon_stop_force "$BASE/socket/d.sock" "$KARVI" $(common_args) --quiet || :
   rm -rf "$TMP"
 }
 . scripts/lib/exit.sh; . scripts/lib/lab.sh; on_exit cleanup
-failures=0
-fail() { echo "FAIL: $*" >&2; failures=$((failures + 1)); }
-rows=0
-# row NAME EXPECTED_EXIT -- args...   streams land in $TMP/streams/NAME.{out,err}
-row() {
-  local name=$1 want=$2; shift 3
-  rows=$((rows + 1))
-  set +e
-  # shellcheck disable=SC2046
-  "$KARVI" $(common_args) "$@" >"$TMP/streams/$name.out" 2>"$TMP/streams/$name.err" </dev/null
-  local rc=$?
-  set -e
-  [ "$rc" -eq "$want" ] || fail "$name: exit $rc, want $want; stderr: $(head -1 "$TMP/streams/$name.err")"
-  printf '%-4s exit %d\n' "$name" "$rc"
-}
+lab_places "$TMP/places.toml" "$BASE"
+# shellcheck disable=SC2034 # read by scripts/lib/rows.sh
+row_dir=$TMP/streams; . scripts/lib/rows.sh
+# k ARGS: karvi under the suite's list, the command of each row (`row NAME
+# WANT -- k ARGS`, streams in $TMP/streams/NAME.{out,err}).
+# shellcheck disable=SC2046
+k() { "$KARVI" $(common_args) "$@"; }
 # summaries: the jobs that have ended, their summaries naming a final status
 # (the acceptance writes one without).
 summaries() {
@@ -88,21 +76,21 @@ echo "v0100-smoke: rows"
 
 # Gate 5: the dry-run in text and json against an absent daemon, then the
 # daemon started explicitly.
-row d1 0 -- run --dry-run --target 127.0.0.1 --transport system 'show clock'
+row d1 0 -- k run --dry-run --target 127.0.0.1 --transport system 'show clock'
 grep -q '^outcome: plan$' "$TMP/streams/d1.out" || fail "d1: outcome"
 grep -q '^daemon local: absent' "$TMP/streams/d1.out" || fail "d1: an absent daemon was not reported"
 [ ! -S "$BASE/socket/d.sock" ] || fail "d1: a daemon was launched"
 # shellcheck disable=SC2046
 "$KARVI" $(common_args) daemon start >/dev/null 2>&1
-row d2 0 -- run --dry-run --target 127.0.0.1 --transport system --format json 'show clock'
+row d2 0 -- k run --dry-run --target 127.0.0.1 --transport system --format json 'show clock'
 json_is "$TMP/streams/d2.out" kind inspection && json_is "$TMP/streams/d2.out" job_submitted false && json_is "$TMP/streams/d2.out" daemons.0.status running || fail "d2: report fields"
 [ "$(summaries)" -eq 0 ] || fail "d2: a job appeared"
 [ ! -s "$FAKE.log" ] || fail "d2: the fake device saw a session"
 
 # Gate 6: the exercise in text and json.
-row e1 0 -- run --exercise --target 127.0.0.1 --transport system 'show clock'
+row e1 0 -- k run --exercise --target 127.0.0.1 --transport system 'show clock'
 grep -q '^status: exercise$' "$TMP/streams/e1.out" && grep -q '^device_contacted: false$' "$TMP/streams/e1.out" && grep -q '^- name:127.0.0.1: ready$' "$TMP/streams/e1.out" || fail "e1: report text"
-row e2 0 -- run --exercise --target 127.0.0.1 --transport system --format json 'show clock'
+row e2 0 -- k run --exercise --target 127.0.0.1 --transport system --format json 'show clock'
 json_is "$TMP/streams/e2.out" kind exercise && json_is "$TMP/streams/e2.out" outcome exercise || fail "e2: report fields"
 wait_summaries 2 || fail "e2: expected two exercise summaries"
 [ "$(for e2_summary in $(find "$BASE/jobs" -name summary.json); do json_get "$e2_summary" final_status; done | grep -cx exercise)" -eq 2 ] || fail "e2: summaries are not exercised"
@@ -110,7 +98,7 @@ wait_summaries 2 || fail "e2: expected two exercise summaries"
 
 # The refused flag pairs and the detach combinations.
 for pair in "--dry-run --exercise" "--dry-run --detach" "--exercise --detach" "--detach --follow" "--detach --no-daemon" "--exercise --no-daemon"; do
-  rows=$((rows + 1))
+  row_open c
   set +e
   # shellcheck disable=SC2046,SC2086
   "$KARVI" $(common_args) run $pair --target 127.0.0.1 --transport system 'show clock' >"$TMP/streams/c.out" 2>"$TMP/streams/c.err" </dev/null
@@ -121,7 +109,7 @@ for pair in "--dry-run --exercise" "--dry-run --detach" "--exercise --detach" "-
 done
 
 # --follow=false: no record on stdout, no result line; the exit is the job's.
-row f1 0 -- run --follow=false --target 127.0.0.1 --transport system --format jsonl 'show clock'
+row f1 0 -- k run --follow=false --target 127.0.0.1 --transport system --format jsonl 'show clock'
 [ ! -s "$TMP/streams/f1.out" ] || fail "f1: records were rendered"
 ! grep -q 'exit=' "$TMP/streams/f1.err" || fail "f1: a result line was printed"
 grep -q '^SENT:show clock$' "$FAKE.log" || fail "f1: the device did not run the command"
@@ -129,14 +117,14 @@ grep -q '^SENT:show clock$' "$FAKE.log" || fail "f1: the device did not run the 
 # --detach: returns before the job ends; its final summary appears later.
 printf 1 >"$TMP/slow"
 before=$(summaries)
-row t1 0 -- run --detach --target 127.0.0.1 --transport system 'show clock'
+row t1 0 -- k run --detach --target 127.0.0.1 --transport system 'show clock'
 grep -q '^job_id: ' "$TMP/streams/t1.out" && grep -q '^artifact_dir: ' "$TMP/streams/t1.out" || fail "t1: receipt lines"
 grep -q ' accepted artifacts=' "$TMP/streams/t1.err" || fail "t1: no accepted line"
 [ "$(summaries)" -eq "$before" ] || fail "t1: the client waited for the job"
 t1_dir=$(sed -n 's/^artifact_dir: //p' "$TMP/streams/t1.out")
 wait_summaries $((before + 1)) || fail "t1: the detached job did not finish"
 json_is "$t1_dir/summary.json" final_status complete || fail "t1: the detached job did not complete"
-row t2 0 -- run --detach --target 127.0.0.1 --transport system --format json 'show clock'
+row t2 0 -- k run --detach --target 127.0.0.1 --transport system --format json 'show clock'
 json_has "$TMP/streams/t2.out" job_id && json_is "$TMP/streams/t2.out" mode live || fail "t2: json receipt"
 wait_summaries $((before + 2)) || fail "t2: the detached job did not finish"
 
@@ -145,7 +133,7 @@ wait_summaries $((before + 2)) || fail "t2: the detached job did not finish"
 # interrupt a second in lands while the client follows; a second again
 # from p1.
 printf 3 >"$TMP/slow"
-rows=$((rows + 1))
+row_open i1
 before=$(summaries)
 set +e
 # shellcheck disable=SC2046
@@ -167,7 +155,7 @@ printf 1 >"$TMP/slow"
 # Broken stdout during the follow: exit 111, the job continues.
 # Two targets in serial give a second record to write after head has
 # closed the pipe on the first.
-rows=$((rows + 1))
+row_open p1
 before=$(summaries)
 set +e
 # shellcheck disable=SC2046
@@ -206,7 +194,7 @@ accounted() {  # accounted NAME DIR STATUS FINAL EXIT CAUSE REASON: the job dire
 # takes three seconds a command: the stop must land with every record in
 # flight (s2 half a second in and a one-second grace; s5 a second after s4).
 printf 3 >"$TMP/slow"
-rows=$((rows + 1))
+row_open s1
 "$KARVI" $(common_args) run --detach --target 127.0.0.1 --target 127.0.0.2 --dispatch serial --transport system --cmd 'show a' --cmd 'show b' >"$TMP/streams/s1.out" 2>"$TMP/streams/s1.err" </dev/null
 s1_dir=$(sed -n 's/^artifact_dir: //p' "$TMP/streams/s1.out")
 sleep 0.5
@@ -223,7 +211,7 @@ json_is "$s1_dir/summary.json" device_counts.incomplete 2 || fail "s1: device_co
 # s2: SIGTERM with a one-second grace under held sessions: draining is
 # reported, the grace expires, the same accounting under
 # shutdown_grace_expired, and the daemon log names each step.
-rows=$((rows + 1))
+row_open s2
 "$KARVI" $(common_args) --set daemon.shutdown-grace-seconds=1 --set daemon.forced-grace-seconds=1 daemon start >/dev/null 2>&1
 s2_pid=$(pid)
 [ -n "$s2_pid" ] || fail "s2: daemon pid unknown"
@@ -240,7 +228,7 @@ accounted s2 "$s2_dir" incomplete_shutdown incomplete 106 shutdown:shutdown_grac
 grep -q 'code=daemon_draining' "$BASE/logs/daemon.log" && grep -q 'code=shutdown_grace_expired' "$BASE/logs/daemon.log" || fail "s2: the daemon log lacks the drain and expiry lines"
 # s3: SIGTERM with the default grace: the job finishes and the daemon
 # stops with it complete.
-rows=$((rows + 1))
+row_open s3
 "$KARVI" $(common_args) daemon start >/dev/null 2>&1
 s3_pid=$(pid)
 "$KARVI" $(common_args) run --detach --target 127.0.0.1 --target 127.0.0.2 --dispatch serial --transport system --cmd 'show a' --cmd 'show b' >"$TMP/streams/s3.out" 2>"$TMP/streams/s3.err" </dev/null
@@ -253,10 +241,10 @@ accounted s3 "$s3_dir" success complete 0 "" ""
 grep -q 'code=daemon_stopped' "$BASE/logs/daemon.log" || fail "s3: the daemon log lacks the stop line"
 # The stop and restart cases end to end, still under the slow
 # device.
-serving() {  # daemon serve processes for this base directory
+serving() {  # daemon serve processes for this base directory (their command line names its places file)
   local n=0 p
   for p in $(pgrep -f 'daemon serve' 2>/dev/null); do
-    tr '\0' ' ' <"/proc/$p/cmdline" 2>/dev/null | grep -q -- "$BASE" && n=$((n + 1))
+    tr '\0' ' ' <"/proc/$p/cmdline" 2>/dev/null | grep -qF -- "$TMP/places.toml" && n=$((n + 1))
   done
   echo "$n"
 }
@@ -270,12 +258,12 @@ held_job() {  # held_job NAME: detach a two-target two-command job; prints its d
 s4_pid=$(pid)
 s4_dir=$(held_job s4)
 sleep 0.5
-row s4 112 -- daemon stop
+row s4 112 -- k daemon stop
 grep -q '^daemon_active_jobs: ' "$TMP/streams/s4.err" && grep -q -- '--grace' "$TMP/streams/s4.err" && grep -q -- '--after' "$TMP/streams/s4.err" && grep -q -- '--force' "$TMP/streams/s4.err" || fail "s4: the refusal does not name the three options"
 [ "$(pid)" = "$s4_pid" ] || fail "s4: the refused stop replaced or stopped the daemon"
 [ "$(daemon_state)" = running ] || fail "s4: the daemon is not running after the refusal"
 for combo in "stop --grace --force" "restart --after=1s --force" "stop --after=0s"; do
-  rows=$((rows + 1))
+  row_open s4c
   set +e
   # shellcheck disable=SC2046,SC2086
   "$KARVI" $(common_args) daemon $combo >"$TMP/streams/s4c.out" 2>"$TMP/streams/s4c.err" </dev/null
@@ -285,7 +273,7 @@ for combo in "stop --grace --force" "restart --after=1s --force" "stop --after=0
   [ "$rc" -eq 4 ] && grep -Eq '^daemon_stop_(options_conflict|after_not_positive): ' "$TMP/streams/s4c.err" || fail "s4c: daemon $combo: exit $rc, $(head -1 "$TMP/streams/s4c.err")"
 done
 # s5: --after=1s drains, waits a second, forces; the held job is accounted.
-row s5 0 -- daemon stop --after=1s
+row s5 0 -- k daemon stop --after=1s
 grep -q 'forcing stop' "$TMP/streams/s5.err" || fail "s5: no forcing line after the limit"
 wait_stopped || fail "s5: the daemon socket remains"
 accounted s5 "$s4_dir" incomplete_shutdown incomplete 106 shutdown:shutdown_forced shutdown_forced
@@ -295,7 +283,7 @@ printf 1 >"$TMP/slow"
 before_sent=$(grep -c '^SENT:' "$FAKE.log" || true)
 s6_dir=$(held_job s6)
 sleep 0.5
-row s6 0 -- daemon stop --grace
+row s6 0 -- k daemon stop --grace
 wait_stopped || fail "s6: the daemon socket remains"
 [ "$(grep -c '^SENT:' "$FAKE.log" || true)" -eq $((before_sent + 4)) ] || fail "s6: the device did not receive all four commands before the stop"
 accounted s6 "$s6_dir" success complete 0 "" ""
@@ -310,7 +298,7 @@ printf 3 >"$TMP/slow"
 s7_pid=$(pid)
 s7_dir=$(held_job s7)
 sleep 0.5
-rows=$((rows + 1))
+row_open s7
 set +e
 # shellcheck disable=SC2046
 "$KARVI" $(common_args) daemon stop --grace >"$TMP/streams/s7.out" 2>"$TMP/streams/s7.err" </dev/null &
@@ -343,7 +331,7 @@ grep -q 'stopping: drained' "$BASE/logs/daemon.log" || fail "s7: the daemon log 
 s8_pid=$(pid)
 s8_dir=$(held_job s8)
 sleep 0.5
-row s8 0 -- daemon restart --force
+row s8 0 -- k daemon restart --force
 grep -q '^daemon restarted$' "$TMP/streams/s8.out" || fail "s8: no restarted line"
 [ -n "$(pid)" ] && [ "$(pid)" != "$s8_pid" ] || fail "s8: the daemon was not replaced (pid $s8_pid then $(pid))"
 [ "$(daemon_state)" = running ] || fail "s8: the new daemon is not running"
@@ -352,7 +340,7 @@ accounted s8 "$s8_dir" incomplete_shutdown incomplete 106 shutdown:shutdown_forc
 s9_pid=$(pid)
 s9_dir=$(held_job s9)
 sleep 0.5
-row s9 112 -- daemon restart
+row s9 112 -- k daemon restart
 grep -q '^daemon_active_jobs: ' "$TMP/streams/s9.err" || fail "s9: no daemon_active_jobs refusal"
 [ "$(pid)" = "$s9_pid" ] || fail "s9: the refused restart replaced the daemon"
 daemon_stop_force "$BASE/socket/d.sock" "$KARVI" $(common_args) || fail "s9: the daemon socket remains after the cleanup stop"
@@ -365,7 +353,7 @@ daemon_stop_force "$BASE/socket/d.sock" "$KARVI" $(common_args) || fail "s9: the
 c1_dir=$(held_job c1)
 c1_job=$(sed -n 's/^job_id: //p' "$TMP/streams/c1.out")
 sleep 0.5
-row c1c 0 -- job cancel "$c1_job" --reason 'wrong change window'
+row c1c 0 -- k job cancel "$c1_job" --reason 'wrong change window'
 grep -q "^cancel requested: job $c1_job; artifacts $c1_dir\$" "$TMP/streams/c1c.out" || fail "c1: no cancel requested line"
 json_wait "$c1_dir/summary.json" final_status || fail "c1: the job did not end"
 accounted c1 "$c1_dir" cancel cancel 113 halt:cancelled cancelled
@@ -373,14 +361,14 @@ json_is "$c1_dir/summary.json" device_counts.cancel 2 || fail "c1: device_counts
 json_has "$c1_dir/summary.json" cancellation.requested_at && json_is "$c1_dir/summary.json" cancellation.reason 'wrong change window' || fail "c1: no cancellation block with the reason"
 [ "$(audit_events "$BASE/audit.jsonl" event_name details.reason | grep -cx "run\.cancel${TAB}wrong change window")" -eq 1 ] || fail "c1: no run.cancel audit event"
 [ "$(wc -l <"$c1_dir/failed-devices.txt" | tr -d ' ')" -eq 2 ] || fail "c1: failed-devices.txt does not list both devices"
-row c2 112 -- job cancel 260915-170000-zz
+row c2 112 -- k job cancel 260915-170000-zz
 grep -q '^job_unknown: ' "$TMP/streams/c2.err" || fail "c2: no job_unknown"
-row c3 0 -- job cancel "$c1_job"
+row c3 0 -- k job cancel "$c1_job"
 grep -q "^job $c1_job already ended: cancel (exit 113); artifacts $c1_dir\$" "$TMP/streams/c3.out" || fail "c3: no already-ended line"
 c4_dir=$(held_job c4)
 c4_job=$(sed -n 's/^job_id: //p' "$TMP/streams/c4.out")
 sleep 0.5
-row c4f 113 -- job cancel "$c4_job" --follow
+row c4f 113 -- k job cancel "$c4_job" --follow
 grep -q "^job $c4_job cancelled; artifacts $c4_dir (exit 113)\$" "$TMP/streams/c4f.out" || fail "c4: no cancelled terminal line"
 accounted c4 "$c4_dir" cancel cancel 113 halt:cancelled cancelled
 [ "$("$KARVI" $(common_args) daemon status --format json 2>/dev/null | json_get - active_jobs 2>/dev/null)" = 0 ] || fail "c4: the daemon still reports active jobs"
@@ -399,7 +387,7 @@ printf 1 >"$TMP/slow"
 w1_dir=$(held_job w1)
 w1_job=$(sed -n 's/^job_id: //p' "$TMP/streams/w1.out")
 sleep 0.3
-row w1f 0 -- job follow "$w1_job" --format jsonl
+row w1f 0 -- k job follow "$w1_job" --format jsonl
 [ "$(wc -l <"$w1_dir/commands.jsonl" | tr -d ' ')" -eq 4 ] || fail "w1: expected four records"
 head -n 4 "$TMP/streams/w1f.out" | cmp -s - "$w1_dir/commands.jsonl" || fail "w1: jsonl stdout differs from commands.jsonl"
 # The summary document is the stream's last line; nothing on stderr.
@@ -407,9 +395,9 @@ head -n 4 "$TMP/streams/w1f.out" | cmp -s - "$w1_dir/commands.jsonl" || fail "w1
 sed -n 5p "$TMP/streams/w1f.out" >"$TMP/w1.summary"
 json_is "$TMP/w1.summary" job_id "$w1_job" && json_is "$TMP/w1.summary" primary_exit_name ExitSuccess || fail "w1: the last line is not the job's summary"
 ! grep -q 'exit=' "$TMP/streams/w1f.err" || fail "w1: a result line was printed"
-row w2 0 -- job follow "$w1_job" --format jsonl
+row w2 0 -- k job follow "$w1_job" --format jsonl
 head -n 4 "$TMP/streams/w2.out" | cmp -s - "$w1_dir/commands.jsonl" || fail "w2: the finished job's jsonl differs from commands.jsonl"
-row w3 112 -- job follow 260915-170000-zz
+row w3 112 -- k job follow 260915-170000-zz
 grep -q '^job_unknown: ' "$TMP/streams/w3.err" || fail "w3: no job_unknown"
 w4_dir=$(held_job w4)
 w4_job=$(sed -n 's/^job_id: //p' "$TMP/streams/w4.out")
@@ -421,14 +409,14 @@ sleep 1
 kill -INT "$cpid"
 wait "$cpid"; wrc=$?
 set -e
-rows=$((rows + 1))
+row_open w4f
 printf '%-4s exit %d\n' w4f "$wrc"
 [ "$wrc" -eq 113 ] || fail "w4: exit $wrc, want 113"
 grep -q "^interrupted: job $w4_job continues in the daemon; artifacts $w4_dir; run \"karvi job follow $w4_job\" again" "$TMP/streams/w4f.err" || fail "w4: no interrupted line naming job follow"
 json_wait "$w4_dir/summary.json" final_status 200 || fail "w4: the job did not end"
 json_is "$w4_dir/summary.json" final_status complete || fail "w4: the job did not complete after the interrupt"
 "$KARVI" $(common_args) daemon restart --force >/dev/null 2>&1 || fail "w5: restart --force failed"
-row w5 0 -- job follow "$w1_job" --format jsonl
+row w5 0 -- k job follow "$w1_job" --format jsonl
 head -n 4 "$TMP/streams/w5.out" | cmp -s - "$w1_dir/commands.jsonl" || fail "w5: the directory-read jsonl differs from commands.jsonl"
 sed -n 5p "$TMP/streams/w5.out" >"$TMP/w5.summary"
 json_is "$TMP/w5.summary" job_id "$w1_job" || fail "w5: no summary line from the directory"
@@ -436,7 +424,7 @@ w6_dir=$(held_job w6)
 w6_job=$(sed -n 's/^job_id: //p' "$TMP/streams/w6.out")
 sleep 0.5
 "$KARVI" $(common_args) job cancel "$w6_job" --reason 'wrong window' --follow >/dev/null 2>&1 || true
-row w6 113 -- job follow "$w6_job" --format jsonl
+row w6 113 -- k job follow "$w6_job" --format jsonl
 [ "$(jsonl_records "$TMP/streams/w6.out" status | grep -cx cancel)" -eq 4 ] || fail "w6: not every record is cancelled"
 grep -q "^job $w6_job cancelled: wrong window; artifacts $w6_dir\$" "$TMP/streams/w6.err" || fail "w6: no cancelled line with the reason"
 tail -1 "$TMP/streams/w6.out" >"$TMP/w6.summary"
@@ -453,29 +441,29 @@ icmp_method=$("$KARVI" version --format json 2>/dev/null | json_get - icmp_metho
 if [ "$icmp_method" = socket ] || [ "$icmp_method" = system ]; then
   before_log=$(wc -l <"$FAKE.log" | tr -d ' ')
   # g1: one line per gated device before its header; the unreachable one is skipped.
-  row g1 101 -- --set 'network.ping-timeout="200ms"' run --ping --target 127.0.0.1 --target 192.0.2.1 --transport system 'show clock'
+  row g1 101 -- k --set 'network.ping-timeout="200ms"' run --ping --target 127.0.0.1 --target 192.0.2.1 --transport system 'show clock'
   grep -Eq '^! 127\.0\.0\.1 \[127\.0\.0\.1\] ping\(1\) [<0-9.]+ms, ping\(2\) [<0-9.]+ms, proceed$' "$TMP/streams/g1.out" || fail "g1: no proceeding line for loopback"
   grep -q '^! 192.0.2.1 \[192.0.2.1\] ping(1) timeout, ping(2) timeout, skip$' "$TMP/streams/g1.out" || fail "g1: no skipped line for TEST-NET"
   grep -q 'status=icmp_unreachable error=icmp_unreachable: ICMP gate enabled' "$TMP/streams/g1.out" || fail "g1: no icmp_unreachable failure line"
   [ "$(grep -c 'error=icmp_unreachable: icmp_unreachable' "$TMP/streams/g1.out")" -eq 0 ] || fail "g1: the code is printed twice"
   [ "$(wc -l <"$FAKE.log" | tr -d ' ')" -eq $((before_log + 1)) ] || fail "g1: expected exactly one new session at the fake device"
   # g2: display.ping.header="" prints no line; the records still carry the object.
-  row g2 101 -- --set 'network.ping-timeout="200ms"' --set display.ping.header="" run --ping --target 127.0.0.1 --target 192.0.2.1 --transport system 'show clock'
+  row g2 101 -- k --set 'network.ping-timeout="200ms"' --set display.ping.header="" run --ping --target 127.0.0.1 --target 192.0.2.1 --transport system 'show clock'
   [ "$(grep -c 'ping(1)' "$TMP/streams/g2.out")" -eq 0 ] || fail "g2: an empty display.ping.header still printed the line"
   # g3: --quiet suppresses the line; --debug adds the gate's debug lines to stderr.
-  row g3 101 -- --quiet --set 'network.ping-timeout="200ms"' run --ping --target 192.0.2.1 --transport system 'show clock'
+  row g3 101 -- k --quiet --set 'network.ping-timeout="200ms"' run --ping --target 192.0.2.1 --transport system 'show clock'
   [ "$(grep -c 'ping(1)' "$TMP/streams/g3.out")" -eq 0 ] || fail "g3: --quiet still printed the line"
-  row g4 101 -- --debug --set 'network.ping-timeout="200ms"' run --ping --no-daemon --target 192.0.2.1 --transport system 'show clock'
+  row g4 101 -- k --debug --set 'network.ping-timeout="200ms"' run --ping --no-daemon --target 192.0.2.1 --transport system 'show clock'
   grep -q 'device ping gate target=.*decision=skip' "$TMP/streams/g4.err" || fail "g4: no gate debug line"
   # g5: the rehearsals detect the capability and send no probe or session.
   before_log=$(wc -l <"$FAKE.log" | tr -d ' ')
-  row g5 0 -- run --dry-run --ping --target 127.0.0.1 --transport system 'show clock'
+  row g5 0 -- k run --dry-run --ping --target 127.0.0.1 --transport system 'show clock'
   grep -q "intended: ping=enabled (2 probes, 500ms, capability=available via $icmp_method) transport=system port=22" "$TMP/streams/g5.out" || fail "g5: the dry-run does not report the capability"
-  row g6 0 -- run --exercise --ping --target 127.0.0.1 --transport system 'show clock'
+  row g6 0 -- k run --exercise --ping --target 127.0.0.1 --transport system 'show clock'
   grep -q "intended_ping: enabled (2 probes, 500ms, capability=available via $icmp_method)" "$TMP/streams/g6.out" && grep -q '^- name:127.0.0.1: ready$' "$TMP/streams/g6.out" || fail "g6: the exercise does not report the capability"
   [ "$(wc -l <"$FAKE.log" | tr -d ' ')" -eq "$before_log" ] || fail "g5/g6: a rehearsal contacted the fake device"
   # g7: the flags exclude each other before anything runs.
-  row g7 4 -- run --ping --noping --target 127.0.0.1 --transport system 'show clock'
+  row g7 4 -- k run --ping --noping --target 127.0.0.1 --transport system 'show clock'
   grep -q '^ping_flag_conflict: ' "$TMP/streams/g7.err" || fail "g7: no ping_flag_conflict"
 elif [ "$icmp_method" = unavailable ]; then
   echo "g1-g7 SKIP: no ICMP method on this host (icmp_method=$icmp_method); widen net.ipv4.ping_group_range or install ping"
@@ -483,8 +471,4 @@ else
   fail "g1-g7: karvi version --format json names no ICMP method (icmp_method=${icmp_method:-absent})"
 fi
 
-if [ "$failures" -ne 0 ]; then
-  echo "v0100-smoke: $failures failure(s) over $rows rows" >&2
-  exit 1
-fi
-echo "v0100 smoke (rehearsal, detach, follow, interrupt, the ICMP gate, shutdown accounting, cancel_job, job follow): pass ($rows rows)"
+finish v0100-smoke "rehearsal, detach, follow, interrupt, the ICMP gate, shutdown accounting, cancel_job, job follow"

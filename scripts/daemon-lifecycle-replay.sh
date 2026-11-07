@@ -24,11 +24,11 @@ host_config_clean "$NEW"   # refused on a host whose configuration reaches karvi
 TMP=$(mktemp -d); BASE=$TMP/state; H=$TMP/home
 host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 install -d -m 700 "$BASE" "$H"
-# Both executables keep their trees and their spool directory under the base
-# (sharedroot none), so neither daemon's start reaches the host's shared root
-# or makes /tmp/karvi-<uid>; every prior from v0.28.0 knows the keys.
-A=(--set "basedir=\"$BASE\"" --set "scoreboards=\"$BASE/scoreboards\"" --set audit.journald-required=false
-  --set 'sharedroot="none"' --set 'platform-resolution.default=""' --set "spooldir=\"$BASE/spool\"")
+# Both executables take the suite's places file (lab_places, written below):
+# their trees, spool, scoreboards, capacity root, and audit file under the
+# base (sharedroot none), so neither daemon's start reaches the host's shared
+# root or makes /tmp/karvi-<uid>; every prior from v0.28.0 reads its keys.
+A=(--config "$TMP/places.toml" --set 'platform-resolution.default=""')
 # The old daemon's socket is the new client's d.sock under the base: a prior
 # release names the socket's file in daemon.socket, which the new client
 # refuses, where the new names the directory in daemon.sockets.
@@ -39,8 +39,8 @@ cleanup() {
   rm -rf "$TMP"
 }
 . ./scripts/lib/exit.sh; . ./scripts/lib/lab.sh; on_exit cleanup
-failures=0
-fail() { echo "FAIL: $*" >&2; failures=$((failures + 1)); }
+lab_places "$TMP/places.toml" "$BASE"
+. ./scripts/lib/rows.sh
 pid() { daemon_pid env HOME="$H" "$NEW" "${A[@]}"; }   # scripts/lib/lab.sh
 # gone PID waits for the old daemon's process to exit: an older executable
 # removes its socket as it exits, and a new daemon bound in the meantime
@@ -134,8 +134,4 @@ for opt in --force --grace --after=2s; do
   fi
 done
 
-if [ "$failures" -ne 0 ]; then
-  echo "daemon lifecycle replay: $failures failure(s)" >&2
-  exit 1
-fi
-echo "daemon lifecycle replay: pass (old schema $old_schema, new schema $new_schema)"
+finish 'daemon lifecycle replay' "old schema $old_schema, new schema $new_schema"

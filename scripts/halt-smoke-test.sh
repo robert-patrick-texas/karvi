@@ -9,15 +9,16 @@ TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-halt-smoke-XXXXXX")
 host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 SECRET="karvi-halt-secret-$$"
 BASE=$TMP/state
-SCORE=$TMP/scoreboards
-CAP=$TMP/capacity
+SCORE=$BASE/scoreboards
+CAP=$BASE/capacity
 FAKE=$TMP/fake-ssh
 THIRD_MARKER=$TMP/third-target-opened
 
 cleanup() { rm -rf "$TMP"; }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
 install -d -m 700 "$BASE" "$SCORE" "$CAP"
+lab_places "$TMP/places.toml" "$BASE"
 cat > "$FAKE" <<SH_INNER
 #!/bin/sh
 case " \$* " in
@@ -35,14 +36,9 @@ SH_INNER
 chmod 755 "$FAKE"
 
 set +e
-NETUSER=smoke NETPASS=$SECRET "$KARVI" --quiet \
-  --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' \
+NETUSER=smoke NETPASS=$SECRET "$KARVI" --config "$TMP/places.toml" --quiet \
+  --set 'platform-resolution.default=""' \
   --set "ssh.transports.system=\"$FAKE\"" \
-  --set audit.journald-required=false \
-  --set "audit.file=\"$BASE/audit.jsonl\"" \
-  --set "scoreboards=\"$SCORE\"" \
-  --set "sessions.shared-capacity-root=\"$CAP\"" \
-  --set output.min-free-bytes-after-job=0 \
   run --no-daemon \
   --target 127.0.0.1 --target 127.0.0.2 --target 127.0.0.3 \
   --transport system --dispatch serial --halt-on-error-count 1 --format jsonl \

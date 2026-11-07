@@ -17,7 +17,8 @@
 #   N=32 TRANSPORT=native scripts/output-scale-run.sh
 #   N=32 TRANSPORT=system CHANNEL=exec scripts/output-scale-run.sh
 #
-# The spool directory is under TMP; its size is sampled while the job runs
+# The spool directory is the base's under TMP (lab_places, scripts/lib/lab.sh);
+# its size is sampled while the job runs
 # and the peak is printed beside the memory,
 # so the run measures where the responses go now that they leave memory.
 #
@@ -32,7 +33,6 @@ ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 . "$ROOT/scripts/lib/json.sh"
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 . "$ROOT/scripts/lib/host.sh"; host_config_clean "$KARVI"   # refused on a host whose configuration reaches karvi
-GO=${GO:-go}
 N=${N:-8}
 TRANSPORT=${TRANSPORT:-native}
 CHANNEL=${CHANNEL:-shell}
@@ -40,19 +40,21 @@ BIG_LINES=${BIG_LINES:-72000}
 INFLIGHT=${INFLIGHT:-$N}
 TMP=${TMPDIR:-/tmp}/karvi-output-scale-$$
 KH=$TMP/store/known_hosts
+# shellcheck disable=SC2034 # set by fake_start, read by name: fake_stop FAKE_PID (scripts/lib/lab.sh)
 FAKE_PID=
 unset NETUSER NETPASS NETENABLE
 
 fail() { echo "output scale: FAIL: $*" >&2; exit 1; }
 cleanup() {
-  daemon_stop_force "$TMP/base/socket/d.sock" env HOME="$TMP/home" "$KARVI" --quiet --config "$TMP/karvi.toml" || :
+  daemon_stop_force "$TMP/base/socket/d.sock" env HOME="$TMP/home" "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" --quiet || :
   fake_stop FAKE_PID
   rm -rf "$TMP"
 }
 . "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
 install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store" "$TMP/home" "$TMP/base"
-(cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)
+lab_places "$TMP/places.toml" "$TMP/base"
+lab_build "$TMP/bin/fake" ./cmd/karvi-fake-device
 
 # The operator's own trust store must not change (ssh.known-hosts-file is
 # under TMP; HOME does not move the store).
@@ -69,14 +71,7 @@ case $CHANNEL in
     set -- -persona linux -user "$(id -un)" -authorized-keys "$TMP/key.pub" ;;
   *) fail "CHANNEL is shell or exec, not $CHANNEL" ;;
 esac
-: >"$TMP/port"
-"$TMP/bin/fake" -host-key-file "$TMP/hostkey" -big-lines "$BIG_LINES" "$@" 2>"$TMP/fake.err" >"$TMP/port" &
-# shellcheck disable=SC2034 # read by name: fake_stop FAKE_PID (scripts/lib/lab.sh)
-FAKE_PID=$!
-i=0
-while [ ! -s "$TMP/port" ] && [ $i -lt 100 ]; do sleep 0.05; i=$((i + 1)); done
-[ -s "$TMP/port" ] || fail "the fake did not start: $(head -1 "$TMP/fake.err")"
-PORT=$(cat "$TMP/port")
+fake_start "$TMP" "$TMP/fake.err" -big-lines "$BIG_LINES" "$@" || exit 1
 
 : >"$KH"; chmod 600 "$KH"
 {
@@ -85,21 +80,12 @@ PORT=$(cat "$TMP/port")
   while [ "$i" -le "$N" ]; do printf 'big-%04d,127.0.0.1,%s\n' "$i" "$PLATFORM"; i=$((i + 1)); done
 } >"$TMP/inv.csv"
 cat >"$TMP/karvi.toml" <<EOF_CFG
-basedir = "$TMP/base"
-sharedroot = "none"
-spooldir = "$TMP/spool"
-scoreboards = "$TMP/base/score"
 platform-resolution.default = ""
 [ssh]
 host-key-policy = "accept-new"
 known-hosts-file = "$KH"
 connect-timeout = "10s"
 identities = ["$TMP/key"]
-[audit]
-journald-required = false
-file = "$TMP/base/audit.jsonl"
-[sessions]
-shared-capacity-root = "$TMP/base/cap"
 [display]
 color = "never"
 [execution]
@@ -132,7 +118,7 @@ operations = [{op = "lowercase"}]
 EOF_CFG
 chmod 600 "$TMP/karvi.toml"
 
-karvi() { HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" "$@"; }
+karvi() { HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" "$@"; }
 karvi --quiet daemon start >/dev/null || fail "the daemon did not start"
 DPID=$(daemon_pid karvi)
 [ -n "$DPID" ] || fail "no daemon pid in daemon status"
@@ -145,7 +131,7 @@ IDLE=$(status_kb VmRSS "$DPID")
 START=$(date +%s.%N)
 # Not through the karvi function: a function sent to the background runs in
 # a subshell, and $! would be the subshell, not the client.
-HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" \
+HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/places.toml" --config "$TMP/karvi.toml" \
   run --all --transport "$TRANSPORT" --format jsonl "$COMMAND" >"$TMP/out" 2>"$TMP/err" &
 CLIENT=$!
 CLIENT_PEAK=0
@@ -154,8 +140,8 @@ SPOOL_FILES=0
 while kill -0 "$CLIENT" 2>/dev/null; do
   c=$(status_kb VmRSS "$CLIENT"); [ "${c:-0}" -le "$CLIENT_PEAK" ] || CLIENT_PEAK=$c
   # The spool directory's size and file count now (du in kB, apparent size).
-  s=$(du -sk --apparent-size "$TMP/spool" 2>/dev/null | cut -f1); [ "${s:-0}" -le "$SPOOL_PEAK" ] || SPOOL_PEAK=$s
-  f=$(ls "$TMP/spool" 2>/dev/null | wc -l); [ "$f" -le "$SPOOL_FILES" ] || SPOOL_FILES=$f
+  s=$(du -sk --apparent-size "$TMP/base/spool" 2>/dev/null | cut -f1); [ "${s:-0}" -le "$SPOOL_PEAK" ] || SPOOL_PEAK=$s
+  f=$(ls "$TMP/base/spool" 2>/dev/null | wc -l); [ "$f" -le "$SPOOL_FILES" ] || SPOOL_FILES=$f
   sleep 0.05
 done
 CODE=0; wait "$CLIENT" || CODE=$?
@@ -164,7 +150,7 @@ HWM=$(status_kb VmHWM "$DPID")
 AFTER=$(status_kb VmRSS "$DPID")
 
 [ "$CODE" -eq 0 ] || fail "run exited $CODE: $(grep -E '^[a-z_]+:' "$TMP/err" | head -1)"
-JOB=$(ls -d "$TMP"/base/jobs/*/* | tail -1)
+JOB=$(newest_job "$TMP/base")
 WANT_BYTES=$((BIG_LINES * 73))
 records=$(wc -l <"$JOB/commands.jsonl")
 ok=$(jsonl_records "$JOB/commands.jsonl" status output_bytes | grep -cx "$(printf 'success\t%s' "$WANT_BYTES")" || true)
@@ -185,7 +171,7 @@ fi
 [ "$N" -ge "$CAP" ] || CAP=$N
 awk -v n="$N" -v tr="$TRANSPORT" -v ch="$CHANNEL" -v inflight="$CAP" -v bytes="$WANT_BYTES" -v idle="$IDLE" -v hwm="$HWM" -v after="$AFTER" \
   -v client="$CLIENT_PEAK" -v wall="$(echo "$END - $START" | bc)" -v jsonl="$(wc -c <"$JOB/commands.jsonl")" \
-  -v spool="$SPOOL_PEAK" -v files="$SPOOL_FILES" -v left="$(ls "$TMP/spool" 2>/dev/null | wc -l)" 'BEGIN {
+  -v spool="$SPOOL_PEAK" -v files="$SPOOL_FILES" -v left="$(ls "$TMP/base/spool" 2>/dev/null | wc -l)" 'BEGIN {
   printf "output scale: n=%d transport=%s channel=%s inflight=%d output_bytes=%d wall=%.1fs\n", n, tr, ch, inflight, bytes, wall
   printf "output scale: daemon kB idle=%d peak=%d after=%d; per in-flight response %.1f MB, %.1fx its output\n", idle, hwm, after, (hwm - idle) / 1024 / inflight, (hwm - idle) * 1024 / inflight / bytes
   printf "output scale: client peak kB=%d; commands.jsonl bytes=%d; %d records succeeded\n", client, jsonl, n

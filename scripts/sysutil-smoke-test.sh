@@ -80,7 +80,7 @@ cleanup() {
   docker rmi -f "$TAG" >/dev/null 2>&1
   rm -rf "${TMP:?}"
 }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
 UNIT=karvi-daemon@karvi.service
 HOME_DIR=/opt/karvi/users/karvi
@@ -148,8 +148,7 @@ RUN apt-get update \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 STOPSIGNAL SIGRTMIN+3
 EOF
-(cd "$ROOT" && CGO_ENABLED=0 GOTOOLCHAIN=local go build -mod=vendor -trimpath -o "$TMP/karvi-fake-device" ./cmd/karvi-fake-device &&
-  CGO_ENABLED=0 GOTOOLCHAIN=local go build -mod=vendor -trimpath -o "$TMP/release-fixture" ./tools/release-fixture) ||
+{ lab_build "$TMP/karvi-fake-device" ./cmd/karvi-fake-device && lab_build "$TMP/release-fixture" ./tools/release-fixture; } ||
   fail "the fake device or the release fixture did not build"
 boot
 docker cp "$PKG" "$TAG:/root/karvi.deb" >/dev/null && docker cp "$TMP/karvi-fake-device" "$TAG:/usr/local/bin/" >/dev/null &&

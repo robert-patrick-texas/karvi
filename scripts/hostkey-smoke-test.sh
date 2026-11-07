@@ -13,15 +13,16 @@ TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-hostkey-smoke-XXXXXX")
 host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 HOME_DIR=$TMP/home
 BASE=$TMP/state
-SCORE=$TMP/scoreboards
-CAPACITY=$TMP/capacity
+SCORE=$BASE/scoreboards
+CAPACITY=$BASE/capacity
 FAKE_SSH=$TMP/fake-ssh
 CAPTURE=$TMP/managed-ssh.conf
 
 cleanup() { rm -rf "$TMP"; }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+. "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 
 install -d -m 700 "$HOME_DIR" "$BASE" "$SCORE" "$CAPACITY" "$TMP/bin"
+lab_places "$TMP/places.toml" "$BASE"
 cat > "$FAKE_SSH" <<EOF_INNER
 #!/bin/sh
 state="\$0.master"
@@ -75,15 +76,11 @@ chmod 755 "$FAKE_SSH"
 
 common_args() {
   printf '%s\n' \
+    --config "$TMP/places.toml" \
     --quiet \
-    --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' \
+    --set 'platform-resolution.default=""' \
     --set "ssh.transports.system=\"$FAKE_SSH\"" \
-    --set 'ssh.command.transport="system"' \
-    --set audit.journald-required=false \
-    --set "audit.file=\"$BASE/audit.jsonl\"" \
-    --set "scoreboards=\"$SCORE\"" \
-    --set "sessions.shared-capacity-root=\"$CAPACITY\"" \
-    --set output.min-free-bytes-after-job=0
+    --set 'ssh.command.transport="system"'
 }
 
 # Auto/default: first device reports a changed key, but the second still runs.

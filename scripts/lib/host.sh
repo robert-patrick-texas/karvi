@@ -1,6 +1,7 @@
 #!/bin/sh
-# The host's shared places, for the verifiers' look that the Go tests and
-# the suites left them as they were: the shared scoreboard directory and
+# The host's shared places and karvi's places under the operator's home, for
+# the verifiers' look that the Go tests and the suites left them as they
+# were (host_places, below): the shared scoreboard directory and
 # the shared directory under each of the two roots (the three trees inside
 # it); and the scratch's last two automatic candidates, /tmp/karvi-<uid> and
 # /var/tmp/karvi-<uid>, by their existence alone, since the operator's own
@@ -8,9 +9,10 @@
 # the askpass socket's bound made it (docs/EXAMPLES.md chapter 44).
 # Source this file; POSIX sh, no local.
 #
-#   before=$(host_shared_entries)
+#   home=$(host_passwd_home)
+#   before=$(host_places "$home")
 #   ... the tests and the suites ...
-#   host_shared_unchanged "$before"
+#   host_places_unchanged "$home" "$before"
 #
 # And the operator's own trust store: under ssh.known-hosts-file "auto" the
 # store is <basedir>/known_hosts, so a script that sets neither the store nor
@@ -39,17 +41,6 @@ host_shared_entries() {
     for hse_dir in "/tmp/karvi-$hse_uid" "/var/tmp/karvi-$hse_uid"; do
       if [ -e "$hse_dir" ]; then printf '%s\n' "$hse_dir"; fi
     done; } | sort
-}
-
-# host_shared_unchanged BEFORE fails, naming the entries that appeared or
-# went, when the host's shared places differ from BEFORE (the output of an
-# earlier host_shared_entries).
-host_shared_unchanged() {
-  hsu_after=$(host_shared_entries)
-  [ "$hsu_after" = "$1" ] && return 0
-  echo "the host's shared places changed during the run (a test or a suite wrote there):" >&2
-  host_entries_diff "$1" "$hsu_after"
-  return 1
 }
 
 # host_entries_diff BEFORE AFTER prints on stderr the lines that went (<)

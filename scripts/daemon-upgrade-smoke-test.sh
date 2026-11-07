@@ -12,7 +12,6 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 KARVI=${KARVI:-./bin/karvi-linux-amd64}
-GO=${GO:-go}
 . "$ROOT/scripts/lib/json.sh"; . "$ROOT/scripts/lib/host.sh"
 host_config_clean "$KARVI"   # refused on a host whose configuration reaches karvi
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-daemon-upgrade-smoke-XXXXXX")
@@ -23,11 +22,8 @@ SOCKET="$BASE/socket/d.sock"
 FIXTURE_PID=
 # k ARGS: the executable under the suite's places.
 k() {
-  "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" \
-    --set "tempdir=\"$TMP/tmp\"" --set 'platform-resolution.default=""' \
-    --set audit.journald-required=false --set "audit.file=\"$BASE/audit.jsonl\"" \
-    --set "scoreboards=\"$TMP/scoreboards\"" --set "sessions.shared-capacity-root=\"$TMP/capacity\"" \
-    --set output.min-free-bytes-after-job=0 "$@"
+  "$KARVI" --config "$TMP/places.toml" \
+    --set "tempdir=\"$TMP/tmp\"" --set 'platform-resolution.default=""' "$@"
 }
 cleanup() {
   daemon_stop_force "$SOCKET" k --quiet || :
@@ -36,9 +32,10 @@ cleanup() {
 }
 . "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 install -d -m 700 "$BASE" "$HOME_DIR" "$TMP/tmp" "$TMP/bin"
+lab_places "$TMP/places.toml" "$BASE"
 # The fixture is built once, before its first start, so the start's wait
 # measures its start and not a compile; its pid is the fixture's own.
-GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/daemon-fixture" ./tools/daemon-fixture
+lab_build "$TMP/bin/daemon-fixture" ./tools/daemon-fixture
 # The executable's own version, IPC schema, and build, so the rule holds for
 # any build; OTHER is a build of another program.
 VERSION=$("$KARVI" version | sed -n '1s/^karvi //p')

@@ -11,13 +11,14 @@ TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-v070-smoke-XXXXXX")
 host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 HOME_DIR=$TMP/home
 BASE=$TMP/state
-SCORE=$TMP/scoreboards
-CAP=$TMP/capacity
+SCORE=$BASE/scoreboards
+CAP=$BASE/capacity
 FAKE=$TMP/fake-ssh
 LOG=$FAKE.log
 cleanup() { rm -rf "$TMP"; }
 . "$ROOT/scripts/lib/exit.sh"; . "$ROOT/scripts/lib/lab.sh"; on_exit cleanup
 install -d -m 700 "$HOME_DIR" "$BASE" "$SCORE" "$CAP"
+lab_places "$TMP/places.toml" "$BASE"
 
 cat >"$FAKE" <<'SH'
 #!/bin/sh
@@ -57,14 +58,10 @@ chmod 755 "$FAKE"
 
 common_args() {
   printf '%s\n' \
-    --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' \
+    --config "$TMP/places.toml" \
+    --set 'platform-resolution.default=""' \
     --set "ssh.transports.system=\"$FAKE\"" \
-    --set 'ssh.command.transport="system"' \
-    --set audit.journald-required=false \
-    --set "audit.file=\"$BASE/audit.jsonl\"" \
-    --set "scoreboards=\"$SCORE\"" \
-    --set "sessions.shared-capacity-root=\"$CAP\"" \
-    --set output.min-free-bytes-after-job=0
+    --set 'ssh.command.transport="system"'
 }
 
 # The reported Cisco failure is reproduced by a fake that refuses any
