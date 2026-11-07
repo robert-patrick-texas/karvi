@@ -1469,6 +1469,14 @@ func TestParseTargetListAndDispatchShortcuts(t *testing.T) {
 		{[]string{"run", "--tl", " , ", "show clock"}, nil, "", "cli_device_empty", "--tl"},
 		{[]string{"run", "--tl", "", "show clock"}, nil, "", "cli_device_empty", "--tl"},
 		{[]string{"run", "--tl", "router01,^bad", "show clock"}, nil, "", "", "--tl"},
+		// Commas and whitespace separate outside a bracket only; a backslash
+		// keeps the next rune; a bracket left open runs to the value's end.
+		{[]string{"run", "--tl", "router[1,4]", "show clock"}, []string{"target=router[1,4]"}, "", "", ""},
+		{[]string{"run", "--tl", "router[1-3],switch[1,2] edge1", "show clock"}, []string{"target=router[1-3]", "target=switch[1,2]", "target=edge1"}, "", "", ""},
+		{[]string{"run", "--tl", "r[1-2]*,[a-c]x", "show clock"}, []string{"target=r[1-2]*", "target=[a-c]x"}, "", "", ""},
+		{[]string{"run", "--tl", `a\,b,c`, "show clock"}, []string{`target=a\,b`, "target=c"}, "", "", ""},
+		{[]string{"run", "--tl", "router[1,4,edge1", "show clock"}, nil, "", "target_selector_pattern_invalid", `--tl value "router[1,4,edge1"`},
+		{[]string{"run", "--tl", "router[10, 12]", "show clock"}, nil, "", "target_selector_pattern_invalid", `--tl value "router[10, 12]" is not a valid selector: the numeric range "[10, 12]" is malformed`},
 		{[]string{"run", "--dp", "--target", "r1", "show clock"}, []string{"target=r1"}, "parallel", "", ""},
 		{[]string{"run", "--dw", "--target", "r1", "show clock"}, []string{"target=r1"}, "wave", "", ""},
 		{[]string{"run", "--ds", "--target", "r1", "show clock"}, []string{"target=r1"}, "serial", "", ""},

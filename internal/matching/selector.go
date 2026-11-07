@@ -16,8 +16,11 @@
 // and width, the width the item's lower bound is written in, so a pattern
 // matches a value exactly when the value is one of the names the pattern
 // spells: "[01-12]" is 01 to 12, "[1-12]" is 1 to 12 unpadded, "[05]" is 05.
-// Any other bracket of those characters ("[1-]", "[1,,3]") is refused; a
-// backslash keeps a class ("[1\-]" is 1 or "-").
+// Any other bracket of those characters ("[1-]", "[1,,3]") is refused, and
+// so is one that also holds white space beside a digit ("[10, 12]"); a
+// backslash keeps a class ("[1\-]" is 1 or "-", "[1\ 0]" 1, space, or 0). A pattern holding a range
+// also spells its words (Spell): the pattern with each range written as one
+// of its numbers.
 package matching
 
 import (
@@ -81,7 +84,17 @@ func HasMeta(value string) bool { return strings.ContainsAny(value, `*?[\`) }
 type Pattern struct {
 	source string
 	tokens []token
-	ranged bool // a numeric range among the tokens
+	ranged bool        // a numeric token among the tokens
+	spans  []rangeSpan // every numeric range as written, for Spell
+}
+
+// rangeSpan is a numeric range's place in the pattern as written, the rune
+// indexes of its "[" and "]", and its items: kept for Spell whether the
+// range compiled to a numeric token or, its items one digit each, to the
+// class of those digits.
+type rangeSpan struct {
+	start, end int
+	items      []numberRange
 }
 
 // String is the pattern as written.
@@ -116,7 +129,7 @@ type numberRange struct {
 }
 
 // rangeItems is what a malformed numeric range's message says a range holds.
-const rangeItems = `each item is a number or two numbers joined by "-", separated by ","`
+const rangeItems = `each item is a number or two numbers joined by "-", separated by "," with no space`
 
 const reservedReason = "an unescaped %q is not allowed: a selector already matches the whole field, \"[!...]\" excludes characters, and \\^ and \\$ are the literal characters"
 
@@ -143,13 +156,18 @@ func compile(value, pattern string) (Pattern, error) {
 		case '^', '$':
 			return Pattern{}, bad(reservedReason, string(r))
 		case '[':
-			if end, ok := numericBracket(runes, i+1); ok {
-				t, err := compileNumeric(string(runes[i+1:end]), bad)
+			end, ok, spaced := numericBracket(runes, i+1)
+			if spaced {
+				return Pattern{}, malformedRange(string(runes[i+1:end]), bad)
+			}
+			if ok {
+				t, items, err := compileNumeric(string(runes[i+1:end]), bad)
 				if err != nil {
 					return Pattern{}, err
 				}
 				p.tokens = append(p.tokens, t)
 				p.ranged = p.ranged || t.kind == numeric
+				p.spans = append(p.spans, rangeSpan{start: i, end: end, items: items})
 				i = end
 				break
 			}
@@ -166,21 +184,46 @@ func compile(value, pattern string) (Pattern, error) {
 	return p, nil
 }
 
-// numericBracket reports whether the bracket whose "[" is at start-1 holds
-// only digits, hyphens, and commas, and the index of its closing "]".
-func numericBracket(runes []rune, start int) (int, bool) {
+// numericBracket reads the bracket whose "[" is at start-1: ok when it
+// holds only digits, hyphens, and commas, spaced when it holds those and
+// white space, a digit and a space among them, which is a malformed range;
+// end is the index of its closing "]" in either case.
+func numericBracket(runes []rune, start int) (end int, ok, spaced bool) {
 	i := start
-	for i < len(runes) && (isDigit(runes[i]) || runes[i] == '-' || runes[i] == ',') {
-		i++
+	digit, space := false, false
+	for ; i < len(runes); i++ {
+		r := runes[i]
+		if isDigit(r) {
+			digit = true
+		} else if unicode.IsSpace(r) {
+			space = true
+		} else if r != '-' && r != ',' {
+			break
+		}
 	}
-	return i, i > start && i < len(runes) && runes[i] == ']'
+	if i == start || i == len(runes) || runes[i] != ']' {
+		return i, false, false
+	}
+	if space {
+		return i, false, digit
+	}
+	return i, true, false
+}
+
+// malformedRange is the refusal of a numeric range's body that is no list
+// of numbers and number-number items.
+func malformedRange(body string, bad func(string, ...any) *PatternError) *PatternError {
+	e := bad("the numeric range %q is malformed: %s", "["+body+"]", rangeItems)
+	e.Unquoted = "a numeric range is malformed: " + rangeItems
+	return e
 }
 
 // compileNumeric reads a numeric range's body, the text between its
 // brackets: items separated by ",", each a number or two numbers joined by
 // "-", the lower not above the upper. A range whose every item is one digit
-// spells one character, so it is the class of those digits.
-func compileNumeric(body string, bad func(string, ...any) *PatternError) (token, error) {
+// spells one character, so it is the class of those digits. The items are
+// returned with the token, for Spell.
+func compileNumeric(body string, bad func(string, ...any) *PatternError) (token, []numberRange, error) {
 	t := token{kind: numeric}
 	digit := token{kind: class}
 	for _, item := range strings.Split(body, ",") {
@@ -189,15 +232,13 @@ func compileNumeric(body string, bad func(string, ...any) *PatternError) (token,
 			hi = lo
 		}
 		if lo == "" || hi == "" || strings.Contains(hi, "-") {
-			e := bad("the numeric range %q is malformed: %s", "["+body+"]", rangeItems)
-			e.Unquoted = "a numeric range is malformed: " + rangeItems
-			return token{}, e
+			return token{}, nil, malformedRange(body, bad)
 		}
 		n := numberRange{lo: number([]rune(lo)), hi: number([]rune(hi)), width: len(lo)}
 		if compareNumbers(n.lo, n.hi) > 0 {
 			e := bad("the range %q-%q is reversed", lo, hi)
 			e.Unquoted = "a numeric range is reversed"
-			return token{}, e
+			return token{}, nil, e
 		}
 		t.items = append(t.items, n)
 		if n.width == 1 && len(n.hi) == 1 {
@@ -205,9 +246,9 @@ func compileNumeric(body string, bad func(string, ...any) *PatternError) (token,
 		}
 	}
 	if len(digit.ranges) == len(t.items) {
-		return digit, nil
+		return digit, t.items, nil
 	}
-	return t, nil
+	return t, t.items, nil
 }
 
 // compileClass reads a class whose "[" is at start-1 and returns the index of

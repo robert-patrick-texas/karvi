@@ -372,12 +372,35 @@
   what they did; a multi-digit bound or a list of digits does not: `[123]` is
   123, not 1, 2, or 3, `[05]` is 05, and `[1,3]` is 1 or 3, never a comma. A
   bracket of those characters that is no such list (`[1-]`, `[-5]`,
-  `[1,,3]`) is refused as a reversed range is:
-  `target_selector_pattern_invalid` on the command line,
+  `[1,,3]`), or that also holds white space beside a digit (`[10, 12]`, a
+  one-character class that took router1 and router2), is refused as a
+  reversed range is: `target_selector_pattern_invalid` on the command line,
   `credential_csv_row_invalid` in a credential file, and
   `config_match_rule_pattern_invalid` in a map; `[1\-]` is the class of `1`
-  and `-`. A `--target` value holding a range still selects from the
-  inventory alone.
+  and `-`.
+- **Breaking: a target holding a numeric range creates the names it
+  spells.** A `--target` holding a range selected from the inventory alone,
+  so `--tl 'switch0[1-3]'` with no switch01 there stopped with
+  `inventory_empty_selection`, and `--tl 'router[1-12]'` took router10 to
+  router12 and dropped router1 to router9 without a word. A `--target`, a
+  `--tl` name, a positional device, and a target-file or standard-input line
+  holding a range stand for the names it spells, in written order, as if
+  each were typed in its place: an inventory device or, absent from it, a
+  direct target, recorded under the name as typed (`Switch0[1-2]` records
+  `input_target` `Switch01` and `Switch02`, the job manifest keeping the
+  value); a name holding a glob as well selects (`router[1-2]*` is
+  `router1*`, then `router2*`). A `!` value, `--exclude`, and the inventory
+  selectors match a range, as before. The new
+  `targets.max-created-names` (1 to 100,000, default 1000, lockable) bounds
+  the names one value creates, brackets multiplying: a command-line value
+  over it is refused after the configuration is read and before any target
+  file, the inventory, or DNS, a file's or standard input's line as it is
+  read, with `target_created_names_exceeded` (exit 4), the value named and
+  the count stacked over the limit. `--tl` splits at commas and white space
+  outside brackets only, so `--tl 'router[1,4]'` is one name where it was
+  split and refused, and a backslash keeps the character after it
+  (`a\,b`). The help's `--target` and `--tl` lines say to single-quote a
+  pattern or list, and its selector paragraph names the range.
 
 ## 0.40.0 - 2026-11-05
 

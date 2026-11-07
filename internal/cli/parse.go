@@ -19,11 +19,15 @@ import (
 // the option name: target, tf, tfr, site, device-group, platform (run only),
 // or all. Positional is true for a device given without --target; Shortcut
 // is true for the device of a first word that is no command (parseShortcut).
+// Label names where a target value was given, for a refusal that follows
+// the parse: the option as its canonical name says it ("--target", "--tl"),
+// or DEVICE for a positional device.
 type TargetInput struct {
 	Kind       string
 	Value      string
 	Positional bool
 	Shortcut   bool
+	Label      string
 }
 
 // Declaration is one declaration in command-line order: an --expect,
@@ -529,9 +533,37 @@ func (p *parser) placeDeclarations() error {
 }
 
 // targetListNames splits a --tl value into its names: commas and whitespace
-// separate, in any mix.
+// separate, in any mix, outside a bracket, so "router[1,4]" is one name; a
+// backslash keeps the rune after it, as the grammar does (a\,b is one
+// name). A bracket not closed runs to the end of the value, and the
+// selector check refuses the name.
 func targetListNames(value string) []string {
-	return strings.FieldsFunc(value, func(r rune) bool { return r == ',' || unicode.IsSpace(r) })
+	var names []string
+	var b strings.Builder
+	inBracket, escaped := false, false
+	for _, r := range value {
+		switch {
+		case escaped:
+			escaped = false
+		case r == '\\':
+			escaped = true
+		case r == '[':
+			inBracket = true
+		case r == ']':
+			inBracket = false
+		case !inBracket && (r == ',' || unicode.IsSpace(r)):
+			if b.Len() > 0 {
+				names = append(names, b.String())
+				b.Reset()
+			}
+			continue
+		}
+		b.WriteRune(r)
+	}
+	if b.Len() > 0 {
+		names = append(names, b.String())
+	}
+	return names
 }
 
 // stdinDevice reports whether a device value is "-": standard input, one
@@ -561,7 +593,7 @@ func (p *parser) addTarget(o *option, value string) error {
 	if err := checkSelector("--"+o.name, strings.TrimSpace(value), true); err != nil {
 		return err
 	}
-	p.inv.Targets = append(p.inv.Targets, TargetInput{Kind: optTarget.name, Value: value})
+	p.inv.Targets = append(p.inv.Targets, TargetInput{Kind: optTarget.name, Value: value, Label: "--" + o.name})
 	return nil
 }
 
@@ -579,7 +611,7 @@ func (p *parser) positionalDevice(value string) error {
 	if err := checkSelector("DEVICE", strings.TrimSpace(value), true); err != nil {
 		return err
 	}
-	p.inv.Targets = append(p.inv.Targets, TargetInput{Kind: "target", Value: value, Positional: true})
+	p.inv.Targets = append(p.inv.Targets, TargetInput{Kind: "target", Value: value, Positional: true, Label: "DEVICE"})
 	return nil
 }
 

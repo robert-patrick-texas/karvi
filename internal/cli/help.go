@@ -117,6 +117,19 @@ Options:
   --help, -h                     Show this help
 `
 
+// globHelp is the selector grammar's paragraph, in each command's target
+// inputs.
+const globHelp = `  A GLOB matches the whole value without regard to case: * ? [a-c] [!a-c],
+  and \ escapes the next character; ^ and $ are refused. A bracket of digits,
+  hyphens, and commas is a numeric range: [1-12], [01-12] (padded to the
+  lower bound's width), [1,4,7-9]. A target name holding one creates the
+  names it spells, each an inventory device or a direct target, at most
+  targets.max-created-names; an inventory selector, --exclude, or ! value
+  matches them. A selector value beginning with ! removes the devices it
+  matches and selects none; in a target file, lines beginning with # or !
+  are comments.
+`
+
 const selectPlatformHelp = `  A --select-platform value is a selector over the known platforms (the
   built-ins and the configured [platform.NAME] tables) and matches the
   platform set on a device's row or source default, before any --platform
@@ -201,11 +214,13 @@ device of the assembled set):
   DEVICE                         Positional device: the first positional word,
                                  unless a target input precedes it; - reads
                                  stdin as --tf - does
-  --target DEVICE, --host, --t   Repeatable inventory or direct target, or glob
-                                 (- reads stdin, one per line, as --tf - does)
+  --target DEVICE, --host, --t   Repeatable inventory or direct target, glob,
+                                 or range; single-quote a pattern (- reads
+                                 stdin, one per line, as --tf - does)
   --tl LIST                      Targets in one argument, separated by commas
-                                 or whitespace (quote a whitespace list); each
-                                 is a --target at this position, - reading stdin
+                                 or whitespace outside brackets; single-quote
+                                 the list; each is a --target at this
+                                 position, - reading stdin
   --tf FILE|PATH|-               Target file, or the files directly in a
                                  folder; - reads stdin
   --tfr PATH                     Target file, or a folder and its subfolders
@@ -213,11 +228,7 @@ device of the assembled set):
   --site GLOB, --device-group GLOB, --select-platform GLOB, --all
                                  Inventory selectors, matches at this position
   --exclude GLOB                 Remove name matches after duplicate removal
-  A GLOB matches the whole value without regard to case: * ? [a-c] [!a-c],
-  and \ escapes the next character; ^ and $ are refused. A selector value
-  beginning with ! removes the devices it matches and selects none; in a
-  target file, lines beginning with # or ! are comments.
-` + selectPlatformHelp + `  --order default|sorted|shuffle|random
+` + globHelp + selectPlatformHelp + `  --order default|sorted|shuffle|random
                                  Dispatch order for this invocation (sets the
                                  lock-aware dispatch.order; the shuffle key
                                  comes from dispatch.shuffle-key)
@@ -394,11 +405,13 @@ func runHelpText() string {
 
 Target inputs (at least one; command-line order is kept, the first occurrence
 of a name keeps its position, names are lowercase):
-  --target NAME, --host, --t     Repeatable inventory or direct target, or glob
-                                 (- reads stdin, one per line, as --tf - does)
+  --target NAME, --host, --t     Repeatable inventory or direct target, glob,
+                                 or range; single-quote a pattern (- reads
+                                 stdin, one per line, as --tf - does)
   --tl LIST                      Targets in one argument, separated by commas
-                                 or whitespace (quote a whitespace list); each
-                                 is a --target at this position, - reading stdin
+                                 or whitespace outside brackets; single-quote
+                                 the list; each is a --target at this
+                                 position, - reading stdin
   --tf FILE|PATH|-               Target file, or the files directly in a
                                  folder; - reads stdin
   --tfr PATH                     Target file, or a folder and its subfolders
@@ -406,11 +419,7 @@ of a name keeps its position, names are lowercase):
   --site GLOB, --device-group GLOB, --select-platform GLOB, --all
                                  Inventory selectors, matches at this position
   --exclude GLOB                 Remove name matches after duplicate removal
-  A GLOB matches the whole value without regard to case: * ? [a-c] [!a-c],
-  and \ escapes the next character; ^ and $ are refused. A selector value
-  beginning with ! removes the devices it matches and selects none; in a
-  target file, lines beginning with # or ! are comments.
-` + selectPlatformHelp + `  An unknown row platform in the set refuses the run under the default, fail.
+` + globHelp + selectPlatformHelp + `  An unknown row platform in the set refuses the run under the default, fail.
   --order default|sorted|shuffle|random
                                  Dispatch order for this invocation (sets the
                                  lock-aware dispatch.order; the shuffle key
@@ -593,8 +602,9 @@ beginning with a dash a device.
 Target inputs (command-line order is kept):
   DEVICE                         Positional device, repeatable; - reads stdin
                                  as --tf - does
-  --target DEVICE, --host, --t   Repeatable inventory or direct target, or glob
-                                 (- reads stdin, one per line, as --tf - does)
+  --target DEVICE, --host, --t   Repeatable inventory or direct target, glob,
+                                 or range; single-quote a pattern (- reads
+                                 stdin, one per line, as --tf - does)
   --tf FILE|PATH|-               Target file, or the files directly in a
                                  folder; - reads stdin
   --tfr PATH                     Target file, or a folder and its subfolders
@@ -602,11 +612,7 @@ Target inputs (command-line order is kept):
   --site GLOB, --device-group GLOB, --select-platform GLOB, --all
                                  Inventory selectors, matches at this position
   --exclude GLOB                 Remove name matches after duplicate removal
-  A GLOB matches the whole value without regard to case: * ? [a-c] [!a-c],
-  and \ escapes the next character; ^ and $ are refused. A selector value
-  beginning with ! removes the devices it matches and selects none; in a
-  target file, lines beginning with # or ! are comments.
-` + selectPlatformHelp + `  --order default|sorted|shuffle|random
+` + globHelp + selectPlatformHelp + `  --order default|sorted|shuffle|random
                                  Dispatch order for this invocation (sets the
                                  lock-aware dispatch.order; the shuffle key
                                  comes from dispatch.shuffle-key)

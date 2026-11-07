@@ -58,9 +58,21 @@ func checkTargetSources(inv *Invocation, w io.Writer) (int, bool) {
 // each keeps its command-line position, and a --tf or --tfr source is read
 // here, after the read, so the daemon never opens an operator file. The
 // source rules come from cfg: targets.empty-source and
-// targets.recursion-max-depth.
+// targets.recursion-max-depth. targets.max-created-names bounds the names a
+// target value's ranges create (app.CheckCreatedNames): every command-line
+// value is counted first, before any target file is read, and a file's or
+// standard input's lines as they are read.
 func targetInputs(inv *Invocation, cfg configload.Snapshot, streams app.IO) ([]app.TargetInput, int, bool) {
 	emptyRule, maxDepth := cfg.String("targets.empty-source"), cfg.Int("targets.recursion-max-depth")
+	maxCreated := cfg.Int("targets.max-created-names")
+	for _, t := range inv.Targets {
+		if t.Kind != "target" {
+			continue
+		}
+		if err := app.CheckCreatedNames(t.Label, t.Value, maxCreated); err != nil {
+			return nil, inv.Global.reportError(streams.Stderr, "target_created_names_exceeded", err), false
+		}
+	}
 	inputs := make([]app.TargetInput, 0, len(inv.Targets))
 	for _, t := range inv.Targets {
 		switch t.Kind {
@@ -85,6 +97,9 @@ func targetInputs(inv *Invocation, cfg configload.Snapshot, streams app.IO) ([]a
 			for _, name := range names {
 				if err := checkSelector("target file "+source+" entry", name, false); err != nil {
 					return nil, inv.Global.reportError(streams.Stderr, "target_selector_pattern_invalid", err), false
+				}
+				if err := app.CheckCreatedNames("target file "+source+" entry", name, maxCreated); err != nil {
+					return nil, inv.Global.reportError(streams.Stderr, "target_created_names_exceeded", err), false
 				}
 			}
 			if len(names) == 0 {

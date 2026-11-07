@@ -657,6 +657,7 @@ var entries = []Entry{
 	failure("target_source_stdin_invalid", "usage", exitUsage, false, "`--tfr -` is given, where `--tf -` reads standard input; or `job list --target -`, whose `--target` filters the jobs and reads no standard input."),
 	failure("target_set_empty", "inventory", exitInv, false, "The target set is empty after duplicate removal, `--exclude`, and the `!` selectors."),
 	failure("target_selector_pattern_invalid", "usage", exitUsage, false, "A command-line selector or target-file entry is not a valid selector: a malformed class or escape, a bare `!`, a `!` in `--exclude`, or an unescaped `^` or `$`."),
+	failure("target_created_names_exceeded", "usage", exitUsage, false, "A target value's numeric ranges create more names than `targets.max-created-names` allows: a `--target`, a `--tl` name, a positional device, or a target-file or standard-input line; refused before any name is made."),
 	failure("config_generate_destination_unavailable", "permission", exitPerm, false, "`config generate` cannot create the destination file."),
 	failure("config_generate_write_failed", "output", exitOutput, false, "`config generate` cannot write, flush, or close the destination file."),
 	failure("scoreboard_root_invalid", "permission", exitPerm, false, "The scoreboards folder cannot be used: a link, not a folder, closed to the operator, on a filesystem with no free inodes, or absent with its parent absent or closed to the operator."),

@@ -172,7 +172,9 @@ func draftOptions(commands []string) DraftOptions {
 // chapter 95); nothing else moved.
 // Re-pinned when security.require-fips was removed (EXAMPLES chapter 101):
 // the configuration block's key and its digest; nothing else moved.
-const goldenK03Draft = "d75ffe21fa308232179902aa10ae707ee7308ebf2b8c8fdb3d75d56688f6260c"
+// Re-pinned at targets.max-created-names (EXAMPLES chapter 103): the
+// configuration block's new key and its digest; nothing else moved.
+const goldenK03Draft = "667c1d7f2272dff7e477ce2a294f190fd355a30a3d8718ab2549c772c0e0dbb5"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

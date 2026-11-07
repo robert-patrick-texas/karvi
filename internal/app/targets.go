@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"math/big"
 	"net/netip"
 	"strconv"
 	"strings"
@@ -67,7 +68,7 @@ func assembleTargets(ctx context.Context, cfg configload.Snapshot, operator cred
 	if err != nil {
 		return TargetSet{}, errorcodes.Ensure(err, "inventory_load_failed")
 	}
-	devices, err := assemble(configured, inputs, excludes, planner.SetPlatformFunc(cfg))
+	devices, err := assemble(configured, inputs, excludes, planner.SetPlatformFunc(cfg), cfg.Int("targets.max-created-names"))
 	if err != nil {
 		return TargetSet{}, err
 	}
@@ -93,11 +94,21 @@ func assembleTargets(ctx context.Context, cfg configload.Snapshot, operator cred
 // devices whose field matches, wherever it stands, and a device without a
 // value for the field is not removed.
 //
+// A target name holding a numeric range stands for the words it spells, in
+// written order, as if each were typed in its place (matching.Spell): a
+// word with no other glob is a name, an inventory device or a direct target
+// recorded under the word as typed (input_target), and a word holding a
+// glob selects. maxCreated is targets.max-created-names, the most words one
+// name may spell; the command line checks it before any target file is
+// read (CheckCreatedNames), so here it refuses only a name that did not
+// come through it. A "!" name and --exclude match the range and spell
+// nothing.
+//
 // setPlatform is the platform a device is matched on for --select-platform
 // (planner.SetPlatformFunc): blank for a
 // device whose platform is not set or falls back, which no --select-platform value
 // matches.
-func assemble(configured []inventory.Device, inputs []TargetInput, excludes []string, setPlatform func(inventory.Device) string) ([]inventory.Device, error) {
+func assemble(configured []inventory.Device, inputs []TargetInput, excludes []string, setPlatform func(inventory.Device) string, maxCreated int) ([]inventory.Device, error) {
 	out := []inventory.Device{}
 	seen := map[string]bool{}
 	add := func(d inventory.Device) {
@@ -119,12 +130,34 @@ func assemble(configured []inventory.Device, inputs []TargetInput, excludes []st
 		}
 	}
 	var removals []func(inventory.Device) bool
+	// addWord adds one name as typed, or the inventory's matches of one
+	// glob; p is typed compiled.
+	addWord := func(typed string, p matching.Pattern) error {
+		if matching.HasMeta(typed) {
+			selector(func(d inventory.Device) bool { return deviceMatchesName(d, p) })
+			return nil
+		}
+		for _, d := range configured {
+			if deviceMatchesName(d, p) {
+				add(d)
+				return nil
+			}
+		}
+		d := inventory.Direct(strings.ToLower(typed), "", "", 0) // Name and CanonicalName are the lowercase name; the platform is not set
+		d.InputToken = typed                                     // as supplied (records: input_target)
+		d.TransportExplicit = false
+		if err := d.Validate(); err != nil {
+			return err
+		}
+		add(d)
+		return nil
+	}
 	addName := func(raw, option string) error {
-		name := strings.ToLower(strings.TrimSpace(raw))
-		if name == "" {
+		typed := strings.TrimSpace(raw)
+		if typed == "" {
 			return errorcodes.Errorf("device_name_blank", "a target name is blank")
 		}
-		sel, err := parseSelector(option, name)
+		sel, err := parseSelector(option, typed)
 		if err != nil {
 			return err
 		}
@@ -132,23 +165,22 @@ func assemble(configured []inventory.Device, inputs []TargetInput, excludes []st
 			removals = append(removals, func(d inventory.Device) bool { return deviceMatchesName(d, sel.Pattern) })
 			return nil
 		}
-		if matching.HasMeta(name) {
-			selector(func(d inventory.Device) bool { return deviceMatchesName(d, sel.Pattern) })
-			return nil
+		if !sel.Pattern.Spells() {
+			return addWord(typed, sel.Pattern)
 		}
-		for _, d := range configured {
-			if deviceMatchesName(d, sel.Pattern) {
-				add(d)
-				return nil
+		words, ok := sel.Pattern.Spell(maxCreated)
+		if !ok {
+			return createdNamesError(option, typed, sel.Pattern, maxCreated)
+		}
+		for _, w := range words {
+			p, err := matching.Compile(w) // a word of a compiled pattern compiles
+			if err != nil {
+				return err
+			}
+			if err := addWord(w, p); err != nil {
+				return err
 			}
 		}
-		d := inventory.Direct(name, "", "", 0) // Name and CanonicalName are the lowercase name; the platform is not set
-		d.InputToken = strings.TrimSpace(raw)  // as supplied (records: input_target)
-		d.TransportExplicit = false
-		if err := d.Validate(); err != nil {
-			return err
-		}
-		add(d)
 		return nil
 	}
 	field := func(kind, value string, match func(inventory.Device, matching.Pattern) bool) error {
@@ -237,6 +269,31 @@ func assemble(configured []inventory.Device, inputs []TargetInput, excludes []st
 		return nil, errorcodes.Errorf("target_set_empty", "the target set is empty after duplicate removal, --exclude, and the \"!\" selectors")
 	}
 	return out, nil
+}
+
+// CheckCreatedNames refuses a target name whose numeric ranges spell more
+// words than limit, targets.max-created-names, counted without spelling
+// them: target_created_names_exceeded. label names where the name came
+// from ("--tl", "DEVICE", "target file F entry"). A name the grammar
+// refuses, a "!" name, and a name without a range create nothing and pass,
+// the selector check owning the first.
+func CheckCreatedNames(label, value string, limit int) error {
+	typed := strings.TrimSpace(value)
+	sel, err := matching.ParseSelector(typed)
+	if err != nil || sel.Negated || !sel.Pattern.Spells() {
+		return nil
+	}
+	return createdNamesError(label, typed, sel.Pattern, limit)
+}
+
+// createdNamesError is CheckCreatedNames's refusal, nil when p spells no
+// more than limit words: the name, then the count and the limit stacked.
+func createdNamesError(label, typed string, p matching.Pattern, limit int) error {
+	words := p.Words()
+	if words.Cmp(big.NewInt(int64(limit))) <= 0 {
+		return nil
+	}
+	return errorcodes.Errorf("target_created_names_exceeded", "%s %s creates too many names\n  names: %s\n  limit: %d (targets.max-created-names)", label, typed, words, limit)
 }
 
 // hasPositiveInput reports whether any input can select a device: every

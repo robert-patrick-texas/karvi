@@ -49,13 +49,15 @@ A recurring collection is the site's systemd timer or cron over this word
 .SS "Target inputs (at least one; command\-line order is kept, the first occurrence of a name keeps its position, names are lowercase)"
 .TP
 \fB\-\-target\fR \fINAME\fR, \fB\-\-host\fR, \fB\-\-t\fR
-Repeatable inventory or direct target, or glob
-(\- reads stdin, one per line, as \-\-tf \- does)
+Repeatable inventory or direct target, glob,
+or range; single\-quote a pattern (\- reads
+stdin, one per line, as \-\-tf \- does)
 .TP
 \fB\-\-tl\fR \fILIST\fR
 Targets in one argument, separated by commas
-or whitespace (quote a whitespace list); each
-is a \-\-target at this position, \- reading stdin
+or whitespace outside brackets; single\-quote
+the list; each is a \-\-target at this
+position, \- reading stdin
 .TP
 \fB\-\-tf\fR \fIFILE|PATH|\-\fR
 Target file, or the files directly in a
@@ -72,9 +74,14 @@ Inventory selectors, matches at this position
 Remove name matches after duplicate removal
 .PP
 A GLOB matches the whole value without regard to case: * ? [a\-c] [!a\-c],
-and \e escapes the next character; ^ and $ are refused. A selector value
-beginning with ! removes the devices it matches and selects none; in a
-target file, lines beginning with # or ! are comments.
+and \e escapes the next character; ^ and $ are refused. A bracket of digits,
+hyphens, and commas is a numeric range: [1\-12], [01\-12] (padded to the
+lower bound's width), [1,4,7\-9]. A target name holding one creates the
+names it spells, each an inventory device or a direct target, at most
+targets.max\-created\-names; an inventory selector, \-\-exclude, or ! value
+matches them. A selector value beginning with ! removes the devices it
+matches and selects none; in a target file, lines beginning with # or !
+are comments.
 A \-\-select\-platform value is a selector over the known platforms (the
 built\-ins and the configured [platform.NAME] tables) and matches the
 platform set on a device's row or source default, before any \-\-platform

@@ -281,13 +281,13 @@ func TestNumericRangeByNumber(t *testing.T) {
 // commas that is not a list of numbers and number-number items is refused,
 // as a reversed range is; a backslash keeps the class reading.
 func TestNumericRangeMalformedRefused(t *testing.T) {
-	const malformed = `the numeric range "[1-]" is malformed: each item is a number or two numbers joined by "-", separated by ","`
+	const malformed = `the numeric range "[1-]" is malformed: each item is a number or two numbers joined by "-", separated by "," with no space`
 	_, err := Compile("router[1-]")
 	var pe *PatternError
 	if !errors.As(err, &pe) || pe.Reason != malformed {
 		t.Fatalf("router[1-]: %v, want the reason %q", err, malformed)
 	}
-	for _, v := range []string{"r[1-]", "r[-5]", "r[1,,3]", "r[1-3-5]", "r[-]", "r[,]", "r[1,]", "r[,1]", "r[--]", "!r[1-]"} {
+	for _, v := range []string{"r[1-]", "r[-5]", "r[1,,3]", "r[1-3-5]", "r[-]", "r[,]", "r[1,]", "r[,1]", "r[--]", "!r[1-]", "r[10, 12]", "r[1 -3]", "r[ 1]", "r[1\t]", "!r[10, 12]"} {
 		_, err := ParseSelector(v)
 		if !errors.As(err, &pe) || !strings.Contains(pe.Reason, "is malformed") || strings.Contains(pe.Unquoted, "[") || pe.Unquoted == "" {
 			t.Errorf("ParseSelector(%q) = %v (unquoted %q), want a malformed numeric range", v, err, pe.Unquoted)
@@ -307,6 +307,8 @@ func TestNumericRangeMalformedRefused(t *testing.T) {
 		{`r[1\-]`, []string{"r1", "r-"}, []string{"r10"}},
 		{`r[\-5]`, []string{"r-", "r5"}, nil},
 		{`r[1\,3]`, []string{"r1", "r,", "r3"}, []string{"r13"}},
+		{`r[1\ 0]`, []string{"r1", "r ", "r0"}, []string{"r10"}},
+		{"r[ ,-]", []string{"r ", "r,", "r-"}, []string{"r1"}}, // no digit: the class
 		{"r[!0-3]", []string{"r5"}, []string{"r1", "r10"}},
 		{"r[0-9a-f]", []string{"rb", "r7"}, []string{"r10"}},
 	} {
@@ -342,5 +344,97 @@ func TestMatchWaysAgree(t *testing.T) {
 				t.Errorf("%q matching %q: by runes %v, by positions %v", pattern, v, a, b)
 			}
 		}
+	}
+}
+
+// TestSpellWritesTheNamesAPatternMatches: Spell gives the names a range
+// spells in written order, brackets multiplying with the first slowest, the
+// pattern's other runes as typed; Words counts them without spelling; a
+// word holding no other glob is one Match accepts, and a word holding one is
+// a pattern with no range left. The lists are those
+// TestNumericRangeMatchesTheNamesItSpells holds Match to.
+func TestSpellWritesTheNamesAPatternMatches(t *testing.T) {
+	cat := func(lists ...[]string) []string {
+		var out []string
+		for _, l := range lists {
+			out = append(out, l...)
+		}
+		return out
+	}
+	for _, tc := range []struct {
+		pattern string
+		want    []string
+	}{
+		{"r[1-12]", spelled("r", 1, 12, 1, "")},
+		{"r[01-12]", spelled("r", 1, 12, 2, "")},
+		{"r[8-100]", spelled("r", 8, 100, 1, "")},
+		{"r[008-100]", spelled("r", 8, 100, 3, "")},
+		{"r[1-012]", spelled("r", 1, 12, 1, "")},
+		{"r[1,4,7-9]", []string{"r1", "r4", "r7", "r8", "r9"}},
+		{"r[9,1-2]", []string{"r9", "r1", "r2"}}, // written order, not sorted
+		{"r[1-2,2]", []string{"r1", "r2", "r2"}}, // a repeat is spelled again; assembly removes it
+		{"r[05]", []string{"r05"}},
+		{"r[1-3]", spelled("r", 1, 3, 1, "")},
+		{"r[0-0]", []string{"r0"}},
+		{"r[000-002]", spelled("r", 0, 2, 3, "")},
+		{"r[1-3]0", spelled("r", 1, 3, 1, "0")},
+		{"Sw0[1-2]-A", []string{"Sw01-A", "Sw02-A"}},
+		{"r[1-2][1-12]", cat(spelled("r1", 1, 12, 1, ""), spelled("r2", 1, 12, 1, ""))},
+		{"[1-2]x[3-4]", []string{"1x3", "1x4", "2x3", "2x4"}},
+		{"r[1-2]*", []string{"r1*", "r2*"}},
+		{"r[1-2]?[a-c]", []string{"r1?[a-c]", "r2?[a-c]"}},
+		{`r\*[1-2]`, []string{`r\*1`, `r\*2`}},
+		{"r[18446744073709551615-18446744073709551617]", []string{"r18446744073709551615", "r18446744073709551616", "r18446744073709551617"}},
+	} {
+		p, err := Compile(tc.pattern)
+		if err != nil {
+			t.Fatalf("Compile(%q): %v", tc.pattern, err)
+		}
+		if !p.Spells() {
+			t.Errorf("%q: Spells false", tc.pattern)
+		}
+		if got := p.Words(); got.Int64() != int64(len(tc.want)) {
+			t.Errorf("%q: Words %s, want %d", tc.pattern, got, len(tc.want))
+		}
+		got, ok := p.Spell(len(tc.want))
+		if !ok || !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%q: Spell = %q %v, want %q", tc.pattern, got, ok, tc.want)
+		}
+		if _, ok := p.Spell(len(tc.want) - 1); ok {
+			t.Errorf("%q: Spell under a limit one below its words spelled", tc.pattern)
+		}
+		for _, w := range got {
+			wp, err := Compile(w)
+			if err != nil {
+				t.Errorf("%q: word %q does not compile: %v", tc.pattern, w, err)
+				continue
+			}
+			if !HasMeta(w) && !p.Match(w) {
+				t.Errorf("%q: does not match its word %q", tc.pattern, w)
+			}
+			if HasMeta(w) && wp.Spells() {
+				t.Errorf("%q: word %q still spells", tc.pattern, w)
+			}
+		}
+	}
+	for _, v := range []string{"router1", "r*", "r?", "r[a-c]", "r[!0-3]", `r[1\-]`, `r\[1-3]`} {
+		p, err := Compile(v)
+		if err != nil {
+			t.Fatalf("Compile(%q): %v", v, err)
+		}
+		if p.Spells() || p.Words().Int64() != 1 {
+			t.Errorf("%q: Spells %v, Words %s; want no range", v, p.Spells(), p.Words())
+		}
+	}
+	huge, _ := Compile("box[0-99999999999999999999999]")
+	if got := huge.Words().String(); got != "100000000000000000000000" {
+		t.Errorf("Words of a range past 64 bits = %s", got)
+	}
+	if _, ok := huge.Spell(100000); ok {
+		t.Error("a range past 64 bits spelled under 100,000")
+	}
+	neg, _ := ParseSelector("!r[1-3]")
+	if words, ok := neg.Pattern.Spell(3); !ok || !reflect.DeepEqual(words, []string{"r1", "r2", "r3"}) {
+		t.Errorf("a negated selector's pattern spells %q %v", words, ok)
 	}
 }

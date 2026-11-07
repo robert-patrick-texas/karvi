@@ -885,6 +885,20 @@
       "since": "0.2.0"
     },
     {
+      "path": "targets.max-created-names",
+      "kind": "integer",
+      "default_literal": "1000",
+      "required": false,
+      "lock_eligible": true,
+      "reload_class": "next-job",
+      "environment": "KARVI__TARGETS__MAX_CREATED_NAMES",
+      "cli_flags": null,
+      "min": "1",
+      "max": "100000",
+      "documentation": "1–100,000; the most names one target value's numeric ranges may create, brackets multiplying (`--target 'router[01-12]'` creates 12): a `--target`, a `--tl` name, or a positional device is counted after the configuration is read and before any target file, the inventory, or DNS, and a target-file or standard-input line as it is read; over it the value is refused, `target_created_names_exceeded`, and nothing is made. A `!` value, `--exclude`, and the inventory selectors match a range of any size and create nothing.",
+      "since": "0.2.0"
+    },
+    {
       "path": "targets.recursion-max-depth",
       "kind": "integer",
       "default_literal": "3",

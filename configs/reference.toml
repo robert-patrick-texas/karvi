@@ -322,6 +322,13 @@ ansi = "auto"
 [targets]
 # warn or error for a target file or folder that yields no targets.
 empty-source = "error"
+# 1–100,000; the most names one target value's numeric ranges may create, brackets
+# multiplying (--target 'router[01-12]' creates 12): a --target, a --tl name, or a positional
+# device is counted after the configuration is read and before any target file, the inventory,
+# or DNS, and a target-file or standard-input line as it is read; over it the value is
+# refused, target_created_names_exceeded, and nothing is made. A ! value, --exclude, and the
+# inventory selectors match a range of any size and create nothing.
+max-created-names = 1000
 # 1–16; --tfr PATH is level 0.
 recursion-max-depth = 3
 
