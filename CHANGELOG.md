@@ -354,6 +354,30 @@
   home, as `scripts/verify-shipped.sh` and the completion suite do, and
   `host_shared_unchanged`, which nothing else called, is removed;
   `scripts/lib/host-test.sh` fails on either verifier comparing less.
+- **Breaking: a bracket of digits is a numeric range in every selector.** A
+  bracket holding only digits, hyphens, and commas was a one-character class,
+  so a credential CSV row `router[10-12]` matched none of router10 to
+  router12, which took the next row's account with no warning, and `--site
+  'pod[1-12]'` selected pod1 and pod2 and missed pod10 to pod12. Such a
+  bracket is a list of numbers and ranges (`[1-12]`, `[01-12]`,
+  `[1,4,7-9]`), and a pattern matches exactly the names it spells, a range
+  written at its lower bound's width: `[01-12]` is 01 to 12, `[1-12]` is 1 to
+  12 unpadded, and `router[1-12]` does not match `router012`. Every selector
+  takes it: `--target`, `--site`, `--device-group`, `--select-platform`,
+  `--exclude`, target files, `job list --target`, the credential CSV's
+  selector columns, and the rules of `credential-policy-map`,
+  `session-init-map`, and `ssh-algorithms-map`; a `.cloginrc` pattern and a
+  configuration lock keep their own grammars. A single-digit range (`[0-9]`,
+  `[1-3]`) and a bracket holding any other character (`[a-c]`, `[!0-3]`) mean
+  what they did; a multi-digit bound or a list of digits does not: `[123]` is
+  123, not 1, 2, or 3, `[05]` is 05, and `[1,3]` is 1 or 3, never a comma. A
+  bracket of those characters that is no such list (`[1-]`, `[-5]`,
+  `[1,,3]`) is refused as a reversed range is:
+  `target_selector_pattern_invalid` on the command line,
+  `credential_csv_row_invalid` in a credential file, and
+  `config_match_rule_pattern_invalid` in a map; `[1\-]` is the class of `1`
+  and `-`. A `--target` value holding a range still selects from the
+  inventory alone.
 
 ## 0.40.0 - 2026-11-05
 

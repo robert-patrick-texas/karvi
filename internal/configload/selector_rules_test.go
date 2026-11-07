@@ -36,6 +36,8 @@ func TestMapSelectorPatternsValidated(t *testing.T) {
 		{"credential platform trailing backslash", credential("platform", `'cisco\'`), "credential-policy-map.0", `cisco\`},
 		{"session-init site dollar", session("site", `"nyc$"`), "session-init-map.0", "nyc$"},
 		{"session-init name empty class", session("name", `"sw[!]"`), "session-init-map.0", "sw[!]"},
+		{"credential name malformed numeric range", credential("name", `"router[1-]"`), "credential-policy-map.0", "router[1-]"},
+		{"session-init site reversed numeric range", session("site", `"pod[12-1]"`), "session-init-map.0", "pod[12-1]"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			err := load(t, tc.body)
@@ -48,6 +50,7 @@ func TestMapSelectorPatternsValidated(t *testing.T) {
 	for _, body := range []string{
 		credential("site", `["nyc*", "!nyc/lab*", '\!odd', "[!b]os"]`),
 		session("name", `'sw\^1'`),
+		credential("name", `["router[01-12]", "!router[1,4]"]`),
 	} {
 		if err := load(t, body); err != nil {
 			t.Fatalf("valid selectors refused: %v", err)

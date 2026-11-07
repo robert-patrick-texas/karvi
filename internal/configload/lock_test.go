@@ -6,7 +6,10 @@ func TestLockMatch(t *testing.T) {
 	cases := []struct {
 		p, k string
 		ok   bool
-	}{{"ssh.*", "ssh.timeout", true}, {"ssh.*", "ssh.foo.bar", true}, {"credential-backend.*.env-indirection", "credential-backend.x.env-indirection", true}, {"credential-backend.*.env-indirection", "credential-backend.x.env-indirection.password", false}}
+	}{{"ssh.*", "ssh.timeout", true}, {"ssh.*", "ssh.foo.bar", true}, {"credential-backend.*.env-indirection", "credential-backend.x.env-indirection", true}, {"credential-backend.*.env-indirection", "credential-backend.x.env-indirection.password", false},
+		// The lock matcher has no bracket: a key segment is literal or "*",
+		// apart from the SELECTOR profile's numeric range.
+		{"targets.[1-3]", "targets.2", false}, {"targets.[1-3]", "targets.[1-3]", true}}
 	for _, c := range cases {
 		if got := lockMatches(c.p, c.k); got != c.ok {
 			t.Fatalf("%s %s=%v", c.p, c.k, got)

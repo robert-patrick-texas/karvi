@@ -15,6 +15,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/scoreboard"
+	"github.com/robert-patrick-texas/karvi/records"
 )
 
 // listTree is an output root of job folders, each with the summary given
@@ -183,6 +184,26 @@ func TestListJobsFilters(t *testing.T) {
 	}
 	if got := ids(l.list(JobListOptions{Operators: []string{l.me.Username}})); len(strings.Fields(got)) != 4 {
 		t.Errorf("--operator %s: %s", l.me.Username, got)
+	}
+}
+
+// TestJobListTargetRange: job list --target follows --target, so a numeric
+// range filters a job's devices to the names it spells.
+func TestJobListTargetRange(t *testing.T) {
+	var all []records.SummaryDevice
+	for _, n := range []string{"router1", "router10", "router12", "router13", "router012"} {
+		all = append(all, records.SummaryDevice{Name: n})
+	}
+	jt, err := compileJobTargets([]string{"ROUTER[10-12]", "!router11"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, d := range jt.devices(all) {
+		got = append(got, d.Name)
+	}
+	if strings.Join(got, " ") != "router10 router12" {
+		t.Errorf("--target router[10-12]: %q", got)
 	}
 }
 

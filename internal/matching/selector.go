@@ -9,6 +9,15 @@
 // literal. An unescaped "^" or "$" is refused: a selector already matches the
 // whole field, and the two characters are reserved for regular-expression
 // style starts-with and ends-with matches.
+//
+// A bracket holding only digits, hyphens, and commas is a numeric range:
+// items separated by ",", each a number or two numbers joined by "-"
+// ("[1-12]", "[01-12]", "[1,4,7-9]"). It matches a run of digits by number
+// and width, the width the item's lower bound is written in, so a pattern
+// matches a value exactly when the value is one of the names the pattern
+// spells: "[01-12]" is 01 to 12, "[1-12]" is 1 to 12 unpadded, "[05]" is 05.
+// Any other bracket of those characters ("[1-]", "[1,,3]") is refused; a
+// backslash keeps a class ("[1\-]" is 1 or "-").
 package matching
 
 import (
@@ -22,6 +31,10 @@ import (
 type PatternError struct {
 	Value  string
 	Reason string
+	// Unquoted is Reason without the pattern's own text, for a caller that
+	// must not quote it (a credential row's cell); "" when Reason quotes
+	// none of it.
+	Unquoted string
 }
 
 func (e *PatternError) Error() string {
@@ -68,6 +81,7 @@ func HasMeta(value string) bool { return strings.ContainsAny(value, `*?[\`) }
 type Pattern struct {
 	source string
 	tokens []token
+	ranged bool // a numeric range among the tokens
 }
 
 // String is the pattern as written.
@@ -80,6 +94,7 @@ const (
 	anyOne
 	anyRun
 	class
+	numeric
 )
 
 type token struct {
@@ -87,16 +102,28 @@ type token struct {
 	r       rune
 	negated bool
 	ranges  []runeRange
+	items   []numberRange
 }
 
 type runeRange struct{ lo, hi rune }
+
+// numberRange is one item of a numeric range: the numbers lo to hi, each
+// written as decimal digits with no leading zero ("0" for zero), spelled
+// zero-padded to width digits, the lower bound's width as written.
+type numberRange struct {
+	lo, hi []rune
+	width  int
+}
+
+// rangeItems is what a malformed numeric range's message says a range holds.
+const rangeItems = `each item is a number or two numbers joined by "-", separated by ","`
 
 const reservedReason = "an unescaped %q is not allowed: a selector already matches the whole field, \"[!...]\" excludes characters, and \\^ and \\$ are the literal characters"
 
 func compile(value, pattern string) (Pattern, error) {
 	runes := []rune(pattern)
 	p := Pattern{source: pattern}
-	bad := func(format string, args ...any) error {
+	bad := func(format string, args ...any) *PatternError {
 		return &PatternError{Value: value, Reason: fmt.Sprintf(format, args...)}
 	}
 	for i := 0; i < len(runes); i++ {
@@ -116,6 +143,16 @@ func compile(value, pattern string) (Pattern, error) {
 		case '^', '$':
 			return Pattern{}, bad(reservedReason, string(r))
 		case '[':
+			if end, ok := numericBracket(runes, i+1); ok {
+				t, err := compileNumeric(string(runes[i+1:end]), bad)
+				if err != nil {
+					return Pattern{}, err
+				}
+				p.tokens = append(p.tokens, t)
+				p.ranged = p.ranged || t.kind == numeric
+				i = end
+				break
+			}
 			t, next, err := compileClass(runes, i+1, bad)
 			if err != nil {
 				return Pattern{}, err
@@ -129,10 +166,54 @@ func compile(value, pattern string) (Pattern, error) {
 	return p, nil
 }
 
+// numericBracket reports whether the bracket whose "[" is at start-1 holds
+// only digits, hyphens, and commas, and the index of its closing "]".
+func numericBracket(runes []rune, start int) (int, bool) {
+	i := start
+	for i < len(runes) && (isDigit(runes[i]) || runes[i] == '-' || runes[i] == ',') {
+		i++
+	}
+	return i, i > start && i < len(runes) && runes[i] == ']'
+}
+
+// compileNumeric reads a numeric range's body, the text between its
+// brackets: items separated by ",", each a number or two numbers joined by
+// "-", the lower not above the upper. A range whose every item is one digit
+// spells one character, so it is the class of those digits.
+func compileNumeric(body string, bad func(string, ...any) *PatternError) (token, error) {
+	t := token{kind: numeric}
+	digit := token{kind: class}
+	for _, item := range strings.Split(body, ",") {
+		lo, hi, isRange := strings.Cut(item, "-")
+		if !isRange {
+			hi = lo
+		}
+		if lo == "" || hi == "" || strings.Contains(hi, "-") {
+			e := bad("the numeric range %q is malformed: %s", "["+body+"]", rangeItems)
+			e.Unquoted = "a numeric range is malformed: " + rangeItems
+			return token{}, e
+		}
+		n := numberRange{lo: number([]rune(lo)), hi: number([]rune(hi)), width: len(lo)}
+		if compareNumbers(n.lo, n.hi) > 0 {
+			e := bad("the range %q-%q is reversed", lo, hi)
+			e.Unquoted = "a numeric range is reversed"
+			return token{}, e
+		}
+		t.items = append(t.items, n)
+		if n.width == 1 && len(n.hi) == 1 {
+			digit.ranges = append(digit.ranges, runeRange{n.lo[0], n.hi[0]})
+		}
+	}
+	if len(digit.ranges) == len(t.items) {
+		return digit, nil
+	}
+	return t, nil
+}
+
 // compileClass reads a class whose "[" is at start-1 and returns the index of
 // its closing "]". A "-" first or last in the class is literal; "]" inside a
 // class is written "\]".
-func compileClass(runes []rune, start int, bad func(string, ...any) error) (token, int, error) {
+func compileClass(runes []rune, start int, bad func(string, ...any) *PatternError) (token, int, error) {
 	t := token{kind: class}
 	i := start
 	if i < len(runes) && runes[i] == '!' {
@@ -165,7 +246,9 @@ func compileClass(runes []rune, start int, bad func(string, ...any) error) (toke
 				return token{}, 0, err
 			}
 			if hi < lo {
-				return token{}, 0, bad("the range %q-%q is reversed", string(lo), string(hi))
+				e := bad("the range %q-%q is reversed", string(lo), string(hi))
+				e.Unquoted = "a character range is reversed"
+				return token{}, 0, e
 			}
 		}
 		t.ranges = append(t.ranges, runeRange{lo, hi})
@@ -173,7 +256,7 @@ func compileClass(runes []rune, start int, bad func(string, ...any) error) (toke
 	}
 }
 
-func classRune(runes []rune, i int, bad func(string, ...any) error) (rune, int, error) {
+func classRune(runes []rune, i int, bad func(string, ...any) *PatternError) (rune, int, error) {
 	switch r := runes[i]; r {
 	case '\\':
 		if i+1 == len(runes) {
@@ -187,9 +270,20 @@ func classRune(runes []rune, i int, bad func(string, ...any) error) (rune, int, 
 	}
 }
 
-// Match reports whether the whole of value matches, without regard to case.
+// Match reports whether the whole of value matches, without regard to case:
+// whether value is one of the names the pattern spells.
 func (p Pattern) Match(value string) bool {
 	v := []rune(value)
+	if p.ranged {
+		return p.matchPositions(v)
+	}
+	return p.matchRunes(v)
+}
+
+// matchRunes matches a pattern whose every token but "*" takes one rune: on
+// a mismatch it retries from the last "*", taking one rune more, which is
+// enough when every other token's width is fixed.
+func (p Pattern) matchRunes(v []rune) bool {
 	ti, vi := 0, 0
 	starT, starV := -1, 0
 	for vi < len(v) {
@@ -228,6 +322,114 @@ func (p Pattern) Match(value string) bool {
 	}
 	return ti == len(p.tokens)
 }
+
+// matchPositions matches any pattern, a numeric range's among them: it
+// follows every position of v the tokens can reach, since a range takes a
+// run of digits of more than one length and a later mismatch can need a
+// shorter one.
+func (p Pattern) matchPositions(v []rune) bool {
+	at := make([]bool, len(v)+1)
+	next := make([]bool, len(v)+1)
+	at[0] = true
+	for _, t := range p.tokens {
+		clear(next)
+		reached := false
+		for i := range at {
+			if !at[i] {
+				continue
+			}
+			if t.kind == anyRun {
+				for j := i; j <= len(v); j++ {
+					next[j] = true
+				}
+				reached = true
+				break
+			}
+			if t.step(v, i, next) {
+				reached = true
+			}
+		}
+		if !reached {
+			return false
+		}
+		at, next = next, at
+	}
+	return at[len(v)]
+}
+
+// step marks in next each position of v the token can end at when it
+// starts at i, and reports whether it marked any: one rune on for a rune
+// token that matches, each end of a digit run the range spells for a
+// numeric range.
+func (t token) step(v []rune, i int, next []bool) bool {
+	if i == len(v) {
+		return false
+	}
+	switch t.kind {
+	case anyOne:
+	case literal:
+		if !equalFold(t.r, v[i]) {
+			return false
+		}
+	case class:
+		if !t.matches(v[i]) {
+			return false
+		}
+	case numeric:
+		marked := false
+		for j := i; j < len(v) && isDigit(v[j]); j++ {
+			if t.spells(v[i : j+1]) {
+				next[j+1] = true
+				marked = true
+			}
+		}
+		return marked
+	}
+	next[i+1] = true
+	return true
+}
+
+// spells reports whether digits is a name the numeric range spells: a
+// number within an item's bounds, zero-padded to the item's width and no
+// further.
+func (t token) spells(digits []rune) bool {
+	n := number(digits)
+	for _, it := range t.items {
+		if len(digits) < it.width || len(digits) > it.width && digits[0] == '0' {
+			continue
+		}
+		if compareNumbers(n, it.lo) >= 0 && compareNumbers(n, it.hi) <= 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// number is a run of decimal digits without its leading zeros, "0" for
+// zero, so two numbers of any size compare by compareNumbers.
+func number(digits []rune) []rune {
+	z := 0
+	for z < len(digits)-1 && digits[z] == '0' {
+		z++
+	}
+	return digits[z:]
+}
+
+// compareNumbers orders two numbers as number writes them: the longer is
+// larger, and two of one length compare digit by digit.
+func compareNumbers(a, b []rune) int {
+	if len(a) != len(b) {
+		return len(a) - len(b)
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return int(a[i]) - int(b[i])
+		}
+	}
+	return 0
+}
+
+func isDigit(r rune) bool { return r >= '0' && r <= '9' }
 
 // Match reports whether s matches value, a negated selector matching when its
 // pattern matches (the caller decides what a negation does).

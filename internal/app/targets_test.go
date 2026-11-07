@@ -187,6 +187,45 @@ func TestAssembleSelectorGrammar(t *testing.T) {
 	}
 }
 
+// TestAssembleNumericRange: --site, --device-group, --exclude, a "!"
+// target, and a --target holding a numeric range select the inventory's
+// devices among the names the range spells: --site 'pod[1-12]' takes pod10
+// to pod12 as well as pod1 to pod9, which a one-character class would miss.
+func TestAssembleNumericRange(t *testing.T) {
+	var inv []inventory.Device
+	for _, n := range []string{"1", "2", "3", "9", "10", "11", "12", "13"} {
+		inv = append(inv, invDevice("router"+n, "pod"+n, "cisco_ios", "ring"+n))
+	}
+	inv = append(inv, invDevice("router01", "pod01", "cisco_ios", "ring01"))
+	for _, tc := range []struct {
+		name   string
+		inputs []TargetInput
+		want   []string
+	}{
+		{"site pod[1-12]", []TargetInput{{Kind: "site", Value: "pod[1-12]"}}, []string{"router1", "router2", "router3", "router9", "router10", "router11", "router12"}},
+		{"site pod[01-03]", []TargetInput{{Kind: "site", Value: "pod[01-03]"}}, []string{"router01"}},
+		{"group ring[10,13]", []TargetInput{{Kind: "device-group", Value: "ring[10,13]"}}, []string{"router10", "router13"}},
+		{"target router[10-12]", []TargetInput{{Kind: "target", Value: "router[10-12]"}}, []string{"router10", "router11", "router12"}},
+		{"a not target range", []TargetInput{{Kind: "all"}, {Kind: "target", Value: "!router[2-12]"}}, []string{"router1", "router13", "router01"}},
+		{"a not site range", []TargetInput{{Kind: "site", Value: "pod*"}, {Kind: "site", Value: "!pod[1-11]"}}, []string{"router12", "router13", "router01"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := assemble(inv, tc.inputs, nil, setPlatformAsIs)
+			if err != nil || !reflect.DeepEqual(names(got), tc.want) {
+				t.Fatalf("names=%q err=%v, want %q", names(got), err, tc.want)
+			}
+		})
+	}
+	if got, err := assemble(inv, []TargetInput{{Kind: "all"}}, []string{"router[1-11]"}, setPlatformAsIs); err != nil || !reflect.DeepEqual(names(got), []string{"router12", "router13", "router01"}) {
+		t.Errorf("--exclude router[1-11]: %q %v", names(got), err)
+	}
+	for _, v := range []string{"pod[1-]", "pod[12-1]"} {
+		if _, err := assemble(inv, []TargetInput{{Kind: "site", Value: v}}, nil, setPlatformAsIs); errorcodes.Of(err) != "target_selector_pattern_invalid" {
+			t.Errorf("--site %s: %v", v, err)
+		}
+	}
+}
+
 // TestAssembleEmptyCodes covers the empty-set codes and the more specific
 // inventory_empty_selection.
 func TestAssembleEmptyCodes(t *testing.T) {

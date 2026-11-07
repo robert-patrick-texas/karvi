@@ -634,7 +634,7 @@ func TestParseEveryCode(t *testing.T) {
 		"cli_positional_unexpected": {{"version", "extra"}, {"watch", "extra"}, {"daemon", "status", "extra"}, {"daemon", "stop", "now"}, {"job", "cancel", "a", "b"}, {"job", "follow", "a", "b"}, {"config", "generate", "a", "b"}, {"config", "validate", "--", "a", "b"}},
 		// Malformed selectors, reserved ^ and $, a bare !, and a ! in
 		// --exclude are refused at parse time.
-		"target_selector_pattern_invalid": {{"run", "--site", "ny[c", "--all", "show", "clock"}, {"run", "--target", "^r1", "show", "clock"}, {"command", "r1$", "show", "clock"}, {"command", "--target", "r[!]", "--cmd", "x"}, {"run", "--all", "--exclude", "!r1", "show", "clock"}, {"run", "--device-group", "!", "--all", "show", "clock"}, {"run", "--select-platform", `cisco\`, "--all", "show", "clock"}, {"login", "--exclude", "r[c-a]", "r1"}},
+		"target_selector_pattern_invalid": {{"run", "--site", "ny[c", "--all", "show", "clock"}, {"run", "--target", "^r1", "show", "clock"}, {"command", "r1$", "show", "clock"}, {"command", "--target", "r[!]", "--cmd", "x"}, {"run", "--all", "--exclude", "!r1", "show", "clock"}, {"run", "--device-group", "!", "--all", "show", "clock"}, {"run", "--select-platform", `cisco\`, "--all", "show", "clock"}, {"login", "--exclude", "r[c-a]", "r1"}, {"run", "--site", "pod[1-]", "--all", "show", "clock"}, {"run", "--target", "router[12-1]", "show", "clock"}, {"command", "router[1,,3]", "--cmd", "x"}},
 	}
 	for want, argsList := range cases {
 		for _, args := range argsList {

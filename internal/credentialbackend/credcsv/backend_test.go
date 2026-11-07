@@ -124,6 +124,23 @@ func TestFirstMatchingRowIsTheAnswer(t *testing.T) {
 	}
 }
 
+// TestARangeRowServesTheNamesItSpells: a row router[10-12] serves router10,
+// router11, and router12, and no other device; read as a one-character
+// class it would serve none of them, and they would take the next row's
+// account with no warning.
+func TestARangeRowServesTheNamesItSpells(t *testing.T) {
+	b := newBackend(t, "device_name,username,password\nrouter[10-12],svc.ten,ten-pass\nrouter0[1-3],svc.low,low-pass\nrouter*,svc.other,other-pass\n", nil)
+	for name, want := range map[string]string{
+		"router10": "svc.ten", "router11": "svc.ten", "ROUTER12": "svc.ten",
+		"router01": "svc.low", "router03": "svc.low",
+		"router1": "svc.other", "router13": "svc.other", "router012": "svc.other", "router04": "svc.other",
+	} {
+		if u, _, _ := material(t, resolve(b, device{name: name})); u != want {
+			t.Errorf("%s: username %q, want %q", name, u, want)
+		}
+	}
+}
+
 // TestNoMatchingRowIsNotFound: no row, a file
 // of a header alone, and a file of comments and blank lines.
 // TestAPinnedDeviceTakesItsKeysRowOrNothing covers the pin inside the
@@ -304,6 +321,7 @@ func TestLoadFailures(t *testing.T) {
 		"no selector":                  {header + ",,,,svc,Hunter2,\n", nil, "credential_csv_row_invalid", []string{":2:", "no selector"}},
 		"only a negation":              {header + "sw-a,,,,svc,Hunter2,\n,,!lab,,svc,Hunter2,\n", nil, "credential_csv_row_invalid", []string{":3:", "only negated"}},
 		"a malformed pattern":          {header + "Hunter2[x,,,,svc,pw,\n", nil, "credential_csv_row_invalid", []string{":2:", "column device_name"}},
+		"a malformed numeric range":    {header + "sw[98765-],,,,svc,pw,\n", nil, "credential_csv_row_invalid", []string{":2:", "column device_name", "a numeric range is malformed"}},
 		"a bad prefix":                 {header + ",Hunter2,,,svc,pw,\n", nil, "credential_csv_row_invalid", []string{":2:", "column address_cidr", "CIDR"}},
 		"a glob key":                   {header + ",,,Hunter2*,svc,pw,\n", nil, "credential_csv_row_invalid", []string{":2:", "column credkey"}},
 		"a negated key":                {header + "sw-*,,,!Hunter2,svc,pw,\n", nil, "credential_csv_row_invalid", []string{":2:", "column credkey"}},
@@ -331,7 +349,7 @@ func TestLoadFailures(t *testing.T) {
 		if strings.Contains(r.Message, "tabular_") {
 			t.Errorf("%s: the message carries the reader's code: %s", name, r.Message)
 		}
-		if strings.Contains(strings.ToLower(r.Message), "hunter2") {
+		if strings.Contains(strings.ToLower(r.Message), "hunter2") || strings.Contains(r.Message, "98765-") {
 			t.Errorf("%s: the message quotes a cell: %s", name, r.Message)
 		}
 	}

@@ -454,6 +454,13 @@ func TestPatternMatchesAsTclStringMatch(t *testing.T) {
 		{`[?]`, `?`, true},
 		{`[?]`, `a`, false},
 		{`ÉCOLE-[1-3]`, `école-2`, true},
+		// The SELECTOR profile's numeric range is not clogin's: a bracket
+		// here stays Tcl's one-character class (tclsh8.6 agrees).
+		{`router[10-12]`, `router1`, true},
+		{`router[10-12]`, `router0`, true},
+		{`router[10-12]`, `router10`, false},
+		{`r[1,3]`, `r,`, true},
+		{`r[1,3]`, `r2`, false},
 	} {
 		if got := match(tc.pattern, tc.name); got != tc.want {
 			t.Errorf("match(%q, %q) = %v, Tcl says %v", tc.pattern, tc.name, got, tc.want)

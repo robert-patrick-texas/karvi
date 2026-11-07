@@ -156,6 +156,9 @@ func TestRowErrors(t *testing.T) {
 		{"a bare negation", map[string]string{"site": "!", "device_name": "x"}, "site", "negation needs a pattern"},
 		{"a bad prefix", map[string]string{"address_cidr": "10.1.2.3"}, "address_cidr", "not a CIDR prefix"},
 		{"a pattern for a prefix", map[string]string{"address_cidr": "10.*"}, "address_cidr", "not a CIDR prefix"},
+		{"a malformed numeric range", map[string]string{"device_name": "router[10-]"}, "device_name", "a numeric range is malformed"},
+		{"a reversed numeric range", map[string]string{"device_name": "router[12-10]"}, "device_name", "a numeric range is reversed"},
+		{"a reversed class", map[string]string{"site": "pod[c-a]"}, "site", "a character range is reversed"},
 		{"a glob key", map[string]string{"credkey": "core-*"}, "credkey", "pattern character"},
 		{"a negated key", map[string]string{"credkey": "!core", "site": "nyc"}, "credkey", "cannot be negated"},
 	} {
@@ -197,20 +200,23 @@ func TestCheckKey(t *testing.T) {
 // evaluator: a misplaced delimiter can shift a password into a selector
 // column, so a row's error names the column and the fault, never the text.
 func TestRowErrorNeverQuotesTheCell(t *testing.T) {
-	for column, cell := range map[string]string{
-		"device_name":  "Hunter2[secret",
-		"site":         "Hunter2secret\\",
-		"platform":     "Hunter2^secret",
-		"device_group": "Hunter2[z-a]secret",
-		"address_cidr": "Hunter2secret",
-		"credkey":      "Hunter2*secret",
+	for _, tc := range []struct{ column, cell string }{
+		{"device_name", "Hunter2[secret"},
+		{"site", "Hunter2secret\\"},
+		{"platform", "Hunter2^secret"},
+		{"device_group", "Hunter2[z-a]secret"},
+		{"address_cidr", "Hunter2secret"},
+		{"credkey", "Hunter2*secret"},
+		{"device_name", "Hunter2[9876-]secret"},
+		{"site", "Hunter2[98-12]secret"},
 	} {
+		column, cell := tc.column, tc.cell
 		_, err := CompileRow(map[string]string{column: cell})
 		if err == nil {
 			t.Errorf("%s: %q compiled", column, cell)
 			continue
 		}
-		if msg := err.Error(); strings.Contains(msg, "Hunter2") || strings.Contains(msg, "secret") || strings.Contains(msg, `"z"`) {
+		if msg := err.Error(); strings.Contains(msg, "Hunter2") || strings.Contains(msg, "secret") || strings.Contains(msg, `"z"`) || strings.Contains(msg, "98") {
 			t.Errorf("%s: the error quotes the cell: %s", column, msg)
 		}
 		if re, ok := err.(*RowError); !ok || re.Column != column {

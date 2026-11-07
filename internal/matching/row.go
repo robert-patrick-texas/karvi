@@ -150,9 +150,8 @@ func cellReason(err error) string {
 	}
 	var pe *PatternError
 	if errors.As(err, &pe) {
-		// The reversed-range reason quotes the range's two characters.
-		if strings.HasPrefix(pe.Reason, "the range ") {
-			return "the selector is invalid: a character range is reversed"
+		if pe.Unquoted != "" {
+			return "the selector is invalid: " + pe.Unquoted
 		}
 		return "the selector is invalid: " + pe.Reason
 	}
