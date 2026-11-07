@@ -21911,7 +21911,18 @@ removed  config /opt/karvi/users/karvi/.config/karvi/config.toml
 Remove runs the install's check first and removes the file and its two
 folders as the account; when the account cannot (removed by hand, or out of
 the operators' group), the removal is refused, naming `daemon install` to take
-the account back first. *Not taken:* root's `rm` after the check alone; root
+the account back first. No case links to `/etc` itself since (the operator's
+word, after this chapter's first form): the sysutil suite's row, and the case
+run again, plant the link at a root folder under `/srv` holding
+`karvi/config.toml`, which 0.40.0's remove took, exit 0, and the tree's keeps:
+
+```text
+karvi-sysutil: /opt/karvi/users/karvi/.config is not as the install made it; nothing changed
+  found link to /srv/e, owner karvi
+  want  directory, owner karvi
+```
+
+*Not taken:* root's `rm` after the check alone; root
 changing into the checked folder (`cd -P`, the physical path confirmed) and
 removing from inside it, correct and subtler to read. S1 also stops the
 install when its record cannot be written (#4: the refusal ended only a

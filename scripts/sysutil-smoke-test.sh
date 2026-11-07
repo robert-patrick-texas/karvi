@@ -45,7 +45,7 @@
 #      HTTPS proxy; the update through the HTTP proxy, the package at the
 #      newer version, the instance named for its restart and its pid the
 #      same, the work folder gone; and the update again, current;
-#  11. the removal: .config a link to /etc refused, the global file kept;
+#  11. the removal: .config a link to a directory refused, its target kept;
 #      the account out of its group refused, then taken back by install;
 #      the account and its home kept, a part gone reported absent, a second
 #      removal, a configuration the record does not list refused, an install
@@ -447,14 +447,17 @@ x pkill -x release-fixture
 ok "package update: refusals; an older release current; --check newer, through the HTTPS proxy under -k; $V0 to 99.0.0 through the HTTP proxy, $UNIT named, its pid $pid the same; again current"
 
 # 11. The removal. A link the account plants: refused, nothing changed.
-xsh "printf '# the site\\n' >/etc/karvi/config.toml
-  runuser -u karvi -- mv $HOME_DIR/.config $HOME_DIR/.config.aside && runuser -u karvi -- ln -s /etc $HOME_DIR/.config" ||
+# Its target a root folder holding karvi/config.toml, as /etc holds the
+# site's global file; no case links to /etc itself.
+xsh "install -d -m 0755 /srv/dir/karvi && printf '# the site\\n' >/srv/dir/karvi/config.toml
+  runuser -u karvi -- mv $HOME_DIR/.config $HOME_DIR/.config.aside && runuser -u karvi -- ln -s /srv/dir $HOME_DIR/.config" ||
   fail "remove's plant"
-refused "remove, .config a link to /etc" \
-  "$HOME_DIR/.config is not as the install made it; nothing changed"$'\n'"  found link to /etc, owner karvi"$'\n'"  want  directory, owner karvi" \
+remove_before=$(tree /srv/dir)
+refused "remove, .config a link to a directory" \
+  "$HOME_DIR/.config is not as the install made it; nothing changed"$'\n'"  found link to /srv/dir, owner karvi"$'\n'"  want  directory, owner karvi" \
   sysutil remove
-[ "$(x cat /etc/karvi/config.toml)" = "# the site" ] || fail "remove, .config a link to /etc: the global file"
-xsh "runuser -u karvi -- rm $HOME_DIR/.config && runuser -u karvi -- mv $HOME_DIR/.config.aside $HOME_DIR/.config && rm /etc/karvi/config.toml" ||
+[ "$(tree /srv/dir)" = "$remove_before" ] || fail "remove, .config a link to a directory: the target changed: $(tree /srv/dir)"
+xsh "runuser -u karvi -- rm $HOME_DIR/.config && runuser -u karvi -- mv $HOME_DIR/.config.aside $HOME_DIR/.config && rm -r /srv/dir" ||
   fail "remove's plant undone"
 # The account out of its group cannot reach its home to remove its
 # configuration: refused, and install takes it back.
@@ -469,7 +472,7 @@ out=$(sysutil install 2>&1) || fail "install after the refused remove: $out"
 if ! has "$out" "repaired membership karvi in netops" || ! has "$out" "created  instance $UNIT  enabled, active"; then
   fail "install after the refused remove: $out"
 fi
-ok "remove: .config a link to /etc refused, the global file kept; the account out of its group refused, then taken back"
+ok "remove: .config a link to a directory refused, its target as before; the account out of its group refused, then taken back"
 x rm "$CONFIG"
 out=$(sysutil remove 2>&1) || fail "remove: $out"
 for line in "removed  instance $UNIT  stopped, disabled" "absent   config $CONFIG" "removed  membership karvi in netops" "kept     account karvi"; do
