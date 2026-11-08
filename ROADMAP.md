@@ -443,6 +443,118 @@ None chosen: the operator names the next item, from "Later" or anew.
   slots; the orchestrator checks every issue, merges, and runs the battery,
   the container suite, and the release path in a copy.
 
+## Competitive features to consider for later
+
+What other network tools do that karvi does not, set down at the operator's
+word for later consideration, in no order: none is chosen or designed. Two
+such capabilities are items under [Later](#later) already: platforms beyond
+the built-ins (Netmiko and Oxidized each reach far more device types than
+karvi's seven) and NETCONF. An item that would reopen a settled decision of
+[`docs/DESIGN.md`](docs/DESIGN.md) says so.
+
+- **Structured output.** Netmiko and Nornir hand a command's text to a parser
+  (TextFSM templates, TTP, Cisco's Genie) and return its fields; NAPALM's
+  getters return a device's facts, interfaces, and neighbours as data. karvi
+  records a command's text as the device sent it (`commands.jsonl`,
+  `schema/command-record.schema.json`), and a tool outside karvi parses it.
+  What it gains: a record a script or a report reads without a parser of its
+  own. It would reopen the rule that the daemon never interprets output
+  ([`docs/DESIGN.md`, section
+  7](docs/DESIGN.md#7-the-plan-the-daemon-and-the-credential-channel)); a
+  parse in the client, after the records are durable, would leave the daemon
+  as it is. The questions: the parser and its templates (NTC's TextFSM
+  templates are the common set, written for Python's TextFSM); where the
+  fields go, a field of the record or a file beside it; and a template that
+  no longer matches a release's changed output.
+- **Checks before and after a change.** pyATS (Genie's `learn` and `diff`)
+  takes a snapshot of a device's state and compares two; Ansible asserts on a
+  result. karvi compares configurations as text (`crun`, its filters, and the
+  `crun.after` hook's git diff), and nothing compares operational state
+  (neighbours, routes, interface states) or fails a run on a check. What it
+  gains: a change window's proof that the network came back as it was. The
+  plainest form from what exists: two jobs of the same commands, before and
+  after, compared per device and command from their records. The questions: a
+  karvi command or a tool's (the records are already the input); the lines
+  that change at every run (the collection's filters are the precedent); and
+  whether a failed check holds the next wave.
+- **Desired-state configuration.** Ansible's `ios_config` reads the running
+  configuration and sends only the lines it lacks, and its check mode shows
+  that difference without a change; NAPALM's `compare_config` shows a
+  candidate's difference before the commit. karvi sends the commands the plan
+  lists, and `--dry-run` shows those commands, not what they would change on
+  the device. What it gains: a change sent twice that does nothing the second
+  time, and a review of the device's own difference. The questions: where the
+  running configuration comes from (the session's own `show running-config`,
+  or the device's collection file); IOS's sections and indentation, which
+  tell a line missing under its parent; and how a plan that depends on the
+  device's answer stays a complete statement of intent (section 7's rule,
+  reopened).
+- **Configuration rollback.** NAPALM replaces a candidate configuration and
+  rolls it back, Cisco NSO's transactions roll back, and Junos's `commit
+  confirmed` reverts unless confirmed. IOS XE has `configure replace` and the
+  archive's `configure terminal revert timer` with `configure confirm`; karvi
+  sends them as any command and has no workflow around them. What it gains: a
+  change that reverts itself when the device stops answering, the one undo a
+  remote change has. The questions: the IOS XE form (the revert timer, or a
+  replace file); the confirmation as the job's last command, after a check;
+  what a device not reached in time records; and whether the archive's
+  settings are the site's configuration or karvi's to set.
+- **Templates and decisions within a run.** Ansible and Nornir render Jinja2
+  templates over a device's variables and branch on a result (`when`,
+  `register`). karvi renders no template, and a decision from a device's
+  answer is taken between jobs by a tool outside karvi ([`docs/DESIGN.md`,
+  section
+  7](docs/DESIGN.md#7-the-plan-the-daemon-and-the-credential-channel));
+  macro files (`--mf`, under [Later](#later)) are the planned middle ground,
+  plain substitution from the inventory row. The item would reopen that
+  decision. It waits on `--mf`, and on a change a second job cannot serve.
+- **Inventory from a source of truth.** Nornir's and Ansible's inventory
+  plugins read NetBox or Nautobot. karvi's inventory sources are CSV files
+  ([`docs/DESIGN.md`, section
+  3](docs/DESIGN.md#3-targets-inventory-and-platforms)). What it gains: one
+  list of devices, kept where the site keeps it, with no export between. The
+  plainest form needs nothing of karvi: the site's scheduled export to CSV;
+  the item is a source type that reads the API. The questions: the API's
+  token among the credentials, a run while the API is down, and the mapping
+  of its fields onto karvi's columns. It waits on a site that runs one.
+- **RESTCONF, gNMI, telemetry, and SNMP.** IOS XE answers RESTCONF (YANG
+  over HTTPS), gNMI, and SNMP, and streams model-driven telemetry. karvi
+  speaks SSH and Telnet, NETCONF being an item under [Later](#later). What it
+  gains: state read as data without a parser, and counters at an interval no
+  CLI session gives. The questions: which first (RESTCONF needs an HTTPS
+  client and the device's certificate trust, gNMI gRPC); whether telemetry is
+  karvi's at all, or a collector's into a time-series store; and SNMP's
+  place beside the CLI. It waits on NETCONF, the nearest.
+- **File transfer and image upgrades.** Netmiko's `file_transfer`, Ansible's
+  `net_put`, and NAPALM copy files to a device over SCP; an IOS XE upgrade is
+  a copy, a verify (`verify /md5`), an install (`install add file ...
+  activate commit`), and a reload. karvi has no file transfer. What it gains:
+  upgrades, a large share of a fleet's change windows, under karvi's waves,
+  records, and audit. The questions: SCP from karvi, or the device's own
+  `copy` from a server, sent as a command; the image's checksum as a gate;
+  the reload, and the session that waits through it; and the free space on
+  the device's flash.
+- **A web interface, roles, approvals, and an API.** AWX (Ansible's
+  automation controller) and Cisco NSO give a browser view, roles per team,
+  an approval before a job runs, and a REST API a ticketing system calls.
+  karvi is the command line, the watch screen, and the audit trail; who may
+  run what is the Unix groups of the shared trees and the service platform's
+  account ([`docs/OPERATIONS.md`](docs/OPERATIONS.md)). What it gains: a
+  change approved and run from its ticket, and staff who do not use a shell.
+  The questions: an API over the daemon's IPC, local and per user today, or a
+  service beside it; authentication and roles; and what a remote channel asks
+  of the credential package (`Sealed` credential packages, under
+  [Later](#later)).
+- **Configuration compliance.** SolarWinds NCM checks configurations against
+  a site's rules, and Batfish analyses them offline (reachability, ACLs).
+  karvi collects configurations and its hook diffs them; no rule is checked.
+  What it gains: a report of the devices that break a standard (the NTP
+  servers, AAA, the banner) from files karvi already writes. The plainest
+  form: a `crun.after` hook running the site's checks over the collection
+  directory, which needs nothing of karvi but a shipped example. The
+  questions: the rules' form, a karvi command or an example hook, and the
+  report's place.
+
 ## The device-qualification track
 
 Independent of the items above. The runbook
