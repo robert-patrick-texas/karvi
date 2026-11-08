@@ -22354,3 +22354,348 @@ For S11, the `verify-shipped.sh` runs above by one script on copies of
 documents checked by grep against the CHANGELOG, the findings, and the
 sections' READMEs, `make generated-clean`, and the documents' links through
 `tools/md-to-html`.
+
+## 103. Numeric ranges and the inventory option (2026-11-07)
+
+The operator asked that a target such as `router0[1-3]` name the devices it
+spells, as a host list does, and for a way to run only the inventory's
+devices, from the site's inventory or from a file given on the line. On the
+released 0.40.0 a bracket was a one-character class in every matcher: `--tl
+'switch0[1-3]'` for switches not yet listed stopped with
+`inventory_empty_selection`, `router[1-12]` was the class of `1` and `2`, a
+credential CSV row `router[10-12]` matched none of router10 to router12,
+which took the next row's account with no warning, and `--site 'pod[1-12]'`
+took pod1 and pod2 and missed pod10 to pod12. The design session agreed four
+points, and each section of the build settled its own; on the operator's word,
+as recommended each time, karvi reads a bracket of digits as a numeric range
+in every selector, a range on the command line creates the names it spells,
+and `--inventory` keeps a run to the inventory.
+
+**What it gains.** A range of devices typed as the operator says it, listed
+in the inventory or not, in one value; a bound on what a mistyped range can
+create; a run held to known devices, so a typo is refused rather than tried
+as a direct target, from the configured inventory or from the operator's own
+file; and one meaning for a range wherever a selector is written, which
+closes the credential row that silently missed its devices.
+
+**The rule, as agreed.**
+
+- **The grammar** (point 2; the S1 and S2 points). A bracket holding only
+  digits, hyphens, and commas is a list whose every item is a number or two
+  numbers joined by one `-`: `[1-12]` unpadded, `[01-12]` at the lower
+  bound's width, `[1,4,7-9]`; brackets multiply. A pattern holding one
+  matches a name exactly when the name is one the pattern spells, tested by
+  number, at any size. One grammar serves every selector: `--target`,
+  `--site`, `--device-group`, `--select-platform`, `--exclude`, a `!` value,
+  target files, `job list --target`, the credential CSV's selector columns,
+  and the three maps' rules; the `.cloginrc` matcher, the configuration lock,
+  and file-path globs keep theirs. A single-digit range and a bracket holding
+  any other character are classes, as before. A bracket of those characters
+  that is no such list (`[1-]`, `[-5]`, `[1,,3]`, `[1-3-5]`), or that holds
+  white space beside a digit (`[10, 12]`), is refused when the pattern
+  compiles; `[1\-]` is the class.
+- **Creation** (point 1; S2 point 1). A target value whose only pattern is
+  ranges (a `--target`, a `--tl` name, a positional device, a target-file,
+  standard-input, or stream line) stands for the names it spells, in written
+  order, each an inventory device or a direct target. A created device
+  records the spelled name as `input_target`, its typed case kept; the job
+  manifest keeps the value. A value holding a glob as well selects. `--tl`
+  splits outside brackets only.
+- **The limit** (point 3; S2 point 2). `targets.max-created-names`, 1 to
+  100,000, default 1000, lockable: a value creating more is refused,
+  `target_created_names_exceeded` (usage, exit 4), the count stacked over
+  the limit and a hint line, a command-line value before any file, the
+  inventory, or DNS is read, a file's line as it is read.
+- **Inventory only** (point 1; the S3 point and the confirmation after it).
+  `targets.inventory-only` (default false, lockable), set for one invocation
+  by a bare `--inventory`, `--inv`, or `--i` (one dash as two) on login,
+  command, run, crun, and stream lines: a plain name the inventory lacks
+  refuses the job before planning, `target_not_in_inventory` (inventory,
+  exit 5), the names one per line under a count; a range or glob selects the
+  inventory's devices among its names, in inventory order, at any size,
+  missing numbers absent and the limit not applied.
+- **Files on the line** (point 1a; the S4 points; selectors adding up).
+  Each `--inventory=FILE`, in command-line order, adds a CSV read with the
+  loader's defaults; together they are the run's whole inventory, the
+  configured sources unread, and the run is inventory-only. karvi resolves
+  `~` and a glob; a missing file or an empty glob is `inventory_missing`; a
+  file reached twice is read once; each value is a source named as typed.
+  The value attaches with `=` alone, and an empty `--inv=` is refused. The
+  inventory selectors draw from the files and add up.
+- **A direct target is told by its path** (S4 point 2): the source path
+  `cli`, never the source name `direct`, which is a label like any other.
+- **Quoting** (point 4): the help's `--target` and `--tl` lines say to
+  single-quote a pattern or list, and the operations guide says why; karvi
+  adds no guard.
+
+**The executed examples.** The lab build of the tree at `f45bc20`
+(`ex103.sh`), every case a client dry run: the script adds `--no-daemon
+--dry-run` (and `--format json` for a plan) and `-c 'show clock'` to the
+line shown, and prints the planned devices in plan order, consecutive ones of
+one source grouped: `lab` is the configured source (router01, 02, 03, 05, 10,
+11, and 12), `direct` a direct target (this host's resolver answers any
+single-label name, so each plans; where DNS knows no such name the run stops
+with `dns_nxdomain`, as the quoted brace below does), and an `--inv` value its
+own source
+(`boxes.csv` box01 and box02, `pods/a.csv` pod01, `pods/b.csv` pod02); a
+refusal is karvi's whole error; `$LAB` stands for the lab's folder. The
+selector cases run under a configuration of their own, the source `sel`
+(router01, 02, 10, and 12 at sites pod1, pod2, pod10, and pod12) and a
+credential CSV whose row `router[10-12]` (user `svc.edge`) stands above
+`router*` (`svc.other`). The quoting cases run in a folder holding two empty
+files, router02 and router03, and print the plan's commands too.
+
+```text
+== a range creates the names it spells, in written order
+$ karvi run --tl 'router0[1-4]'
+  router01 router02 router03 (lab), router04 (direct)
+  (exit 0)
+$ karvi run --tl 'switch0[1-3]'
+  switch01 switch02 switch03 (direct)
+  (exit 0)
+$ karvi run --tl 'router[1-12]'
+  router1 router2 router3 router4 router5 router6 router7 router8 router9
+  (direct), router10 router11 router12 (lab)
+  (exit 0)
+$ karvi run --tl 'router[11,5,01,10]'
+  router11 (lab), router5 (direct), router01 router10 (lab)
+  (exit 0)
+$ karvi run --tl 'router0[1-2]*'
+  router01 router02 (lab)
+  (exit 0)
+$ karvi run --tl 'pod[1-2]-sw[1-3]'
+  pod1-sw1 pod1-sw2 pod1-sw3 pod2-sw1 pod2-sw2 pod2-sw3 (direct)
+  (exit 0)
+$ karvi run --tl 'router[1,4],switch01'
+  router1 router4 switch01 (direct)
+  (exit 0)
+$ karvi run --tl 'Switch0[1-2]'
+  switch01 input_target Switch01
+  switch02 input_target Switch02
+  (exit 0)
+== the limit
+$ karvi run --tl 'box[78000-99999]'
+  target_created_names_exceeded: --tl box[78000-99999] creates too many names
+    names: 22000
+    limit: 1000 (targets.max-created-names)
+    with --i it selects from the inventory
+  (exit 4)
+$ karvi --set targets.max-created-names=5 run --tl 'box[1-5]' --target 'box[6-10]'
+  box1 box2 box3 box4 box5 box6 box7 box8 box9 box10 (direct)
+  (exit 0)
+$ karvi --set targets.max-created-names=5 run --tl 'box[1-6]'
+  target_created_names_exceeded: --tl box[1-6] creates too many names
+    names: 6
+    limit: 5 (targets.max-created-names)
+    with --i it selects from the inventory
+  (exit 4)
+== --i: only the inventory's devices
+$ karvi run --i --tl 'router0[1-5]'
+  router01 router02 router03 router05 (lab)
+  (exit 0)
+$ karvi run --i --tl 'router[11,5,01,10]'
+  router01 router10 router11 (lab)
+  (exit 0)
+$ karvi run --i --tl router01,router04,router07
+  target_not_in_inventory: client planning: 2 target names are not in the inventory (targets.inventory-only)
+    router04
+    router07
+  (exit 5)
+$ karvi run --i --tl 'box[78000-99999]'
+  inventory_empty_selection: client planning: the target selectors matched no devices
+  (exit 5)
+== --inv=FILE: the files given are the inventory
+$ karvi run --inv=boxes.csv --tl 'box[01-99999]'
+  box01 box02 (boxes.csv)
+  (exit 0)
+$ karvi run --inv=boxes.csv --inv='pods/*.csv' --all
+  box01 box02 (boxes.csv), pod01 pod02 (pods/*.csv)
+  (exit 0)
+$ karvi run --inv=boxes.csv --inv=./boxes.csv --inv='*.csv' --target 'box*'
+  box01 box02 (boxes.csv)
+  (exit 0)
+$ karvi run --inv=boxes.csv --tl router01
+  target_not_in_inventory: client planning: 1 target name is not in the inventory (targets.inventory-only)
+    router01
+  (exit 5)
+$ karvi run --inv=none.csv --tl box01
+  inventory_missing: client planning: inventory source none.csv matched no files: $LAB/cwd/none.csv
+  (exit 5)
+$ karvi run --inv= --tl box01
+  cli_option_value_missing: --inventory= names no file; --inventory alone uses the configured inventory
+  (exit 4)
+$ karvi run --inv ./boxes.csv --tl box01
+  cli_option_value_detached: --inventory takes its FILE with =: --inventory=./boxes.csv
+  (exit 4)
+== the selectors and the credential rows
+$ karvi run --site 'pod[10-12]'
+  router10 router12 (sel)
+  (exit 0)
+$ karvi run --site 'pod[1-2]'
+  router01 router02 (sel)
+  (exit 0)
+$ karvi run --tl router02,router10,router12
+  router02 user=svc.other
+  router10 user=svc.edge
+  router12 user=svc.edge
+  (exit 0)
+$ karvi run --target 'router[1-]'
+  target_selector_pattern_invalid: --target value "router[1-]" is not a valid selector: the numeric range "[1-]" is malformed: each item is a number or two numbers joined by "-", separated by "," with no space
+  (exit 4)
+$ karvi run --tl 'router[10, 12]'
+  target_selector_pattern_invalid: --tl value "router[10, 12]" is not a valid selector: the numeric range "[10, 12]" is malformed: each item is a number or two numbers joined by "-", separated by "," with no space
+  (exit 4)
+== the shell's words: q/ holds the files router02 and router03
+$ ls
+  router02
+  router03
+$ karvi run --tl router0[1-3]
+  router02 (lab)
+  commands: ["router03 -c show clock"]
+  (exit 0)
+$ karvi run --tl 'router0[1-3]'
+  router01 router02 router03 (lab)
+  commands: ["show clock"]
+  (exit 0)
+$ karvi run --tl router0{1..3}
+  router01 (lab)
+  commands: ["router02 router03 -c show clock"]
+  (exit 0)
+$ karvi run --tl 'router0{1..3}'
+  dns_nxdomain: client planning: 1 of 1 targets failed address resolution: name:router0{1..3} (lookup router0{1..3}: no such host (router0{1..3}))
+  (exit 7)
+$ karvi run --i --tl 'router0{1..3}'
+  target_not_in_inventory: client planning: 1 target name is not in the inventory (targets.inventory-only)
+    router0{1..3}
+  (exit 5)
+```
+
+A device in two `--inv` files, the same row in `two/x.csv` and `two/y.csv`,
+a different address in `two/z.csv` (`two-files.out`, the warning and device
+lines):
+
+```text
+$ karvi run --dry-run --inv=two/x.csv --inv=two/y.csv --target 'box*'
+warning: duplicate inventory device name:box01 coalesced ($LAB/cwd/two/x.csv:2 and $LAB/cwd/two/y.csv:2)
+- name:box01: planned
+- name:box03: planned
+$ karvi run --dry-run --inv=two/x.csv --inv=two/z.csv --target 'box*'
+inventory_conflict: client planning: inventory conflict for id name:box01 between $LAB/cwd/two/x.csv:2 and $LAB/cwd/two/z.csv:2
+```
+
+A malformed range in a credential CSV fails its load, the cell unquoted as
+every credential error leaves it (`creds-malformed.out`):
+
+```text
+$ cat creds.csv
+  device_name,username,password
+  router[10-]2,svc.edge,lab-placeholder
+  router*,svc.other,lab-placeholder
+$ karvi run --dry-run --tl router02
+credential_csv_row_invalid: client planning: 1 of 1 targets failed credential resolution: name:router02 (credential backend sel-csv: $LAB/creds.csv:2: column device_name: the selector is invalid: a numeric range is malformed: each item is a number or two numbers joined by "-", separated by "," with no space; policy=default backend=sel-csv)
+  (exit 6)
+```
+
+A stream keeps its `--inv` line from job to job; `--purge-targets` leaves it,
+so router01 is refused as not in `boxes.csv`, and `--reset` clears it
+(`stream-purge.out`, the lines `--inv=boxes.csv`, `--target box01`,
+`--dry-run`, `--no-daemon`, `--cmd "show clock"`, `--go`, `--purge-targets`,
+`--target box02`, `--go`, `--purge-targets`, `--target router01`, `--go`,
+`--reset`, then `--target router01` with the same options and `--go`; the
+device lines and the refusal):
+
+```text
+- name:box01: planned
+- name:box02: planned
+target_not_in_inventory: client planning: 1 target name is not in the inventory (targets.inventory-only)
+- name:router01: planned
+```
+
+Tab completion offers the configured inventory's names and reads no file on
+the line (`complete.out`: `--target b` after `--inv=boxes.csv` offers
+nothing, `--target r` the lab's seven routers). bash with history expansion
+on, as an interactive shell has it (`hist103.sh`):
+
+```text
+$ karvi run --tl 'router*,!router0[2-3]'
+  router01
+  router05
+  router10
+  router11
+  router12
+$ karvi run --tl "router*,!router0[2-3]"
+hist103.sh: line 11: !router0[2: event not found
+```
+
+The same script on the released 0.40.0 (`ex103-released-0400.out`):
+`router0[1-4]` gives router01 to router03, the class matching only the
+inventory, and `switch0[1-3]`, `router[1-12]`, `pod[1-2]-sw[1-3]`,
+`Switch0[1-2]`, `box[78000-99999]`, and `router[1-]` stop with
+`inventory_empty_selection`; `router[11,5,01,10]`, `router[1,4],switch01`,
+and `router[10, 12]` are split at the comma or space into an unclosed bracket
+(`target_selector_pattern_invalid`), and `box[6-10]` is refused as a reversed
+class (`the range "6"-"1" is reversed`); `targets.max-created-names` is
+`config_unknown_key`, `--i` is `cli_option_ambiguous` (between `--ipv4` and
+`--ipv6`), and `--inv` `cli_option_unknown`. The selectors show the defect the
+grammar fixes: `--site 'pod[10-12]'` selects router01 and router02, at pod1
+and pod2, and every router binds `svc.other`, the row `router[10-12]` matching
+none of them. The quoting cases are the shell's and come out the same.
+
+**What changed.** Six sections, each committed on dev:
+
+- `3a9af93` (S1): `internal/matching` compiles a numeric bracket to a range
+  token and tests a run of digits by number and by the width the range spells;
+  a pattern with no range, or with one-digit items alone, keeps the linear
+  matcher and its timings (a multi-digit range about 340 ns per match). The
+  malformed forms are refused at compile, in every caller.
+- `fceb479` (S2): the target assembly creates the names a range spells,
+  counting them first against `targets.max-created-names` (a new key in the
+  unreleased registry 34, so no bump); `--tl` splits outside brackets; the
+  help's `--target`, `--tl`, and selector lines; the planner's golden draft
+  re-pinned for the new key and the configuration digest alone.
+- `e459c0a` (S3): `targets.inventory-only` and `target_not_in_inventory`.
+- `7c05390` (S4): the option in the parser table (kind optional, `[=FILE]`,
+  aliases `inv` and `i`), its files handed to the loader as the whole
+  inventory (`inventoryload.Loader.Files`), the empty value refused, the
+  refusal's hint line, and a direct target told by its path
+  (`inventory.Device.IsDirect`); `e501a3f` removed the parser table's unread
+  `repeat` field found while building it. No plan, record, or IPC schema
+  changed.
+- `d6417f4` (S5): the k03 suite's rows n1 to n14, through
+  `scripts/lib/rows.sh`.
+- S6: this chapter; `docs/DESIGN.md` section 3, the operations guide's
+  "Target ranges and the inventory", and the credential CSV's selector
+  grammar.
+
+**Not taken.** A range that only matches the inventory, or one that always
+creates (no inventory-only run). Under `--i`, a range's missing numbers
+refused, or its names in written order. A hyphen at a bracket's edge kept
+literal, and spaces in a digit bracket ignored: two readings of the same
+characters. No limit, a total per run, a limit under `--i`, no maximum, or
+10,000 as the maximum (near the default IPC frame's ceiling). The value as
+typed in every record's `input_target`. Refusal at the first absent name.
+`--i=false`. One fixed source name for command-line files, or the resolved
+path. An empty `--inv=` read as bare, as `--of=` is. `direct` refused as a
+source name, or a direct marker in the plan. A guard in karvi against the
+shell's expansion, and braces as a second spelling of the range.
+
+**Left open.** Tab completion reading the `--inv` files on the line (point 1a,
+later, if asked).
+
+**Checks.** Each section's failing-first tests on the tree before it, then
+gofmt, `go vet ./...`, `go test ./...` on the whole tree, and `make
+generate` with `make generated-clean`. S5's rows failed first on the released
+build, every new row but n1 for the reason the feature fixes (n14 binding
+router10 to `svc.other`), and passed on the lab build, the suite at 149 rows.
+The first full battery failed only its ICMP rows: the tests' timeout address
+192.0.2.1 answered ping through the host's gateway (0.40.0 failed the same
+rows), so at the operator's word the address moved to 203.0.113.254 and the
+second battery passed (74 packages, the suites in 274 s); with 192.0.2.1 then
+sunk into a dummy interface on the host, the move was reverted and the ICMP
+tests and the canary, v0100, and daemon-upgrade suites passed on it. S6 is
+documents: the runs above on a lab build, grep checks against `DECISIONS.md`
+and the sections' READMEs, `make generated-clean`, and the documents' links
+through `tools/md-to-html`. The evidence is kept beside the tree
+(`release-design-evidence/target-ranges-2026-11/`: `DECISIONS.md`,
+`PLAN.md`, a folder per section with its README and runs, and the session's
+0.40.0 runs in `today/`, `point2/`, `point4/`, and `site-group/`).

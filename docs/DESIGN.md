@@ -145,9 +145,10 @@ platform name; `--dp`, `--dw`, `--ds` stand for
 `--dispatch parallel|wave|serial`. A shortcut is a whole word of the table that
 carries the value, so no handler knows the shortcuts exist and the last
 spelling on a line wins. `--tl LIST`, an option of `command`, `run`, `crun`,
-and a stream's lines but not of `login`, adds each comma- or
-whitespace-separated name as a `--target` at the list's position, so the plan
-and manifest record target inputs and never a list.
+and a stream's lines but not of `login`, adds each name as a `--target` at the
+list's position, splitting at commas and white space outside brackets (a
+backslash keeping the character after it), so `--tl 'router[1,4]'` is one name
+and the plan and manifest record target inputs and never a list.
 *Why:* the operator's most typed values; nothing after the parser changes.
 *Not taken:* aliases (an alias still takes a value); a list kind in the plan.
 
@@ -340,8 +341,8 @@ one normalisation makes the identity explicit.
 
 **One target set, assembled in command-line order, in every mode.** `login`,
 `command`, and `run` assemble one list from a positional device, repeatable
-`--target` (globs allowed), `--tl` (not in `login`), `--tf FILE`, `--tf DIR`,
-`--tfr PATH`, and the inventory selectors `--site`, `--device-group`,
+`--target` (globs and numeric ranges allowed), `--tl` (not in `login`),
+`--tf FILE`, `--tf DIR`, `--tfr PATH`, and the inventory selectors `--site`, `--device-group`,
 `--select-platform`, `--all`, each contributing at its position; the first
 occurrence of a name keeps its place, later duplicates are removed, then
 `--exclude` matches, then `dispatch.order` orders the result. `login` and
@@ -356,6 +357,133 @@ removes matching devices from the set the other inputs selected; alone it
 selects nothing. `--exclude` matches names only and refuses a double negative.
 In a target file a line beginning with `!` is a comment. *Why:* the operator's
 direction: negation behaves as `--exclude` does.
+
+**A bracket of digits is a numeric range, in every selector.** A bracket
+holding only digits, hyphens, and commas is a list whose every item is a number
+or two numbers joined by one `-` (`[1-12]`, `[01-12]`, `[1,4,7-9]`), a range
+written at its lower bound's width (`[01-12]` is 01 to 12, `[1-12]` unpadded);
+brackets multiply. A pattern holding one matches a name exactly when the name is
+one the pattern spells, tested by number with no list built, so a range of any
+size matches. The grammar is one in every selector: `--target`, `--site`,
+`--device-group`, `--select-platform`, `--exclude`, a `!` value, target files,
+`job list --target`, the credential CSV's selector columns, and the rules of
+`credential-policy-map`, `session-init-map`, and `ssh-algorithms-map`. A
+single-digit range (`[1-3]`) and a bracket holding any other character
+(`[a-c]`, `[!0-3]`) stay classes. A bracket of those characters that is no such
+list (`[1-]`, `[-5]`, `[1,,3]`, `[1-3-5]`), or that holds white space beside a
+digit (`[10, 12]`), is refused when the pattern compiles, as a reversed range
+is, and a backslash reaches the class (`[1\-]` is `1` or `-`). A `.cloginrc`
+pattern, a configuration lock, and a file-path glob keep their own grammars.
+*Why:* as a class, a credential row `router[10-12]` matched none of router10 to
+router12, which took the next row's account with no warning, and `--site
+'pod[1-12]'` took pod1 and pod2 and missed pod10 to pod12; a pattern that
+matches the names it would name on the command line means one thing wherever it
+is written; a forgotten bound or a stray space is likelier than a wanted
+literal `-`, `,`, or space ([`docs/EXAMPLES.md`, chapter
+103](EXAMPLES.md#103-numeric-ranges-and-the-inventory-option-2026-11-07)).
+*Not taken:* a hyphen at an edge kept literal as a class keeps it (two readings
+of the same characters, `[1,,3]` and `[1-3-5]` then needing rules of their
+own); the spaces ignored (a second spelling of one range); the `.cloginrc`
+matcher following (it is read as RANCID's clogin reads it).
+
+**A range in a target creates the names it spells.** A `--target`, a `--tl`
+name, a positional device, and a target-file, standard-input, or stream line
+whose only pattern is numeric ranges stands for the names it spells, in written
+order, as if each were typed in its place: an inventory device or, absent from
+the inventory, a direct target. A created device records the spelled name as
+`input_target`, its typed case kept (`Switch0[1-2]` records `Switch01` and
+`Switch02`), and an inventory device its inventory name, as for any typed name;
+the job manifest keeps the value as typed. A value holding a glob as well spells
+words that each select from the inventory (`router0[1-2]*` is `router01*`, then
+`router02*`). A `!` value, `--exclude`, and the inventory selectors match and
+create nothing. *Why:* a range only matched the inventory, so `--tl
+'switch0[1-3]'` for devices not yet listed stopped with
+`inventory_empty_selection`, and the operator typed the names out one by one;
+a range on the command line is the operator's shorthand for the names; one
+device's name per record, and the planner rebuilds a direct device from
+`input_target`. *Not taken:* a range that
+only matches (no creation); a range that always creates (no inventory-only run,
+below); the value as typed in every record (a name no device has, the record
+not saying which).
+
+**`targets.max-created-names` bounds the names one value creates.** Unless the
+run is inventory-only, a value whose ranges spell more than
+`targets.max-created-names` names (1 to 100,000, default 1000, lockable;
+brackets multiplying) is refused with `target_created_names_exceeded` (usage,
+exit 4), the count stacked over the limit and a last line saying that with
+`--i` it selects from the inventory: a command-line value after the
+configuration is read and before any target file, the inventory, or DNS, a
+file's or stream's line as it is read; nothing is made. The limit is per value.
+*Why:* a mistyped bound (`box[78000-99999]` for `box[78000-78099]`) would
+resolve and plan 22,000 names; measured on the released build, the client plans
+100,000 devices in under a minute at under 1 GiB, and a daemon job's ceiling is
+near 36,000 whatever the site sets (the credential frame's fixed body), so the
+maximum sits above every job that can run and bounds a mistyped `--set`
+(100,000,000 would build a list of tens of GB before any refusal); a site that
+needs more names lists them in a target file, which has no bound. *Not taken:*
+`targets.range-max` (reads as any range's size); no limit, or no maximum; a
+total per run; a limit under `--i`, where nothing is built; 10,000 as the
+maximum (near the default IPC frame's ceiling, refusing a raise `--no-daemon`
+runs).
+
+**`--inventory` runs only the inventory's devices.** `targets.inventory-only`
+(default false, lockable) and the option that sets it for one invocation,
+`--inventory[=FILE]`, `--inv`, `--i` (one dash as two), in `login`, `command`,
+`run`, `crun`, and stream lines. Under it a plain name the inventory lacks is
+not run: the job is refused after the inventory loads and before planning,
+`target_not_in_inventory` (inventory, exit 5), every such name once as typed
+under the count, after ten "and N more", ahead of `inventory_empty_selection`;
+a range or glob creates nothing and selects the inventory's devices among its
+names, in inventory order, at any size, the limit not applied and missing
+numbers absent. Each `=FILE` adds a file in command-line order, and together
+they are the run's whole inventory, the configured sources unread: a CSV read
+with the loader's defaults, `~` and a glob resolved by karvi as for a
+configured path, a missing file or a glob matching none `inventory_missing`, a
+file reached twice read once under its first value, a device in two files one
+device, with the loader's coalesce warning, when its rows agree and
+`inventory_conflict` when they differ. Each
+value is a source named as typed (`--inv='pods/*.csv'` is the source
+`pods/*.csv`), the name the plan's provenance and the notices carry; the
+inventory selectors draw from the files and add up as everywhere. The value
+attaches with `=` alone (`cli_option_value_detached`), and an empty `--inv=`
+is `cli_option_value_missing`, never a bare `--inv`. The bare option goes
+through the lock-aware layer, so a site's lock refuses it as it refuses
+`--order`. A stream's `--inv` line stays from job to job; `--reset` clears it
+and `--purge-targets` leaves it. *Why:* where a range creates, a mistyped name
+becomes a direct target, and an operator working from a list of known devices
+asks that only they run, often from a file of their own; the label on the line
+is what was typed, as a glob source already puts one name on several files;
+`--inv=$F` with F unset read as bare would put the site's whole inventory in
+place of the operator's file. *Not taken:* a range's missing numbers refused
+under `--i`; written order under the key (each match ranked by its place in
+the range, which a glob has no counterpart for); refusal at the first absent
+name (one rerun per name); `--i=false` (`=` carries a file, and `--set` turns
+the key off where not locked); one fixed source name for every command-line
+file, or the resolved path; an empty value read as bare, as `--of=` is; tab
+completion reading the files on the line (later, if asked).
+
+**A direct target is told by its path.** A device is a direct target when its
+source path is `cli`, which no inventory path can be, since the loader makes
+each absolute; a source's name, configured or an `--inv` value, is a label
+alone, and `direct` is one like any other. The planner's `platform_not_set`
+skip and the `karvi DEVICE` guard ask the inventory package. *Why:* a configured
+source named `direct` lost its devices' `platform_not_set` notice, and `karvi
+lgoin`, an inventory name there, was refused as `cli_command_near_miss`; names
+typed on the line (`--inv=direct`) open the same collision. *Not taken:*
+`direct` refused as a source name (an `--inv` value is a file name); a marker
+field in the source (a plan schema change for what the path already tells).
+
+**Quoting a pattern is the shell's, and the help says so.** The help's
+`--target` and `--tl` lines say to single-quote a pattern or list, and the
+operations guide says why: unquoted, bash may replace a bracket pattern with
+file names from the current folder, splits a brace pattern into words (the
+second becoming device text), and in an interactive shell expands a `!` even
+inside double quotes, so double quotes serve unless the value holds `!` or
+`$`. *Why:* karvi sees only the words bash passed and cannot tell them from
+words typed. *Not taken:* a guard in karvi; braces given a meaning (a second
+spelling of the range; a quoted brace already fails safe, a name DNS does not
+know or a refusal under `--i`); a change to target files or stream lines,
+which no shell reads.
 
 **Target folders and recursive folders.** `--tf DIR` reads the regular files
 directly in a folder in byte order, skipping dot files, `readme*`, `disabled*`,

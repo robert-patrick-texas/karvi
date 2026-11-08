@@ -150,9 +150,16 @@ value but a variable's name ([section
 2. **A row matches when every filled selector cell agrees.** A blank cell
    says nothing. One cell holds one selector; "or" is another row.
 3. **A selector** is the policy maps' grammar: the whole field, `*`, `?`,
-   classes (`[0-9]`, `[!a-c]`), a backslash to escape; no regular
-   expressions, and an unescaped `^` or `$` is refused. **Case never
-   matters**, in names, platforms, sites, groups, and keys.
+   classes (`[0-9]`, `[!a-c]`), numeric ranges, a backslash to escape; no
+   regular expressions, and an unescaped `^` or `$` is refused. **Case never
+   matters**, in names, platforms, sites, groups, and keys. A bracket of
+   digits, hyphens, and commas is a numeric range and matches exactly the
+   names it spells: `router[10-12]` is router10, router11, and router12;
+   `[01-12]` is 01 to 12, written at the lower bound's width; `[1,4,7-9]` a
+   list. A single-digit range (`[1-3]`) is the class it always was. A
+   malformed range (`[10-]`, `[1,,3]`, `[10, 12]`) fails the load as any bad
+   selector does (`credential_csv_row_invalid`), and `[1\-]` is the class
+   of `1` and `-`.
 4. **A leading `!` negates the cell:** the row matches only when the device
    does not. A row needs at least one positive cell; a row of only `!lab`
    is refused when the file is loaded. A negated `address_cidr` excludes

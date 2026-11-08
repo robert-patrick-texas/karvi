@@ -231,7 +231,9 @@ The filters, each judging a job before `--last` counts it:
 - `--target NAME` keeps the jobs that reached a matching device and lists one
   row per such device, OUTCOME the device's own (`unfinished` while the job
   has not ended). NAME is taken as `run`'s `--target` takes it: a glob,
-  repeatable, a value beginning with `!` removing the devices it matches. A
+  or a numeric range keeping the jobs that reached any of the names it
+  spells, repeatable, a value beginning with `!` removing the devices it
+  matches. A
   line of `!` values alone is refused, `inventory_positive_selector_missing`
   (exit 5).
 - `--operator NAME`, repeatable, keeps that operator's jobs, by name or UID.
@@ -247,6 +249,146 @@ The job ID is the one `job follow` and `job cancel` take, and the folder of a
 job that ended `error` holds the `failed-devices.txt` a rerun takes ("The job's
 output files"). A job run under `--nof` or `output.persist-command = false`
 makes no folder, and the list does not show it.
+
+## Target ranges and the inventory
+
+A bracket of digits in a target is a numeric range. `router[01-12]` is
+router01 to router12, written at the lower bound's width; `router[1-12]` is
+router1 to router12, unpadded; `[1,4,7-9]` lists numbers and ranges; and
+brackets multiply (`pod[1-2]-sw[1-3]` is six names). A single-digit range
+(`[1-3]`) and any other bracket (`[a-c]`, `[!0-3]`) are the classes they
+always were. A bracket of digits that is no such list (`[1-]`, `[1,,3]`, or
+`[10, 12]` with its space) is refused before anything is read:
+
+```text
+target_selector_pattern_invalid: --target value "router[1-]" is not a valid selector: the numeric range "[1-]" is malformed: each item is a number or two numbers joined by "-", separated by "," with no space
+```
+
+A backslash keeps the class reading (`[1\-]` is `1` or `-`).
+
+**A range on the command line creates the names it spells.** A `--target`, a
+`--tl` name, a positional device, and a line of a target file, of standard
+input, or of a stream, whose only pattern is ranges, stands for the names it
+spells in the order written, as if each were typed: an inventory device, or,
+absent from the inventory, a direct target reached by its name.
+
+```sh
+karvi run --tl 'switch0[1-3]' --cmd 'show version'      # switch01 to switch03, listed or not
+karvi run --tl 'router[11,5,01,10]' --cmd 'show clock'  # router11, router5, router01, router10
+karvi run --tl 'core0[1-2]*' --cmd 'show clock'         # core01*, then core02*: selects
+```
+
+- A created device's record names it as spelled: `--tl 'Switch0[1-2]'`
+  records `input_target` `Switch01` and `Switch02`; the job's manifest keeps
+  the value as typed.
+- A value that also holds a glob (`*`, `?`, a class) creates nothing: each
+  name its ranges spell selects from the inventory.
+- A `!` value, `--exclude`, and the inventory selectors match a range and
+  create nothing: `--site 'pod[10-12]'` selects the devices at pod10, pod11,
+  and pod12, and a credential CSV row or a map rule `router[10-12]` matches
+  router10 to router12 ([`docs/CREDENTIAL-CSV.md`, section
+  4](CREDENTIAL-CSV.md#4-how-a-row-is-chosen)).
+- `--tl` splits at commas and white space outside brackets, so `--tl
+  'router[1,4],switch01'` is two values; a backslash keeps the character
+  after it (`a\,b` is one name).
+
+**One value creates at most `targets.max-created-names` names** (default
+1000, 1 to 100,000, lockable), brackets multiplying. A value over it is
+refused, nothing read, resolved, or made; a command-line value before any
+target file, the inventory, or DNS, a target-file or standard-input line as
+it is read:
+
+```text
+target_created_names_exceeded: --tl box[78000-99999] creates too many names
+  names: 22000
+  limit: 1000 (targets.max-created-names)
+  with --i it selects from the inventory
+```
+
+The limit is per value: under `--set targets.max-created-names=5`, `--tl
+'box[1-5]' --target 'box[6-10]'` runs ten devices and `--tl 'box[1-6]'` is
+refused. A site that needs more names than the maximum lists them in a
+target file.
+
+**`--inventory`, `--inv`, `--i`: only the inventory's devices.** Bare, the
+option runs only devices the inventory holds, for one invocation of `login`,
+`command`, `run`, `crun`, or a stream line, one dash or two alike: it sets
+`targets.inventory-only`, which a site may set for every run, and lock. Under
+it a plain name the inventory lacks refuses the job after the inventory
+loads, nothing planned, every such name listed once:
+
+```text
+target_not_in_inventory: client planning: 2 target names are not in the inventory (targets.inventory-only)
+  router04
+  router07
+```
+
+A range or a glob creates nothing under it: it selects the inventory's
+devices among the names it spells, in inventory order and at any size, the
+limit not applied. `--i --tl 'router0[1-5]'` runs router01, router02,
+router03, and router05 where the inventory has no router04, and `--i --tl
+'box[78000-99999]'` reads no list of 22,000 names; a range matching none is
+`inventory_empty_selection`. Where the site sets the key,
+`--set targets.inventory-only=false` turns it off for one run unless the
+site locked it; a lock at `false` refuses a bare `--i` as it refuses
+`--order`.
+
+**`--inv=FILE`: the files on the line are the inventory.** Each
+`--inventory=FILE` (`--inv=FILE`, `--i=FILE`, `-i=FILE`) adds a file, and
+the files given, in command-line order, are the run's whole inventory: the
+configured `[[inventory-source]]` tables are not read, and the run is
+inventory-only.
+
+```sh
+karvi run --inv=boxes.csv --tl 'box[01-99]' --cmd 'show clock'
+karvi run --inv=~/lists/core.csv --inv='pods/*.csv' --site nyc --cmd 'show clock'
+karvi command --inv=boxes.csv box02 --cmd 'show clock'
+```
+
+- A file is a CSV read with the loader's defaults: a header row, commas,
+  and karvi's own column names (`name`, `management_address`, `platform`,
+  `site`, `groups`, and the rest of an inventory row's fields, with hyphens
+  or underscores).
+- karvi resolves `~` and a glob in FILE as in a configured source's path
+  (bash leaves `--inv=~/x.csv` and `--inv=*.csv` as typed). A missing file,
+  or a glob matching none, is `inventory_missing`, never skipped.
+- Each value is a source named as typed: the plan's provenance and the
+  notices name `pods/*.csv` (`inventory source pods/*.csv: 2 devices have no
+  platform`), each device with its own file, line, and digest.
+- A file reached twice, named again or matched by a glob as well, is read
+  once. A device in two files is one device, with the loader's coalesce
+  warning, when its rows agree, and `inventory_conflict` when they differ.
+- `--site`, `--device-group`, and `--select-platform` draw from the files,
+  each adding its matches at its position, as with the configured inventory.
+- The value attaches with `=`. `--inv ./boxes.csv` is refused
+  (`cli_option_value_detached: --inventory takes its FILE with =:
+  --inventory=./boxes.csv`), and an empty value, what `--inv=$F` gives with
+  F unset, is `cli_option_value_missing`, never read as a bare `--inv`,
+  which would put the configured inventory in the file's place.
+- In a stream an `--inv` line stays from job to job, as the other options
+  do: `--purge-targets` leaves it and `--reset` clears it.
+- Tab completion offers the configured inventory's names; it does not read
+  the files given on the line.
+
+**Single-quote a pattern or a list.** bash reads the line before karvi does,
+and karvi sees only the words bash passed:
+
+- An unquoted bracket pattern that matches file names in the current folder
+  is replaced by them. With files router02 and router03 there, `--tl
+  router0[1-3]` reaches karvi as `--tl router02 router03`: it runs router02
+  and sends `router03` and the words after it as one command.
+- An unquoted brace pattern is split into words: `--tl router0{1..3}` runs
+  router01 and sends `router02 router03` and what follows as the command.
+  Braces mean nothing to karvi; a quoted one is a name DNS does not know, or
+  refused under `--i`.
+- An interactive bash expands a `!` even inside double quotes: `--tl
+  "router*,!router0[2-3]"` gives `event not found`, and the line is not run.
+
+Double quotes serve when the value holds no `!` or `$`. A target file, standard
+input, and a stream's lines reach karvi as written. The decisions are in
+[`docs/DESIGN.md`, section 3](DESIGN.md#3-targets-inventory-and-platforms),
+and the executed cases in [`docs/EXAMPLES.md`, chapter
+103](EXAMPLES.md#103-numeric-ranges-and-the-inventory-option-2026-11-07).
 
 ## Dispatch: serial, parallel, and wave
 
@@ -2211,7 +2353,8 @@ or a heredoc it drives several jobs through one karvi. The rules:
   empties every command; `--purge-targets` (from `--purge-t`) removes
   every target input (`--target`, `--tl`, `--tf`, `--tfr`, `--site`,
   `--device-group`, `--all`, `--select-platform`) and keeps the other
-  options; `--purge` alone names both and is refused. `--reset` empties
+  options, `--inventory` among them; `--purge` alone names both and is
+  refused. `--reset` empties
   the draft. `--restart` empties the draft and reads the configuration
   again as the stream's start does, under the stream's command-line
   options and `--set`, its warnings said again and, at a terminal, the

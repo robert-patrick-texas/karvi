@@ -340,7 +340,7 @@
   and with `-trimpath`; a lookup that finds no job folder stops its suite
   with a line saying so, where an empty path failed later at a file it
   could not read; the k03 suite prints a line per row, as the canary and
-  v0100 suites do, and ends `k03-smoke-test: pass (135 rows)`; the
+  v0100 suites do, and ends `k03-smoke-test: pass (N rows)`; the
   completion suite and the replay count their failures through `fail` and
   `finish`. The library's lines print their paths, patterns, and messages
   with `printf`, since dash's `echo` read a backslash in them as an escape
@@ -381,8 +381,8 @@
 - **Breaking: a target holding a numeric range creates the names it
   spells.** A `--target` holding a range selected from the inventory alone,
   so `--tl 'switch0[1-3]'` with no switch01 there stopped with
-  `inventory_empty_selection`, and `--tl 'router[1-12]'` took router10 to
-  router12 and dropped router1 to router9 without a word. A `--target`, a
+  `inventory_empty_selection`, and a device not yet listed was typed out by
+  name. A `--target`, a
   `--tl` name, a positional device, and a target-file or standard-input line
   holding a range stand for the names it spells, in written order, as if
   each were typed in its place: an inventory device or, absent from it, a
