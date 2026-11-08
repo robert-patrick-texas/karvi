@@ -1,17 +1,17 @@
 {
   "application": "karvi",
-  "version": "0.40.0",
-  "release_date": "2026-11-05",
+  "version": "0.41.0",
+  "release_date": "2026-11-08",
   "release_type": "engineering-candidate-release",
-  "behavior_change_from_previous": "a minor release on 0.39.0: --sudo TEXT runs a command as root on a platform's exec channel (sudo -S -p with karvi's prompt, no sh -c; the password the answering backend's enable field, NETSUDO, or NETENABLE under netvars, else sudo -n), a target on a shell refused channel_shell_sudo_refused, the record's and the audit's privilege sudo; --sleep DURATION waits before the next command, the rerun files writing each sleep back; a commands-file line or a platform's crun-commands entry beginning --sudo or --sleep is that statement, a malformed one refused commands_file_sudo_invalid or commands_file_sleep_invalid; a lone --cmd or --sudo takes the words after it, and after -- every word; a device of - reads standard input as --tf - does; --debug names the SSH algorithms the native transport negotiated; the command record has no command_sha256; each schema counter is written once, in the package that owns its schema, the schema files' titles and $ids naming none, and verify-shipped.sh compares the shipped executable's counters with this manifest; verify-release.sh reads karvi's output whole before checking it; execution plan 17, command record 5, and audit 3 move, every other counter is 0.39.0's (configuration schema 6, registry 33, daemon IPC 12, job manifest and summary 5, plan report 4, credential package 2, scoreboard 5); Go and every module are 0.39.0's; the first submission after the upgrade drains a 0.39.0 daemon; see CHANGELOG.md",
+  "behavior_change_from_previous": "a minor release on 0.40.0: a bracket holding only digits, hyphens, and commas is a list of numbers and ranges in every selector (--target, --site, --device-group, --select-platform, --exclude, target files, job list --target, the credential CSV's selector columns, and the credential-policy-map, session-init-map, and ssh-algorithms-map rules), matching exactly the names it spells at its lower bound's width, a malformed one refused target_selector_pattern_invalid, credential_csv_row_invalid, or config_match_rule_pattern_invalid; a target holding a range creates the names it spells in written order, an inventory device or else a direct target, bounded by targets.max-created-names (1 to 100,000, default 1000), target_created_names_exceeded (exit 4); targets.inventory-only refuses a name the inventory lacks, target_not_in_inventory (exit 5), a range or glob under it selecting; --inventory, --inv, or --i sets it for the invocation, and --inv=FILE makes the files given the run's whole inventory; --tl splits outside brackets only; a configured source named direct is an inventory source; security.require-fips is removed (config_unknown_key, config_unknown_environment), the audit's policy without fips_required; karvi version, its JSON, and a job manifest's app.build have no fips_mode; karvi-sysutil makes, repairs, and removes the service account's configuration as the account and refuses a link or another owner's file in its place, and stops when it cannot write its record; the release's number is written once, in VERSION; the shell-script review's fixes to the suites and scripts (each script ended at a signal with its cleanup run once, a Ctrl-C stopping every lane, the suites reading JSON by its path and refusing a configured host, the bundle's modes 0644 and 0755 whatever the umask, tar failures stopping the bundle and the package, the Makefile's smoke targets removed); configuration registry 34 and audit 4 move, every other counter is 0.40.0's (configuration schema 6, daemon IPC 12, job manifest and summary 5, execution plan 17, command record 5, plan report 4, credential package 2, scoreboard 5); Go and every module are 0.40.0's; the first submission after the upgrade drains a 0.40.0 daemon; see CHANGELOG.md",
   "design": "docs/DESIGN.md",
   "roadmap": "ROADMAP.md",
   "configuration_schema_version": 6,
-  "configuration_registry_schema_version": 33,
+  "configuration_registry_schema_version": 34,
   "command_record_schema_version": 5,
   "daemon_ipc_schema_version": 12,
   "scoreboard_schema_version": 5,
-  "audit_schema_version": 3,
+  "audit_schema_version": 4,
   "job_schema_version": 5,
   "execution_plan_schema_version": 17,
   "credential_package_schema_version": 2,
@@ -20,23 +20,23 @@
   "build": {
     "go_version": "go1.27.3",
     "official_go_floor": "1.27.0",
-    "source_identity": "source-release-v0.40.0",
-    "build": "C71lyQOLd6sV4H1SEuL0",
+    "source_identity": "source-release-v0.41.0",
+    "build": "Wss_lakRGoLdwTmeEfnl",
     "cgo_enabled": false,
     "trimpath": true,
     "buildvcs": false,
     "dependencies": "vendored (go.mod, go.sum, vendor/); built with no network"
   },
   "source_statistics": {
-    "go_files_outside_vendor": 568,
-    "go_lines_outside_vendor": 126766,
-    "named_top_level_tests": 1321,
-    "packages": 93
+    "go_files_outside_vendor": 573,
+    "go_lines_outside_vendor": 128401,
+    "named_top_level_tests": 1340,
+    "packages": 94
   },
   "binaries": {
     "karvi-linux-amd64": {
-      "bytes": 12984480,
-      "sha256": "15fc47064b208fd286a8e71fde3944a05c78f0103862d20261f6af8f2273df2d",
+      "bytes": 13025440,
+      "sha256": "c450be378cd8a999129aa46148d2275145528b96f201027f0cf72930830a4d7c",
       "reported_ssh_transports": [
         {
           "id": "native",
@@ -52,20 +52,20 @@
       "native_transport": "compiled-in"
     },
     "karvi-askpass-linux-amd64": {
-      "bytes": 3920032,
-      "sha256": "b47fd568a35c3907e8d86fc397041f1fac0656c24d6d7cd7eb2609658558adde"
+      "bytes": 3924128,
+      "sha256": "374729cd705955c752d5c783361bc324c43c7dc115cc5e4c61f6984b6fe409cf"
     },
     "karvi-prune-linux-amd64": {
       "bytes": 3817632,
-      "sha256": "0a6a14a8765fa454b5b34e5c4a2b4f3b788bd3b6a7259502e89014ace9a649e8"
+      "sha256": "20eb5a5891fa334f3ed7771dd97b0cd01a87339f09cd77b6b5ccd35267ab215a"
     },
     "karvi-audit-linux-amd64": {
-      "bytes": 3969184,
-      "sha256": "3ad32e15682363ae56d45c29f6d270c39e620e74c304ef4eb8a00916f9447abb"
+      "bytes": 3973280,
+      "sha256": "9cfdb01e8434537ccc17d024558abfa6d7104c672d4810d08e491c7261d8c53e"
     }
   },
   "source_changes": {
-    "changelog": "CHANGELOG.md 0.40.0 - 2026-11-05"
+    "changelog": "CHANGELOG.md 0.41.0 - 2026-11-08"
   },
   "daemon_upgrade_recovery": {
     "job_submission_schema": "exact-current-only (the client's IPC schema and build)",
@@ -98,14 +98,14 @@
     "restart_grace_option": "--grace",
     "restart_after_option": "--after=DURATION",
     "forced_stop_accounting": "every unfinished unit incomplete_shutdown, exit 106",
-    "actual_lifecycle_replay": "not run: the newest release whose daemon IPC schema (11) differs from this client's (12) is v0.29.0, whose daemon predates the drain that exits and listens on daemon.sock, which this client never reaches; the compatibility example ran before the number was committed: beside the released v0.39.0 daemon, at this client's schema and of another build, the client's daemon status stacked the two builds (compatible: false), its run's exercise drained the idle daemon and started its own (exit 0, no device contacted), and with the older daemon holding a job on the fake device the client's run was refused daemon_draining (exit 112), the daemon exiting after the job (evidence/ipc-schema-compat.log)"
+    "actual_lifecycle_replay": "not run: the newest release whose daemon IPC schema (11) differs from this client's (12) is v0.29.0, whose daemon predates the drain that exits and listens on daemon.sock, which this client never reaches; the compatibility example ran before the number was committed: beside the released v0.40.0 daemon, at this client's schema and of another build, the client's daemon status stacked the two builds (compatible: false), its run's exercise drained the idle daemon and started its own (exit 0, no device contacted), and with the older daemon holding a job on the fake device the client's run was refused daemon_draining (exit 112), the daemon exiting after the job (evidence/ipc-schema-compat.log)"
   },
   "configuration_migration": {
     "from_schema": 6,
     "to_schema": 6,
     "required": false,
     "compatibility_alias": false,
-    "notes": "the configuration schema is unchanged from v0.10.0; config.schema-version stays 6; registry 33, unchanged from v0.39.0"
+    "notes": "the configuration schema is unchanged from v0.10.0; config.schema-version stays 6; registry 34, from v0.40.0's 33 (security.require-fips removed)"
   },
   "qualification": {
     "unit_tests": "passed",
@@ -122,15 +122,15 @@
     "parity_suite_system_and_native": "passed (the fake device's IOS XE and Linux personas)",
     "gofmt": "passed",
     "lifecycle_replay": "not-run (no prior: v0.29.0's daemon listens on daemon.sock, which this client never reaches)",
-    "host_shared_places_unchanged": "passed (scripts/lib/host.sh in both verifiers)",
+    "host_shared_places_unchanged": "passed (scripts/lib/host.sh in both verifiers: the host's shared places and karvi's places under the passwd home, a host whose configuration reaches karvi refused first)",
     "shipped_executables_as_bytes": "passed (scripts/verify-shipped.sh, bundle-qualification.log)",
     "release_tree_clean_at_tag": "passed (nothing untracked, no empty directory)",
     "debian_package": "passed (the tree's package in the release verifier's run, checked by scripts/check-deb.sh with lintian and tested as root in an Ubuntu 26.04 container under Docker by scripts/sysutil-smoke-test.sh, and the published package built twice from the verified bundle to the same bytes and checked by scripts/check-deb.sh)"
   },
   "previous_release": {
-    "version": "0.39.0",
-    "git_tag": "karvi-v0.39.0",
-    "notes": "a minor release on 0.38.0; every release is installed as new"
+    "version": "0.40.0",
+    "git_tag": "karvi-v0.40.0",
+    "notes": "a minor release on 0.39.0; every release is installed as new"
   },
   "vendored_modules": [
     "github.com/yuin/goldmark v1.8.7",

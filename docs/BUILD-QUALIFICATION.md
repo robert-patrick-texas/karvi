@@ -81,9 +81,9 @@ smoke suites use `absent PATTERN FILE` (`scripts/lib/lab.sh`) or
   line's first release, and v0.23.0 to v0.28.0, which keep 10, there was none;
   for v0.29.0, which moved the schema to 11, it was v0.28.0; for v0.30.0, which
   moved it to 12, and v0.30.1, v0.31.0, v0.31.1, v0.32.0, v0.32.1, v0.33.0,
-  v0.34.0, v0.34.1, v0.35.0, v0.36.0, v0.37.0, v0.38.0, v0.39.0, and v0.40.0,
-  which keep it, there was none: v0.29.0's daemon predates the drain that exits
-  and listens on `daemon.sock`, which the new client never reaches).
+  v0.34.0, v0.34.1, v0.35.0, v0.36.0, v0.37.0, v0.38.0, v0.39.0, v0.40.0, and
+  v0.41.0, which keep it, there was none: v0.29.0's daemon predates the drain
+  that exits and listens on `daemon.sock`, which the new client never reaches).
 - The Go tests and the suites MUST leave the host's shared places and
   karvi's places under the operator's home as they were: both verifiers list
   the shared scoreboard directory and the shared trees under `/opt/karvi` and

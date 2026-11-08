@@ -1,16 +1,19 @@
-# karvi v0.40.0 build and qualification result
+# karvi v0.41.0 build and qualification result
 
 ## Result
 
 The build, with the native transport compiled in beside the external `system`
-transport, is **qualified as an engineering candidate**. v0.40.0 (2026-11-05) is
-a minor release on 0.39.0 for root commands on the exec channel (`--sudo`),
-sleeps between commands (`--sleep`), a device of `-` read from standard input,
-the SSH algorithms `--debug` names, each schema counter written once, and a
-release verifier that reads karvi's output whole; six of the changes are
-Breaking. The execution plan moves to 17, the command record to 5, and the audit
-to 3, every other counter is 0.39.0's; Go and every module are 0.39.0's; and the
-first submission after the upgrade drains a 0.39.0 daemon. The changes are in
+transport, is **qualified as an engineering candidate**. v0.41.0 (2026-11-08) is
+a minor release on 0.40.0 for numeric ranges in every selector
+(`router[10-12]`), targets that create the names a range spells, runs limited
+to the inventory's devices (`targets.inventory-only`, and `--inventory`,
+`--inv`, or `--i`), the removal of `security.require-fips` and of `karvi
+version`'s `fips_mode`, a `karvi-sysutil` that never acts as root on what the
+service account owns, the release's number written once in `VERSION`, and the
+shell-script review's fixes to the suites and scripts; four of the changes are
+Breaking. The configuration registry moves to 34 and the audit to 4, every
+other counter is 0.40.0's; Go and every module are 0.40.0's; and the first
+submission after the upgrade drains a 0.40.0 daemon. The changes are in
 [`CHANGELOG.md`](../CHANGELOG.md). It is not a production claim and not a
 real-device qualification: the native transport is proven against the fake
 device built from the tree, its IOS XE and Linux personas.
@@ -18,14 +21,14 @@ device built from the tree, its IOS XE and Linux personas.
 ## Build identity
 
 ```text
-version:                  0.40.0
-commit:                   source-release-v0.40.0
-build:                    C71lyQOLd6sV4H1SEuL0
+version:                  0.41.0
+commit:                   source-release-v0.41.0
+build:                    Wss_lakRGoLdwTmeEfnl
 Go toolchain:             go1.27.3
 dependencies:             vendored (go.mod, go.sum, vendor/); no network
 native:                   compiled-in
 configuration schema:    6
-configuration registry:  33
+configuration registry:  34
 command record schema:   5
 daemon IPC schema:       12
 job manifest/summary:    5
@@ -33,7 +36,7 @@ execution plan:          17
 scoreboard:              5
 credential package:      2
 plan report:             4
-audit:                   3
+audit:                   4
 CGO:                      disabled
 ```
 
@@ -46,7 +49,7 @@ transports.
 
 The release source passed, with Go 1.27.3:
 
-- 1,321 top-level named Go tests across 93 packages in vendor mode, 0
+- 1,340 top-level named Go tests across 94 packages in vendor mode, 0
   failures (`evidence/core-qualification.log`);
 - `go vet` across all packages, and the Go race detector across all
   packages in the release verifier's run
@@ -65,14 +68,15 @@ The release source passed, with Go 1.27.3:
   v0100 suite (rehearsals, detach, follow, the interrupted client, the ICMP
   gate, shutdown accounting, stop and restart, cancel, `job follow`), and the
   seventeen others in order, among them the spool suite (a 65.7 MB response
-  through the spool and across a mid-line threshold), the k03 parser suite, the
+  through the spool and across a mid-line threshold), the k03 suite (the
+  parser, numeric ranges, and the inventory option), the
   daemon-upgrade suite, the completion suite, the canary suite with
   `secret-scan`, the job list suite (`job list` on a lab output root made
   against the fake device), and the audit suite (`karvi-audit` reading the
   jobs it makes against the fake device back from the host's journal, each row
   checked against the event `audit.file` holds);
-- `scripts/verify-shipped.sh` on the executables as shipped: the version, the
-  checksums, the ELF format, the links, every schema counter the executable
+- `scripts/verify-shipped.sh` on the executables as shipped: the version
+  against `VERSION`, the checksums, the ELF format, the links, every schema counter the executable
   reports against `release-manifest.json`, both transports, the helps, the
   configuration examples, the removed keys refused
   (`evidence/bundle-qualification.log`);
@@ -86,7 +90,7 @@ The release source passed, with Go 1.27.3:
   and listens on `daemon.sock`, which this client never reaches; the drain is
   the daemon-upgrade suite's, against a fixture daemon of an older schema and of
   another build. The compatibility example ran before the number was committed,
-  beside the released v0.39.0 daemon, started from the released executable of
+  beside the released v0.40.0 daemon, started from the released executable of
   the tree's `bin/` before the rebuild, at this client's IPC schema and of
   another build: the client's `daemon status` stacked the two builds
   (`compatible: false`); its run's exercise drained the idle daemon and started
@@ -95,8 +99,11 @@ The release source passed, with Go 1.27.3:
   112), the daemon's build over the client's, and the daemon exited after the
   job (`evidence/ipc-schema-compat.log`);
 - the host's shared places (the shared scoreboard directory, the shared
-  directories `/opt/karvi/shared` and `/var/lib/karvi/shared`) as they
-  were after the Go tests and the suites, in both verifiers
+  directories `/opt/karvi/shared` and `/var/lib/karvi/shared`,
+  `/tmp/karvi-<uid>`, and `/var/tmp/karvi-<uid>`) and karvi's places under
+  the passwd entry's home (`.local/share/karvi`, `.config/karvi`) as they
+  were after the Go tests and the suites, in both verifiers, each of which
+  first refuses a host whose configuration reaches karvi
   (`scripts/lib/host.sh`);
 - the tree's Debian package built in the release verifier's run and checked
   by `scripts/check-deb.sh`: the four executables `bin/`'s bytes, every
@@ -117,7 +124,7 @@ The release source passed, with Go 1.27.3:
   `scripts/check-deb.sh` against it.
 
 The release verifier had first passed on a clean clone of `dev` at
-`9455204` before the number was assigned (the maintainer's release tools
+`7dfcf45` before the number was assigned (the maintainer's release tools
 run it there, since a clone has no shipped bytes to check; the logs are kept
 with the maintainer's release evidence). The must-not-appear checks of the
 suites ran enforced throughout.
@@ -128,10 +135,10 @@ Evidence for this release is in `evidence/`.
 
 | Executable | Bytes | SHA-256 |
 |---|---:|---|
-| `bin/karvi-linux-amd64` | 12,984,480 | `15fc47064b208fd286a8e71fde3944a05c78f0103862d20261f6af8f2273df2d` |
-| `bin/karvi-askpass-linux-amd64` | 3,920,032 | `b47fd568a35c3907e8d86fc397041f1fac0656c24d6d7cd7eb2609658558adde` |
-| `bin/karvi-prune-linux-amd64` | 3,817,632 | `0a6a14a8765fa454b5b34e5c4a2b4f3b788bd3b6a7259502e89014ace9a649e8` |
-| `bin/karvi-audit-linux-amd64` | 3,969,184 | `3ad32e15682363ae56d45c29f6d270c39e620e74c304ef4eb8a00916f9447abb` |
+| `bin/karvi-linux-amd64` | 13,025,440 | `c450be378cd8a999129aa46148d2275145528b96f201027f0cf72930830a4d7c` |
+| `bin/karvi-askpass-linux-amd64` | 3,924,128 | `374729cd705955c752d5c783361bc324c43c7dc115cc5e4c61f6984b6fe409cf` |
+| `bin/karvi-prune-linux-amd64` | 3,817,632 | `20eb5a5891fa334f3ed7771dd97b0cd01a87339f09cd77b6b5ccd35267ab215a` |
+| `bin/karvi-audit-linux-amd64` | 3,973,280 | `9cfdb01e8434537ccc17d024558abfa6d7104c672d4810d08e491c7261d8c53e` |
 
 ## Operational upgrade sequence
 

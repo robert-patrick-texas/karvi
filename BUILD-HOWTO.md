@@ -82,10 +82,10 @@ is the `go` directive in karvi's `go.mod`.
 ## 3. Verify and extract the full source bundle
 
 ```bash
-sha256sum -c karvi-v0.40.0-source-linux-amd64.tar.gz.sha256
-tar -tzf karvi-v0.40.0-source-linux-amd64.tar.gz >/dev/null
-tar -xzf karvi-v0.40.0-source-linux-amd64.tar.gz
-cd karvi-v0.40.0
+sha256sum -c karvi-v0.41.0-source-linux-amd64.tar.gz.sha256
+tar -tzf karvi-v0.41.0-source-linux-amd64.tar.gz >/dev/null
+tar -xzf karvi-v0.41.0-source-linux-amd64.tar.gz
+cd karvi-v0.41.0
 ```
 
 Review the release boundary before building:
