@@ -442,6 +442,20 @@ None chosen: the operator names the next item, from "Later" or anew.
   suite and writes a case per hazard site; the suites run under three `flock`
   slots; the orchestrator checks every issue, merges, and runs the battery,
   the container suite, and the release path in a copy.
+- **The release's numbers in a table.** A release's CHANGELOG lead paragraph
+  and its release notes carry its numbers in their sentences: 0.41.0's lead
+  names the two counters it moves and the ten it keeps, each with its value,
+  and Go and its modules, among the clauses that say what the release adds
+  and what a site changes. The item: the lead says what the release does and
+  what a site changes in plain words, with no schema counters; the numbers
+  stand in a table beneath it, a row per value (the release, Go, each module,
+  each schema counter), the previous release's value beside this one's, so a
+  moved value reads across its row. The questions: every counter a row, or
+  the moved ones and a line for the rest; the table written by a release tool
+  from the release build's `karvi version --format json` and `go version -m`,
+  or checked against them as `verify-shipped.sh` checks the manifest's
+  counters, rather than typed at 1/3; and whether `release/BUILD-RESULT.md`
+  takes the same table.
 
 ## The device-qualification track
 
