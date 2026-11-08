@@ -322,6 +322,21 @@ ansi = "auto"
 [targets]
 # warn or error for a target file or folder that yields no targets.
 empty-source = "error"
+# true runs only the inventory's devices, and --inventory (--inv, --i) sets it for the
+# invocation, bare or with its files: a plain target name the inventory lacks refuses the job
+# before planning, target_not_in_inventory, naming each; a numeric range or a glob selects the
+# inventory's devices among the names it matches, at any size, targets.max-created-names not
+# applied. false makes a name the inventory lacks, typed or created by a range, a direct
+# target.
+inventory-only = false
+# 1–100,000; the most names one target value's numeric ranges may create, brackets
+# multiplying (--target 'router[01-12]' creates 12): a --target, a --tl name, or a positional
+# device is counted after the configuration is read and before any target file, the inventory,
+# or DNS, and a target-file or standard-input line as it is read; over it the value is
+# refused, target_created_names_exceeded, and nothing is made. A ! value, --exclude, and the
+# inventory selectors match a range of any size and create nothing; under
+# targets.inventory-only no range creates or is counted.
+max-created-names = 1000
 # 1–16; --tfr PATH is level 0.
 recursion-max-depth = 3
 
@@ -605,8 +620,6 @@ approved-admin-users = ["root"]
 allow-credential-symlinks = false
 # Explicit second gate.
 allow-telnet = false
-# Startup verifies build/runtime mode.
-require-fips = false
 # Names only; secret values not shown by config explain.
 child-environment-allowlist = ["LANG", "LC_ALL", "LC_CTYPE", "TERM", "COLORTERM", "SSH_AUTH_SOCK"]
 

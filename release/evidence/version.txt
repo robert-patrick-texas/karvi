@@ -1,15 +1,14 @@
-karvi 0.40.0
-commit: source-release-v0.40.0
-build: C71lyQOLd6sV4H1SEuL0
+karvi 0.41.0
+commit: source-release-v0.41.0
+build: Wss_lakRGoLdwTmeEfnl
 go: go1.27.3
 config_schema: 6
 command_record_schema: 5
 scoreboard_schema: 5
-audit_schema: 3
+audit_schema: 4
 job_schema: 5
 daemon_ipc_schema: 12
-config_registry_schema: 33
-fips_mode: false
+config_registry_schema: 34
 icmp_method: socket
 ssh_transports:
   native: compiled-in
