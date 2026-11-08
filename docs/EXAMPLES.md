@@ -22699,3 +22699,276 @@ through `tools/md-to-html`. The evidence is kept beside the tree
 (`release-design-evidence/target-ranges-2026-11/`: `DECISIONS.md`,
 `PLAN.md`, a folder per section with its README and runs, and the session's
 0.40.0 runs in `today/`, `point2/`, `point4/`, and `site-group/`).
+
+## 104. The release 0.41.0 (2026-11-08)
+
+The twenty-second public release, 0.41.0, on the operator's word and number,
+carrying numeric ranges and the inventory option ([chapter
+103](#103-numeric-ranges-and-the-inventory-option-2026-11-07)), the
+shell-script review's fixes ([chapter
+102](#102-the-shell-script-review-of-2026-11-06-and-its-fixes-2026-11-07)),
+the removal of `security.require-fips` and of `karvi version`'s `fips_mode`
+while a FIPS 140-3 mode waits ([chapter
+101](#101-a-fips-140-3-mode-waits-on-aes-256-gcm-for-ssh-2026-11-05)), the
+suites' floor ([chapter
+100](#100-the-daemon-upgrade-suites-fixture-and-the-suites-floor-2026-11-05)),
+and the version written once ([chapter
+99](#99-one-place-for-the-version-2026-11-05)). A minor release: the
+configuration registry moves to 34 and the audit to 4; every other counter is
+0.40.0's, and Go and every module are 0.40.0's. Four of the CHANGELOG block's
+38 entries are Breaking. The daemon IPC schema stays 12, so the compatibility
+example is the drain, beside the released 0.40.0 daemon. The operator's word
+was to push `dev`, then build and publish; the sequence stopped once, at its
+first baseline, on the release verifier's call of a function it had not yet
+sourced, and was mended on the operator's word.
+
+**What it gains.** A site has ranges in every selector, targets that create
+the names a range spells, and runs held to the inventory's devices
+(`targets.inventory-only`, `--i`, `--inv=FILE`) from a published, checksummed
+bundle and package, with the documents on GitHub Pages at the release; a host
+on 0.40.0 takes it by `sudo karvi-sysutil package update`, or by `apt
+install`, and its `karvi-sysutil` no longer acts as root on what the service
+account owns. The release verifier the bundle ships, which a site runs to
+rebuild the release from source (`BUILD-HOWTO.md`), runs past its suites to
+the package and the checksums; the fault came after 0.40.0, so no published
+bundle carries it. The cost is the four Breaking changes, each named in the
+CHANGELOG's lead paragraph with what a site changes.
+
+**The operator's decisions**, in simple terms:
+
+- `dev` pushed before the release (`a6f14c4..74b4075`, chapter 103's work),
+  the number 0.41.0, and build and publish, any failed step a stop.
+- The stop: as recommended, the release verifier sources `exit.sh` before its
+  suites, and `run_suites` refuses a caller that has not (`7dfcf45`); the
+  commit made, and the release continued.
+
+**Before the number.** Load 0.31; `/tmp` 3.6 GB free, `/var/tmp` 17 GB, and
+`/dev/shm` 4.9 GB; 192.0.2.1 routed into `dummy0`; no karvi process, no lab
+folder, and no `/etc/karvi`, `/opt/karvi`, `~/.config/karvi`, or
+`~/.local/share/karvi`. The release tools were 0.40.0's. `latest.sh` found Go
+1.27.3 and the four modules at their newest, as the session before had, when
+the bridge probe also reached every address. The archive's mirror was fetched
+before each change to the tree. While the first baseline ran on a clean clone
+of `74b4075`, the released 0.40.0 executable was copied out of `bin/` for the
+compatibility example and checked against `CHECKSUMS.sha256`, and 1/3, the
+release notes, and their check were drafted.
+
+**The stop: the verifier's call before `exit.sh`.** What failed, in plain
+terms: the release verifier, which rebuilds the release from source and runs
+every suite, the package, and its container test, ended after its suites on a
+function it had not loaded. The first baseline passed `latest.sh`, gofmt, the
+build, the unit, vet, and race runs, and the suites' three lanes, each status
+0, and then ended 127: `signal_exits: command not found`. The package,
+`check-deb.sh`, the container test, and the checksums never ran, and the lane
+folder stayed in `TMPDIR`. The cause is the order of two lines.
+`verify-release.sh` called `run_suites` before it sourced `scripts/lib/exit.sh`,
+which it sourced for the package folder's cleanup alone, after the suites (S2
+of chapter 102's plan, `27a3f83`). Since S3 (`b246ce3`) `run_suites` sets
+signal traps of its own while its lanes run and, when they end, puts
+`on_exit`'s back by calling `exit.sh`'s `signal_exits`; `suites.sh`'s header
+asks to be sourced after `exit.sh`. `verify-bundle.sh` sources it first and
+was right. The batteries of chapters 102 and 103 ran `run_suites` from a
+`battery.sh` of their own: S4's, S7's, and chapter 103's S5's source `exit.sh`
+first. S10's does not, and its suite log begins `sh: 112: signal_exits: not
+found` under an exit 0: its `sh -c` has no `set -e`, so the missing function
+was a line of output and `run_suites` went on to the lanes' results, where
+`verify-release.sh`'s `set -euo pipefail` ends the script at that line, before
+the lane folder's removal. The line was not read, and nothing had run
+`verify-release.sh` past its suites since S3. karvi itself was never at
+fault.
+
+The mend, `7dfcf45`: `verify-release.sh` makes the package's folder and sets
+its cleanup through `on_exit` before the suites, so the cleanup also covers a
+signal while they run; `run_suites` refuses a caller that has not sourced
+`exit.sh`, before anything runs, where it failed at the lanes' end; and
+`suites-test.sh` gains a row that runs such a verifier under sh and bash over
+its model suites. The CHANGELOG's Ctrl-C entry says so, with no entry of its
+own, as no release carried the fault. The row fails on the tree without the
+refusal as the baseline did, 127, the suites run, the lane folder left, and
+passes on the tree:
+
+```text
+# baseline 1, the clean clone of 74b4075: the release verifier's last lines
+CGO_ENABLED=0 GOTOOLCHAIN=local go build -buildvcs=false -trimpath -o bin/secret-scan ./tools/secret-scan
+/dev/shm/r410/base/karvi/scripts/lib/suites.sh: line 112: signal_exits: command not found
+verify-release exit=127
+# the lane folder it left: each lane's status
+1.status 0
+2.status 0
+3.status 0
+# scripts/lib/suites-test.sh on a copy of 4822964 without run_suites's two
+# refusal lines (line 114 there: 7dfcf45's header is two lines longer)
+suites lib: sh no exit.sh: status: FAIL: want [1] got [127]
+suites lib: sh no exit.sh: refused: FAIL: want [run_suites: source scripts/lib/exit.sh before scripts/lib/suites.sh] got [./verifier-noexit.sh: 114: signal_exits: not found]
+suites lib: sh no exit.sh: no suite run: FAIL: want [] got [model-b end model-b cleanup model-d end model-d cleanup model-a end model-a cleanup model-c end model-c cleanup]
+suites lib: sh no exit.sh: no lane folder: FAIL: want [] got [tmp.KyO2bUHcFp]
+suites lib: bash no exit.sh: refused: FAIL: want [run_suites: source scripts/lib/exit.sh before scripts/lib/suites.sh] got [./scripts/lib/suites.sh: line 114: signal_exits: command not found]
+suites lib: 8 failed
+# the same on the tree: 74 checks, each pass
+suites lib: sh no exit.sh: refused: pass
+suites lib: bash no exit.sh: refused: pass
+suites lib: pass
+```
+
+**Not taken.** The steps the baseline left run by hand, the package,
+`check-deb.sh`, the container test, and the checksums, and the release gone on
+from there: the bundle ships `verify-release.sh` for a site to rebuild the
+release by `BUILD-HOWTO.md`, and at `74b4075` it ends 127 at the same place
+for every site. The `exit.sh` line moved alone, without the refusal: a later
+caller with the same order would learn it only once its suites had run, 8
+minutes 26 seconds into this baseline; the refusal ends it before anything
+runs, and the row guards it.
+
+**The number.** `VERSION`, alone since chapter 99, which `karvi version`
+reports and both verifiers check against; the `## Unreleased` block became
+`## 0.41.0 - 2026-11-08`, the UTC day of 1/3, under a lead paragraph naming
+the release's parts, its counters, and what a site changes, one clause for
+each Breaking entry. `CHECKSUMS.sha256` has its four lines from the
+release-identity build, `Wss_lakRGoLdwTmeEfnl`. 1/3 changes three files,
+where 0.40.0's changed seven. Its draft was stashed for the mend and restored
+onto `7dfcf45`.
+
+**The documents.** 2/3 is 0.40.0's with this release's values, in the same
+eight files; `verify-shipped.sh` compared the tree's `bin/` with the manifest
+before it was committed. `release/DOWNLOADS.md` names the diff
+`karvi-v0.40.0..karvi-v0.41.0`, where 0.40.0's named `karvi-v0.40.0` on both
+sides.
+
+**The release notes, executed.** Before publishing, the notes' claims ran on
+the release's build (`v0410-notes-check.sh`): chapter 103's cases unchanged
+in its lab, rebuilt under `/var/tmp`, then the removed key's three refusals,
+the version output, and one exercise's audit event, through a daemon of the
+lab's places. Dry runs and an exercise alone, so no device is contacted; the
+`==`, `$`, and `(exit` lines are the script's, and the lines under a range
+case's `$` its summary of the plan, each target with its source or its
+account. Each held. Three of its cases:
+
+```text
+$ karvi run --tl 'router[1-12]'
+  router1 router2 router3 router4 router5 router6 router7 router8 router9
+  (direct), router10 router11 router12 (lab)
+  (exit 0)
+$ karvi run --tl router02,router10,router12
+  router02 user=svc.other
+  router10 user=svc.edge
+  router12 user=svc.edge
+  (exit 0)
+
+== security.require-fips on the command line
+$ karvi --set security.require-fips=true run --no-daemon --dry-run --tl router01 -c show clock
+(exit 2)
+config_unknown_key: unknown configuration key for security.require-fips at --set[1]
+```
+
+The second is the credential row `router[10-12]`, ahead of `router*` in the
+lab's CSV, which 0.40.0 matched to none of router10 to router12. In the same
+run `karvi version` shows `config_registry_schema: 34` and `audit_schema: 4`
+with no `fips_mode` line, and the exercise's `run.start` and `run.end` events
+are of schema 4 without `fips_required`.
+
+**The sequence, as run**, from the pre-checks at 02:59 to the published check
+at 04:15 on 2026-11-08 (UTC; 21:59 to 23:15 on 2026-11-07, EST):
+
+- 02:59 to 03:00, the pre-checks; the mirror fetched to `74b4075`.
+- 03:00:49 to 03:09:15, the baseline on a clean clone of `74b4075`: every suite
+  passed in its three lanes, then the release verifier exit 127.
+- 03:10, the stop for the operator, with the cause and the mend; the
+  operator's word, and the draft of 1/3 stashed.
+- 03:38, `7dfcf45`: the six library tests exit 0, `go test ./...` 74 packages
+  ok; the documents built, the mirror fetched.
+- 03:38:50 to 03:49:14, the baseline on a clean clone of `7dfcf45`:
+  `latest.sh`, gofmt, make, and the release verifier with its nineteen suites,
+  the package, and its container test, exit 0 each; no daemon and no lane
+  folder left. 1/3 restored meanwhile; at 03:49 the notes' check tried on the
+  clone's build, mended twice (below).
+- 03:50:04 to 03:50:40, the release-identity build, the compatibility example,
+  and 1/3: the 0.40.0 daemon drained idle, refusing busy; `e9b4049`.
+- 03:50:50 to 03:53:10, the core evidence: 1,340 named tests across 94
+  packages, vet 0, both socket lengths exit 0.
+- 03:53:45, the documents: `7a804c0` (2/3).
+- 03:53:58 to 04:04:54, the remaining evidence: the shipped checks exit 0, the
+  release verifier exit 0 with the nineteen suites, the package, and its
+  container test, the checksums unchanged by its rebuild; the replay skipped.
+- 04:05, 3/3, the tag, `main`: `4822964`, `karvi-v0.41.0`, `main`
+  fast-forwarded from `3f3eb4a`.
+- 04:05:32 to 04:12:31, the artifacts: the bundle reproducible byte for byte
+  and verified from its own archive; the package reproducible and checked
+  against the extraction; 40,207,250 and 6,711,576 bytes.
+- 04:12 to 04:13, the package installed in a throwaway `ubuntu:26.04`: `apt
+  install` exit 0; the four installed executables `CHECKSUMS.sha256`'s;
+  `karvi-audit --help` exit 0; 22 files under `/usr/share/karvi`. The notes'
+  claims executed on the release's build; the mirror fetched to the tag.
+- 04:13:40 to 04:15, the push, the site, the GitHub release: `dev`, `main`, and
+  the tag pushed; `pages.sh` pushed the release's site (`6db4911`), built at
+  04:14:21, its footer `karvi-v0.41.0`; release `karvi-v0.41.0` with the five
+  assets, marked latest, its body the notes file; the assets downloaded back
+  match the local bytes, and `releases/latest` redirects to the tag.
+
+**Executed.** The compatibility example's turning points
+(`release/evidence/ipc-schema-compat.log`) and the published state:
+
+```text
+[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.40.0 build=C71lyQOLd6sV4H1SEuL0
+daemon started socket=/dev/shm/r410/compat/base/socket/d.sock
+pid 1568032 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build C71lyQOLd6sV4H1SEuL0 0.40.0
+  client build Wss_lakRGoLdwTmeEfnl 0.41.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 1568144 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+karvi-v0.41.0 assets=5 draft=false prerelease=false
+$ sha256sum -c karvi-v0.41.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.41.0-source-linux-amd64.tar.gz: OK
+karvi_0.41.0_amd64.deb: OK
+$ the latest redirect
+location: https://github.com/robert-patrick-texas/karvi/releases/tag/karvi-v0.41.0
+```
+
+**Found on the way.**
+
+- `karvi` is 40,960 bytes larger, `karvi-askpass` 4,096, and `karvi-audit`
+  4,096; `karvi-prune` is 0.40.0's size. The bundle is 121,385 bytes larger
+  and the package 51,498.
+- The module metadata of the four executables is 0.40.0's, byte for byte, so
+  3/3 carries nine evidence files; the default configuration loses
+  `security.require-fips` and gains `targets.inventory-only` and
+  `targets.max-created-names`.
+- The bundle's files carry modes 0644 and 0755 alone (1,267 and 49), its
+  folders 0755, whatever the checkout's umask: chapter 102's fix, in its first
+  release.
+- 0.40.0's `release/DOWNLOADS.md`, as published, names its diff
+  `karvi-v0.40.0..karvi-v0.40.0`, meant `karvi-v0.39.0..karvi-v0.40.0`.
+- The notes' check had two mistakes in its first draft, found on the second
+  baseline's build: the version JSON's counter keys end in `_version`, and
+  `--exercise` refuses `--no-daemon`, so the exercise runs through a daemon of
+  the lab's places, stopped by `daemon_stop_force`.
+- A fetch into the archive's mirror overwrites its `refs/stash` when the tree
+  holds a stash: the earlier `e4b7ed5` is kept there as
+  `refs/archive/stash-e4b7ed5`.
+- 1,340 named tests, 19 more than 0.40.0's, across 94 packages, the module
+  root's `VERSION` package the new one; 573 Go files and 128,401 lines.
+- In the throwaway container `man karvi-audit` has no page, as in the releases
+  before: the minimal image leaves out `/usr/share/man`.
+- `/tmp/karvi-1000`, empty and there since 2026-11-05, was unchanged by every
+  step.
+
+**Left open.** At this chapter's outline the operator asked that a release's
+numbers stand in a table beneath a lead that says what the release does in
+plain words, without its schema counters: the [ROADMAP](../ROADMAP.md#later)'s
+"The release's numbers in a table".
+
+The evidence is kept beside the tree (`release-design-evidence/v0410-*`: the
+timeline, the two baselines, the lane folder the first left, the core
+evidence, the build, the compatibility example, the 1/3 draft, the artifacts,
+the container install, the release notes and their check, the push, the site,
+the GitHub release, and the published check; `v0410-ch104-suites-test-*.out`
+the row's two runs above; `shell-fixes-2026-11/S10/battery/a-suites.log` the
+unread line).
