@@ -198,6 +198,45 @@ piped f17 0 '# c\nlocalhost\n127.0.0.1\n' -- command - show clock;     order f17
 piped f18 4 '127.0.0.1\n' -- run --no-daemon -t=- --tf - show clock;     code f18 stdin_source_repeated; nothing_sent f18
 row f19 4 -- k job list --target -;                                          code f19 target_source_stdin_invalid
 
+echo "== numeric ranges and the inventory option"
+# rng.csv: router01, 02, 03, 05, and 10 at the fake device, at sites pod1,
+# pod2, pod10, pod12, and pod12; more.csv: box01 and box02, a file for --inv
+# outside every configured source; creds.csv: a credential row holding a range
+# ahead of a glob row. A created name the inventory lacks is a direct target,
+# which only a dry run plans here (DNS knows no such name).
+printf 'name,management_address,platform,site\nrouter01,127.0.0.1,generic,pod1\nrouter02,127.0.0.1,generic,pod2\nrouter03,127.0.0.1,generic,pod10\nrouter05,127.0.0.1,generic,pod12\nrouter10,127.0.0.1,generic,pod12\n' >"$TMP/rng.csv"
+printf '[[inventory-source]]\nname = "rng"\ntype = "csv"\npath = "%s"\nrequired = true\n' "$TMP/rng.csv" >"$TMP/rng.toml"
+printf 'name,management_address,platform\nbox01,127.0.0.1,generic\nbox02,127.0.0.1,generic\n' >"$TMP/more.csv"
+printf 'device_name,username,password\nrouter[10-12],svc.edge,lab-placeholder\nrouter*,svc.other,lab-placeholder\n' >"$TMP/creds.csv"
+printf '[credential-backend.rng-csv]\ntype = "csv"\nscope = "user"\npath = "%s"\nrequired = true\n[credential-policy.default]\nbackend-sequence = ["rng-csv"]\n[[credential-policy-map]]\npolicy = "default"\nname = "*"\n' "$TMP/creds.csv" >"$TMP/creds.toml"
+chmod 600 "$TMP/rng.toml" "$TMP/creds.csv" "$TMP/creds.toml"
+planned() { # planned NAME DEVICE...  the dry run plans these devices in this order
+  local name=$1; shift
+  printf '%s\n' "$@" >"$TMP/want"
+  sed -n 's/^- name:\(.*\): planned$/\1/p' "$row_out" >"$TMP/got"
+  cmp -s "$TMP/want" "$TMP/got" || fail "$name: planned $(tr '\n' '|' <"$TMP/got"), want $(tr '\n' '|' <"$TMP/want")"
+}
+bound() { # bound NAME DEVICE=USER...  the dry run binds each device's credential to USER, in this order
+  local name=$1; shift
+  printf '%s\n' "$@" >"$TMP/want"
+  sed -n -e 's/^- name:\(.*\): planned$/\1/p' -e 's/^  credential: bound .* user=\([^;]*\);.*/=\1/p' "$row_out" | paste -d '' - - >"$TMP/got"
+  cmp -s "$TMP/want" "$TMP/got" || fail "$name: bound $(tr '\n' '|' <"$TMP/got"), want $(tr '\n' '|' <"$TMP/want")"
+}
+row n1 0 -- k --config "$TMP/rng.toml" run --no-daemon --tl 'router0[1-3]' show clock;  order n1 router01 router02 router03
+row n2 0 -- k run --no-daemon --dry-run --tl 'switch0[1-2],router[1,10]' show clock;    planned n2 switch01 switch02 router1 router10   # created in written order, direct
+row n3 0 -- k --config "$TMP/rng.toml" run --no-daemon --site 'pod[10-12]' show clock;  order n3 router03 router05 router10           # a range, not a class: pod1 and pod2 not matched
+row n4 4 -- k run --no-daemon --target 'box[1-2001]' show clock;                        code n4 target_created_names_exceeded; mentions n4 "with --i it selects from the inventory"; nothing_sent n4
+row n5 0 -- k --config "$TMP/rng.toml" run --no-daemon --i --tl 'router0[1-5]' show clock; order n5 router01 router02 router03 router05  # under --i a range selects
+row n6 5 -- k --config "$TMP/rng.toml" run --no-daemon --i --tl router01,router04 show clock; code n6 target_not_in_inventory; mentions n6 router04; nothing_sent n6
+row n7 0 -- k --config "$TMP/rng.toml" run --no-daemon -i="$TMP/more.csv" --tl 'box0[1-3]' show clock; order n7 box01 box02
+row n8 5 -- k --config "$TMP/rng.toml" run --no-daemon --inv="$TMP/more.csv" --tl router01 show clock; code n8 target_not_in_inventory; nothing_sent n8   # the configured source unread
+row n9 5 -- k run --no-daemon --inventory="$TMP/none.csv" --tl box01 show clock;       code n9 inventory_missing; nothing_sent n9
+row n10 4 -- k run --no-daemon --inv= --tl box01 show clock;                            code n10 cli_option_value_missing
+row n11 4 -- k run --no-daemon --inv "$TMP/more.csv" --tl box01 show clock;             code n11 cli_option_value_detached
+row n12 0 -- k command --inv="$TMP/more.csv" box02 show clock;                           sent n12 "show clock"; order n12 box02
+row n13 0 -- k login --inv="$TMP/more.csv" box01;                                        order n13 box01
+row n14 0 -- k --config "$TMP/rng.toml" --config "$TMP/creds.toml" run --no-daemon --dry-run --tl router10,router02 show clock; bound n14 router10=svc.edge router02=svc.other
+
 echo "== sleep between commands"
 # --sleep waits before the next command (EXAMPLES chapter 95), on the command
 # line and as a --cf line alone; --literal sends the line as text; a sleep
