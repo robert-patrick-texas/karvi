@@ -69,11 +69,11 @@ HOME=$H "$NEW" "${A[@]}" daemon status >"$TMP/status" 2>&1 || fail "1: daemon st
 sed 's/^/    /' "$TMP/status" | grep -E '^    (status|daemon_version|client_version|daemon_ipc_schema|client_ipc_schema|compatible|active_jobs|remediation):'
 grep -q "^daemon_ipc_schema: $old_schema\$" "$TMP/status" && grep -q "^client_ipc_schema: $new_schema\$" "$TMP/status" && grep -q '^compatible: false$' "$TMP/status" && grep -q '^active_jobs: 0$' "$TMP/status" && grep -q '^remediation: karvi daemon restart$' "$TMP/status" || fail "1: status fields"
 
-# The new client's run is an exercise to 192.0.2.1, which reaches no device,
+# The new client's run is an exercise to 203.0.113.254, which reaches no device,
 # its scratch under the work directory.
 echo "[2] the new client's run drains the idle old daemon and starts its own"
 set +e
-HOME=$H NETUSER=u NETPASS=p "$NEW" "${A[@]}" --set "tempdir=\"$TMP\"" run --exercise --target 192.0.2.1 --transport system 'show clock' >"$TMP/run.out" 2>"$TMP/run.err"
+HOME=$H NETUSER=u NETPASS=p "$NEW" "${A[@]}" --set "tempdir=\"$TMP\"" run --exercise --target 203.0.113.254 --transport system 'show clock' >"$TMP/run.out" 2>"$TMP/run.err"
 rc=$?
 set -e
 sed 's/^/    /' "$TMP/run.err"

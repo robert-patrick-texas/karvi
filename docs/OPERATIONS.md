@@ -390,7 +390,7 @@ Text output prints one line per gated device before its header:
 
 ```
 ! core-nyc-01 [2001:db8:10::1] ping(1) 2.1ms, ping(2) timeout, proceed
-! edge-b [192.0.2.1] ping(1) timeout, ping(2) error, skip
+! edge-b [203.0.113.254] ping(1) timeout, ping(2) error, skip
 ```
 
 The line is the `display.ping.header` template, rendered and coloured as the

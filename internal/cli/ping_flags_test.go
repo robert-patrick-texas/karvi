@@ -131,15 +131,15 @@ func TestLoginGateSkipsAnUnreachableTarget(t *testing.T) {
 	p := &loginPinger{outcomes: []icmpgate.Outcome{{Sequence: 1, SentAt: time.Now(), Status: icmpgate.StatusTimeout}, {Sequence: 2, SentAt: time.Now(), Status: icmpgate.StatusTimeout}}}
 	detects := hookDetect(t, icmpgate.WithPinger(p))
 	var stdout, stderr bytes.Buffer
-	args := append(append([]string{}, sets...), "--set", `ssh.host-key-policy="insecure"`, "login", "--ping", "--management-address", "192.0.2.1", "router1")
+	args := append(append([]string{}, sets...), "--set", `ssh.host-key-policy="insecure"`, "login", "--ping", "--management-address", "203.0.113.254", "router1")
 	got := Main(args, strings.NewReader(""), &stdout, &stderr)
 	if got != exitcode.ExitConnectionFailure || !strings.Contains(stderr.String(), "\nicmp_unreachable: ") {
 		t.Fatalf("exit=%d stderr=%q", got, stderr.String())
 	}
-	if !strings.HasPrefix(stderr.String(), "! router1 [192.0.2.1] ping(1) timeout, ping(2) timeout, skip\n") {
+	if !strings.HasPrefix(stderr.String(), "! router1 [203.0.113.254] ping(1) timeout, ping(2) timeout, skip\n") {
 		t.Errorf("the ping line does not precede the failure: %q", stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "192.0.2.1") || !strings.Contains(stderr.String(), "1: timeout; 2: timeout") || !strings.Contains(stderr.String(), "skipped because ping gating is enabled") {
+	if !strings.Contains(stderr.String(), "203.0.113.254") || !strings.Contains(stderr.String(), "1: timeout; 2: timeout") || !strings.Contains(stderr.String(), "skipped because ping gating is enabled") {
 		t.Errorf("stderr=%q", stderr.String())
 	}
 	if *detects != 1 || p.calls != 1 {

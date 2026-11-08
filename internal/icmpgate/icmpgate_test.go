@@ -30,7 +30,7 @@ func shellQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''
 
 const (
 	twoReplies = "PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.\n64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.052 ms\n64 bytes from 127.0.0.1: icmp_seq=2 ttl=64 time=0.051 ms\n\n--- 127.0.0.1 ping statistics ---\n2 packets transmitted, 2 received, 0% packet loss, time 508ms\n"
-	twoMisses  = "PING 192.0.2.1 (192.0.2.1) 56(84) bytes of data.\nno answer yet for icmp_seq=1\n\n--- 192.0.2.1 ping statistics ---\n2 packets transmitted, 0 received, 100% packet loss, time 507ms\n"
+	twoMisses  = "PING 203.0.113.254 (203.0.113.254) 56(84) bytes of data.\nno answer yet for icmp_seq=1\n\n--- 203.0.113.254 ping statistics ---\n2 packets transmitted, 0 received, 100% packet loss, time 507ms\n"
 	v6Errors   = "PING 2001:db8::1 (2001:db8::1) 56 data bytes\nFrom 2001:668:0:3:ffff:2:0:7c1 icmp_seq=1 Destination unreachable: No route\nno answer yet for icmp_seq=1\nFrom 2001:668:0:3:ffff:2:0:7c1 icmp_seq=2 Destination unreachable: No route\n\n--- 2001:db8::1 ping statistics ---\n2 packets transmitted, 0 received, +2 errors, 100% packet loss, time 503ms\n"
 	oneReply   = "PING 10.0.0.1 (10.0.0.1) 56(84) bytes of data.\n64 bytes from 10.0.0.1: icmp_seq=1 ttl=64 time=2.100 ms\nno answer yet for icmp_seq=2\n\n--- 10.0.0.1 ping statistics ---\n2 packets transmitted, 1 received, 50% packet loss, time 1004ms\n"
 )
@@ -45,7 +45,7 @@ func TestSystemAdapterParsesTheThreeLineShapes(t *testing.T) {
 		detail               string
 	}{
 		{"two replies", twoReplies, "", 0, "127.0.0.1", [2]string{StatusReply, StatusReply}, 2, 0, ""},
-		{"two misses", twoMisses, "", 1, "192.0.2.1", [2]string{StatusTimeout, StatusTimeout}, 0, 0, ""},
+		{"two misses", twoMisses, "", 1, "203.0.113.254", [2]string{StatusTimeout, StatusTimeout}, 0, 0, ""},
 		{"icmp errors", v6Errors, "", 1, "2001:db8::1", [2]string{StatusError, StatusError}, 0, 2, "Destination unreachable: No route"},
 		{"one reply", oneReply, "", 1, "10.0.0.1", [2]string{StatusReply, StatusTimeout}, 1, 0, ""},
 		{"adapter failure", "", "ping: 256.1.1.1: Name or service not known\n", 2, "192.0.2.2", [2]string{StatusError, StatusError}, 0, 2, "256.1.1.1: Name or service not known"},
@@ -155,9 +155,9 @@ func TestSocketPingerLoopbackOrSkip(t *testing.T) {
 			t.Errorf("%s: %+v in %s", addr, out, time.Since(started))
 		}
 	}
-	// TEST-NET-1 (RFC 5737) is never answered: two independent timeouts.
+	// TEST-NET-3 (RFC 5737) is never answered: two independent timeouts.
 	started := time.Now()
-	out, err := socketPinger{}.Probe(context.Background(), netip.MustParseAddr("192.0.2.1"), Probes, 100*time.Millisecond)
+	out, err := socketPinger{}.Probe(context.Background(), netip.MustParseAddr("203.0.113.254"), Probes, 100*time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -278,7 +278,7 @@ func TestSystemAdapterIsAnErrorWhenPingCannotRun(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			path := fakePing(t, "", c.stderr, 2, 0)
-			out, err := systemPinger{path: path}.Probe(context.Background(), netip.MustParseAddr("192.0.2.1"), Probes, 500*time.Millisecond)
+			out, err := systemPinger{path: path}.Probe(context.Background(), netip.MustParseAddr("203.0.113.254"), Probes, 500*time.Millisecond)
 			if err == nil || !strings.Contains(err.Error(), c.want) || !strings.Contains(err.Error(), path) {
 				t.Fatalf("err=%v outcomes=%+v, want an error naming %s and %q", err, out, path, c.want)
 			}
@@ -289,14 +289,14 @@ func TestSystemAdapterIsAnErrorWhenPingCannotRun(t *testing.T) {
 		if err := os.WriteFile(path, []byte("#!/bin/sh\nexit 0\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		out, err := systemPinger{path: path}.Probe(context.Background(), netip.MustParseAddr("192.0.2.1"), Probes, 500*time.Millisecond)
+		out, err := systemPinger{path: path}.Probe(context.Background(), netip.MustParseAddr("203.0.113.254"), Probes, 500*time.Millisecond)
 		if err == nil || !strings.Contains(err.Error(), path) {
 			t.Fatalf("err=%v outcomes=%+v, want an error naming %s", err, out, path)
 		}
 	})
 	t.Run("missing", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "ping")
-		out, err := systemPinger{path: path}.Probe(context.Background(), netip.MustParseAddr("192.0.2.1"), Probes, 500*time.Millisecond)
+		out, err := systemPinger{path: path}.Probe(context.Background(), netip.MustParseAddr("203.0.113.254"), Probes, 500*time.Millisecond)
 		if err == nil || !strings.Contains(err.Error(), path) {
 			t.Fatalf("err=%v outcomes=%+v, want an error naming %s", err, out, path)
 		}
