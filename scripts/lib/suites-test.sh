@@ -11,8 +11,9 @@
 # the verifier ended with 129, 130, or 143, its cleanup run once. A second
 # Ctrl-C while the suites' cleanups run: ignored, each cleanup completed. A
 # host whose configuration reaches karvi (a model karvi naming a file):
-# refused, the file named, no suite run. Every run's environment is the
-# row's own (env -i), never the operator's KARVI__ variables.
+# refused, the file named, no suite run. A verifier that has not sourced
+# exit.sh: refused, no suite run. Every run's environment is the row's own
+# (env -i), never the operator's KARVI__ variables.
 set -eu
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
 . "$ROOT/scripts/lib/exit.sh"
@@ -77,6 +78,16 @@ RS_LANE2='model-b model-c'
 RS_LANE3=model-d
 run_suites
 trap >"$STATE/traps.after"
+echo "verifier passed" >>"$STATE/marks"
+EOF
+# The same verifier without exit.sh, which run_suites's lanes need at their end.
+cat >"$TMP/root/verifier-noexit.sh" <<'EOF'
+set -eu
+. ./scripts/lib/suites.sh
+RS_LANE1=model-a
+RS_LANE2='model-b model-c'
+RS_LANE3=model-d
+run_suites
 echo "verifier passed" >>"$STATE/marks"
 EOF
 cd "$TMP/root"
@@ -180,6 +191,16 @@ for sh in sh bash; do
   check "$sh a configured host: refused, the file named" "karvi reads this host's configuration; run where it reads none (docs/BUILD-QUALIFICATION.md):   file: /etc/karvi/config.toml" "$(lines "$D/err")"
   check "$sh a configured host: no suite run, the verifier's cleanup" 'verifier cleanup' "$(lines "$D/marks")"
   check "$sh a configured host: no lane folder" '' "$(ls -A "$D/tmp")"
+
+  D=$(mktemp -d "$TMP/row.XXXXXX")
+  mkdir "$D/tmp"
+  : >"$D/marks"
+  status=0
+  env -i PATH="$PATH" TMPDIR="$D/tmp" STATE="$D" FAIL=none SLOW= "$sh" ./verifier-noexit.sh >"$D/out" 2>"$D/err" || status=$?
+  check "$sh no exit.sh: status" 1 "$status"
+  check "$sh no exit.sh: refused" 'run_suites: source scripts/lib/exit.sh before scripts/lib/suites.sh' "$(lines "$D/err")"
+  check "$sh no exit.sh: no suite run" '' "$(lines "$D/marks")"
+  check "$sh no exit.sh: no lane folder" '' "$(ls -A "$D/tmp")"
 
   run "$sh" none INT group again
   check "$sh a second Ctrl-C: status" 130 "$status"

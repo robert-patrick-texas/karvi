@@ -2,7 +2,9 @@
 # The executable suites, in one place: both
 # verifiers run the same list against bin/ as it stands, so the list cannot
 # drift between them. Source it after scripts/lib/exit.sh (the caller's
-# cleanup set through on_exit), then call run_suites from the tree's root.
+# cleanup set through on_exit), then call run_suites from the tree's root;
+# run_suites refuses a caller that has not sourced exit.sh, before anything
+# runs, where it would fail at the lanes' end.
 # The libraries' own tests go first: the suites assert through the JSON
 # reader, clean up through on_exit, stop their daemons and fakes and assert
 # what must not appear through lab.sh, and compare the home's places through
@@ -83,6 +85,8 @@ rs_stop() {
 }
 
 run_suites() {
+  command -v signal_exits >/dev/null 2>&1 \
+    || { printf '%s\n' 'run_suites: source scripts/lib/exit.sh before scripts/lib/suites.sh' >&2; return 1; }
   ./scripts/lib/json-test.sh >/dev/null || return 1
   ./scripts/lib/exit-test.sh >/dev/null || return 1
   ./scripts/lib/lab-test.sh >/dev/null || return 1

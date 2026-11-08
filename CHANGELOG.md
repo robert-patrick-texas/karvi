@@ -111,7 +111,9 @@
   remove the lane folder, and end the verifier with 129, 130, or 143. The same
   Ctrl-C now ends the run in under a second with nothing left. Once the lanes
   have ended, the signal traps are `on_exit`'s again, through `signal_exits`
-  in `scripts/lib/exit.sh`. `scripts/lib/suites-test.sh`, which `run_suites`
+  in `scripts/lib/exit.sh`, so `run_suites` refuses a caller that has not
+  sourced `exit.sh` before anything runs, and `scripts/verify-release.sh`
+  sources it before the suites. `scripts/lib/suites-test.sh`, which `run_suites`
   runs first with the other library tests, runs a model verifier under sh and
   bash over model suites in a scratch root. The library tests start their
   models as a terminal starts a job, through `terminal_job` (`setsid env

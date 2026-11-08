@@ -59,6 +59,13 @@ build=$(json_get - build <<<"$version_json")
 for command in login command cmd run daemon config watch version; do
   ./bin/karvi-linux-amd64 "$command" --help >/dev/null
 done
+# The package's directory, removed at the exit, passed, failed, or
+# interrupted (scripts/lib/exit.sh): the tree gains nothing. exit.sh comes
+# before the suites, as scripts/lib/suites.sh asks: once its lanes end, their
+# signal traps are on_exit's again.
+deb_dist=$(mktemp -d "${TMPDIR:-/tmp}/karvi-verify-deb-XXXXXX")
+cleanup() { rm -rf "${deb_dist:?}"; }
+. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
 # The suites, the one list of scripts/lib/suites.sh: the canary suite needs
 # bin/secret-scan, so the tools build comes first; the parity suite builds
 # the fake device from the tree.
@@ -68,14 +75,10 @@ run_suites
 host_places_unchanged "$home" "$host_before"
 # The package of this tree (docs/EXAMPLES.md chapter 43), before the checksums
 # are rewritten: under a release's heading bin/ is the build CHECKSUMS.sha256
-# lists, on the dev line a build of its own identity. Built into a directory
-# of its own, checked against the tree, tested as root in a container
+# lists, on the dev line a build of its own identity. Built into the directory
+# above, checked against the tree, and tested as root in a container
 # (karvi-sysutil, the template unit, the service account's daemon; chapter
-# 57, issue 16), and removed at the exit, passed, failed, or interrupted
-# (scripts/lib/exit.sh): the tree gains nothing.
-deb_dist=$(mktemp -d "${TMPDIR:-/tmp}/karvi-verify-deb-XXXXXX")
-cleanup() { rm -rf "${deb_dist:?}"; }
-. "$ROOT/scripts/lib/exit.sh"; on_exit cleanup
+# 57, issue 16).
 DIST=$deb_dist make deb
 ./scripts/check-deb.sh "$deb_dist"/karvi_*_amd64.deb "$ROOT"
 ./scripts/sysutil-smoke-test.sh "$deb_dist"/karvi_*_amd64.deb
