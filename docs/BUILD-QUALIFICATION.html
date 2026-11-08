@@ -65,8 +65,8 @@
 </ul></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -133,8 +133,8 @@
 </ul></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -160,9 +160,9 @@ rebuilding them: identity and checksums, static Linux binaries, the build
 source outside <code>vendor/</code>, the unit tests and vet in vendor mode, deterministic
 generated files, the example configurations, removed-key rejection, and every
 historical smoke suite through <code>v090-smoke-test.sh</code>, plus the k03 parser suite,
-the daemon-upgrade smoke suite, the v0100 suite <code>scripts/v0100-smoke-test.sh</code>
-(<code>make v0100-smoke</code>), the canary suite <code>scripts/canary-smoke-test.sh</code>, and the
-parity suite <code>scripts/native-smoke-test.sh</code>.</p>
+the daemon-upgrade smoke suite, the v0100 suite <code>scripts/v0100-smoke-test.sh</code>,
+the canary suite <code>scripts/canary-smoke-test.sh</code>, and the parity suite
+<code>scripts/native-smoke-test.sh</code>.</p>
 <p><code>verify-release.sh</code> builds from source: the import boundary and host-key
 assertions on the adapter, <code>gofmt</code>, <code>go mod verify</code>, the tests, vet, and the
 race detector in vendor mode, the build, its module metadata, version, and
@@ -174,9 +174,23 @@ service account's daemon, and the bundle's <code>scripts/install.sh</code> on th
 without the package), never on the build host. It rebuilds <code>bin/</code> and
 rewrites <code>CHECKSUMS.sha256</code>; with the release's <code>COMMIT</code> the bytes do not
 change. A build is stamped with its version and its commit, and no build time.</p>
+<p>Both verifiers, every suite and lab, and <code>run_suites</code> before its lanes
+refuse a host whose configuration reaches karvi, before they make
+anything: a global file (<code>/etc/karvi/config.toml</code> or
+<code>/opt/karvi/config.toml</code>), the operator's (<code>~/.config/karvi/config.toml</code>
+under the home of the passwd entry), or an inherited <code>KARVI__</code> variable, each
+named on its own line (<code>host_config_clean</code> in <code>scripts/lib/host.sh</code>, which
+takes the files from the <code>sources</code> of <code>karvi config show --format json</code>). A
+suite asserts karvi's defaults and passes its own settings by <code>--config</code> and
+<code>--set</code>; a site's file changes the defaults and its <code>[config-lock]</code> refuses
+the settings, and a variable outranks both. On a configured host, verify the
+bundle on a build host or in a container with an init (<code>docker run --init</code>), then install it: under a PID 1 that reaps nothing, as <code>sleep</code> or a
+shell, the processes a suite ends stay as zombies, and
+<code>scripts/lib/suites-test.sh</code>'s signal rows see their groups still there.</p>
 <p>A must-not-appear check in a script MUST be able to stop it: a bare
 <code>! command</code> line is exempt from <code>set -e</code>. The
-smoke suites use <code>absent PATTERN FILE</code> or <code>! … || fail &quot;…&quot;</code>.</p>
+smoke suites use <code>absent PATTERN FILE</code> (<code>scripts/lib/lab.sh</code>) or
+<code>! … || fail &quot;…&quot;</code>.</p>
 <h2 id="release-gates">Release gates <a class="anchor" href="#release-gates" aria-label="Link to this section">#</a></h2>
 <ul>
 <li>The expectations below are the suite-level form of the release gates.</li>
@@ -204,14 +218,16 @@ v0.21.0 and v0.21.1, which keep it, it is v0.19.0; for v0.22.0, the karvi
 line's first release, and v0.23.0 to v0.28.0, which keep 10, there was none;
 for v0.29.0, which moved the schema to 11, it was v0.28.0; for v0.30.0, which
 moved it to 12, and v0.30.1, v0.31.0, v0.31.1, v0.32.0, v0.32.1, v0.33.0,
-v0.34.0, v0.34.1, v0.35.0, v0.36.0, v0.37.0, v0.38.0, v0.39.0, and v0.40.0,
-which keep it, there was none: v0.29.0's daemon predates the drain that exits
-and listens on <code>daemon.sock</code>, which the new client never reaches).</li>
-<li>The Go tests and the suites MUST leave the host's shared places as they
-were: both verifiers list the shared scoreboard directory and the shared
-trees under <code>/opt/karvi</code> and <code>/var/lib/karvi</code>, and whether
-<code>/tmp/karvi-&lt;uid&gt;</code> and <code>/var/tmp/karvi-&lt;uid&gt;</code> exist, before the tests and
-fail after the suites when the list changed (<code>scripts/lib/host.sh</code>).</li>
+v0.34.0, v0.34.1, v0.35.0, v0.36.0, v0.37.0, v0.38.0, v0.39.0, v0.40.0, and
+v0.41.0, which keep it, there was none: v0.29.0's daemon predates the drain
+that exits and listens on <code>daemon.sock</code>, which the new client never reaches).</li>
+<li>The Go tests and the suites MUST leave the host's shared places and
+karvi's places under the operator's home as they were: both verifiers list
+the shared scoreboard directory and the shared trees under <code>/opt/karvi</code> and
+<code>/var/lib/karvi</code>, and whether <code>/tmp/karvi-&lt;uid&gt;</code>, <code>/var/tmp/karvi-&lt;uid&gt;</code>,
+and the passwd home's <code>.local/share/karvi</code> and <code>.config/karvi</code> exist,
+before the tests and fail after the suites when the list changed
+(<code>scripts/lib/host.sh</code>).</li>
 </ul>
 <h2 id="v0100-planning-boundary-expectations">v0.10.0 planning-boundary expectations <a class="anchor" href="#v0100-planning-boundary-expectations" aria-label="Link to this section">#</a></h2>
 <ul>
@@ -361,7 +377,8 @@ also asserts the records' count, each case's statuses and codes, the lines
 the fake received equal across the four combinations, one connection per
 combination with one shell or a channel per command, the activity's exit
 status, that the operator's trust store is unchanged, and that no fake and
-no daemon is left running. <code>make native-smoke</code> runs it alone after <code>make build</code>; <code>ONLY=S21</code> selects one case.</li>
+no daemon is left running. It runs alone by its shebang, against <code>bin/</code> or
+<code>KARVI</code>; <code>ONLY=S21</code> selects one case.</li>
 <li><strong>The audit suite</strong> (<code>scripts/audit-smoke-test.sh</code>) MUST pass: jobs against
 the fake device, at two devices named for the run alone, read back from the
 host's journal by <code>karvi-audit</code> beside the executable, each row equal to the
@@ -379,7 +396,7 @@ from a host with journald.</li>
 <a href="CISCO-IOSXE-QUALIFICATION.html"><code>docs/CISCO-IOSXE-QUALIFICATION.md</code></a> holds the
 laboratory matrix and <a href="../ROADMAP.html"><code>ROADMAP.md</code></a> the open production gates.</p>
 
-<footer>Generated from <code>docs/BUILD-QUALIFICATION.md</code> at <code>karvi-v0.40.0</code>.</footer>
+<footer>Generated from <code>docs/BUILD-QUALIFICATION.md</code> at <code>karvi-v0.41.0</code>.</footer>
 </main>
 </body>
 </html>

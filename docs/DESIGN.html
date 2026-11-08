@@ -74,8 +74,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -151,8 +151,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -288,9 +288,10 @@ platform name; <code>--dp</code>, <code>--dw</code>, <code>--ds</code> stand for
 <code>--dispatch parallel|wave|serial</code>. A shortcut is a whole word of the table that
 carries the value, so no handler knows the shortcuts exist and the last
 spelling on a line wins. <code>--tl LIST</code>, an option of <code>command</code>, <code>run</code>, <code>crun</code>,
-and a stream's lines but not of <code>login</code>, adds each comma- or
-whitespace-separated name as a <code>--target</code> at the list's position, so the plan
-and manifest record target inputs and never a list.
+and a stream's lines but not of <code>login</code>, adds each name as a <code>--target</code> at the
+list's position, splitting at commas and white space outside brackets (a
+backslash keeping the character after it), so <code>--tl 'router[1,4]'</code> is one name
+and the plan and manifest record target inputs and never a list.
 <em>Why:</em> the operator's most typed values; nothing after the parser changes.
 <em>Not taken:</em> aliases (an alias still takes a value); a list kind in the plan.</p>
 <p><strong>A device of <code>-</code> reads standard input.</strong> <code>-</code> as the value of <code>--target</code>
@@ -464,8 +465,8 @@ ordering, and the shuffle rank. <em>Why:</em> every comparison already ignored c
 one normalisation makes the identity explicit.</p>
 <p><strong>One target set, assembled in command-line order, in every mode.</strong> <code>login</code>,
 <code>command</code>, and <code>run</code> assemble one list from a positional device, repeatable
-<code>--target</code> (globs allowed), <code>--tl</code> (not in <code>login</code>), <code>--tf FILE</code>, <code>--tf DIR</code>,
-<code>--tfr PATH</code>, and the inventory selectors <code>--site</code>, <code>--device-group</code>,
+<code>--target</code> (globs and numeric ranges allowed), <code>--tl</code> (not in <code>login</code>),
+<code>--tf FILE</code>, <code>--tf DIR</code>, <code>--tfr PATH</code>, and the inventory selectors <code>--site</code>, <code>--device-group</code>,
 <code>--select-platform</code>, <code>--all</code>, each contributing at its position; the first
 occurrence of a name keeps its place, later duplicates are removed, then
 <code>--exclude</code> matches, then <code>dispatch.order</code> orders the result. <code>login</code> and
@@ -479,6 +480,124 @@ removes matching devices from the set the other inputs selected; alone it
 selects nothing. <code>--exclude</code> matches names only and refuses a double negative.
 In a target file a line beginning with <code>!</code> is a comment. <em>Why:</em> the operator's
 direction: negation behaves as <code>--exclude</code> does.</p>
+<p><strong>A bracket of digits is a numeric range, in every selector.</strong> A bracket
+holding only digits, hyphens, and commas is a list whose every item is a number
+or two numbers joined by one <code>-</code> (<code>[1-12]</code>, <code>[01-12]</code>, <code>[1,4,7-9]</code>), a range
+written at its lower bound's width (<code>[01-12]</code> is 01 to 12, <code>[1-12]</code> unpadded);
+brackets multiply. A pattern holding one matches a name exactly when the name is
+one the pattern spells, tested by number with no list built, so a range of any
+size matches. The grammar is one in every selector: <code>--target</code>, <code>--site</code>,
+<code>--device-group</code>, <code>--select-platform</code>, <code>--exclude</code>, a <code>!</code> value, target files,
+<code>job list --target</code>, the credential CSV's selector columns, and the rules of
+<code>credential-policy-map</code>, <code>session-init-map</code>, and <code>ssh-algorithms-map</code>. A
+single-digit range (<code>[1-3]</code>) and a bracket holding any other character
+(<code>[a-c]</code>, <code>[!0-3]</code>) stay classes. A bracket of those characters that is no such
+list (<code>[1-]</code>, <code>[-5]</code>, <code>[1,,3]</code>, <code>[1-3-5]</code>), or that holds white space beside a
+digit (<code>[10, 12]</code>), is refused when the pattern compiles, as a reversed range
+is, and a backslash reaches the class (<code>[1\-]</code> is <code>1</code> or <code>-</code>). A <code>.cloginrc</code>
+pattern, a configuration lock, and a file-path glob keep their own grammars.
+<em>Why:</em> as a class, a credential row <code>router[10-12]</code> matched none of router10 to
+router12, which took the next row's account with no warning, and <code>--site 'pod[1-12]'</code> took pod1 and pod2 and missed pod10 to pod12; a pattern that
+matches the names it would name on the command line means one thing wherever it
+is written; a forgotten bound or a stray space is likelier than a wanted
+literal <code>-</code>, <code>,</code>, or space (<a href="EXAMPLES.html#103-numeric-ranges-and-the-inventory-option-2026-11-07"><code>docs/EXAMPLES.md</code>, chapter
+103</a>).
+<em>Not taken:</em> a hyphen at an edge kept literal as a class keeps it (two readings
+of the same characters, <code>[1,,3]</code> and <code>[1-3-5]</code> then needing rules of their
+own); the spaces ignored (a second spelling of one range); the <code>.cloginrc</code>
+matcher following (it is read as RANCID's clogin reads it).</p>
+<p><strong>A range in a target creates the names it spells.</strong> A <code>--target</code>, a <code>--tl</code>
+name, a positional device, and a target-file, standard-input, or stream line
+whose only pattern is numeric ranges stands for the names it spells, in written
+order, as if each were typed in its place: an inventory device or, absent from
+the inventory, a direct target. A created device records the spelled name as
+<code>input_target</code>, its typed case kept (<code>Switch0[1-2]</code> records <code>Switch01</code> and
+<code>Switch02</code>), and an inventory device its inventory name, as for any typed name;
+the job manifest keeps the value as typed. A value holding a glob as well spells
+words that each select from the inventory (<code>router0[1-2]*</code> is <code>router01*</code>, then
+<code>router02*</code>). A <code>!</code> value, <code>--exclude</code>, and the inventory selectors match and
+create nothing. <em>Why:</em> a range only matched the inventory, so <code>--tl 'switch0[1-3]'</code> for devices not yet listed stopped with
+<code>inventory_empty_selection</code>, and the operator typed the names out one by one;
+a range on the command line is the operator's shorthand for the names; one
+device's name per record, and the planner rebuilds a direct device from
+<code>input_target</code>. <em>Not taken:</em> a range that
+only matches (no creation); a range that always creates (no inventory-only run,
+below); the value as typed in every record (a name no device has, the record
+not saying which).</p>
+<p><strong><code>targets.max-created-names</code> bounds the names one value creates.</strong> Unless the
+run is inventory-only, a value whose ranges spell more than
+<code>targets.max-created-names</code> names (1 to 100,000, default 1000, lockable;
+brackets multiplying) is refused with <code>target_created_names_exceeded</code> (usage,
+exit 4), the count stacked over the limit and a last line saying that with
+<code>--i</code> it selects from the inventory: a command-line value after the
+configuration is read and before any target file, the inventory, or DNS, a
+file's or stream's line as it is read; nothing is made. The limit is per value.
+<em>Why:</em> a mistyped bound (<code>box[78000-99999]</code> for <code>box[78000-78099]</code>) would
+resolve and plan 22,000 names; measured on the released build, the client plans
+100,000 devices in under a minute at under 1 GiB, and a daemon job's ceiling is
+near 36,000 whatever the site sets (the credential frame's fixed body), so the
+maximum sits above every job that can run and bounds a mistyped <code>--set</code>
+(100,000,000 would build a list of tens of GB before any refusal); a site that
+needs more names lists them in a target file, which has no bound. <em>Not taken:</em>
+<code>targets.range-max</code> (reads as any range's size); no limit, or no maximum; a
+total per run; a limit under <code>--i</code>, where nothing is built; 10,000 as the
+maximum (near the default IPC frame's ceiling, refusing a raise <code>--no-daemon</code>
+runs).</p>
+<p><strong><code>--inventory</code> runs only the inventory's devices.</strong> <code>targets.inventory-only</code>
+(default false, lockable) and the option that sets it for one invocation,
+<code>--inventory[=FILE]</code>, <code>--inv</code>, <code>--i</code> (one dash as two), in <code>login</code>, <code>command</code>,
+<code>run</code>, <code>crun</code>, and stream lines. Under it a plain name the inventory lacks is
+not run: the job is refused after the inventory loads and before planning,
+<code>target_not_in_inventory</code> (inventory, exit 5), every such name once as typed
+under the count, after ten &quot;and N more&quot;, ahead of <code>inventory_empty_selection</code>;
+a range or glob creates nothing and selects the inventory's devices among its
+names, in inventory order, at any size, the limit not applied and missing
+numbers absent. Each <code>=FILE</code> adds a file in command-line order, and together
+they are the run's whole inventory, the configured sources unread: a CSV read
+with the loader's defaults, <code>~</code> and a glob resolved by karvi as for a
+configured path, a missing file or a glob matching none <code>inventory_missing</code>, a
+file reached twice read once under its first value, a device in two files one
+device, with the loader's coalesce warning, when its rows agree and
+<code>inventory_conflict</code> when they differ. Each
+value is a source named as typed (<code>--inv='pods/*.csv'</code> is the source
+<code>pods/*.csv</code>), the name the plan's provenance and the notices carry; the
+inventory selectors draw from the files and add up as everywhere. The value
+attaches with <code>=</code> alone (<code>cli_option_value_detached</code>), and an empty <code>--inv=</code>
+is <code>cli_option_value_missing</code>, never a bare <code>--inv</code>. The bare option goes
+through the lock-aware layer, so a site's lock refuses it as it refuses
+<code>--order</code>. A stream's <code>--inv</code> line stays from job to job; <code>--reset</code> clears it
+and <code>--purge-targets</code> leaves it. <em>Why:</em> where a range creates, a mistyped name
+becomes a direct target, and an operator working from a list of known devices
+asks that only they run, often from a file of their own; the label on the line
+is what was typed, as a glob source already puts one name on several files;
+<code>--inv=$F</code> with F unset read as bare would put the site's whole inventory in
+place of the operator's file. <em>Not taken:</em> a range's missing numbers refused
+under <code>--i</code>; written order under the key (each match ranked by its place in
+the range, which a glob has no counterpart for); refusal at the first absent
+name (one rerun per name); <code>--i=false</code> (<code>=</code> carries a file, and <code>--set</code> turns
+the key off where not locked); one fixed source name for every command-line
+file, or the resolved path; an empty value read as bare, as <code>--of=</code> is; tab
+completion reading the files on the line (later, if asked).</p>
+<p><strong>A direct target is told by its path.</strong> A device is a direct target when its
+source path is <code>cli</code>, which no inventory path can be, since the loader makes
+each absolute; a source's name, configured or an <code>--inv</code> value, is a label
+alone, and <code>direct</code> is one like any other. The planner's <code>platform_not_set</code>
+skip and the <code>karvi DEVICE</code> guard ask the inventory package. <em>Why:</em> a configured
+source named <code>direct</code> lost its devices' <code>platform_not_set</code> notice, and <code>karvi lgoin</code>, an inventory name there, was refused as <code>cli_command_near_miss</code>; names
+typed on the line (<code>--inv=direct</code>) open the same collision. <em>Not taken:</em>
+<code>direct</code> refused as a source name (an <code>--inv</code> value is a file name); a marker
+field in the source (a plan schema change for what the path already tells).</p>
+<p><strong>Quoting a pattern is the shell's, and the help says so.</strong> The help's
+<code>--target</code> and <code>--tl</code> lines say to single-quote a pattern or list, and the
+operations guide says why: unquoted, bash may replace a bracket pattern with
+file names from the current folder, splits a brace pattern into words (the
+second becoming device text), and in an interactive shell expands a <code>!</code> even
+inside double quotes, so double quotes serve unless the value holds <code>!</code> or
+<code>$</code>. <em>Why:</em> karvi sees only the words bash passed and cannot tell them from
+words typed. <em>Not taken:</em> a guard in karvi; braces given a meaning (a second
+spelling of the range; a quoted brace already fails safe, a name DNS does not
+know or a refusal under <code>--i</code>); a change to target files or stream lines,
+which no shell reads.</p>
 <p><strong>Target folders and recursive folders.</strong> <code>--tf DIR</code> reads the regular files
 directly in a folder in byte order, skipping dot files, <code>readme*</code>, <code>disabled*</code>,
 and editor backup names; <code>--tfr PATH</code> descends depth-first to
@@ -1651,6 +1770,20 @@ device's offer read from the wire and x/crypto's choice repeated in karvi,
 which would name a failed handshake's; OpenSSH's log level raised under
 <code>--debug</code>, which changes the standard error karvi classifies; the line in the
 command record (<a href="EXAMPLES.html#94-the-negotiated-ssh-algorithms-in---debug-2026-11-03"><code>docs/EXAMPLES.md</code>, chapter 94</a>).</p>
+<p><strong>No FIPS 140-3 mode until Go's module performs AES-256-GCM for SSH.</strong> karvi
+leads with the strongest algorithms its transports implement, and has no mode
+that holds it to FIPS 140-3: the set one implementation, submitted and passed
+in testing for federal data protection, performs in its approved mode. For SSH
+through Go 1.27's certified module that set holds AES-CTR and not AES-GCM:
+x/crypto calls <code>crypto/cipher.NewGCM</code>, which the module refuses under
+<code>GODEBUG=fips140=only</code>, and the module's SSH form of GCM is inside the standard
+library alone. The mode waits on the ROADMAP until a <code>GOFIPS140=certified</code>
+build negotiates <code>aes256-gcm@openssh.com</code> under <code>fips140=only</code>. <em>Why:</em> FIPS
+140-3 names a validated implementation's set, not the strongest one, and karvi
+does not lead with AES-CTR to have it. <em>Not taken:</em> AES-CTR as the mode's
+cipher; the mode on an ordinary build under <code>GODEBUG=fips140=on</code>, whose module
+is not the certified snapshot (<a href="EXAMPLES.html#101-a-fips-140-3-mode-waits-on-aes-256-gcm-for-ssh-2026-11-05"><code>docs/EXAMPLES.md</code>, chapter
+101</a>).</p>
 <h2 id="7-the-plan-the-daemon-and-the-credential-channel">7. The plan, the daemon, and the credential channel <a class="anchor" href="#7-the-plan-the-daemon-and-the-credential-channel" aria-label="Link to this section">#</a></h2>
 <p><strong>The client plans; the daemon validates and executes.</strong> The client owns
 configuration, inventory, target assembly, address resolution under client
@@ -3432,6 +3565,13 @@ documents point at <code>karvi version</code>, and the verifiers pin none,
 the CHANGELOG, EXAMPLES, and a release's evidence, keeps the numbers it
 recorded. <em>Why:</em> every copy that nothing checked drifted: four schema files'
 titles, the audit's man page, and README's and BUILD-HOWTO's lists.</p>
+<p><strong>The release's number is written once</strong>, in <code>VERSION</code> at the tree's root. The
+root package <code>karvi</code> embeds the file at compile time and <code>buildinfo.Version</code>
+reads it there, so <code>go build</code>, <code>go test</code>, and <code>make build</code> report the same
+number; the scripts read the file; and the verifiers check the executable's
+version and the manifest's against it, naming none. A release changes
+<code>VERSION</code>, the CHANGELOG, and <code>CHECKSUMS.sha256</code>. <em>Why:</em> the number was moved
+by hand in five places at each release, one of them read by nothing.</p>
 <h2 id="16-build-verification-and-release">16. Build, verification, and release <a class="anchor" href="#16-build-verification-and-release" aria-label="Link to this section">#</a></h2>
 <p><strong>One shape of the source, one build, vendored.</strong> The native transport is
 compiled into every executable with no build tag; <code>vendor/</code> is part of the
@@ -3746,7 +3886,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.40.0</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.41.0</code>.</footer>
 </main>
 </body>
 </html>

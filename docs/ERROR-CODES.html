@@ -63,8 +63,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -129,8 +129,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -594,7 +594,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td>An option that takes its value with <code>=</code> alone (<code>--of</code>, <code>--record</code>, <code>--cd</code>, <code>--fs</code>) is followed by its value as a separate word: on the command line a word of a path's form after the bare option (beginning with <code>/</code>, <code>~</code>, <code>./</code>, or <code>../</code>, or <code>.</code> or <code>..</code> whole), on a stream line any text after a space. The message names the <code>--NAME=VALUE</code> form; refused before any device is contacted or transcript claimed.</td>
+<td>An option that takes its value with <code>=</code> alone (<code>--of</code>, <code>--record</code>, <code>--cd</code>, <code>--fs</code>, <code>--inventory</code>) is followed by its value as a separate word: on the command line a word of a path's form after the bare option (beginning with <code>/</code>, <code>~</code>, <code>./</code>, or <code>../</code>, or <code>.</code> or <code>..</code> whole), on a stream line any text after a space. The message names the <code>--NAME=VALUE</code> form; refused before any device is contacted or transcript claimed.</td>
 </tr>
 <tr>
 <td><code>cli_option_value_invalid</code></td>
@@ -608,7 +608,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td>An option that takes a value is the last argument.</td>
+<td>An option that takes a value is the last argument, or one whose value attaches with <code>=</code> alone is given none where it needs one: a bare or empty <code>--cd</code> or <code>--fs</code>, and an empty <code>--inventory=</code> (white space alone too), never read as a bare <code>--inventory</code>, which uses the configured inventory.</td>
 </tr>
 <tr>
 <td><code>cli_positional_missing</code></td>
@@ -2883,7 +2883,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>inventory</td>
 <td style="text-align:right">5</td>
 <td style="text-align:center">no</td>
-<td>A required inventory source path matches no files.</td>
+<td>A required inventory source path, or an <code>--inventory=FILE</code> value, matches no files: a missing file or a glob matching none, named by the source's name (an <code>--inventory</code> value as typed) and the path resolved.</td>
 </tr>
 <tr>
 <td><code>inventory_name_transform_unknown</code></td>
@@ -4046,6 +4046,20 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">5</td>
 <td style="text-align:center">no</td>
 <td>A tabular row has fewer columns than mapped while short rows are errors.</td>
+</tr>
+<tr>
+<td><code>target_created_names_exceeded</code></td>
+<td>usage</td>
+<td style="text-align:right">4</td>
+<td style="text-align:center">no</td>
+<td>A target value's numeric ranges create more names than <code>targets.max-created-names</code> allows: a <code>--target</code>, a <code>--tl</code> name, a positional device, or a target-file or standard-input line; refused before any name is made.</td>
+</tr>
+<tr>
+<td><code>target_not_in_inventory</code></td>
+<td>inventory</td>
+<td style="text-align:right">5</td>
+<td style="text-align:center">no</td>
+<td>Under <code>targets.inventory-only</code> a plain target name (no numeric range, no glob) that no inventory device has: a <code>--target</code>, a <code>--tl</code> name, a positional device, or a target-file or standard-input line. The job is refused after the inventory is read and before planning, naming every such name once, as first typed, after ten the count left; a range or glob selects only the inventory's devices, and a <code>!</code> value or <code>--exclude</code> only removes.</td>
 </tr>
 <tr>
 <td><code>target_selector_pattern_invalid</code></td>
@@ -5429,7 +5443,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 </tbody>
 </table>
 
-<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.40.0</code>.</footer>
+<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.41.0</code>.</footer>
 </main>
 </body>
 </html>

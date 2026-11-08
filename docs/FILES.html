@@ -62,8 +62,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -127,8 +127,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -767,6 +767,14 @@ in a shared place and the operator's primary group in a private one.</p>
 <td>the running daemon's status (pid, socket, version, schema, jobs), removed when it stops</td>
 </tr>
 <tr>
+<td><code>crun.lock</code></td>
+<td><code>&lt;basedir&gt;/state/</code> (<code>KARVI_CRUN_LOCK</code> names another)</td>
+<td>the umask's, empty</td>
+<td>the umask's, empty</td>
+<td>kept; held while a <code>karvi-crun</code> collection runs</td>
+<td>the cron script's lock: a tick that finds it held is skipped</td>
+</tr>
+<tr>
 <td><code>daemon.log</code></td>
 <td><code>&lt;basedir&gt;/logs/</code></td>
 <td><code>0600</code>, appended</td>
@@ -1184,8 +1192,8 @@ the executables under versioned names in <code>/usr/local/lib/karvi</code>, link
 <code>karvi-sysutil(8)</code> in <code>/usr/local/share/man/man8</code>; and the template in
 <code>/usr/local/lib/systemd/system</code>, systemd reloaded; it finds the other files in
 the bundle's <code>packaging/</code>, <code>configs/</code>, <code>schema/</code>, and <code>docs/</code>. The cron script
-<code>karvi-crun</code> holds a lock at <code>${TMPDIR:-/tmp}/karvi-crun.&lt;uid&gt;.lock</code>
-(<code>KARVI_CRUN_LOCK</code>) for the length of a collection.</p>
+<code>karvi-crun</code> holds a lock at <code>&lt;basedir&gt;/state/crun.lock</code> (4.2) for the length
+of a collection.</p>
 <h2 id="5-signs-a-host-is-not-as-intended">5. Signs a host is not as intended <a class="anchor" href="#5-signs-a-host-is-not-as-intended" aria-label="Link to this section">#</a></h2>
 <ul>
 <li>A shared directory without its setgid bit or outside the operators' group,
@@ -1204,7 +1212,7 @@ the home from the password database, so a run under another <code>HOME</code> st
 writes to the account's own.</li>
 </ul>
 
-<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.40.0</code>.</footer>
+<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.41.0</code>.</footer>
 </main>
 </body>
 </html>

@@ -65,8 +65,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -133,8 +133,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -878,11 +878,19 @@ so a git repository over the collection directory is written there too.</p>
 </code></pre>
 <p><code>karvi-crun</code> runs <code>karvi crun --all --no-daemon --format jsonl</code> with the
 arguments appended (<code>--select-platform</code>, <code>--cd=PATH</code>, <code>--transport</code>),
-under a lock it holds for the run's duration (<code>flock</code>, per user under
-<code>TMPDIR</code>; <code>KARVI_CRUN_LOCK</code> names another path). A cron starts a tick
-whatever the previous one is doing, so a tick that finds the lock held is
-skipped with one line on stderr and exit 75, never queued:</p>
-<pre><code class="language-text">karvi-crun: skipped: the previous collection is still running (/tmp/karvi-crun.1000.lock)
+under a lock it holds for the run's duration (<code>flock</code> on
+<code>&lt;basedir&gt;/state/crun.lock</code>; <code>KARVI_CRUN_LOCK</code> names another path). A cron
+starts a tick whatever the previous one is doing, so a tick that finds the
+lock held is skipped with one line on stderr and exit 75, never queued:</p>
+<pre><code class="language-text">karvi-crun: skipped: the previous collection is still running (/opt/karvi/users/netops/state/crun.lock)
+</code></pre>
+<p>The private root is the one karvi resolves, from the operator's passwd home,
+so the cron, a hand run, and <code>sudo -u</code> take the same lock whatever their
+<code>HOME</code> and <code>TMPDIR</code>. A first tick makes the root's missing folders as karvi's
+first activity does (<code>0750</code>, <code>state</code> <code>0700</code>), and never makes an explicit
+<code>basedir</code>; a basedir karvi refuses, or an explicit one that is not a
+directory, ends the tick with exit 1 and one line:</p>
+<pre><code class="language-text">karvi-crun: cannot take the lock: the private root /srv/karvi/netops is not a directory
 </code></pre>
 <p><strong>What karvi does not do.</strong> It does not refuse a second <code>crun</code> into one
 directory. Every file is whole, since it is renamed into place; the only
@@ -906,7 +914,7 @@ change to one changes both.</li>
 <code>/usr/share/karvi/cron/karvi-crun</code>: the schedule's two forms.</li>
 </ul>
 
-<footer>Generated from <code>docs/COLLECTION.md</code> at <code>karvi-v0.40.0</code>.</footer>
+<footer>Generated from <code>docs/COLLECTION.md</code> at <code>karvi-v0.41.0</code>.</footer>
 </main>
 </body>
 </html>

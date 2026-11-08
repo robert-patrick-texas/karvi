@@ -55,8 +55,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -119,8 +119,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -170,7 +170,7 @@ table.</p>
 executable named by <code>KARVI</code> (default: the tree's <code>bin/karvi-linux-amd64</code>);
 <code>scripts/lib/suites.sh</code> runs them all in three lanes with <code>run_suites</code>. Every
 suite keeps its state under its own work directory and never touches the
-host's shared places. <code>scripts/verify-release.sh</code> is the release's verifier
+host's shared places or the operator's own. <code>scripts/verify-release.sh</code> is the release's verifier
 and <code>scripts/verify-bundle.sh</code> verifies a shipped bundle as bytes.</p>
 <p>Verification is proportionate to the change: gofmt, vet, and build for a
 comment; <code>go test ./...</code> and <code>generated-clean</code> for code or generator inputs;
@@ -192,9 +192,38 @@ a row of the removed-keys table and is refused from every layer.</p>
 <p>A script reads JSON through <code>scripts/lib/json.sh</code> (<code>json_get</code>, <code>json_has</code>,
 <code>json_is</code> for one document; <code>jsonl_records</code> for a <code>.jsonl</code> stream's command
 records, one line each, the values asked for tab-separated) and never by
-matching a file's text; a must-not-appear check stops the script rather than
-relying on a negated pipeline. A Go test that
-needs a value from a <code>.json</code> file decodes it.</p>
+matching a file's text, which <code>scripts/lib/json-test.sh</code> fails on (a grep,
+sed, or awk whose pattern names a JSON key, or a JSON stream piped into
+one); a must-not-appear check stops the script, through
+<code>absent</code> in <code>scripts/lib/lab.sh</code> or <code>! ... || fail</code>, rather than relying on a
+negated pipeline. A Go test that
+needs a value from a <code>.json</code> file decodes it. A script sets its cleanup
+through <code>on_exit</code> in <code>scripts/lib/exit.sh</code>, which runs it once at any end and
+ends the script at a signal; <code>scripts/lib/exit-test.sh</code> fails on a trap of
+its own on EXIT. A suite or lab stops its daemon through <code>daemon_stop_force</code>
+in <code>scripts/lib/lab.sh</code> (<code>daemon stop --force</code>, then the socket's wait; a
+status the caller acts on, never an exit) and its fake through <code>fake_stop</code>,
+and reads its daemon's pid through <code>daemon_pid</code>; it builds its helpers
+through <code>lab_build</code>, starts its fake through <code>fake_start</code>, finds its newest
+job through <code>newest_job</code>, and writes its places (the private and shared
+roots, the spool, the scoreboards, the capacity root, the audit file, the
+floor) through <code>lab_places</code> into a file it passes first, <code>--config</code>, a row
+whose subject is another root or floor saying so on its line (&quot;the row's
+own&quot;); <code>scripts/lib/lab-test.sh</code> fails on a <code>daemon stop</code> whose status is
+ignored, on one in a cleanup, on a daemon's pid read elsewhere, on a copy of
+<code>absent</code>, on a bare negated pipeline, and on a build, a fake's start, a
+newest-job lookup, or a place key outside lab.sh. A suite whose rows go on
+past a failure runs them through <code>row</code>, <code>row_open</code>, <code>fail</code>, and <code>finish</code> in
+<code>scripts/lib/rows.sh</code>; <code>scripts/lib/rows-test.sh</code> fails on a copy of them
+or a counted <code>fail</code> of a suite's own.
+karvi takes its home from the passwd entry, not <code>$HOME</code>: a script whose
+karvi runs must write nothing there compares karvi's places under that home
+through <code>host_places</code> and <code>host_places_unchanged</code> in <code>scripts/lib/host.sh</code>.
+Every suite, lab, and verifier calls <code>host_config_clean</code> there before it
+makes anything, and <code>run_suites</code> before its lanes, so a host whose
+configuration reaches karvi (a global or user file, an inherited <code>KARVI__</code>
+variable) is refused, each one named; <code>scripts/lib/host-test.sh</code> fails on a
+script sourcing host.sh, or a suite, that does not call it first.</p>
 <h2 id="branches-and-releases">Branches and releases <a class="anchor" href="#branches-and-releases" aria-label="Link to this section">#</a></h2>
 <p>Development happens on <code>dev</code>; <code>main</code> moves only at a release, to the tagged
 commit <code>karvi-vX.Y.Z</code>. A release ships a source bundle, its checksum, and an
@@ -203,7 +232,7 @@ anything git does not track. Breaking changes are accepted before 1.0: a
 renamed option or removed key is not aliased, and every build replaces the
 daemon. <a href="ROADMAP.html"><code>ROADMAP.md</code></a> lists what is open, in order.</p>
 
-<footer>Generated from <code>CONTRIBUTING.md</code> at <code>karvi-v0.40.0</code>.</footer>
+<footer>Generated from <code>CONTRIBUTING.md</code> at <code>karvi-v0.41.0</code>.</footer>
 </main>
 </body>
 </html>

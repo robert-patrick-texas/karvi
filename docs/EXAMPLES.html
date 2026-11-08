@@ -143,6 +143,12 @@
 <li><a href="#95-a-sleep-between-commands-2026-11-03">95. A sleep between commands (2026-11-03)</a></li>
 <li><a href="#96-root-commands-on-the-exec-channel-2026-11-04">96. Root commands on the exec channel (2026-11-04)</a></li>
 <li><a href="#97-one-place-for-each-schema-counter-2026-11-04">97. One place for each schema counter (2026-11-04)</a></li>
+<li><a href="#98-the-release-0400-2026-11-05">98. The release 0.40.0 (2026-11-05)</a></li>
+<li><a href="#99-one-place-for-the-version-2026-11-05">99. One place for the version (2026-11-05)</a></li>
+<li><a href="#100-the-daemon-upgrade-suites-fixture-and-the-suites-floor-2026-11-05">100. The daemon-upgrade suite&#39;s fixture and the suites&#39; floor (2026-11-05)</a></li>
+<li><a href="#101-a-fips-140-3-mode-waits-on-aes-256-gcm-for-ssh-2026-11-05">101. A FIPS 140-3 mode waits on AES-256-GCM for SSH (2026-11-05)</a></li>
+<li><a href="#102-the-shell-script-review-of-2026-11-06-and-its-fixes-2026-11-07">102. The shell-script review of 2026-11-06 and its fixes (2026-11-07)</a></li>
+<li><a href="#103-numeric-ranges-and-the-inventory-option-2026-11-07">103. Numeric ranges and the inventory option (2026-11-07)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -154,8 +160,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -300,6 +306,12 @@
 <li><a href="#95-a-sleep-between-commands-2026-11-03">95. A sleep between commands (2026-11-03)</a></li>
 <li><a href="#96-root-commands-on-the-exec-channel-2026-11-04">96. Root commands on the exec channel (2026-11-04)</a></li>
 <li><a href="#97-one-place-for-each-schema-counter-2026-11-04">97. One place for each schema counter (2026-11-04)</a></li>
+<li><a href="#98-the-release-0400-2026-11-05">98. The release 0.40.0 (2026-11-05)</a></li>
+<li><a href="#99-one-place-for-the-version-2026-11-05">99. One place for the version (2026-11-05)</a></li>
+<li><a href="#100-the-daemon-upgrade-suites-fixture-and-the-suites-floor-2026-11-05">100. The daemon-upgrade suite&#39;s fixture and the suites&#39; floor (2026-11-05)</a></li>
+<li><a href="#101-a-fips-140-3-mode-waits-on-aes-256-gcm-for-ssh-2026-11-05">101. A FIPS 140-3 mode waits on AES-256-GCM for SSH (2026-11-05)</a></li>
+<li><a href="#102-the-shell-script-review-of-2026-11-06-and-its-fixes-2026-11-07">102. The shell-script review of 2026-11-06 and its fixes (2026-11-07)</a></li>
+<li><a href="#103-numeric-ranges-and-the-inventory-option-2026-11-07">103. Numeric ranges and the inventory option (2026-11-07)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -311,8 +323,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -21114,8 +21126,1479 @@ identity <code>CHECKSUMS.sha256</code> reproduces, so it waits until after the r
 release 0.40.0's baseline then runs on a clean clone of this commit. The
 evidence is kept beside the tree
 (<code>release-design-evidence/counters-chapter-97/</code>).</p>
+<h2 id="98-the-release-0400-2026-11-05">98. The release 0.40.0 (2026-11-05) <a class="anchor" href="#98-the-release-0400-2026-11-05" aria-label="Link to this section">#</a></h2>
+<p>The twenty-first public release, 0.40.0, on the operator's word and number,
+carrying root commands on the exec channel (<a href="#96-root-commands-on-the-exec-channel-2026-11-04">chapter
+96</a>), sleeps between commands
+(<a href="#95-a-sleep-between-commands-2026-11-03">chapter 95</a>), a device of <code>-</code> from
+standard input (<a href="#93-standard-input-as-a-device-2026-11-03">chapter 93</a>), the
+negotiated SSH algorithms (<a href="#94-the-negotiated-ssh-algorithms-in---debug-2026-11-03">chapter
+94</a>),
+and each schema counter written once (<a href="#97-one-place-for-each-schema-counter-2026-11-04">chapter
+97</a>). A minor release: the
+execution plan moves to 17, the command record to 5, and the audit to 3; every
+other counter is 0.39.0's, and Go and every module are 0.39.0's. Six of the
+CHANGELOG block's ten entries are Breaking. The daemon IPC schema stays 12, so
+the compatibility example is the drain, beside the released 0.39.0 daemon. The
+operator's word was to publish without stopping unless a step failed; the
+sequence stopped twice before the number, once on stale counters and once on a
+verifier check that failed under load, and each was mended on the operator's
+word.</p>
+<p><strong>What it gains.</strong> A site has <code>--sudo</code>, <code>--sleep</code>, and the rest from a
+published, checksummed bundle and package, with the documents on GitHub Pages
+at the release; a host on 0.39.0 takes it by <code>sudo karvi-sysutil package update</code>, or by <code>apt install</code>. The release's manifest is now checked against the
+shipped executable, and the release verifier no longer fails on a loaded host.
+The cost is the six Breaking changes, each named in the CHANGELOG's lead
+paragraph with what a site changes.</p>
+<p><strong>The operator's decisions</strong>, in simple terms:</p>
+<ul>
+<li>The full battery before the release, on <code>dev</code> with chapter 96: it found the
+verifiers' command record pin at 4, the released build's, where the tree
+builds 5; the pin moved to 5 (<code>5281f4b</code>), and the battery passed.</li>
+<li><code>dev</code> pushed before the release (<code>7367885..7935835</code>); the number 0.40.0; and
+publish without stopping, unless a step fails.</li>
+<li>The first stop: each schema counter written once (<code>d280179</code>, chapter 97).</li>
+<li>The second stop: the release verifier reads karvi's output whole before it
+checks it (<code>9455204</code>).</li>
+</ul>
+<p><strong>Before the number.</strong> Load 0.49, <code>/tmp</code> 3.7 GB free, no karvi process; the
+release tools were 0.39.0's. <code>latest.sh</code> found Go 1.27.3 and the four modules
+at their newest, and the bridge probe reached every address. The archive's
+mirror was fetched before each change to the tree. The baseline on a clean
+clone of <code>7935835</code> passed. While it ran, the released 0.39.0 executable was
+copied out of <code>bin/</code> for the compatibility example and checked against
+<code>CHECKSUMS.sha256</code>, and 1/3 was drafted.</p>
+<p><strong>The first stop: the stale counters.</strong> A search for the counters the release
+moves (execution plan 17, command record 5, audit 3) through the living files
+found copies left behind: <code>man karvi-audit</code> and OPERATIONS said audit schema 2,
+which the new <code>karvi-audit</code> no longer shows; four schema files' titles and
+<code>$id</code>s named a counter their own <code>schema_version</code> had left; README and
+BUILD-HOWTO said execution plan 15. The operator asked why they were not
+written in one place only, and chapter 97 is the answer and the change. The
+draft of 1/3 was set aside while it was made.</p>
+<p><strong>The second stop: the verifier's <code>--version</code> check.</strong> The baseline on a clean
+clone of <code>d280179</code> failed in the release verifier, with exit 141, right after
+its build. What the check guards, in plain terms: that the built executable has
+the native transport compiled in. <code>verify-release.sh</code> ran
+<code>./bin/karvi-linux-amd64 --version | grep -q '^  native: compiled-in$'</code> under
+<code>set -o pipefail</code>. <code>karvi --version</code> writes its output in three pieces, the
+header, the native line, and the system line, and <code>grep -q</code> exits at the native
+line; when karvi had not yet written the system line, that write met a closed
+pipe, karvi ended by SIGPIPE, and <code>pipefail</code> failed the line. It needs a loaded
+host, one that pauses karvi between two writes; here the race run and the build
+had just ended. The line came with chapter 82 and had passed by luck in every
+release since, the battery before this release and its first baseline among
+them. karvi itself was never at fault. The mend, <code>9455204</code>: the verifier reads
+<code>version --format json</code> and <code>--version</code> once each, checks the version against
+<code>VERSION</code> and the transports through <code>scripts/lib/json.sh</code>, and the native line
+by <code>grep</code> on the text read. No other script pipes karvi into <code>grep -q</code> under
+<code>pipefail</code>:</p>
+<pre><code class="language-text"># the baseline at d280179, the release verifier after make build
+ln -sfn karvi-audit-linux-amd64 bin/karvi-audit
+verify-release exit=141
+# the writes of each output (strace -e trace=write)
+version --format json: one write of 660 bytes
+--version: three writes, the header (289 bytes),
+  &quot;  native: compiled-in\n&quot; (22), &quot;  system: external-executable\n&quot; (30)
+# the check as committed, under bash -o pipefail, on the clone's build
+idle: 0 of 700 failed
+beside eight /bin/true loops (load 7.0): 103 of 1000 failed, exit 141
+the output read whole first, beside the same loops: 0 of 1000 failed
+# the mended block, beside the same loops
+0 of 1000 failed
+a VERSION of another number: bin/karvi-linux-amd64 is not version 0.40.0, exit 1
+</code></pre>
+<p><strong>Not taken.</strong> A rerun of the baseline until it passed: a check that fails 1
+time in 10 under load fails a release, and the next. <code>--version</code> writing its
+output in one piece: the check is the fault, not karvi, and an operator's
+<code>karvi --version | head -1</code> in a script under <code>pipefail</code> meets the same, which
+is the script's to read whole.</p>
+<p><strong>The number.</strong> <code>VERSION</code>, the <code>Makefile</code>, <code>buildinfo.Version</code>, and the two
+verifiers; the <code>## Unreleased</code> block became <code>## 0.40.0 - 2026-11-05</code>, the UTC
+day of 1/3 as 0.39.0's was, under a lead paragraph naming the release's parts,
+its counters, and what a site changes, one clause for each Breaking entry.
+<code>CHECKSUMS.sha256</code> has its four lines from the release-identity build,
+<code>C71lyQOLd6sV4H1SEuL0</code>. Since the second stop <code>verify-release.sh</code> checks the
+build's version against <code>VERSION</code>, so its number moved in two lines, not three.</p>
+<p><strong>The documents.</strong> 2/3 is 0.39.0's with this release's values, in the same
+eight files. The manifest's counters are now checked: <code>verify-shipped.sh</code> in
+3/3's evidence compares the shipped executable's seven with the manifest's, and
+ran on the tree before 2/3 was committed.</p>
+<p><strong>The release notes, executed.</strong> Before publishing, the notes' claims ran on the
+release's build against the fake's Linux persona over the native transport
+(<code>v0400-notes-check.sh</code>, from chapter 96's helpers; the <code>==</code>, <code>$</code>, <code>exit</code>, and
+<code>--</code> lines are the script's). Each held, and the notes went out as drafted.
+Three of its cases:</p>
+<pre><code class="language-text">== --sudo: a root command, its password from NETSUDO
+$ NETSUDO=en karvi command srv1 --cmd whoami --sudo whoami
+exit 0
+! srv1 [127.0.0.1] platform=linux user=netops backend=builtin-env-fallback transport=native
+netops
+root
+! exit=0 elapsed=T artifacts=$TMP/state/jobs/ID
+-- the records: schema_version, command, privilege, command_sha256 present
+{&quot;schema_version&quot;:5,&quot;command&quot;:&quot;whoami&quot;,&quot;privilege&quot;:&quot;(absent)&quot;,&quot;command_sha256&quot;:false}
+{&quot;schema_version&quot;:5,&quot;command&quot;:&quot;whoami&quot;,&quot;privilege&quot;:&quot;sudo&quot;,&quot;command_sha256&quot;:false}
+-- the audit's device command events: schema_version, action.privilege
+{&quot;schema_version&quot;:3,&quot;event_name&quot;:&quot;cmd.command&quot;,&quot;privilege&quot;:&quot;(absent)&quot;}
+{&quot;schema_version&quot;:3,&quot;event_name&quot;:&quot;cmd.command&quot;,&quot;privilege&quot;:&quot;sudo&quot;}
 
-<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.40.0</code>.</footer>
+== a crun-commands entry --sleep with no duration
+$  karvi crun --target srv1
+exit 4
+commands_file_sleep_invalid: client planning: platform linux crun-commands entry 2: --sleep takes a duration of 1s..12h (30s, 5m, 1h30m), not &quot;soon&quot;; the line is --sleep DURATION alone
+
+== a device of - reads standard input
+$  karvi command - --cmd uname\ -snrm
+exit 0
+! srv1 [127.0.0.1] platform=linux user=netops backend=builtin-env-fallback transport=native
+Linux fake 6.8.0-0-generic x86_64
+! exit=0 elapsed=T artifacts=$TMP/state/jobs/ID
+</code></pre>
+<p><strong>The sequence, as run</strong>, from the battery's pre-checks at 22:55 on 2026-11-04
+to the published check at 00:32 on 2026-11-05 (UTC; 17:55 to 19:32, EST):</p>
+<ul>
+<li>22:57:14 to 23:07:50, the full battery on a copy of <code>5281f4b</code>: every suite,
+the package, and its container test; <code>7935835</code>, chapter 96's Checks.</li>
+<li>23:19, the operator's word: <code>dev</code> pushed, the release begun.</li>
+<li>23:21:33 to 23:32:19, the baseline on a clean clone of <code>7935835</code>: exit 0.</li>
+<li>23:24 to 23:36, the stale counters, the first stop for the operator:
+<code>d280179</code>.</li>
+<li>23:36:41 to 23:40:01, the baseline on a clean clone of <code>d280179</code>: the release
+verifier exit 141. The second stop, with the measurements: <code>9455204</code> at
+23:57.</li>
+<li>23:57:22 to 00:07:35, the baseline on a clean clone of <code>9455204</code>: <code>latest.sh</code>,
+gofmt, make, and the release verifier with its package and container steps,
+exit 0 each.</li>
+<li>00:07 to 00:08, the release-identity build, the compatibility example, and
+1/3: the 0.39.0 daemon drained idle, refusing busy; <code>f76f7af</code>.</li>
+<li>00:08:32 to 00:10:53, the core evidence: 1,321 named tests across 93
+packages, vet 0, both socket lengths exit 0.</li>
+<li>00:12:28, the documents: <code>eef0b27</code> (2/3).</li>
+<li>00:12:36 to 00:22:44, the remaining evidence: the shipped checks exit 0, the
+release verifier exit 0 with the nineteen suites, the package, and its
+container test, the checksums unchanged by its rebuild; the replay skipped.</li>
+<li>00:23, 3/3, the tag, <code>main</code>: <code>3f3eb4a</code>, <code>karvi-v0.40.0</code>, <code>main</code>
+fast-forwarded from <code>7158fa1</code>.</li>
+<li>00:23:13 to 00:29:46, the artifacts: the bundle reproducible byte for byte and
+verified from its own archive; the package reproducible and checked against
+the extraction; 40,085,865 and 6,660,078 bytes.</li>
+<li>00:30, the package installed in a throwaway <code>ubuntu:26.04</code>: <code>apt install</code>
+exit 0; the four installed executables <code>CHECKSUMS.sha256</code>'s; <code>karvi-audit --help</code> exit 0; 22 files under <code>/usr/share/karvi</code>. The notes' claims executed
+on the release's build.</li>
+<li>00:30:44 to 00:32, the push, the site, the GitHub release: <code>dev</code>, <code>main</code>, and
+the tag pushed; <code>pages.sh</code> pushed the release's site (<code>05cd660</code>), built at
+00:31:34, its footer <code>karvi-v0.40.0</code>; release <code>karvi-v0.40.0</code> with the five
+assets, marked latest, its body the notes file; the assets downloaded back
+match, and <code>releases/latest</code> redirects to the tag.</li>
+</ul>
+<p><strong>Executed.</strong> The compatibility example's turning points
+(<code>release/evidence/ipc-schema-compat.log</code>) and the published state:</p>
+<pre><code class="language-text">[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.39.0 build=OVm9OErdgujJlrhYFLuV
+daemon started socket=/dev/shm/r400/compat/base/socket/d.sock
+pid 1844456 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build OVm9OErdgujJlrhYFLuV 0.39.0
+  client build C71lyQOLd6sV4H1SEuL0 0.40.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 1844561 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+karvi-v0.40.0 assets=5 draft=false prerelease=false
+$ sha256sum -c karvi-v0.40.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.40.0-source-linux-amd64.tar.gz: OK
+karvi_0.40.0_amd64.deb: OK
+$ the latest redirect
+location: https://github.com/robert-patrick-texas/karvi/releases/tag/karvi-v0.40.0
+</code></pre>
+<p><strong>Found on the way.</strong></p>
+<ul>
+<li><code>karvi</code> is 69,632 bytes larger, <code>karvi-askpass</code> 4,096, <code>karvi-prune</code> 8,192,
+and <code>karvi-audit</code> 4,096; the bundle is 100,887 bytes larger and the package
+48,532.</li>
+<li>The default configuration and the module metadata of the four executables are
+0.39.0's, byte for byte, so 3/3 carries eight evidence files.</li>
+<li>The version string has the shape chapter 97 removed from the counters: five
+places moved by hand at each release's 1/3, <code>VERSION</code>, the <code>Makefile</code>,
+<code>buildinfo.Version</code>, and the two verifiers.</li>
+<li>In the throwaway container <code>man karvi-audit</code> has no page, as in the releases
+before: the minimal image leaves out <code>/usr/share/man</code>.</li>
+<li><code>/tmp/karvi-1000</code>, empty and there since before the session, was unchanged by
+every step.</li>
+</ul>
+<p>The evidence is kept beside the tree (<code>release-design-evidence/v0400-*</code>: the
+timeline, the three baselines, the SIGPIPE measurements and the mended block,
+the core evidence, the build, the compatibility example, the 1/3 drafts and the
+2/3 patch, the artifacts, the container install, the release notes and their
+check, the push, the site, the GitHub release, and the published check;
+<code>sudo-chapter-96/battery.log</code> the battery; <code>counters-chapter-97/</code> the first
+stop's checks).</p>
+<h2 id="99-one-place-for-the-version-2026-11-05">99. One place for the version (2026-11-05) <a class="anchor" href="#99-one-place-for-the-version-2026-11-05" aria-label="Link to this section">#</a></h2>
+<p>Chapter 98 found the release's number in the shape chapter 97 removed from the
+schema counters, and the operator asked for it in one place. It was written
+five times, each moved by hand at a release's first commit:</p>
+<ul>
+<li><code>VERSION</code>, read by every script: the installer, the package's build, the
+bundle's name, and the release tools;</li>
+<li>the Makefile's <code>VERSION ?=</code>, read by nothing;</li>
+<li><code>buildinfo.Version</code>, a Go constant, which <code>karvi version</code> reports and 25
+places in the code read;</li>
+<li><code>verify-release.sh</code>, a comment and a check that <code>VERSION</code> equals a typed copy
+of itself;</li>
+<li><code>verify-shipped.sh</code>, the same check and a <code>grep</code> on the JSON for the typed
+number.</li>
+</ul>
+<p>The bundle's name in BUILD-HOWTO and the runbook, and OPERATIONS' upgrade
+example, name an artifact or record what ran, and stay.</p>
+<p><strong>What it gains.</strong> A release's number moves in one file, and nothing can
+disagree with it: the executable, the manifest, and the scripts are all
+checked against it or read it. It waits on nothing.</p>
+<p><strong>The rule, agreed as recommended</strong> (<a href="DESIGN.html#15-configuration-and-errors"><code>docs/DESIGN.md</code>, section
+15</a>, &quot;The release's number is written
+once&quot;): <code>VERSION</code> is the one place. A file at the module root, <code>version.go</code>,
+embeds it at compile time (<code>//go:embed VERSION</code>), and <code>buildinfo.Version</code> reads
+it there. The Makefile's line goes. <code>verify-release.sh</code> drops its check and the
+number in its comment, and checks its build's version against the file, as
+since chapter 98. <code>verify-shipped.sh</code> drops its check and <code>grep</code>, and checks the
+shipped executable's version and the manifest's against the file through
+<code>scripts/lib/json.sh</code>. A release's first commit changes <code>VERSION</code>, the
+CHANGELOG, and the checksums.</p>
+<p><strong>The executed examples.</strong> A clone with <code>VERSION</code> alone set to 9.9.9: <code>go run ./cmd/karvi version</code> and <code>make build</code>'s executable reported 9.9.9, and the
+tests that read <code>buildinfo.Version</code> (<code>buildinfo</code>, <code>cli</code>, <code>daemon</code>, <code>app</code>)
+passed. <code>verify-shipped.sh</code> on the tree passed, and on copies with one value
+changed it stopped:</p>
+<pre><code class="language-text"># release/release-manifest.json naming 0.39.0
+version differs
+  VERSION                        0.40.0
+  release/release-manifest.json  0.39.0
+exit=1
+# VERSION 0.41.0 beside the 0.40.0 build
+version differs
+  VERSION                        0.41.0
+  bin/karvi-linux-amd64          0.40.0
+exit=1
+</code></pre>
+<p><strong>Not taken.</strong> The number set by <code>-ldflags -X</code> from the Makefile: <code>go test</code>,
+<code>go run</code>, and a plain <code>go build</code> would report another number than <code>make build</code>'s. <code>VERSION</code> moved into <code>internal/buildinfo</code>, where <code>//go:embed</code> can
+reach it from that package: every script and the bundle's name read it at the
+root. A generated Go file holding the number: a second copy, checked by <code>make generated-clean</code>, where the embed needs none.</p>
+<p><strong>Checks.</strong> gofmt, <code>go vet</code>, <code>make generated-clean</code>, the whole tree's <code>go test</code>,
+the examples above, and the full battery, <code>scripts/verify-release.sh</code> in a copy
+of the tree. The evidence is kept beside the tree
+(<code>release-design-evidence/version-one-place/</code>).</p>
+<h2 id="100-the-daemon-upgrade-suites-fixture-and-the-suites-floor-2026-11-05">100. The daemon-upgrade suite's fixture and the suites' floor (2026-11-05) <a class="anchor" href="#100-the-daemon-upgrade-suites-fixture-and-the-suites-floor-2026-11-05" aria-label="Link to this section">#</a></h2>
+<p>The operator chose the shell-script review's two findings, open since the
+review of 2026-10-31 (<a href="#88-the-code-review-of-2026-10-31-and-its-fixes-2026-11-01">chapter
+88</a>): #64 and #65,
+each a suite that stopped the suites' third lane on a host where karvi itself
+was sound; and, found while measuring #65, four more suites asking the host for
+the same floor, fixed here on the operator's word. None of it touches karvi or
+production; each was a suite's own budget, of time or of disk.</p>
+<p><strong>What it gains.</strong> A battery stops for karvi alone: not for a cold build cache,
+and not for a volume short of karvi's default 2 GiB floor, which five suites
+asked of the host. It waits on nothing.</p>
+<p><strong>#64, the fixture compiled inside its start's wait.</strong> The daemon-upgrade suite
+starts a lifecycle-only daemon fixture four times and waits for its socket 100
+times 0.02 seconds. It ran the fixture by <code>go run</code>, so the first start after a
+change to the packages the fixture builds compiled them inside that wait: 2.4
+seconds on the operator's host in <a href="#55-an-explicit-envname-cell-2026-10-10">chapter
+55</a>, where a battery on a cold cache
+stopped on it and the ROADMAP took it up. On <code>6deeba6</code>, the build cache an
+empty folder, <code>TMPDIR=/var/tmp</code>, load 0.25, the suite stopped after 2.8
+seconds:</p>
+<pre><code class="language-text">$ GOCACHE=&lt;an empty folder&gt; ./scripts/daemon-upgrade-smoke-test.sh
+schema-2 fixture did not start
+exit=1
+</code></pre>
+<p>The fix, as the finding gave it: the suite builds <code>tools/daemon-fixture</code> into
+its work directory once, before the first start, by the line the other suites
+build the fake device with, and starts the executable. The wait measures the
+start alone, and <code>FIXTURE_PID</code> holds the fixture's own pid, not <code>go run</code>'s.
+With another empty cache the suite passed in 21.6 seconds, the compile before
+the first wait; with that cache warm, in 1.7. The ROADMAP item &quot;A suite's
+failure that names its call&quot; loses the half that asked for this; its question
+of a function that names a failed call stays.</p>
+<p>Not taken: a longer wait, which would still time a compile of whatever length
+the host gives (about 20 seconds here, cold); the fixture built by <code>make tools-build</code>, as <code>secret-scan</code> is, which would make the suite depend on a make
+step run before it.</p>
+<p><strong>#65, the floor the spool suite asked of the host.</strong> S9's auto row runs a job
+at a 1 GiB command limit across more devices than the volume holds limits, and
+expects karvi to narrow it, <code>spool_width_narrowed</code>. The finding said the row
+needs about 3 GiB free and does not say so; it had stopped batteries on
+<code>/tmp</code>, a 4.9 GB tmpfs, once in <a href="#43-the-release-with-the-debian-package-2026-10-08">chapter
+43</a> and twice in <a href="#74-a-shorter-name-keeps-its-scratch-files-2026-10-20">chapter
+74</a> (3,228,434,432
+bytes asked; 2,757,001,216 and 2,903,162,880 free). Measured on <code>52fe96e</code> with a file filling <code>/tmp</code> to a
+chosen free space (the work directory shown as <code>$TMP</code>), the suite failed before
+S9 as well:</p>
+<pre><code class="language-text"># 2.83 GB free when the suite began
+spool smoke: FAIL: S6 not kept: exit 111: output_preflight_space: daemon validation: $TMP/base/jobs/261104/261104-214611-00, $TMP/spool: need 2214920192 bytes free, only 2147758080 free
+# 3.36 GB free when the suite began; S1 to S8 passed
+spool smoke: FAIL: S9 auto: exit 111: output_preflight_space: $TMP/base/jobs/261104/261104-215054-01, $TMP/spool: need 3228434432 bytes free, only 2511876096 free
+</code></pre>
+<p>Thirteen suites set <code>output.min-free-bytes-after-job</code> to 0. The spool suite ran
+under the default 2 GiB, so every row asked the host for 2 GiB beside the
+suite's own writes, about 0.9 GB before S9, and S9 asked a further limit.</p>
+<p><strong>The rule, agreed as recommended.</strong> The suite's configuration sets the floor
+to 0, as the others do: its rows' subject is the spool, not the host's free
+space, and S10, whose subject is the floor, sets its own. S9 reads the floor
+from karvi (<code>config show output.min-free-bytes-after-job</code>) and the spool
+volume's free space at the row, after the suite's earlier writes, and runs the
+auto row when the volume holds the floor and two limits: one for the job at
+width one, one for the job's other files and what the other lanes write
+meanwhile, the reason S10 sets its floors a GiB above its reading. With less,
+the row is not run and its line names both figures. The row's limit is written
+once in the suite, as <code>LIMIT</code>. On the suite as changed:</p>
+<pre><code class="language-text"># 2.56 GB free when the suite began
+spool smoke: S9 never read nothing; auto not run here: the spool's volume has 1647316992 bytes free, under the floor and two limits, 2147483648
+spool smoke: pass
+# 3.90 GB free, /tmp as it was
+spool smoke: S9 never read nothing; auto narrowed 11 devices to what 3 GiB holds
+spool smoke: pass
+# TMPDIR=/var/tmp, 19.5 GB free
+spool smoke: S9 never read nothing; auto narrowed 26 devices to what 18 GiB holds
+spool smoke: pass
+</code></pre>
+<p>Not taken: the finding's fix as written, the row skipped below the floor and
+one limit, which leaves S6 failing on a smaller volume and, at its edge, lets
+the other lanes' writes turn the row between run and refused; the suite
+computing karvi's estimate of the job's other files, the formula written
+twice; the refusal asserted on a small volume, which is S10's subject. The
+cost: a volume holding less than two limits at S9 skips a row that could, at
+its margin, run at width one.</p>
+<p><strong>Four more suites, the same floor, agreed as recommended.</strong> Of the six suites
+that set no floor beside the spool suite, four run jobs or recorded logins on
+the host's volume: the audit, job list, parity, and transcript suites (the
+completion suite runs no job; the sysutil suite runs karvi in its container,
+not measured). On <code>485ce78</code>, with <code>/tmp</code> filled to 1.75 GB free, each stopped
+at its first job or recorded login, the transcript suite with exit 111 and no
+line, the gap the ROADMAP's &quot;A suite's failure that names its call&quot; describes:</p>
+<pre><code class="language-text">audit smoke: FAIL: cmd: exit 111, want 0: output_preflight_space: $TMP/base/jobs/261105/261105-065916-00, $TMP/spool: need 2215247872 bytes free, only 1747378176 free
+job list smoke: FAIL: cmd: exit 111, want 0: output_preflight_space: $TMP/base/jobs/261105/261105-065917-00, $TMP/spool: need 2215247872 bytes free, only 1747390464 free
+native smoke: FAIL: S1 success, a rejected command, success under continue (the daemon path too) command.system: exit 111, expected 107: output_preflight_space: …
+</code></pre>
+<p>Each sets the floor to 0 where it keeps its other settings: the audit and job
+list suites in their configuration file; the transcript suite in its <code>--set</code>
+list, its floor rows still setting their own, since a later <code>--set</code> wins; and
+the parity suite through the environment layer,
+<code>KARVI__OUTPUT__MIN_FREE_BYTES_AFTER_JOB</code>, which the daemon a client launches
+inherits. The parity suite's rows write their own <code>[output]</code> tables into its
+file, and a second <code>[output]</code> header is refused (<code>config_toml_syntax: … table redefined: output</code>); the environment outranks the file, so no parity row sets
+the floor there. With the same 1.75 GB free, all four passed, the audit, job
+list, and transcript suites in 2 to 7 seconds, the parity suite in 210.</p>
+<p>Not taken: the environment layer in all four, where each suite's file or
+<code>--set</code> list holds the key beside its other settings and the layer is needed
+only where the file cannot hold it.</p>
+<p><strong>Left open.</strong> The review's other open findings: #63 (Go's resolver and the
+host's domain) and #69 with #81 (checks going by path, not by a held
+descriptor), design sessions, and #71 (internal/app's login tests writing to
+the host's journal), the test review.</p>
+<p><strong>Checks.</strong> <code>sh -n</code> on the six suites, the examples above, <code>make generated-clean</code>, a check build of the documents, and the full battery twice,
+<code>scripts/verify-release.sh</code> under <code>TMPDIR=/var/tmp</code>: in a clone of <code>485ce78</code>
+(11:48 to 11:58 UTC), and in a copy of the tree with the four suites' change
+(12:11 to 12:21 UTC). Both passed: 74 packages, then again under <code>-race</code>, and
+the 19 suites, S9 narrowing 25 devices to what 17 GiB holds. The evidence is
+kept beside the tree (<code>release-design-evidence/shell-script-review-2026-11-04/</code>:
+each finding's runs and patch, the two batteries' logs, and in <code>floor-class/</code>
+the four suites' runs before and after, and their patch).</p>
+<h2 id="101-a-fips-140-3-mode-waits-on-aes-256-gcm-for-ssh-2026-11-05">101. A FIPS 140-3 mode waits on AES-256-GCM for SSH (2026-11-05) <a class="anchor" href="#101-a-fips-140-3-mode-waits-on-aes-256-gcm-for-ssh-2026-11-05" aria-label="Link to this section">#</a></h2>
+<p>The operator asked for the options for a configuration setting that holds
+karvi to FIPS 140-3 crypto. The session read what the tree has, and what Go
+1.27's FIPS 140-3 module and x/crypto's SSH package (v0.58.0) do in FIPS mode,
+on a lab build of <code>04f4df4</code> against the fake device; it raised five issues and
+stopped at the first, when the operator ruled that the mode waits, and the
+ROADMAP holds the item. The key the tree had for the mode, which enforced
+nothing, was then removed.</p>
+<p><strong>What it would gain.</strong> A site under a federal rule could show that karvi's
+SSH sessions use only approved algorithms, performed by a validated module.
+A device in FIPS mode
+needs none of it: one offering FIPS names alone is reached on karvi's defaults
+today,</p>
+<pre><code class="language-text"># the fake: ecdh-sha2-nistp384,ecdh-sha2-nistp256; aes256-ctr,aes128-ctr; hmac-sha2-256
+-- ordinary build: exit 0
+   negotiated: kex=ecdh-sha2-nistp384 hostkey=ssh-ed25519 cipher=aes256-ctr mac=hmac-sha2-256
+</code></pre>
+<p><strong>The rule, the operator's.</strong> karvi leads with the strongest algorithms its
+transports implement. FIPS 140-3 is not the strongest set: it is the set one
+implementation, submitted and passed in testing for federal data protection,
+performs in its approved mode. Today that set, for SSH through Go, holds AES-CTR
+and not AES-GCM, and karvi does not lead with AES-CTR to have it; so the mode
+waits until Go's module performs AES-256-GCM for SSH in its approved form, the
+ROADMAP's &quot;A FIPS 140-3 mode, once Go's module performs AES-256-GCM for SSH&quot;.
+Its test: a <code>GOFIPS140=certified</code> build negotiates <code>aes256-gcm@openssh.com</code>
+under <code>GODEBUG=fips140=only</code>.</p>
+<p><strong>Go's module.</strong> Go 1.27 names its certified module and the one in process in
+<code>lib/fips140</code> (<code>certified: v1.0.0-c2097c7c</code>, <code>inprocess: v1.26.0</code>). A build
+with <code>GOFIPS140=certified</code> links that snapshot and turns FIPS mode on by
+default:</p>
+<pre><code class="language-text">build	-tags=fips140v1.0
+build	DefaultGODEBUG=fips140=on
+build	GOFIPS140=v1.0.0-c2097c7c
+</code></pre>
+<p>An ordinary build run under <code>GODEBUG=fips140=on</code> is in FIPS mode too, but with
+the module the toolchain carries, which <code>crypto/fips140.Version()</code> reports as
+<code>latest</code>: the same code, not the snapshot the certificate covers. Under <code>on</code>
+the module performs unapproved functions as well; under <code>only</code> it refuses them.</p>
+<p><strong>The native transport narrows itself.</strong> In FIPS mode x/crypto leaves out at
+start the key exchanges, ciphers, and MACs it does not count as approved, two
+below excepted, and karvi's offer asks x/crypto what it performs
+(<code>xcryptoImplements</code> in <code>internal/transport/native/dial.go</code>), so the offer
+narrowed with no change in karvi, against the fake on x/crypto's server
+defaults:</p>
+<pre><code class="language-text">-- ordinary build, fips140 off: exit 0
+   offered: kex=mlkem768x25519-sha256,curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group16-sha512,diffie-hellman-group-exchange-sha256,diffie-hellman-group14-sha256,diffie-hellman-group14-sha1 ciphers=aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr macs=hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,hmac-sha1
+-- ordinary build, fips140=on: exit 0
+   offered: kex=mlkem768x25519-sha256,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256 ciphers=aes256-gcm@openssh.com,aes256-ctr macs=hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256
+   negotiated: kex=mlkem768x25519-sha256 hostkey=ssh-ed25519 cipher=aes256-gcm@openssh.com mac=&lt;implicit&gt;
+-- GOFIPS140=certified build: exit 0
+   negotiated: kex=mlkem768x25519-sha256 hostkey=ssh-ed25519 cipher=aes256-gcm@openssh.com mac=&lt;implicit&gt;
+-- ordinary build, fips140=only: exit 110
+   error=native_session_open_failed: SSH handshake with 127.0.0.1:PORT: ssh: handshake failed: curve25519: crypto/ecdh: use of X25519 is not allowed in FIPS 140-only mode
+</code></pre>
+<p>Two names stay in the offer under <code>on</code> that the module refuses under <code>only</code>:
+the ML-KEM hybrid, whose other half is X25519, and AES-GCM. A device whose
+offer holds none of the names left fails the negotiation, both offers named;
+one offering a SHA-1 host key alone fails later in the handshake, in
+x/crypto's words, karvi's host-key list holding <code>ssh-rsa</code> from its own table:</p>
+<pre><code class="language-text"># the fake: curve25519-sha256, chacha20-poly1305@openssh.com
+-- fips140=on: exit 110
+   error=ssh_algorithm_negotiation_failed: no key exchange algorithm in common: karvi offered mlkem768x25519-sha256,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256; the device offered curve25519-sha256,curve25519-sha256@libssh.org
+# the fake: diffie-hellman-group14-sha256
+-- fips140=on: exit 110
+   error=ssh_algorithm_negotiation_failed: no key exchange algorithm in common: karvi offered mlkem768x25519-sha256,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256; the device offered diffie-hellman-group14-sha256
+# the fake: aes256-ctr, hmac-sha1
+-- fips140=on: exit 110
+   error=ssh_algorithm_negotiation_failed: no MAC algorithm in common: karvi offered hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256; the device offered hmac-sha1
+# the fake: one RSA host key signing only with ssh-rsa
+-- fips140=on: exit 110
+   error=native_session_open_failed: SSH handshake with 127.0.0.1:PORT: ssh: handshake failed: ssh: hash algorithm for format &quot;ssh-rsa&quot; not allowed in FIPS 140 mode
+</code></pre>
+<p>Each of the four connects with FIPS mode off. NIST still lists the
+finite-field groups 14 to 18 and HMAC-SHA-1; Go's module performs no
+finite-field Diffie-Hellman, and x/crypto drops HMAC-SHA-1 in FIPS mode, so
+over native a device offering only those is not reached: the module's limit,
+as UMAC is x/crypto's (<a href="#54-the-transports-own-ssh-algorithm-lists-2026-10-10">chapter
+54</a>).</p>
+<p><strong>AES-256-GCM.</strong> The certified module holds AES-GCM and an SSH form of it,
+<code>NewGCMForSSH</code>, which enforces RFC 5647's nonce construction (&quot;This complies
+with FIPS 140-3 IG C.H Scenario 1.d&quot;, <code>aes/gcm/gcm_nonces.go</code> in the module's
+snapshot), but inside the standard library alone: <code>crypto/cipher</code> offers <code>NewGCM</code>, whose caller supplies the IVs,
+and <code>NewGCMWithRandomNonce</code>. x/crypto calls <code>NewGCM</code>; its comment in
+<code>cipher.go</code> says it will &quot;wire it up to NewGCMForSSH in Go 1.26&quot; and, for now,
+works &quot;with fips140=on but not fips140=only&quot;. With karvi's lists narrowed to a
+key exchange the module performs, the cipher alone decides:</p>
+<pre><code class="language-text"># kex ecdh-sha2-nistp256, ciphers aes256-gcm@openssh.com
+-- GOFIPS140=certified build, fips140=only: exit 110
+   error=native_session_open_failed: SSH handshake with 127.0.0.1:PORT: ssh: handshake failed: crypto/cipher: use of GCM with arbitrary IVs is not allowed in FIPS 140-only mode, use NewGCMWithRandomNonce
+# kex ecdh-sha2-nistp256, ciphers aes256-ctr
+-- GOFIPS140=certified build, fips140=only: exit 0
+   negotiated: kex=ecdh-sha2-nistp256 hostkey=ssh-ed25519 cipher=aes256-ctr mac=hmac-sha2-512-etm@openssh.com
+</code></pre>
+<p>The second row is the FIPS 140-3 SSH session Go performs today, and the reason
+the mode waits.</p>
+<p><strong>Under <code>only</code>, a hashed trust-store entry.</strong> The same row with the trust
+store's entry hashed (<code>ssh-keygen -H</code>, OpenSSH's <code>|1|</code> form, HMAC-SHA-1 over
+the host name) makes karvi itself panic, in the match in
+<code>internal/hostkey/inspect.go</code> that calls <code>hmac.New(sha1.New, salt)</code>:</p>
+<pre><code class="language-text">-- GOFIPS140=certified build, fips140=only, hashed entry: exit 2
+   stderr: panic: crypto/hmac: use of hash functions other than SHA-2 or SHA-3 is not allowed in FIPS 140-only mode
+</code></pre>
+<p>No release runs under <code>only</code>, so nothing in production meets it; a design
+that uses <code>only</code> starts there.</p>
+<p><strong>What the tree has today.</strong> <code>security.require-fips</code> is documented &quot;Startup
+verifies build/runtime mode&quot;, and nothing reads it but the audit, which records
+it as <code>fips_required</code>. <code>karvi version</code>'s <code>fips_mode</code> is the Makefile's
+<code>FIPS_MODE</code> label, not the binary:</p>
+<pre><code class="language-text">ordinary build:                 fips_mode: false
+ordinary build, fips140=on:     fips_mode: false
+GOFIPS140=certified build:      fips_mode: false
+</code></pre>
+<p>The system transport's module is the host's OpenSSH and OpenSSL; on this host
+<code>OpenSSH_10.2p1 Ubuntu-2ubuntu3.8, OpenSSL 3.5.5</code>, the default provider
+alone, no FIPS provider among OpenSSL's modules (<code>legacy.so</code>), and no
+<code>/proc/sys/crypto/fips_enabled</code>.</p>
+<p><strong>The issues the design opens with.</strong> Raised in this order, the first stopped
+at its first point when the operator ruled, so none is settled:</p>
+<ol>
+<li>The key and its promise: <code>security.require-fips</code>, already lockable and in
+the audit, a hard stop at start unless the binary runs the certified module
+in FIPS mode (recommended); not a new <code>ssh-algorithms.source = &quot;fips&quot;</code>,
+which holds the SSH lists alone. The key is removed since (below), and
+which options the mode takes and enforces is decided when it opens.</li>
+<li>Where the approved names come from: the module's own set, through the
+offer filter karvi has, less the names x/crypto passes and the module
+refuses (recommended); not karvi's own table of approved names, a second
+copy of the module's security policy that would already disagree with
+x/crypto's (the finite-field groups, HMAC-SHA-1).</li>
+<li>The system transport and telnet under the key: refused until a FIPS host is
+tested (recommended).</li>
+<li><code>on</code> or <code>only</code>: <code>on</code>, with the offer narrowed as in issue 2 (recommended),
+since <code>only</code> needs the hashed-entry match above scoped out of its
+enforcement.</li>
+<li><code>karvi version</code> from the running binary (<code>crypto/fips140.Enabled()</code> and
+<code>Version()</code>), the <code>FIPS_MODE</code> label removed, a <code>GOFIPS140</code> knob in the
+Makefile, and whether a release ships a second build (the operator's).</li>
+</ol>
+<p><em>Not taken:</em> AES-CTR as the FIPS mode's cipher, the operator's rule above; the
+mode on an ordinary build under <code>GODEBUG=fips140=on</code>, whose module is not the
+certified snapshot.</p>
+<p><strong>The first finding, agreed: <code>security.require-fips</code> removed.</strong> The
+operator's word: the key is of no utility now and is not coming back; when Go's
+module offers the mode, the options it takes and enforces are decided then. On
+<code>e68d406</code> the key set to true changed nothing in the session, and the audit
+said FIPS was required:</p>
+<pre><code class="language-text">$ karvi --set security.require-fips=true command --target router1 -c 'show clock'
+exit=0
+  audit cmd.end policy: {&quot;fips_required&quot;:true,&quot;ssh_halt_run_on_host_key_mismatch&quot;:false,&quot;ssh_host_key_policy&quot;:&quot;accept-new&quot;,&quot;telnet&quot;:false}
+</code></pre>
+<p>The registry's row is gone (registry 34), and with it the reference's and the
+configuration schema's; <code>fips_required</code> leaves the policy of a job's and a
+login's audit events (audit schema 4), and <code>karvi-audit</code> reads schema 4 alone.
+As every removal since <a href="#61-a-list-of-jobs-karvi-job-list-2026-10-15">chapter
+61</a>, the key is refused as
+unknown, with no row in <code>internal/configload/removed.go</code>, from every layer:</p>
+<pre><code class="language-text">$ karvi --set security.require-fips=true command --target router1 -c 'show clock'
+config_unknown_key: unknown configuration key for security.require-fips at --set[2]
+exit=2
+$ KARVI__SECURITY__REQUIRE_FIPS=true karvi command --target router1 -c 'show clock'
+config_unknown_environment: unknown KARVI__ environment variable at KARVI__SECURITY__REQUIRE_FIPS
+exit=2
+$ karvi command --target router1 -c 'show clock'   # [security] require-fips = true in the file
+config_unknown_key: unknown configuration key for security.require-fips at $TMP/karvi.toml:35
+exit=2
+$ karvi command --target router1 -c 'show clock'   # the key unset
+exit=0
+  audit cmd.end schema_version: 4
+  audit cmd.end policy: {&quot;ssh_halt_run_on_host_key_mismatch&quot;:false,&quot;ssh_host_key_policy&quot;:&quot;accept-new&quot;,&quot;telnet&quot;:false}
+</code></pre>
+<p>The plan's configuration block loses the key, so the k03 draft's pinned digest
+moved with its configuration digest, and nothing else
+(<code>internal/planner/draft_test.go</code>); <code>karvi-audit</code>'s tests typed the schema
+number in their events and its warning, and name 4. <em>Not taken:</em> the key kept
+with its documentation corrected to &quot;recorded in the audit only&quot;, a setting
+that changes nothing.</p>
+<p><strong>The second finding, agreed: the <code>fips_mode</code> label removed.</strong> <code>karvi version</code>'s <code>fips_mode</code>, in its text, its JSON, and a job manifest's
+<code>app.build</code>, was the Makefile's <code>FIPS_MODE</code> word, stamped in at build time and
+checked against nothing. It said <code>false</code> for the three builds above, two of
+them in Go's FIPS mode, and on <code>b189505</code> whatever the build command said, here
+for an ordinary build with no FIPS setting at all:</p>
+<pre><code class="language-text">$ karvi version   # built as make build FIPS_MODE=true does
+  fips_mode: true
+  --format json, fips_mode: true
+$ karvi command --target router1 -c 'show clock'   # exit 0, the default build
+  manifest app.build.fips_mode: false
+</code></pre>
+<p>Nothing read it, the verifiers checking the schema numbers alone. The line,
+the field, <code>buildinfo.FIPSMode</code>, and the Makefile's <code>FIPS_MODE</code> and its <code>-X</code>
+flag are removed; the job schema stays 5, the manifest's <code>app</code> being
+free-form, as when <code>app.build.ssh_transports</code> changed. After, both builds
+alike:</p>
+<pre><code class="language-text">$ karvi version
+  config_registry_schema: 34
+  icmp_method: socket
+  --format json, fips_mode: (absent)
+$ karvi command --target router1 -c 'show clock'   # exit 0
+  manifest app.build.fips_mode: (absent)
+  manifest schema_version: 5
+</code></pre>
+<p>A command line that still says <code>FIPS_MODE=true</code> reaches no flag: <code>make -n build</code> passes <code>-X …/buildinfo.Commit=</code> alone. <em>Not taken:</em> the line reporting
+the running binary's Go FIPS state and module version, a field about a mode
+karvi does not have, off for every release; it belongs to the mode's design.</p>
+<p><strong>Left open.</strong> The ROADMAP item, opened by its test above.</p>
+<p><strong>Checks.</strong> The FIPS runs above, by one script on the tree at <code>04f4df4</code> with
+the ROADMAP item: karvi and the fake device built from the tree, a
+<code>GOFIPS140=certified</code> build beside them, the work directory (shown as <code>$TMP</code>)
+and its trust store in the session's scratch space and removed after. The
+key's runs by a second script the same way, on <code>e68d406</code> and on the change;
+<code>go vet</code> and <code>go test ./...</code> over the whole tree, <code>make generated-clean</code>, a
+check build of the documents, and the full battery,
+<code>scripts/verify-release.sh</code> under <code>TMPDIR=/var/tmp</code>, in a copy of the tree with
+the change (03:52 to 04:02 UTC): 74 packages, then again under <code>-race</code>, and the
+19 suites, S9 narrowing 24 devices to what 16 GiB holds. The label's runs by a
+third script the same way, on <code>b189505</code> and on the change; <code>go vet</code>, <code>go test ./...</code>, and <code>make generated-clean</code> again, and a second battery in a copy of the
+tree with that change (04:23 to 04:33 UTC), alike. The evidence is kept beside
+the tree (<code>release-design-evidence/fips-2026-11-05/</code>: the scripts and their
+logs, and the two batteries').</p>
+<h2 id="102-the-shell-script-review-of-2026-11-06-and-its-fixes-2026-11-07">102. The shell-script review of 2026-11-06 and its fixes (2026-11-07) <a class="anchor" href="#102-the-shell-script-review-of-2026-11-06-and-its-fixes-2026-11-07" aria-label="Link to this section">#</a></h2>
+<p>Opened on the operator's request, as <a href="#88-the-code-review-of-2026-10-31-and-its-fixes-2026-11-01">chapter
+88</a> had left it,
+&quot;later, on its own&quot;: a read-only review of every shell script in the tree, two
+reviewers reading in opposite directions and every finding checked, on <code>dev</code> at
+<code>6a341e2</code> (<a href="#101-a-fips-140-3-mode-waits-on-aes-256-gcm-for-ssh-2026-11-05">chapter
+101</a>). The
+review found 24 defects and ten repeated patterns; the operator decided the
+eight that needed a rule and approved a plan of eleven sections, the scripts
+staying POSIX sh and their conversion to bash going on the ROADMAP. The fixes
+found three more defects, #25 to #27, each fixed in the section that found it.
+Ten commits on <code>dev</code>, <code>e126e8e</code> to <code>729dd3e</code>, carry the code, each message
+naming its section and findings, and the eleventh this record; nothing is
+pushed. The findings and the plan are kept in the operator's private archive.</p>
+<p><strong>What it gains.</strong> The scripts are how a release is shown sound:
+<code>scripts/verify-bundle.sh</code>, <code>scripts/verify-release.sh</code>, and the suites
+<code>run_suites</code> runs. Before the fixes, seven of their checks could not fail; a
+Ctrl-C ran a script's cleanup and its rows went on against the removed folder;
+the three lanes ran on after the verifier had ended; and on a host with a
+configuration of its own every suite tested that configuration under its
+settings. Three of the scripts ship: <code>karvi-sysutil</code>, which as root followed
+links the service account could plant (the one high finding); <code>karvi-crun</code>,
+whose lock another user could take first; and the source bundle's script,
+whose bundle followed the checkout's umask. Each is fixed beside a test that
+failed on the tree as it was. It waits on nothing. None of the CHANGELOG's
+entries for it is Breaking; the next release's source bundle carries other
+modes, so its bytes differ from what the same tree gave before.</p>
+<p><strong>The review.</strong> Every shell file outside <code>vendor/</code>, 42 files and 8,247 lines,
+and at the operator's word the Makefile and <code>packaging/debian/rules</code> (181
+lines), with shellcheck 0.11.0 and checkbashisms as the reviewers' lead list
+(both checkbashisms errors parser artifacts, <code>dash -n</code> accepting the files).
+One reviewer read the files top to bottom and one bottom to top, under one
+brief; the orchestrator merged the duplicates and checked every finding
+against the code it cites, by experiment where the claim was the shells'
+behaviour. 35 raw findings became 24: 13 found by both reviewers, 5 by the
+bottom reader alone, 6 by the top; none rejected and one narrowed (#15). One
+is high, ten medium, twelve low, and one is a manual page's. A
+capture-recapture estimate (18 × 19 / 13) put the total near 26; the fixes
+found three more. <code>packaging/debian/rules</code> had none. The patterns, R1 to R10
+and the build line known before the review, are code repeated across the
+scripts, each to become one tested function of <code>scripts/lib</code>.</p>
+<p><strong>The sections</strong>, in the plan's order (the CHANGELOG's <code>Unreleased</code> block says
+what each changed):</p>
+<table>
+<thead>
+<tr>
+<th>Section</th>
+<th>Findings</th>
+<th>Commit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S1 karvi-sysutil</td>
+<td>#1 #4 #15 #16 #25</td>
+<td><code>e126e8e</code></td>
+</tr>
+<tr>
+<td>S2 the traps</td>
+<td>#2 #26 R9</td>
+<td><code>27a3f83</code></td>
+</tr>
+<tr>
+<td>S3 the lanes</td>
+<td>#3</td>
+<td><code>b246ce3</code></td>
+</tr>
+<tr>
+<td>S4 cleanup</td>
+<td>#9 #10 R2 R3</td>
+<td><code>d4e5f93</code></td>
+</tr>
+<tr>
+<td>S5 the false passes</td>
+<td>#5-#8 #12 #18 #21 R4</td>
+<td><code>a083406</code></td>
+</tr>
+<tr>
+<td>S6 shipped and release</td>
+<td>#11 #13 #14 #22-#24</td>
+<td><code>80cf65e</code></td>
+</tr>
+<tr>
+<td>S7 the fixed sleeps</td>
+<td>#17</td>
+<td><code>690eb6d</code></td>
+</tr>
+<tr>
+<td>S8 JSON by path</td>
+<td>#19 R8</td>
+<td><code>7c5fe29</code></td>
+</tr>
+<tr>
+<td>S9 the configuration layers</td>
+<td>#20 #27</td>
+<td><code>9de5698</code></td>
+</tr>
+<tr>
+<td>S10 the shared functions</td>
+<td>R1 R5-R7 R10, build line</td>
+<td><code>729dd3e</code></td>
+</tr>
+</tbody>
+</table>
+<p>S11 is this chapter, the ROADMAP's items, and the CHANGELOG's <code>Unreleased</code>
+block read whole.</p>
+<p><strong>How the fixes ran.</strong> Per section: a test that fails on the tree as it was,
+its run kept; the fix; <code>sh -n</code>, <code>dash -n</code>, or <code>bash -n</code>, and shellcheck
+against the review's list, no new note; the suites it touched run by their
+shebang against the released <code>bin/</code>, <code>TMPDIR</code> under <code>/var/tmp</code>; its CHANGELOG
+entry and the documents it names. The sections ran one after another on
+<code>dev</code>'s tree, since S2 and S10 touch nearly every suite; in S10 one agent moved
+the 23 callers in a worktree of its own, and its diff was read whole before it
+was applied. Before each section that removed code (S5, S6, S8, S10) the
+operator's mirror of the repository was fetched, so what went has an archive.
+The new code is functions of <code>scripts/lib</code>, POSIX sh with each function's
+variables prefixed, written so that a later conversion changes their bodies and
+not their callers. Each library file has a test beside it, run under sh and
+bash, which <code>run_suites</code> runs before its lanes and which also fails when a
+script goes around the file's functions: <code>json-test.sh</code> (59 rows),
+<code>exit-test.sh</code> (16), <code>suites-test.sh</code> (67), <code>lab-test.sh</code> (88),
+<code>host-test.sh</code> (53), and <code>rows-test.sh</code> (31). <a href="../CONTRIBUTING.html#writing-code"><code>CONTRIBUTING.md</code>, &quot;Writing
+code&quot;</a>, states the rules. The battery ran
+after S1, S4, S7, and S10, in a copy of the tree under <code>/var/tmp</code> built by
+<code>make build tools-build</code>: vet, <code>make generated-clean</code>, <code>go test</code> over 74
+packages, and <code>run_suites</code> with <code>KARVI</code> the copy's build (244, 254, 251, and
+262 s); after S1 and S10 also the sysutil container suite on a package built in
+the copy, and after S10 <code>scripts/verify-bundle.sh</code> whole on the released
+<code>bin/</code> (366 s). After each, the host held nothing of karvi's but
+<code>/tmp/karvi-1000</code>, an empty folder found before the work.</p>
+<p><strong>#1, root never acts on what the account owns, agreed.</strong> <code>karvi-sysutil daemon install</code> repaired the service account's home and configuration as root,
+through <code>chown</code>, <code>chmod</code>, and <code>install -d -o karvi</code>, and <code>stat -c</code> reports a
+link itself, so a link always differed and was repaired through. The account
+owns its home: code running as it (its daemon, a hook) could put a link at
+<code>config.toml</code>, at <code>.config</code>, or at the home itself, and the administrator's
+next <code>daemon install</code>, the documented repair, gave the link's target to the
+account. In an ubuntu:26.04 container booting systemd, the 0.40.0 package
+installed and <code>config.toml</code> replaced by a link to a root file of mode 0640:</p>
+<pre><code class="language-text">repaired config /opt/karvi/users/karvi/.config/karvi/config.toml
+  found karvi:karvi 0777
+  set   karvi:karvi 0600
+# the link's target after: /srv/a/shadow karvi:karvi 600
+</code></pre>
+<p>A <code>.config</code> linked to a root directory set that directory to mode 0700, its
+owner kept, and made <code>karvi/config.toml</code> in it the account's; linked to <code>/etc</code>,
+the same closes <code>/etc</code> to every other user and gives the account the global
+layer. As decided, root makes only the home
+(<code>mkdir</code>, which never follows a link, then <code>chown -h</code>); everything inside it is
+made and repaired as the account (<code>runuser -u karvi -- ...</code>); and a link,
+another type, or another owner's at the home, <code>.config</code>, <code>.config/karvi</code>, or
+the configuration, or an existing home the install did not make, is refused
+before anything changes, what was found over what is wanted:</p>
+<pre><code class="language-text">karvi-sysutil: /opt/karvi/users/karvi/.config/karvi/config.toml is not as the install made it; nothing changed
+  found link to /srv/a/shadow, owner karvi
+  want  file, owner karvi
+</code></pre>
+<p>Two facts the fix met: the account reaches its home only through the
+operators' group (<code>/opt/karvi/users</code> is 1770), so the install joins the group
+before it makes or repairs the home, and the record lists <code>membership</code> before
+<code>home</code>; and <code>install /dev/stdin</code> fails under <code>runuser</code> when standard input is
+root's pipe, so the configuration is written by `sh -c 'umask 0177 &amp;&amp; cat</p>
+<blockquote>
+<p>&quot;$1&quot;'` as the account. <em>Not taken:</em> root acting inside the home after a check
+alone, the account able to swap a path between the check and the action.</p>
+</blockquote>
+<p><strong>#25, found while writing S1's tests, agreed.</strong> <code>daemon remove</code> removed the
+account's configuration as root, so the same <code>.config</code> linked to <code>/etc</code> took
+the site's global file with it, exit 0:</p>
+<pre><code class="language-text">removed  config /opt/karvi/users/karvi/.config/karvi/config.toml
+# /etc/karvi/config.toml after: gone
+</code></pre>
+<p>Remove runs the install's check first and removes the file and its two
+folders as the account; when the account cannot (removed by hand, or out of
+the operators' group), the removal is refused, naming <code>daemon install</code> to take
+the account back first. No case links to <code>/etc</code> itself since (the operator's
+word, after this chapter's first form): the sysutil suite's row, and the case
+run again, plant the link at a root folder under <code>/srv</code> holding
+<code>karvi/config.toml</code>, which 0.40.0's remove took, exit 0, and the tree's keeps:</p>
+<pre><code class="language-text">karvi-sysutil: /opt/karvi/users/karvi/.config is not as the install made it; nothing changed
+  found link to /srv/e, owner karvi
+  want  directory, owner karvi
+</code></pre>
+<p><em>Not taken:</em> root's <code>rm</code> after the check alone; root
+changing into the checked folder (<code>cd -P</code>, the physical path confirmed) and
+removing from inside it, correct and subtler to read. S1 also stops the
+install when its record cannot be written (#4: the refusal ended only a
+pipeline, and a read-only <code>/etc/karvi</code> let the install exit 0), writes an
+empty record without refusing (#15), and reads <code>daemon status</code> with
+<code>--nocolor</code> (#16), not through <code>scripts/lib/json.sh</code>, which the package does
+not ship.</p>
+<p><strong>The order, agreed: the fixes first, in POSIX sh.</strong> After the operator's
+questions on sh and bash, the fixes went first as planned, #1 first, and the
+conversion to bash onto the ROADMAP (&quot;Left open&quot;, below); every new function
+shell-neutral, so the conversion changes bodies, not callers.</p>
+<p><strong>#2, the traps, agreed: one <code>on_exit</code>.</strong> Twenty-four scripts set their
+cleanup with <code>trap cleanup EXIT HUP INT TERM</code>. A signal trap that does not
+exit returns to the script in both shells: the cleanup runs, the rows go on
+against the removed work folder, and the cleanup runs again at the end. Under
+dash a trap on EXIT alone runs nothing when a signal ends the script. The
+device qualification against the fake device, a Ctrl-C after five rows:</p>
+<pre><code class="language-text"># the script as it was
+device qualification: 46 failed
+ctrlc: status 1, 10.2 s after the Ctrl-C
+rows after the Ctrl-C: 77
+# through on_exit
+ctrlc: status 130, 0.1 s after the Ctrl-C
+rows after the Ctrl-C: 0
+</code></pre>
+<p>On a laboratory device those rows would have gone on to D13's <code>reload</code>.
+<code>on_exit CLEANUP</code> in <code>scripts/lib/exit.sh</code> sets <code>trap CLEANUP EXIT</code> and
+<code>trap 'exit 129' HUP</code>, <code>trap 'exit 130' INT</code>, <code>trap 'exit 143' TERM</code>, the same
+form right under bash and dash; every script calls it. Under <code>set -e</code> a
+failing command inside the cleanup ends the cleanup there, the status then 1,
+so a cleanup's commands carry <code>|| :</code> or return a status (S4).</p>
+<p><strong>#26, found while writing S2, agreed.</strong> <code>make generated-clean</code> removed its
+scratch folder with a trap on EXIT alone, and make runs a recipe under
+<code>/bin/sh</code>, dash: a Ctrl-C left the folder in <code>TMPDIR</code> with its three generated
+files, about 270 KB. The recipe sources <code>scripts/lib/exit.sh</code> and calls
+<code>on_exit</code>; after, make's <code>Error 130</code> and nothing of the recipe's left. A
+<code>go-build</code> folder left beside it both times is Go's own, <code>go run</code> interrupted.</p>
+<p><strong>S2's reach, agreed: the five bash scripts on EXIT alone too.</strong> The
+completion, k03, and v0100 suites, the lifecycle replay, and
+<code>scripts/verify-release.sh</code> trapped EXIT alone, which bash runs when a signal
+ends the script; the review counted them correct. A TERM sent to such a script
+alone, 0.5 s into a 3 s command:</p>
+<pre><code class="language-text">bash exitonly lone TERM 0.5 s in: status 143, ended 0.5 s after start; the 3 s command still running: 1; output: cleanup ran
+bash on_exit  lone TERM 0.5 s in: status 143, ended 3.0 s after start; the 3 s command still running: 0; output: cleanup ran
+</code></pre>
+<p>They call <code>on_exit</code> too, one function and a check with no exception
+(<code>exit-test.sh</code> fails on a trap on EXIT set any other way, the Makefile
+included). <em>Not taken:</em> the five left as they were (two forms, an exception in
+the check); <code>on_exit</code> choosing EXIT alone under bash (a branch tested both
+ways, the command left running). The ROADMAP's &quot;The scripts' traps on the
+signals&quot; closed with S2.</p>
+<p><strong>#3, the lanes, agreed as restated.</strong> <code>run_suites</code> started its three lanes as
+asynchronous commands, which a non-interactive shell starts with INT ignored,
+and no trap can undo that: a Ctrl-C ended the verifier and the lanes ran on.
+Each lane now runs under <code>setsid</code>, its id kept as its group's; while the lanes
+run, HUP, INT, and TERM call <code>rs_stop</code>, which sends TERM to each group (<code>kill -TERM &quot;-$pg&quot;</code>, the pid for a lane not yet in its group), waits up to 30 s for
+the groups to empty, prints the lanes' output, removes the lane folder, and
+ends 129, 130, or 143; after the lanes, the signal traps are <code>on_exit</code>'s again.
+A Ctrl-C 45 s into a run against the released <code>bin/</code>: before, the verifier
+ended at once and, 15 s later, the v0100 and smoke suites, their two daemons,
+and a fake were still running, their work folders and the lane folder in
+<code>TMPDIR</code>; after, status 130 in 0.65 s, nothing running then or 15 s later,
+<code>TMPDIR</code> empty, the lanes' output printed. <code>suites-test.sh</code> runs a model
+verifier over model suites in a scratch root, starting it as a terminal starts
+a job (<code>terminal_job</code>: <code>setsid env --default-signal=INT</code>).</p>
+<p><strong>S3's second signal, agreed.</strong> While <code>rs_stop</code> waited, the plan's form left
+the signals on <code>rs_stop</code>, so a second Ctrl-C ran it again and its second TERM
+cut the suites' cleanups short. Model suites whose cleanup takes 1 s, a second
+INT once all three had started:</p>
+<pre><code class="language-text">unguarded, verifier under sh: verifier gone after .162 s; marks 1.5 s later:
+  model-a cleanup start
+  model-b cleanup start
+  model-d cleanup start
+  verifier cleanup
+guarded, verifier under sh: verifier gone after 1.07 s; marks 1.5 s later:
+  model-a cleanup done
+  model-a cleanup start
+  model-b cleanup done
+  model-b cleanup start
+  model-d cleanup done
+  model-d cleanup start
+  verifier cleanup
+</code></pre>
+<p>The same under bash. <code>rs_stop</code> begins with <code>trap '' HUP INT TERM</code>, its wait
+bounded at 30 s. <em>Not taken:</em> a run-once flag in <code>rs_stop</code> (the nested call
+returns and exits, ending the verifier before the lanes and leaving the lane
+folder); no guard.</p>
+<p><strong>#9 and #10, the plan's fix (S4).</strong> Two suites stopped their daemon in the
+cleanup through a function whose <code>fail</code> is <code>exit 1</code>, which <code>|| true</code> does not
+catch inside a trap, so a daemon still listening ended the cleanup before its
+removal: a model daemon that ignores the stop left the work folder and the fake,
+the suite's passing rows ending 1. Five more stopped it without <code>--force</code>,
+which a daemon holding a job refuses (<code>daemon_active_jobs</code>, exit 112); after
+the folder went, the daemon finished its job and wrote the removed folder
+again (its scoreboard, capacity lock, and the job's summary). Every cleanup
+stops through <code>daemon_stop_force SOCKET COMMAND...</code> in <code>scripts/lib/lab.sh</code>,
+which returns 1, never exits, when the socket stays, and <code>fake_stop</code>: the same
+job stopped in 0.6 s with nothing left.</p>
+<p><strong>#5, S5's home places, agreed.</strong> karvi takes its home from the passwd entry,
+<code>$HOME</code> only as a fallback, so the checks that <code>--help</code>, <code>version</code>, and the
+completion's hidden words write nothing, which looked under a fresh <code>$HOME</code>,
+passed whatever karvi wrote into the operator's own places: a model executable
+that made its private root under a folder standing for the passwd home passed
+<code>scripts/verify-shipped.sh</code>'s block as it was. <code>host_places HOME</code> watches
+<code>HOME/.local/share/karvi</code> and <code>HOME/.config/karvi</code> by their existence, beside
+the host's shared places, and <code>host_places_unchanged</code> compares; its test passes
+a scratch folder as the home, never the operator's. By existence, not every
+entry inside them: the private root is where the operator's own daemon writes,
+so a full listing would fail a run beside a working daemon; on a host where
+neither exists, the build host, any write is seen. <em>Not taken:</em> the full
+listing. The follow-up, agreed then and done in S10: <code>scripts/verify-bundle.sh</code>
+and <code>scripts/verify-release.sh</code> compare <code>host_places</code> of the passwd home around
+the Go tests and the suites, where they compared the shared places alone.</p>
+<p><strong><code>verify-shipped.sh</code>'s folders, closed by S2 and S5.</strong> The ROADMAP's
+&quot;<code>verify-shipped.sh</code> reviewed for what it leaves&quot; asked that every folder the
+script makes be removed at its exit, passed, failed, or interrupted. At
+<code>6a341e2</code> the stateless folder was made before the trap and removed only when
+its check passed; on the tree it is under the work folder, made after
+<code>on_exit</code>. Each form with a <code>false</code> after its stateless check, and sent TERM
+once its first folder appeared, <code>TMPDIR</code> an empty folder:</p>
+<pre><code class="language-text">head  passed exit 0   TMPDIR after: []
+head  failed exit 1   TMPDIR after: [tmp.hRqK17i92S ]
+head  term   exit 143 TMPDIR after: [tmp.ubZcRgeY3f ]
+tree  passed exit 0   TMPDIR after: []
+tree  failed exit 1   TMPDIR after: []
+tree  term   exit 143 TMPDIR after: []
+</code></pre>
+<p>The item is removed from the ROADMAP.</p>
+<p><strong>#6, agreed: removed, not repaired.</strong> The spool suite's S5 ran <code>karvi-prune --days 0</code>, a usage error since 0.39.0 (exit 2), its status never read, so the
+row held because nothing ran. karvi-prune walks the jobs, the transcripts, and
+the two scoreboard folders, never the spool, and the Go tests cover what it
+leaves inside them: the row and the suite's need for karvi-prune went, S5
+keeping its admission sweep. <em>Not taken:</em> the review's repair, <code>--days 1</code> with
+the spool files' times set back, testing what karvi-prune never reaches.</p>
+<p><strong>#11, the cron lock, agreed and refined.</strong> <code>karvi-crun</code> locked
+<code>${TMPDIR:-/tmp}/karvi-crun.&lt;uid&gt;.lock</code>, a name another user can make first.
+In an ubuntu:26.04 container, alice's planted file and bob's tick:</p>
+<pre><code class="language-text">/usr/local/bin/karvi-crun: 20: cannot create /tmp/karvi-crun.1501.lock: Permission denied
+</code></pre>
+<p>Exit 2, every night, under the host's <code>protected_regular</code>; without it, a file
+alice held locked would skip every tick. Also found: a hand run with <code>TMPDIR</code>
+set took another lock and ran beside the tick. Decided: the lock is
+<code>&lt;basedir&gt;/state/crun.lock</code>, basedir as karvi resolves it from the passwd home
+(<code>config show --explain basedir</code>), so the cron, a hand run, and <code>sudo -u</code> take
+one lock; <code>KARVI_CRUN_LOCK</code> still names another. The decided <code>(umask 077; mkdir -p &quot;$base/state&quot;)</code> left three gaps, run in the same container: a first
+tick made the root's missing folders 0700 where karvi makes them 0750; an
+explicit basedir that does not exist, which karvi refuses, was made (an
+unmounted mount point collected into); and a basedir karvi refuses printed
+<code>resolved:   error: ...</code> with exit 0, which the line took for a path. Refined
+and agreed: a <code>resolved:</code> that is not absolute is refused, exit 1; the root's
+missing folders are made at 0750 only when the value is <code>&quot;auto&quot;</code>; a root that
+is not a directory is refused, exit 1:</p>
+<pre><code class="language-text">karvi-crun: cannot take the lock: the private root /srv/kb/hank is not a directory
+karvi-crun: cannot take the lock: basedir resolved: error: lstat /opt/karvi/users/ivan: permission denied
+</code></pre>
+<p>A tick under a held lock is still skipped, exit 75. <em>Not taken:</em>
+<code>$XDG_RUNTIME_DIR</code> (unset under cron, so a hand run takes another lock);
+<code>$HOME/.cache</code> (karvi takes the passwd home, and the place is outside its
+tree); a private folder under <code>/tmp</code> (its name can be planted); crun taking the
+lock itself (DESIGN declines refusing a second crun, and it is a Go change);
+the decided line as it was.</p>
+<p><strong>#14's mode, agreed.</strong> The source bundle fixed its owner, group, and mtime,
+not its modes. Clones of the tree under umask 0022, 0002, 0027, and 0077, each
+bundled:</p>
+<pre><code class="language-text">head: 4 distinct checksums over the four umasks
+decided: 3 distinct checksums over the four umasks
+tree: 1 distinct checksums over the four umasks
+</code></pre>
+<p>The decided <code>--mode=go-w</code> joined 0022 and 0002, the plan's test, but 0027 and
+0077 kept their read bits. Agreed: <code>--mode=a+rX,u+w,go-w</code>, every mode from the
+owner's execute bit alone (files 0644, executables and folders 0755, the two
+modes git keeps), and an explicit <code>--format</code>. <em>Not taken:</em> <code>go-w</code> as decided.
+With it, #13: the bundle script and <code>scripts/build-deb.sh</code> write tar's archive
+to a file first and stop when tar fails, where a pipe without <code>pipefail</code> lost
+its status and a clone holding an unreadable file gave a bundle, or a package,
+without it, exit 0.</p>
+<p><strong>#22 with #23, agreed: the smoke targets removed.</strong> The Makefile's six smoke
+targets depended on <code>build</code>, so each overwrote <code>bin/</code>'s executables, a
+release's qualified build among them. A suite runs by its shebang against
+<code>bin/</code> or <code>KARVI</code>, <code>run_suites</code> runs them all, and <code>build</code> (with <code>all</code> through
+it) alone writes <code>bin/</code>; <code>tools-build</code> stays and joins <code>.PHONY</code>. Its check,
+<code>make -n</code> of every target and a search of the documents for a removed one,
+gave eight failures on the old tree and none after.
+<em>Not taken:</em> smoke targets building into a lab folder (a second build place,
+its helpers beside it, and still a partial list); keeping them documented.</p>
+<p><strong>S7's job-list folder, agreed.</strong> The job-list suite killed its run 2 s after
+the start; waiting for the run's folder and summary instead made a second race
+reachable. Its folder without a summary was named <code>&lt;J5's second&gt;-zz</code>, the last
+ID of that second, and karvi gives a job the first free ID of its second, so a
+run in J5's second sorted below it: the wait alone, five runs, three failing,
+J5 <code>261106-191546-01</code>, r6 <code>…-191546-03</code>, and the folder <code>…-191546-zz</code> taken
+for r6. Agreed: the folder is the ID after J5's (<code>next_id</code>, karvi's order
+0-9a-z), above J5 and below any job reserved after it. <em>Not taken:</em> a wait for
+the clock to pass J5's second (karvi's IDs follow its effective time zone, not
+<code>date</code>'s).</p>
+<p><strong>S7's settled bytes, agreed.</strong> The spool suite's cancel and lost rows cut 0.7
+s after the client's start; on the build host that landed before the 65.7 MB
+answer began, and the rows passed, their status, digest, and count checks
+holding for an empty output. Each row now waits for a beat of the scoreboard
+counting the target's bytes, then cuts:</p>
+<pre><code class="language-text">head, held:   cancel  0 bytes, lost  0 bytes, pass
+head, unheld: cancel  0 bytes, lost  0 bytes, pass
+tree, held:   cancel 12550254 bytes, lost 26058143 bytes, pass
+tree, unheld: cancel 22639754 bytes, lost 31084710 bytes, pass
+</code></pre>
+<p>Agreed: both rows also check <code>output_bytes &gt; 0</code>, as the timeout row checks its
+bound; the old timing with the check fails at the cancel row, 0 bytes. <em>Not
+taken:</em> the wait alone. The v0100 suite's i1 had 0.30 to 0.36 s to spare and
+now 2.30 to 2.40 s (the device holds its command 3 s); the sysutil suite polls
+up to 30 s for the file logind removes 10 s after a logout.</p>
+<p><strong>S8, JSON read by its path: three points, agreed.</strong> Forty-one lines of eleven
+scripts matched a JSON document's text. The worst were the two <code>icmp_method</code>
+reads, which skipped the ICMP rows when they found nothing. The plan's
+demonstration said &quot;a compact layout&quot;, but the old sed reads the compact
+document; the layouts that skip the rows are a space before the colon (valid
+JSON) and the key moved into an object, as a rename leaves it. Against a karvi
+whose version JSON is laid out again: at <code>690eb6d</code>, spaced and moved, &quot;p1-p3
+SKIP&quot;, both suites passing on a host with the socket method; on the tree,
+moved:</p>
+<pre><code class="language-text">FAIL: p1-p3: karvi version --format json names no ICMP method (icmp_method=absent)
+</code></pre>
+<p>Agreed: the rows run on <code>socket</code> or <code>system</code>, skip with the reason on
+<code>unavailable</code> alone (karvi writes one of the three on every host), and fail on
+any other answer, the key's absence included, since <code>json_get</code> with an absent
+key read as empty would have skipped as before. Read by path, four checks
+assert other than their text matches did, each to its message, agreed: canary
+p1 checks every record's <code>ping.method</code>, not one; k03 o3 every record's
+<code>dispatch_order</code> and <code>shuffle_key</code>; o5 the record's own
+<code>device.canonical_name</code>, not the name anywhere in the stream; and the
+transcript suite's start record is checked by field, its order and further
+fields no longer fixed (its subject is the values). <code>json-test.sh</code> fails on a
+grep, sed, or awk whose pattern names a JSON key; a layout stays a text match
+only where it is the row's subject (v080's indented array).</p>
+<p><strong>#20, the configuration layers, agreed.</strong> A karvi run reads the site's global
+file and the operator's beneath a suite's <code>--config</code> and <code>--set</code>, and an
+inherited <code>KARVI__</code> variable above them. In an ubuntu:26.04 container: with
+<code>/etc/karvi/config.toml</code> holding <code>[telnet] read-timeout = &quot;120s&quot;</code> the v090
+suite's default row failed with no line; with <code>[config-lock] &quot;sharedroot&quot; = true</code>, the suite stopped at</p>
+<pre><code class="language-text">config_lock_violation: write blocked by lock &quot;sharedroot&quot; declared at /etc/karvi/config.toml:2 for sharedroot at --set[2]
+</code></pre>
+<p>Agreed: a hard precondition, <code>host_config_clean KARVI</code> in
+<code>scripts/lib/host.sh</code>, reading karvi's own <code>config show --format json</code>
+<code>sources</code> (the paths stay in karvi alone) and the inherited <code>KARVI__</code>
+variables, called by every suite and lab before it makes anything, and by
+<code>run_suites</code> before its lanes; the site's file and jsmith's together:</p>
+<pre><code class="language-text">karvi reads this host's configuration; run where it reads none (docs/BUILD-QUALIFICATION.md):
+  file: /etc/karvi/config.toml
+  file: /home/jsmith/.config/karvi/config.toml
+</code></pre>
+<p>A configured host verifies the bundle on a build host or in a container.
+<em>Not taken:</em> per-row <code>--explain</code> skips (every other key and lock stays); a
+karvi switch skipping the automatic layers (it would escape the site's
+authority layer); unsetting <code>KARVI__</code> silently.</p>
+<p><strong>S9's four points, agreed.</strong> The verifiers: the check covers
+<code>scripts/verify-shipped.sh</code>, <code>verify-bundle.sh</code>, and <code>verify-release.sh</code>, which
+the decision's list did not name, and they are reached: an exported
+<code>KARVI__NOPE=1</code> ended verify-shipped at <code>7c5fe29</code> with exit 2,
+<code>config_unknown_environment</code>, and on the tree it is refused, <code>variable: KARVI__NOPE</code>. verify-shipped calls it where karvi first runs, verify-bundle
+beside its library line, verify-release after its <code>make build</code>. <em>Not taken:</em>
+an exemption list in the check; verify-bundle calling it first, <code>bin/</code> run
+before its checksums are checked. The qualification: <code>device-qualification.sh</code>
+refuses a host or account where karvi reads a configuration, making nothing,
+since a site's file sets every key its own <code>--config</code> leaves unset and its
+locks refuse its settings;
+<a href="DEVICE-QUALIFICATION-RUNBOOK.html"><code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code></a> §1
+and §10 name the need. <em>Not taken:</em> the qualification exempt on a real device;
+the host's sources recorded in the evidence instead. #27, found demonstrating
+#20: <code>host_entries_diff</code> wrote an empty listing as a blank line, so on a host
+with no shared entry (a container) six of <code>host-test.sh</code>'s rows failed and
+stopped <code>run_suites</code> at its library tests; an empty listing is now no line.
+And a container's PID 1 must reap: under <code>sleep infinity</code> the processes a
+signal row ends stay as zombies, <code>kill -0 -GROUP</code> still finds their groups, and
+<code>suites-test.sh</code> failed eight rows with 23 zombies; under <code>docker run --init</code>,
+none. The documents name a container with an init. <em>Not taken:</em> &quot;no lane left&quot;
+skipping zombies.</p>
+<p><strong>The patterns, agreed: all eleven, each one tested function.</strong> R9 with #2
+(<code>on_exit</code>); R2 and R3 with #9 and #10 (<code>daemon_stop_force</code>, <code>fake_stop</code>); R4
+with #7 (<code>absent</code>); R8 with #19 (<code>daemon_pid</code>); and in S10 R1 (<code>fake_start</code>),
+R7 (<code>newest_job</code>), R10 (<code>row</code>, <code>row_open</code>, <code>fail</code>, <code>finish</code> in
+<code>scripts/lib/rows.sh</code>), the build line (<code>lab_build</code>), and R5 with R6 merged:
+<code>lab_places FILE BASE</code> writes the suite's places (the private and shared
+roots, the spool, the scoreboards, the capacity root, the audit file, the
+floor) into a file every suite passes first with <code>--config</code>, its own file and
+<code>--set</code> rows after. Several <code>--config</code> flags are layers, a later one outranking
+an earlier key by key and their tables merged, so a suite's own <code>[output]</code>
+table never meets a second header. The evidence for it was the floor fix of
+<a href="#100-the-daemon-upgrade-suites-fixture-and-the-suites-floor-2026-11-05">chapter
+100</a>,
+which took three mechanisms in four suites.</p>
+<p><strong>S10's seven points, agreed.</strong> Each as built:</p>
+<ul>
+<li>The places file sets the floor to 0 for every script passing it, so the
+qualification, the output scale run, and the replay ask no floor of the
+host; under <code>freecheck = &quot;auto&quot;</code> each job still needs its estimated finished
+size free, only the 2 GiB margin above it goes, and a refusal for the host's
+free space says nothing of the device. <em>Not taken:</em> the qualification's own
+file setting the default floor back (a floor mechanism of its own again).</li>
+<li>One layout under the base (<code>BASE/spool</code>, <code>BASE/scoreboards</code>,
+<code>BASE/capacity</code>, <code>BASE/audit.jsonl</code>) where four stood. These are the
+scripts' own per-run settings: karvi with no configuration resolves as
+before, nothing in the Go code, the reference, or the package changing. <em>Not
+taken:</em> <code>lab_places FILE BASE SPOOL SCORE CAP</code>, each suite keeping its
+layout.</li>
+<li>The file carries <code>audit.journald-required = false</code>, set beside the audit
+file in every list that named one; the audit suite's own file keeps <code>true</code>,
+a later layer. <code>tempdir</code> stays each script's own. <em>Not taken:</em> the line in
+each suite's list; a tempdir argument.</li>
+<li>Every test helper is built as the Makefile builds the release,
+<code>CGO_ENABLED=0 -trimpath</code>: the fake device built the old way was
+dynamically linked with 34 tree paths, through <code>lab_build</code> static with none.
+karvi's own executables were already built so. <em>Not taken:</em> an option for
+static builds.</li>
+<li><code>row</code> prints a line per row, so the k03 suite ends <code>k03-smoke-test: pass (135 rows)</code>; the library tests keep <code>check NAME WANT GOT</code>. <em>Not taken:</em> a quiet
+mode.</li>
+<li>A row whose subject is another root or floor keeps its setting, its line
+saying <code># the row's own</code>, which <code>lab-test.sh</code>'s check reads. <em>Not taken:</em> a
+list of exceptions in the test; a second places file for every such row.</li>
+<li>The verifier follow-up placed in S10, the end of the code work. <em>Not
+taken:</em> a code piece inside S11.</li>
+</ul>
+<p><strong>Facts learned</strong>, each run here or in the review's experiments:</p>
+<ul>
+<li>A trap on <code>EXIT HUP INT TERM</code> that does not exit runs on a signal and
+returns, in dash and bash alike; dash runs a trap on EXIT alone at a normal
+end, never when a signal ends it; bash's EXIT alone runs when a signal ends
+the script, which ends at once, a command it waits on left running when the
+signal reached the script alone.</li>
+<li>A non-interactive shell starts an asynchronous command with INT ignored,
+which no trap in it can undo; HUP stays at its default. A session of its own
+(<code>setsid</code>) and TERM to its group (<code>kill -TERM -PGID</code>) stop it, and <code>setsid env --default-signal=INT</code> starts a command as a terminal starts a job.</li>
+<li>A zombie keeps its process group visible to <code>kill -0 -PGID</code>: under a PID 1
+that reaps nothing, ended lanes look alive.</li>
+<li><code>pkill -f</code> or <code>pgrep -f</code> from a shell whose own command line holds the
+pattern finds that shell; the review's first lane experiment did, and S4's
+driver's <code>pgrep</code> of the fake's path also found the daemon, whose arguments
+name the fake.</li>
+<li><code>set -e</code> ignores a failure before the last command of an <code>&amp;&amp;</code> list, and a
+pipeline beginning with <code>!</code>; inside a trap, <code>exit</code> ends the cleanup, and <code>|| true</code> does not catch it.</li>
+<li>A function in a pipeline runs in a subshell, so its <code>exit</code> ends only the
+pipeline.</li>
+<li><code>stat -c</code> reports a link itself, and <code>chown</code> and <code>chmod</code> follow it by
+default.</li>
+<li>dash's <code>echo</code> reads backslash escapes in its argument (<code>\b</code> printed as a
+backspace, <code>\1</code> as a control character), so a library line printing a path,
+a pattern, or a message uses <code>printf '%s\n'</code>.</li>
+<li>make runs a recipe under <code>/bin/sh</code>, dash on this host.</li>
+<li>karvi takes its home from the passwd entry, not <code>$HOME</code>; several <code>--config</code>
+flags are layers; <code>config show --format json</code> carries <code>sources</code> without
+<code>--show-sources</code>.</li>
+<li>karvi gives a job the first free ID of its second, in its effective time
+zone, the sequence ordered 0-9a-z.</li>
+<li>The lifecycle replay has no prior release to replay today: the daemon IPC
+schema is 12 since v0.30.0, and v0.29.0's daemon predates the drain that
+exits. Run against v0.29.0 under <code>timeout 300</code>, it fails its row 2 and waits
+in row 5 until the timeout, its cleanup then leaving nothing.</li>
+</ul>
+<p><strong>Left open.</strong> The conversion itself: the ROADMAP's &quot;Every shell script in
+bash, under one header&quot;, with its test and method. The script items the
+review left as they were: &quot;A suite's failure that names its call&quot;, &quot;The spool
+suite's timeout row waiting on a condition&quot; (its cancel and lost rows now
+wait), and &quot;The tests' events out of the host's journal&quot;.</p>
+<p><strong>Checks.</strong> Each section's runs as above, before and after, kept beside the
+tree (<code>release-design-evidence/shell-fixes-2026-11/</code>, a folder per section with
+its README, its scripts, and their output, the four batteries' among them).
+For S11, the <code>verify-shipped.sh</code> runs above by one script on copies of
+<code>6a341e2</code> and of the tree under <code>/var/tmp</code>, removed after (<code>S11/</code>); the
+documents checked by grep against the CHANGELOG, the findings, and the
+sections' READMEs, <code>make generated-clean</code>, and the documents' links through
+<code>tools/md-to-html</code>.</p>
+<h2 id="103-numeric-ranges-and-the-inventory-option-2026-11-07">103. Numeric ranges and the inventory option (2026-11-07) <a class="anchor" href="#103-numeric-ranges-and-the-inventory-option-2026-11-07" aria-label="Link to this section">#</a></h2>
+<p>The operator asked that a target such as <code>router0[1-3]</code> name the devices it
+spells, as a host list does, and for a way to run only the inventory's
+devices, from the site's inventory or from a file given on the line. On the
+released 0.40.0 a bracket was a one-character class in every matcher: <code>--tl 'switch0[1-3]'</code> for switches not yet listed stopped with
+<code>inventory_empty_selection</code>, <code>router[1-12]</code> was the class of <code>1</code> and <code>2</code>, a
+credential CSV row <code>router[10-12]</code> matched none of router10 to router12,
+which took the next row's account with no warning, and <code>--site 'pod[1-12]'</code>
+took pod1 and pod2 and missed pod10 to pod12. The design session agreed four
+points, and each section of the build settled its own; on the operator's word,
+as recommended each time, karvi reads a bracket of digits as a numeric range
+in every selector, a range on the command line creates the names it spells,
+and <code>--inventory</code> keeps a run to the inventory.</p>
+<p><strong>What it gains.</strong> A range of devices typed as the operator says it, listed
+in the inventory or not, in one value; a bound on what a mistyped range can
+create; a run held to known devices, so a typo is refused rather than tried
+as a direct target, from the configured inventory or from the operator's own
+file; and one meaning for a range wherever a selector is written, which
+closes the credential row that silently missed its devices.</p>
+<p><strong>The rule, as agreed.</strong></p>
+<ul>
+<li><strong>The grammar</strong> (point 2; the S1 and S2 points). A bracket holding only
+digits, hyphens, and commas is a list whose every item is a number or two
+numbers joined by one <code>-</code>: <code>[1-12]</code> unpadded, <code>[01-12]</code> at the lower
+bound's width, <code>[1,4,7-9]</code>; brackets multiply. A pattern holding one
+matches a name exactly when the name is one the pattern spells, tested by
+number, at any size. One grammar serves every selector: <code>--target</code>,
+<code>--site</code>, <code>--device-group</code>, <code>--select-platform</code>, <code>--exclude</code>, a <code>!</code> value,
+target files, <code>job list --target</code>, the credential CSV's selector columns,
+and the three maps' rules; the <code>.cloginrc</code> matcher, the configuration lock,
+and file-path globs keep theirs. A single-digit range and a bracket holding
+any other character are classes, as before. A bracket of those characters
+that is no such list (<code>[1-]</code>, <code>[-5]</code>, <code>[1,,3]</code>, <code>[1-3-5]</code>), or that holds
+white space beside a digit (<code>[10, 12]</code>), is refused when the pattern
+compiles; <code>[1\-]</code> is the class.</li>
+<li><strong>Creation</strong> (point 1; S2 point 1). A target value whose only pattern is
+ranges (a <code>--target</code>, a <code>--tl</code> name, a positional device, a target-file,
+standard-input, or stream line) stands for the names it spells, in written
+order, each an inventory device or a direct target. A created device
+records the spelled name as <code>input_target</code>, its typed case kept; the job
+manifest keeps the value. A value holding a glob as well selects. <code>--tl</code>
+splits outside brackets only.</li>
+<li><strong>The limit</strong> (point 3; S2 point 2). <code>targets.max-created-names</code>, 1 to
+100,000, default 1000, lockable: a value creating more is refused,
+<code>target_created_names_exceeded</code> (usage, exit 4), the count stacked over
+the limit and a hint line, a command-line value before any file, the
+inventory, or DNS is read, a file's line as it is read.</li>
+<li><strong>Inventory only</strong> (point 1; the S3 point and the confirmation after it).
+<code>targets.inventory-only</code> (default false, lockable), set for one invocation
+by a bare <code>--inventory</code>, <code>--inv</code>, or <code>--i</code> (one dash as two) on login,
+command, run, crun, and stream lines: a plain name the inventory lacks
+refuses the job before planning, <code>target_not_in_inventory</code> (inventory,
+exit 5), the names one per line under a count; a range or glob selects the
+inventory's devices among its names, in inventory order, at any size,
+missing numbers absent and the limit not applied.</li>
+<li><strong>Files on the line</strong> (point 1a; the S4 points; selectors adding up).
+Each <code>--inventory=FILE</code>, in command-line order, adds a CSV read with the
+loader's defaults; together they are the run's whole inventory, the
+configured sources unread, and the run is inventory-only. karvi resolves
+<code>~</code> and a glob; a missing file or an empty glob is <code>inventory_missing</code>; a
+file reached twice is read once; each value is a source named as typed.
+The value attaches with <code>=</code> alone, and an empty <code>--inv=</code> is refused. The
+inventory selectors draw from the files and add up.</li>
+<li><strong>A direct target is told by its path</strong> (S4 point 2): the source path
+<code>cli</code>, never the source name <code>direct</code>, which is a label like any other.</li>
+<li><strong>Quoting</strong> (point 4): the help's <code>--target</code> and <code>--tl</code> lines say to
+single-quote a pattern or list, and the operations guide says why; karvi
+adds no guard.</li>
+</ul>
+<p><strong>The executed examples.</strong> The lab build of the tree at <code>f45bc20</code>
+(<code>ex103.sh</code>), every case a client dry run: the script adds <code>--no-daemon --dry-run</code> (and <code>--format json</code> for a plan) and <code>-c 'show clock'</code> to the
+line shown, and prints the planned devices in plan order, consecutive ones of
+one source grouped: <code>lab</code> is the configured source (router01, 02, 03, 05, 10,
+11, and 12), <code>direct</code> a direct target (this host's resolver answers any
+single-label name, so each plans; where DNS knows no such name the run stops
+with <code>dns_nxdomain</code>, as the quoted brace below does), and an <code>--inv</code> value its
+own source
+(<code>boxes.csv</code> box01 and box02, <code>pods/a.csv</code> pod01, <code>pods/b.csv</code> pod02); a
+refusal is karvi's whole error; <code>$LAB</code> stands for the lab's folder. The
+selector cases run under a configuration of their own, the source <code>sel</code>
+(router01, 02, 10, and 12 at sites pod1, pod2, pod10, and pod12) and a
+credential CSV whose row <code>router[10-12]</code> (user <code>svc.edge</code>) stands above
+<code>router*</code> (<code>svc.other</code>). The quoting cases run in a folder holding two empty
+files, router02 and router03, and print the plan's commands too.</p>
+<pre><code class="language-text">== a range creates the names it spells, in written order
+$ karvi run --tl 'router0[1-4]'
+  router01 router02 router03 (lab), router04 (direct)
+  (exit 0)
+$ karvi run --tl 'switch0[1-3]'
+  switch01 switch02 switch03 (direct)
+  (exit 0)
+$ karvi run --tl 'router[1-12]'
+  router1 router2 router3 router4 router5 router6 router7 router8 router9
+  (direct), router10 router11 router12 (lab)
+  (exit 0)
+$ karvi run --tl 'router[11,5,01,10]'
+  router11 (lab), router5 (direct), router01 router10 (lab)
+  (exit 0)
+$ karvi run --tl 'router0[1-2]*'
+  router01 router02 (lab)
+  (exit 0)
+$ karvi run --tl 'pod[1-2]-sw[1-3]'
+  pod1-sw1 pod1-sw2 pod1-sw3 pod2-sw1 pod2-sw2 pod2-sw3 (direct)
+  (exit 0)
+$ karvi run --tl 'router[1,4],switch01'
+  router1 router4 switch01 (direct)
+  (exit 0)
+$ karvi run --tl 'Switch0[1-2]'
+  switch01 input_target Switch01
+  switch02 input_target Switch02
+  (exit 0)
+== the limit
+$ karvi run --tl 'box[78000-99999]'
+  target_created_names_exceeded: --tl box[78000-99999] creates too many names
+    names: 22000
+    limit: 1000 (targets.max-created-names)
+    with --i it selects from the inventory
+  (exit 4)
+$ karvi --set targets.max-created-names=5 run --tl 'box[1-5]' --target 'box[6-10]'
+  box1 box2 box3 box4 box5 box6 box7 box8 box9 box10 (direct)
+  (exit 0)
+$ karvi --set targets.max-created-names=5 run --tl 'box[1-6]'
+  target_created_names_exceeded: --tl box[1-6] creates too many names
+    names: 6
+    limit: 5 (targets.max-created-names)
+    with --i it selects from the inventory
+  (exit 4)
+== --i: only the inventory's devices
+$ karvi run --i --tl 'router0[1-5]'
+  router01 router02 router03 router05 (lab)
+  (exit 0)
+$ karvi run --i --tl 'router[11,5,01,10]'
+  router01 router10 router11 (lab)
+  (exit 0)
+$ karvi run --i --tl router01,router04,router07
+  target_not_in_inventory: client planning: 2 target names are not in the inventory (targets.inventory-only)
+    router04
+    router07
+  (exit 5)
+$ karvi run --i --tl 'box[78000-99999]'
+  inventory_empty_selection: client planning: the target selectors matched no devices
+  (exit 5)
+== --inv=FILE: the files given are the inventory
+$ karvi run --inv=boxes.csv --tl 'box[01-99999]'
+  box01 box02 (boxes.csv)
+  (exit 0)
+$ karvi run --inv=boxes.csv --inv='pods/*.csv' --all
+  box01 box02 (boxes.csv), pod01 pod02 (pods/*.csv)
+  (exit 0)
+$ karvi run --inv=boxes.csv --inv=./boxes.csv --inv='*.csv' --target 'box*'
+  box01 box02 (boxes.csv)
+  (exit 0)
+$ karvi run --inv=boxes.csv --tl router01
+  target_not_in_inventory: client planning: 1 target name is not in the inventory (targets.inventory-only)
+    router01
+  (exit 5)
+$ karvi run --inv=none.csv --tl box01
+  inventory_missing: client planning: inventory source none.csv matched no files: $LAB/cwd/none.csv
+  (exit 5)
+$ karvi run --inv= --tl box01
+  cli_option_value_missing: --inventory= names no file; --inventory alone uses the configured inventory
+  (exit 4)
+$ karvi run --inv ./boxes.csv --tl box01
+  cli_option_value_detached: --inventory takes its FILE with =: --inventory=./boxes.csv
+  (exit 4)
+== the selectors and the credential rows
+$ karvi run --site 'pod[10-12]'
+  router10 router12 (sel)
+  (exit 0)
+$ karvi run --site 'pod[1-2]'
+  router01 router02 (sel)
+  (exit 0)
+$ karvi run --tl router02,router10,router12
+  router02 user=svc.other
+  router10 user=svc.edge
+  router12 user=svc.edge
+  (exit 0)
+$ karvi run --target 'router[1-]'
+  target_selector_pattern_invalid: --target value &quot;router[1-]&quot; is not a valid selector: the numeric range &quot;[1-]&quot; is malformed: each item is a number or two numbers joined by &quot;-&quot;, separated by &quot;,&quot; with no space
+  (exit 4)
+$ karvi run --tl 'router[10, 12]'
+  target_selector_pattern_invalid: --tl value &quot;router[10, 12]&quot; is not a valid selector: the numeric range &quot;[10, 12]&quot; is malformed: each item is a number or two numbers joined by &quot;-&quot;, separated by &quot;,&quot; with no space
+  (exit 4)
+== the shell's words: q/ holds the files router02 and router03
+$ ls
+  router02
+  router03
+$ karvi run --tl router0[1-3]
+  router02 (lab)
+  commands: [&quot;router03 -c show clock&quot;]
+  (exit 0)
+$ karvi run --tl 'router0[1-3]'
+  router01 router02 router03 (lab)
+  commands: [&quot;show clock&quot;]
+  (exit 0)
+$ karvi run --tl router0{1..3}
+  router01 (lab)
+  commands: [&quot;router02 router03 -c show clock&quot;]
+  (exit 0)
+$ karvi run --tl 'router0{1..3}'
+  dns_nxdomain: client planning: 1 of 1 targets failed address resolution: name:router0{1..3} (lookup router0{1..3}: no such host (router0{1..3}))
+  (exit 7)
+$ karvi run --i --tl 'router0{1..3}'
+  target_not_in_inventory: client planning: 1 target name is not in the inventory (targets.inventory-only)
+    router0{1..3}
+  (exit 5)
+</code></pre>
+<p>A device in two <code>--inv</code> files, the same row in <code>two/x.csv</code> and <code>two/y.csv</code>,
+a different address in <code>two/z.csv</code> (<code>two-files.out</code>, the warning and device
+lines):</p>
+<pre><code class="language-text">$ karvi run --dry-run --inv=two/x.csv --inv=two/y.csv --target 'box*'
+warning: duplicate inventory device name:box01 coalesced ($LAB/cwd/two/x.csv:2 and $LAB/cwd/two/y.csv:2)
+- name:box01: planned
+- name:box03: planned
+$ karvi run --dry-run --inv=two/x.csv --inv=two/z.csv --target 'box*'
+inventory_conflict: client planning: inventory conflict for id name:box01 between $LAB/cwd/two/x.csv:2 and $LAB/cwd/two/z.csv:2
+</code></pre>
+<p>A malformed range in a credential CSV fails its load, the cell unquoted as
+every credential error leaves it (<code>creds-malformed.out</code>):</p>
+<pre><code class="language-text">$ cat creds.csv
+  device_name,username,password
+  router[10-]2,svc.edge,lab-placeholder
+  router*,svc.other,lab-placeholder
+$ karvi run --dry-run --tl router02
+credential_csv_row_invalid: client planning: 1 of 1 targets failed credential resolution: name:router02 (credential backend sel-csv: $LAB/creds.csv:2: column device_name: the selector is invalid: a numeric range is malformed: each item is a number or two numbers joined by &quot;-&quot;, separated by &quot;,&quot; with no space; policy=default backend=sel-csv)
+  (exit 6)
+</code></pre>
+<p>A stream keeps its <code>--inv</code> line from job to job; <code>--purge-targets</code> leaves it,
+so router01 is refused as not in <code>boxes.csv</code>, and <code>--reset</code> clears it
+(<code>stream-purge.out</code>, the lines <code>--inv=boxes.csv</code>, <code>--target box01</code>,
+<code>--dry-run</code>, <code>--no-daemon</code>, <code>--cmd &quot;show clock&quot;</code>, <code>--go</code>, <code>--purge-targets</code>,
+<code>--target box02</code>, <code>--go</code>, <code>--purge-targets</code>, <code>--target router01</code>, <code>--go</code>,
+<code>--reset</code>, then <code>--target router01</code> with the same options and <code>--go</code>; the
+device lines and the refusal):</p>
+<pre><code class="language-text">- name:box01: planned
+- name:box02: planned
+target_not_in_inventory: client planning: 1 target name is not in the inventory (targets.inventory-only)
+- name:router01: planned
+</code></pre>
+<p>Tab completion offers the configured inventory's names and reads no file on
+the line (<code>complete.out</code>: <code>--target b</code> after <code>--inv=boxes.csv</code> offers
+nothing, <code>--target r</code> the lab's seven routers). bash with history expansion
+on, as an interactive shell has it (<code>hist103.sh</code>):</p>
+<pre><code class="language-text">$ karvi run --tl 'router*,!router0[2-3]'
+  router01
+  router05
+  router10
+  router11
+  router12
+$ karvi run --tl &quot;router*,!router0[2-3]&quot;
+hist103.sh: line 11: !router0[2: event not found
+</code></pre>
+<p>The same script on the released 0.40.0 (<code>ex103-released-0400.out</code>):
+<code>router0[1-4]</code> gives router01 to router03, the class matching only the
+inventory, and <code>switch0[1-3]</code>, <code>router[1-12]</code>, <code>pod[1-2]-sw[1-3]</code>,
+<code>Switch0[1-2]</code>, <code>box[78000-99999]</code>, and <code>router[1-]</code> stop with
+<code>inventory_empty_selection</code>; <code>router[11,5,01,10]</code>, <code>router[1,4],switch01</code>,
+and <code>router[10, 12]</code> are split at the comma or space into an unclosed bracket
+(<code>target_selector_pattern_invalid</code>), and <code>box[6-10]</code> is refused as a reversed
+class (<code>the range &quot;6&quot;-&quot;1&quot; is reversed</code>); <code>targets.max-created-names</code> is
+<code>config_unknown_key</code>, <code>--i</code> is <code>cli_option_ambiguous</code> (between <code>--ipv4</code> and
+<code>--ipv6</code>), and <code>--inv</code> <code>cli_option_unknown</code>. The selectors show the defect the
+grammar fixes: <code>--site 'pod[10-12]'</code> selects router01 and router02, at pod1
+and pod2, and every router binds <code>svc.other</code>, the row <code>router[10-12]</code> matching
+none of them. The quoting cases are the shell's and come out the same.</p>
+<p><strong>What changed.</strong> Six sections, each committed on dev:</p>
+<ul>
+<li><code>3a9af93</code> (S1): <code>internal/matching</code> compiles a numeric bracket to a range
+token and tests a run of digits by number and by the width the range spells;
+a pattern with no range, or with one-digit items alone, keeps the linear
+matcher and its timings (a multi-digit range about 340 ns per match). The
+malformed forms are refused at compile, in every caller.</li>
+<li><code>fceb479</code> (S2): the target assembly creates the names a range spells,
+counting them first against <code>targets.max-created-names</code> (a new key in the
+unreleased registry 34, so no bump); <code>--tl</code> splits outside brackets; the
+help's <code>--target</code>, <code>--tl</code>, and selector lines; the planner's golden draft
+re-pinned for the new key and the configuration digest alone.</li>
+<li><code>e459c0a</code> (S3): <code>targets.inventory-only</code> and <code>target_not_in_inventory</code>.</li>
+<li><code>7c05390</code> (S4): the option in the parser table (kind optional, <code>[=FILE]</code>,
+aliases <code>inv</code> and <code>i</code>), its files handed to the loader as the whole
+inventory (<code>inventoryload.Loader.Files</code>), the empty value refused, the
+refusal's hint line, and a direct target told by its path
+(<code>inventory.Device.IsDirect</code>); <code>e501a3f</code> removed the parser table's unread
+<code>repeat</code> field found while building it. No plan, record, or IPC schema
+changed.</li>
+<li><code>d6417f4</code> (S5): the k03 suite's rows n1 to n14, through
+<code>scripts/lib/rows.sh</code>.</li>
+<li>S6: this chapter; <code>docs/DESIGN.md</code> section 3, the operations guide's
+&quot;Target ranges and the inventory&quot;, and the credential CSV's selector
+grammar.</li>
+</ul>
+<p><strong>Not taken.</strong> A range that only matches the inventory, or one that always
+creates (no inventory-only run). Under <code>--i</code>, a range's missing numbers
+refused, or its names in written order. A hyphen at a bracket's edge kept
+literal, and spaces in a digit bracket ignored: two readings of the same
+characters. No limit, a total per run, a limit under <code>--i</code>, no maximum, or
+10,000 as the maximum (near the default IPC frame's ceiling). The value as
+typed in every record's <code>input_target</code>. Refusal at the first absent name.
+<code>--i=false</code>. One fixed source name for command-line files, or the resolved
+path. An empty <code>--inv=</code> read as bare, as <code>--of=</code> is. <code>direct</code> refused as a
+source name, or a direct marker in the plan. A guard in karvi against the
+shell's expansion, and braces as a second spelling of the range.</p>
+<p><strong>Left open.</strong> Tab completion reading the <code>--inv</code> files on the line (point 1a,
+later, if asked).</p>
+<p><strong>Checks.</strong> Each section's failing-first tests on the tree before it, then
+gofmt, <code>go vet ./...</code>, <code>go test ./...</code> on the whole tree, and <code>make generate</code> with <code>make generated-clean</code>. S5's rows failed first on the released
+build, every new row but n1 for the reason the feature fixes (n14 binding
+router10 to <code>svc.other</code>), and passed on the lab build, the suite at 149 rows.
+The first full battery failed only its ICMP rows: the tests' timeout address
+192.0.2.1 answered ping through the host's gateway (0.40.0 failed the same
+rows), so at the operator's word the address moved to 203.0.113.254 and the
+second battery passed (74 packages, the suites in 274 s); with 192.0.2.1 then
+sunk into a dummy interface on the host, the move was reverted and the ICMP
+tests and the canary, v0100, and daemon-upgrade suites passed on it. S6 is
+documents: the runs above on a lab build, grep checks against <code>DECISIONS.md</code>
+and the sections' READMEs, <code>make generated-clean</code>, and the documents' links
+through <code>tools/md-to-html</code>. The evidence is kept beside the tree
+(<code>release-design-evidence/target-ranges-2026-11/</code>: <code>DECISIONS.md</code>,
+<code>PLAN.md</code>, a folder per section with its README and runs, and the session's
+0.40.0 runs in <code>today/</code>, <code>point2/</code>, <code>point4/</code>, and <code>site-group/</code>).</p>
+
+<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.41.0</code>.</footer>
 </main>
 </body>
 </html>

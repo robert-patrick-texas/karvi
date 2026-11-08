@@ -68,8 +68,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -139,8 +139,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -166,7 +166,8 @@ sudo apt-get install -y \
 </code></pre>
 <p><code>openssh-client</code> supplies system SSH, <code>ssh-keyscan</code>, and <code>ssh-keygen</code>.
 <code>util-linux</code> supplies <code>script(1)</code>, which karvi uses for PTY-backed login
-transcripts. <code>dpkg-dev</code>, <code>debhelper</code>, and <code>lintian</code> build and check the Debian
+transcripts, and <code>setsid(1)</code>, which runs each lane of the suites in a session
+of its own. <code>dpkg-dev</code>, <code>debhelper</code>, and <code>lintian</code> build and check the Debian
 package (<a href="#43-build-the-debian-package">§4.3</a>); the release verifier builds
 one and fails without them.</p>
 <h2 id="2-install-the-newest-stable-go-release">2. Install the newest stable Go release <a class="anchor" href="#2-install-the-newest-stable-go-release" aria-label="Link to this section">#</a></h2>
@@ -220,10 +221,10 @@ go version
 instead of automatically selecting the newest one. The authoritative minimum
 is the <code>go</code> directive in karvi's <code>go.mod</code>.</p>
 <h2 id="3-verify-and-extract-the-full-source-bundle">3. Verify and extract the full source bundle <a class="anchor" href="#3-verify-and-extract-the-full-source-bundle" aria-label="Link to this section">#</a></h2>
-<pre><code class="language-bash">sha256sum -c karvi-v0.40.0-source-linux-amd64.tar.gz.sha256
-tar -tzf karvi-v0.40.0-source-linux-amd64.tar.gz &gt;/dev/null
-tar -xzf karvi-v0.40.0-source-linux-amd64.tar.gz
-cd karvi-v0.40.0
+<pre><code class="language-bash">sha256sum -c karvi-v0.41.0-source-linux-amd64.tar.gz.sha256
+tar -tzf karvi-v0.41.0-source-linux-amd64.tar.gz &gt;/dev/null
+tar -xzf karvi-v0.41.0-source-linux-amd64.tar.gz
+cd karvi-v0.41.0
 </code></pre>
 <p>Review the release boundary before building:</p>
 <pre><code class="language-bash">cat VERSION
@@ -255,8 +256,8 @@ builds the fake device from the tree and runs every case as <code>command</code>
 <code>run</code> over <code>system</code> and <code>native</code> with its own trust store, base directory, and
 <code>HOME</code>, comparing the records path by path (about a minute; no fake or daemon is
 left running and the operator's trust store is unchanged); then the canary
-suite. <code>make native-smoke</code> runs the parity suite alone after <code>make build</code>;
-<code>ONLY=S21 scripts/native-smoke-test.sh</code> runs one case.
+suite. <code>scripts/native-smoke-test.sh</code> runs the parity suite alone, against
+<code>bin/</code> or the executable <code>KARVI</code> names (no suite is a make target; only <code>make build</code> writes <code>bin/</code>); <code>ONLY=S21 scripts/native-smoke-test.sh</code> runs one case.
 <a href="docs/BUILD-QUALIFICATION.html"><code>docs/BUILD-QUALIFICATION.md</code></a> states the gates.</p>
 <p>Do not use <code>go get ...@latest</code> in a release tree.</p>
 <h3 id="42-verify-the-shipped-executables-without-rebuilding">4.2 Verify the shipped executables without rebuilding <a class="anchor" href="#42-verify-the-shipped-executables-without-rebuilding" aria-label="Link to this section">#</a></h3>
@@ -270,7 +271,12 @@ suite. <code>make native-smoke</code> runs the parity suite alone after <code>ma
 source that <code>gofmt</code> would change, tests and vets offline from <code>vendor/</code>,
 compares the generated files, validates the example configurations, and runs
 every smoke suite, the canary suite, and the parity suite against <code>bin/</code> as
-shipped. To reproduce the shipped bytes, rebuild with the release identity:</p>
+shipped. On a host where karvi reads a configuration, a global or user file
+or an exported <code>KARVI__</code> variable, it stops once the checksums pass and
+names each one (<a href="docs/BUILD-QUALIFICATION.html"><code>docs/BUILD-QUALIFICATION.md</code></a>):
+the suites assert karvi's defaults. Verify the bundle on a build host or in
+a container with an init (<code>docker run --init</code>), then install it. To
+reproduce the shipped bytes, rebuild with the release identity:</p>
 <pre><code class="language-bash">make build COMMIT=source-release-v$(cat VERSION)
 sha256sum -c CHECKSUMS.sha256
 </code></pre>
@@ -482,8 +488,10 @@ executables and <code>/usr/share/karvi</code> alone, no document or manual page;
 documents are in the bundle and the repository.</p>
 <p>Without the package, the bundle installs itself into <code>/usr/local</code>, from the
 extracted bundle after <code>./scripts/verify-bundle.sh</code> has passed
-(<a href="#42-verify-the-shipped-executables-without-rebuilding">§4.2</a>); running an
-earlier bundle's script rolls back:</p>
+(<a href="#42-verify-the-shipped-executables-without-rebuilding">§4.2</a>); on a host
+karvi is already configured on, as at an upgrade, the verifier refuses to
+run, so verify the same bundle on a build host or in a container with an
+init and install it here. Running an earlier bundle's script rolls back:</p>
 <pre><code class="language-bash">sudo ./scripts/install.sh
 karvi version --format json
 sudo ./scripts/install.sh            # from the earlier bundle: roll back
@@ -525,7 +533,7 @@ and the <code>go version -m</code> output together as the local release record.<
 <li>a statement of all remaining production gates.</li>
 </ul>
 
-<footer>Generated from <code>BUILD-HOWTO.md</code> at <code>karvi-v0.40.0</code>.</footer>
+<footer>Generated from <code>BUILD-HOWTO.md</code> at <code>karvi-v0.41.0</code>.</footer>
 </main>
 </body>
 </html>

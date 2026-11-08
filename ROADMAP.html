@@ -60,8 +60,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -123,8 +123,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -451,16 +451,9 @@ The bundle's verifier has the same gap: <code>verify-shipped.sh</code>'s checks 
 tests under <code>set -eu</code>, so a release missing its number in that script ended
 <code>verify-bundle.sh</code> with exit 1 and an empty log (<a href="docs/EXAMPLES.html#43-the-release-with-the-debian-package-2026-10-08">chapter
 43</a>, S2).
-A suite's own start budget stops a lane too, though with its line:
-<code>daemon-upgrade-smoke-test</code> gives <code>go run ./tools/daemon-fixture</code> two seconds
-to bind its socket, and the first run after a change to the packages it builds
-compiles them first (2.4 seconds on the operator's host, 0.18 with the cache
-warm), so a battery on a cold cache stopped there with <code>schema-2 fixture did not start</code> and the rest of its lane unrun (<a href="docs/EXAMPLES.html#55-an-explicit-envname-cell-2026-10-10">chapter
-55</a>, S4). The
-questions: one function in <code>scripts/lib</code> that runs a call and, when it fails
-unexpectedly, names it and prints what karvi wrote before the suite exits; and
-the fixture built before its wait begins, so the wait measures its start and
-not a compile.</li>
+The question: one function in <code>scripts/lib</code> that runs a call and, when it
+fails unexpectedly, names it and prints what karvi wrote before the suite
+exits.</li>
 <li><strong>A client told when a running daemon's settings differ from its own.</strong> A
 daemon keeps the <code>daemon.*</code> values of the invocation that launched it, and a
 later client's <code>--set daemon.*</code> reaches it only at its next start, without
@@ -512,29 +505,9 @@ and a battery failed the row with nothing settled, the suite alone once in
 three (<a href="docs/EXAMPLES.html#79-a-command-file-per-target-2026-10-25"><code>docs/EXAMPLES.md</code>, chapter
 79</a>). The item: the
 row asserts the cut's settled bytes whatever the disk's pace. The questions: a
-cut timed from the answer's first byte rather than from the send; the row's
-threshold; and the rows that time a fixed cut beside it (the cancel and the
-lost session at 0.7 s).</li>
-<li><strong><code>verify-shipped.sh</code> reviewed for what it leaves.</strong> Its <code>STATELESS</code>
-folder, made to show that <code>--help</code> and <code>version</code> create no home, is removed
-only when that check passes, so a failing check leaves it in <code>/tmp</code>. The
-release verifier's package folder had the same gap: a failed baseline left it
-(<a href="docs/EXAMPLES.html#73-the-release-0340-2026-10-19"><code>docs/EXAMPLES.md</code>, chapter
-73</a>), and
-<code>verify-release.sh</code> now removes it on a trap at its exit. The item: every
-folder and file the script makes removed at its exit, passed, failed, or
-interrupted.</li>
-<li><strong>The scripts' traps on the signals.</strong> Twenty-four scripts set their
-cleanup with <code>trap ... EXIT HUP INT TERM</code>, the trap not ending the script:
-sent TERM or HUP alone, such a script runs its cleanup and goes on, where
-without the trap it would end. A draft of <code>verify-release.sh</code>'s trap in that
-form, sent TERM during the container test, removed the package folder and
-went on to print <code>karvi native release verification passed</code>, exit 0; on
-<code>EXIT</code> alone bash runs the cleanup when the signal ends the script (TERM 143,
-HUP 129, a Ctrl-C 130). The item: each of the twenty-four on <code>EXIT</code> alone,
-as <code>verify-release.sh</code>'s is. The questions: a cleanup that stops a daemon or
-a container, run once at the exit, checked under each signal; and a check
-that keeps the other form out of the tree.</li>
+cut timed from the answer's first byte rather than from the send; and the
+row's threshold. The cancel and the lost session beside it cut once the
+scoreboard counts the answer's bytes and check that some settled.</li>
 <li><strong>The release's signature.</strong> <code>karvi-sysutil package update</code> checks the
 package against its <code>.sha256</code>, which comes from the same release over the
 same connection: it finds a damaged download, and proves nothing of where
@@ -564,6 +537,37 @@ unattended install restarts the instances of <code>karvi-daemon@.service</code> 
 names, a restart cancelling what outlasts the grace. It waits on the
 release's signature: an install no one watches should not rest on a
 checksum alone.</li>
+<li><strong>A FIPS 140-3 mode, once Go's module performs AES-256-GCM for SSH.</strong> karvi
+leads with the strongest algorithms its transports implement. FIPS 140-3 is
+not the strongest set: it is the set one implementation, submitted and
+passed in testing for federal data protection, performs in its approved
+mode. An option for it waits until that set holds AES-256-GCM. Go 1.27's
+certified module (<code>v1.0.0-c2097c7c</code>) has an SSH form of AES-GCM
+(<code>NewGCMForSSH</code>, RFC 5647's nonce) inside the standard library alone;
+x/crypto's SSH package (v0.58.0) calls <code>crypto/cipher.NewGCM</code>, which the
+module counts as unapproved under <code>GODEBUG=fips140=on</code> and refuses under
+<code>fips140=only</code>. The approved cipher left is AES-CTR, which karvi does not
+lead with. The item opens when a <code>GOFIPS140=certified</code> build negotiates
+<code>aes256-gcm@openssh.com</code> under <code>fips140=only</code>; what the design then starts
+from is in <a href="docs/EXAMPLES.html#101-a-fips-140-3-mode-waits-on-aes-256-gcm-for-ssh-2026-11-05"><code>docs/EXAMPLES.md</code>, chapter
+101</a>.</li>
+<li><strong>Every shell script in bash, under one header.</strong> The scripts stay POSIX sh
+after the shell-script review, most under <code>#!/bin/sh</code> (dash), eight under
+bash, two of them through <code>/usr/bin/env</code>; the review's fixes put their
+shared code in <code>scripts/lib</code> functions whose bodies a conversion changes and
+whose callers it does not (<a href="docs/EXAMPLES.html#102-the-shell-script-review-of-2026-11-06-and-its-fixes-2026-11-07"><code>docs/EXAMPLES.md</code>, chapter
+102</a>).
+The item: every script under <code>#!/bin/bash</code> (not <code>/usr/bin/env bash</code>: the
+PATH would choose the interpreter of root's and cron's scripts, and lintian
+refuses env in a maintainer script, <code>unknown-control-interpreter</code>), <code>set -euo pipefail</code>, and <code>shopt -s inherit_errexit</code>, without which bash's <code>$( ... )</code> ignores <code>set -e</code> where dash's stops. Its test: the battery passes, and
+every suite still fails a broken expected value. Its method: four batches of
+about a quarter of the lines each; per batch a converter in its own
+worktree, changing the header and what it forces alone, with three hazards
+checked in each script (a <code>$( ... )</code> of several commands, a pipe into <code>grep -q</code> or <code>head</code> under pipefail, an <code>echo</code> reading escapes), and a different,
+adversarial reviewer given the diff alone, who breaks one expected value per
+suite and writes a case per hazard site; the suites run under three <code>flock</code>
+slots; the orchestrator checks every issue, merges, and runs the battery,
+the container suite, and the release path in a copy.</li>
 </ul>
 <h2 id="the-device-qualification-track">The device-qualification track <a class="anchor" href="#the-device-qualification-track" aria-label="Link to this section">#</a></h2>
 <p>Independent of the items above. The runbook
@@ -598,7 +602,7 @@ interactive session whose operator saw it end.</li>
 2,500-device accounting gate waits on that run and on review by the network
 operations and security owners.</p>
 
-<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.40.0</code>.</footer>
+<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.41.0</code>.</footer>
 </main>
 </body>
 </html>

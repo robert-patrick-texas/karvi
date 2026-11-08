@@ -25,6 +25,7 @@
 <li><a href="#upgrade">Upgrade</a></li>
 <li><a href="#rehearsal-detach-and-follow">Rehearsal, detach, and follow</a></li>
 <li><a href="#the-list-of-jobs">The list of jobs</a></li>
+<li><a href="#target-ranges-and-the-inventory">Target ranges and the inventory</a></li>
 <li><a href="#dispatch-serial-parallel-and-wave">Dispatch: serial, parallel, and wave</a></li>
 <li><a href="#the-watch-screen">The watch screen</a></li>
 <li><a href="#the-icmp-gate">The ICMP gate</a></li>
@@ -95,8 +96,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -123,6 +124,7 @@
 <li><a href="#upgrade">Upgrade</a></li>
 <li><a href="#rehearsal-detach-and-follow">Rehearsal, detach, and follow</a></li>
 <li><a href="#the-list-of-jobs">The list of jobs</a></li>
+<li><a href="#target-ranges-and-the-inventory">Target ranges and the inventory</a></li>
 <li><a href="#dispatch-serial-parallel-and-wave">Dispatch: serial, parallel, and wave</a></li>
 <li><a href="#the-watch-screen">The watch screen</a></li>
 <li><a href="#the-icmp-gate">The ICMP gate</a></li>
@@ -193,8 +195,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -245,15 +247,15 @@ of its executable, equal the client's. The next submission (<code>run</code>, <c
 <code>--exercise</code>, <code>--detach</code>, a stream's job, or <code>daemon start</code>) drains a daemon of
 another build. Holding no job, it exits at once, and the client starts one of
 its own build in the same invocation:</p>
-<pre><code>daemon drained version=0.39.0 build=OVm9OErdgujJlrhYFLuV
+<pre><code>daemon drained version=0.40.0 build=C71lyQOLd6sV4H1SEuL0
 daemon started socket=/home/netops/.local/share/karvi/socket/d.sock
 </code></pre>
 <p>Holding jobs, the drained daemon finishes them and exits after the last,
 killing nothing. Until then every submission is refused, the daemon's build
 over the client's:</p>
 <pre><code>daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
-  daemon build OVm9OErdgujJlrhYFLuV 0.39.0
-  client build C71lyQOLd6sV4H1SEuL0 0.40.0
+  daemon build C71lyQOLd6sV4H1SEuL0 0.40.0
+  client build Wss_lakRGoLdwTmeEfnl 0.41.0
 </code></pre>
 <p>Meanwhile <code>karvi run --no-daemon</code> runs in the foreground, and <code>karvi job follow</code> and <code>karvi job cancel</code> reach the draining daemon's jobs, as a client of
 any build does at the same IPC schema. <code>karvi daemon status</code> stacks each of the
@@ -391,7 +393,9 @@ and a cancellation among them.</li>
 <li><code>--target NAME</code> keeps the jobs that reached a matching device and lists one
 row per such device, OUTCOME the device's own (<code>unfinished</code> while the job
 has not ended). NAME is taken as <code>run</code>'s <code>--target</code> takes it: a glob,
-repeatable, a value beginning with <code>!</code> removing the devices it matches. A
+or a numeric range keeping the jobs that reached any of the names it
+spells, repeatable, a value beginning with <code>!</code> removing the devices it
+matches. A
 line of <code>!</code> values alone is refused, <code>inventory_positive_selector_missing</code>
 (exit 5).</li>
 <li><code>--operator NAME</code>, repeatable, keeps that operator's jobs, by name or UID.</li>
@@ -406,6 +410,121 @@ under <code>--target</code> the row adds <code>device</code> and its <code>outco
 job that ended <code>error</code> holds the <code>failed-devices.txt</code> a rerun takes (&quot;The job's
 output files&quot;). A job run under <code>--nof</code> or <code>output.persist-command = false</code>
 makes no folder, and the list does not show it.</p>
+<h2 id="target-ranges-and-the-inventory">Target ranges and the inventory <a class="anchor" href="#target-ranges-and-the-inventory" aria-label="Link to this section">#</a></h2>
+<p>A bracket of digits in a target is a numeric range. <code>router[01-12]</code> is
+router01 to router12, written at the lower bound's width; <code>router[1-12]</code> is
+router1 to router12, unpadded; <code>[1,4,7-9]</code> lists numbers and ranges; and
+brackets multiply (<code>pod[1-2]-sw[1-3]</code> is six names). A single-digit range
+(<code>[1-3]</code>) and any other bracket (<code>[a-c]</code>, <code>[!0-3]</code>) are the classes they
+always were. A bracket of digits that is no such list (<code>[1-]</code>, <code>[1,,3]</code>, or
+<code>[10, 12]</code> with its space) is refused before anything is read:</p>
+<pre><code class="language-text">target_selector_pattern_invalid: --target value &quot;router[1-]&quot; is not a valid selector: the numeric range &quot;[1-]&quot; is malformed: each item is a number or two numbers joined by &quot;-&quot;, separated by &quot;,&quot; with no space
+</code></pre>
+<p>A backslash keeps the class reading (<code>[1\-]</code> is <code>1</code> or <code>-</code>).</p>
+<p><strong>A range on the command line creates the names it spells.</strong> A <code>--target</code>, a
+<code>--tl</code> name, a positional device, and a line of a target file, of standard
+input, or of a stream, whose only pattern is ranges, stands for the names it
+spells in the order written, as if each were typed: an inventory device, or,
+absent from the inventory, a direct target reached by its name.</p>
+<pre><code class="language-sh">karvi run --tl 'switch0[1-3]' --cmd 'show version'      # switch01 to switch03, listed or not
+karvi run --tl 'router[11,5,01,10]' --cmd 'show clock'  # router11, router5, router01, router10
+karvi run --tl 'core0[1-2]*' --cmd 'show clock'         # core01*, then core02*: selects
+</code></pre>
+<ul>
+<li>A created device's record names it as spelled: <code>--tl 'Switch0[1-2]'</code>
+records <code>input_target</code> <code>Switch01</code> and <code>Switch02</code>; the job's manifest keeps
+the value as typed.</li>
+<li>A value that also holds a glob (<code>*</code>, <code>?</code>, a class) creates nothing: each
+name its ranges spell selects from the inventory.</li>
+<li>A <code>!</code> value, <code>--exclude</code>, and the inventory selectors match a range and
+create nothing: <code>--site 'pod[10-12]'</code> selects the devices at pod10, pod11,
+and pod12, and a credential CSV row or a map rule <code>router[10-12]</code> matches
+router10 to router12 (<a href="CREDENTIAL-CSV.html#4-how-a-row-is-chosen"><code>docs/CREDENTIAL-CSV.md</code>, section
+4</a>).</li>
+<li><code>--tl</code> splits at commas and white space outside brackets, so <code>--tl 'router[1,4],switch01'</code> is two values; a backslash keeps the character
+after it (<code>a\,b</code> is one name).</li>
+</ul>
+<p><strong>One value creates at most <code>targets.max-created-names</code> names</strong> (default
+1000, 1 to 100,000, lockable), brackets multiplying. A value over it is
+refused, nothing read, resolved, or made; a command-line value before any
+target file, the inventory, or DNS, a target-file or standard-input line as
+it is read:</p>
+<pre><code class="language-text">target_created_names_exceeded: --tl box[78000-99999] creates too many names
+  names: 22000
+  limit: 1000 (targets.max-created-names)
+  with --i it selects from the inventory
+</code></pre>
+<p>The limit is per value: under <code>--set targets.max-created-names=5</code>, <code>--tl 'box[1-5]' --target 'box[6-10]'</code> runs ten devices and <code>--tl 'box[1-6]'</code> is
+refused. A site that needs more names than the maximum lists them in a
+target file.</p>
+<p><strong><code>--inventory</code>, <code>--inv</code>, <code>--i</code>: only the inventory's devices.</strong> Bare, the
+option runs only devices the inventory holds, for one invocation of <code>login</code>,
+<code>command</code>, <code>run</code>, <code>crun</code>, or a stream line, one dash or two alike: it sets
+<code>targets.inventory-only</code>, which a site may set for every run, and lock. Under
+it a plain name the inventory lacks refuses the job after the inventory
+loads, nothing planned, every such name listed once:</p>
+<pre><code class="language-text">target_not_in_inventory: client planning: 2 target names are not in the inventory (targets.inventory-only)
+  router04
+  router07
+</code></pre>
+<p>A range or a glob creates nothing under it: it selects the inventory's
+devices among the names it spells, in inventory order and at any size, the
+limit not applied. <code>--i --tl 'router0[1-5]'</code> runs router01, router02,
+router03, and router05 where the inventory has no router04, and <code>--i --tl 'box[78000-99999]'</code> reads no list of 22,000 names; a range matching none is
+<code>inventory_empty_selection</code>. Where the site sets the key,
+<code>--set targets.inventory-only=false</code> turns it off for one run unless the
+site locked it; a lock at <code>false</code> refuses a bare <code>--i</code> as it refuses
+<code>--order</code>.</p>
+<p><strong><code>--inv=FILE</code>: the files on the line are the inventory.</strong> Each
+<code>--inventory=FILE</code> (<code>--inv=FILE</code>, <code>--i=FILE</code>, <code>-i=FILE</code>) adds a file, and
+the files given, in command-line order, are the run's whole inventory: the
+configured <code>[[inventory-source]]</code> tables are not read, and the run is
+inventory-only.</p>
+<pre><code class="language-sh">karvi run --inv=boxes.csv --tl 'box[01-99]' --cmd 'show clock'
+karvi run --inv=~/lists/core.csv --inv='pods/*.csv' --site nyc --cmd 'show clock'
+karvi command --inv=boxes.csv box02 --cmd 'show clock'
+</code></pre>
+<ul>
+<li>A file is a CSV read with the loader's defaults: a header row, commas,
+and karvi's own column names (<code>name</code>, <code>management_address</code>, <code>platform</code>,
+<code>site</code>, <code>groups</code>, and the rest of an inventory row's fields, with hyphens
+or underscores).</li>
+<li>karvi resolves <code>~</code> and a glob in FILE as in a configured source's path
+(bash leaves <code>--inv=~/x.csv</code> and <code>--inv=*.csv</code> as typed). A missing file,
+or a glob matching none, is <code>inventory_missing</code>, never skipped.</li>
+<li>Each value is a source named as typed: the plan's provenance and the
+notices name <code>pods/*.csv</code> (<code>inventory source pods/*.csv: 2 devices have no platform</code>), each device with its own file, line, and digest.</li>
+<li>A file reached twice, named again or matched by a glob as well, is read
+once. A device in two files is one device, with the loader's coalesce
+warning, when its rows agree, and <code>inventory_conflict</code> when they differ.</li>
+<li><code>--site</code>, <code>--device-group</code>, and <code>--select-platform</code> draw from the files,
+each adding its matches at its position, as with the configured inventory.</li>
+<li>The value attaches with <code>=</code>. <code>--inv ./boxes.csv</code> is refused
+(<code>cli_option_value_detached: --inventory takes its FILE with =: --inventory=./boxes.csv</code>), and an empty value, what <code>--inv=$F</code> gives with
+F unset, is <code>cli_option_value_missing</code>, never read as a bare <code>--inv</code>,
+which would put the configured inventory in the file's place.</li>
+<li>In a stream an <code>--inv</code> line stays from job to job, as the other options
+do: <code>--purge-targets</code> leaves it and <code>--reset</code> clears it.</li>
+<li>Tab completion offers the configured inventory's names; it does not read
+the files given on the line.</li>
+</ul>
+<p><strong>Single-quote a pattern or a list.</strong> bash reads the line before karvi does,
+and karvi sees only the words bash passed:</p>
+<ul>
+<li>An unquoted bracket pattern that matches file names in the current folder
+is replaced by them. With files router02 and router03 there, <code>--tl router0[1-3]</code> reaches karvi as <code>--tl router02 router03</code>: it runs router02
+and sends <code>router03</code> and the words after it as one command.</li>
+<li>An unquoted brace pattern is split into words: <code>--tl router0{1..3}</code> runs
+router01 and sends <code>router02 router03</code> and what follows as the command.
+Braces mean nothing to karvi; a quoted one is a name DNS does not know, or
+refused under <code>--i</code>.</li>
+<li>An interactive bash expands a <code>!</code> even inside double quotes: <code>--tl &quot;router*,!router0[2-3]&quot;</code> gives <code>event not found</code>, and the line is not run.</li>
+</ul>
+<p>Double quotes serve when the value holds no <code>!</code> or <code>$</code>. A target file, standard
+input, and a stream's lines reach karvi as written. The decisions are in
+<a href="DESIGN.html#3-targets-inventory-and-platforms"><code>docs/DESIGN.md</code>, section 3</a>,
+and the executed cases in <a href="EXAMPLES.html#103-numeric-ranges-and-the-inventory-option-2026-11-07"><code>docs/EXAMPLES.md</code>, chapter
+103</a>.</p>
 <h2 id="dispatch-serial-parallel-and-wave">Dispatch: serial, parallel, and wave <a class="anchor" href="#dispatch-serial-parallel-and-wave" aria-label="Link to this section">#</a></h2>
 <p>A <code>run</code> speaks to its devices one at a time unless told otherwise
 (<code>dispatch.default = &quot;serial&quot;</code>); <code>command</code> is always one device at a
@@ -645,16 +764,20 @@ administrator sets the account up once, as root, under either install:</p>
 <pre><code class="language-bash">sudo karvi-sysutil daemon install
 </code></pre>
 <p>It runs <code>karvi setup shared</code> (the shared trees, in the operators' group,
-<code>netops</code> unless <code>--group NAME</code> names another); makes the system user <code>karvi</code>,
-its group, and its home <code>/opt/karvi/users/karvi</code> (0750), with no login shell;
-adds it to the operators' group; writes its configuration,
-<code>/opt/karvi/users/karvi/.config/karvi/config.toml</code> (0600), with <code>[daemon] launch = &quot;systemd&quot;</code>; and enables and starts <code>karvi-daemon@karvi.service</code>,
-checking <code>karvi daemon status</code> as the account. Each part is entered in the
-record <code>/etc/karvi/service-karvi.installed</code> as it is made or found. Run again,
-it changes nothing over a whole install and repairs what has drifted from what
-it made; <code>karvi-sysutil(8)</code> lists every step and refusal. The account is a
-system user, so logind's <code>RemoveIPC</code> leaves its files under <code>/dev/shm</code> alone,
-and it needs no user manager and no <code>loginctl enable-linger</code>.</p>
+<code>netops</code> unless <code>--group NAME</code> names another); makes the system user <code>karvi</code>
+and its group, with no login shell; adds it to the operators' group; makes its
+home <code>/opt/karvi/users/karvi</code> (0750); writes, as the account, its
+configuration, <code>/opt/karvi/users/karvi/.config/karvi/config.toml</code> (0600), with
+<code>[daemon] launch = &quot;systemd&quot;</code>; and enables and starts
+<code>karvi-daemon@karvi.service</code>, checking <code>karvi daemon status</code> as the account.
+Each part is entered in the record <code>/etc/karvi/service-karvi.installed</code> as it
+is made or found. Run again, it changes nothing over a whole install and
+repairs what has drifted from what it made, inside the home as the account; a
+home it did not make, or a link or another owner's file where it made the home
+or the configuration, is refused. <code>karvi-sysutil(8)</code> lists every step and
+refusal. The account is a system user, so logind's <code>RemoveIPC</code> leaves its
+files under <code>/dev/shm</code> alone, and it needs no user manager and no
+<code>loginctl enable-linger</code>.</p>
 <p>Under <code>daemon.launch = &quot;systemd&quot;</code> the account's client neither drains nor
 starts a daemon:</p>
 <ul>
@@ -691,12 +814,12 @@ karvi. Until then the account's submissions are refused, <code>daemon_incompatib
 the builds stacked.</p>
 <p><strong>Removal.</strong> <code>sudo karvi-sysutil daemon remove</code> disables and stops the
 instance, the stop waiting for its jobs as at a shutdown, and removes the
-configuration file and the group membership it made. The account and its home
-stay, so that their files keep their owner, and a later <code>daemon install</code> takes
-the account back. <code>--purge</code> also gives every file the account owns in the
-shared trees and the shared scratch to root, their group and mode unchanged,
-and removes the account, its home, its spool directories, and the record. The
-shared trees and the template unit stay.</p>
+configuration file, as the account, and the group membership it made. The
+account and its home stay, so that their files keep their owner, and a later
+<code>daemon install</code> takes the account back. <code>--purge</code> also gives every file the
+account owns in the shared trees and the shared scratch to root, their group
+and mode unchanged, and removes the account, its home, its spool directories,
+and the record. The shared trees and the template unit stay.</p>
 <h2 id="linux-servers">Linux servers <a class="anchor" href="#linux-servers" aria-label="Link to this section">#</a></h2>
 <p>A server is the built-in <code>linux</code>, an alias of it, or <code>linux_shell</code>. <code>linux</code>
 runs each command on an exec channel of its own over either transport: one
@@ -2373,7 +2496,8 @@ keeps the rest. <code>--purge-commands</code> (any prefix from <code>--purge-c</
 empties every command; <code>--purge-targets</code> (from <code>--purge-t</code>) removes
 every target input (<code>--target</code>, <code>--tl</code>, <code>--tf</code>, <code>--tfr</code>, <code>--site</code>,
 <code>--device-group</code>, <code>--all</code>, <code>--select-platform</code>) and keeps the other
-options; <code>--purge</code> alone names both and is refused. <code>--reset</code> empties
+options, <code>--inventory</code> among them; <code>--purge</code> alone names both and is
+refused. <code>--reset</code> empties
 the draft. <code>--restart</code> empties the draft and reads the configuration
 again as the stream's start does, under the stream's command-line
 options and <code>--set</code>, its warnings said again and, at a terminal, the
@@ -2514,7 +2638,7 @@ journald's and the forwarder's; <code>karvi-prune</code> never touches it (&quot
 records, and scoreboards as authoritative. Human headers, borders, and footers
 are projections only.</p>
 
-<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.40.0</code>.</footer>
+<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.41.0</code>.</footer>
 </main>
 </body>
 </html>

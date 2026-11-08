@@ -67,8 +67,8 @@
 <li><a href="#9-a-production-server">9. A production server</a></li>
 <li><a href="#10-on-the-production-network-the-run-at-a-glance">10. On the production network: the run at a glance</a></li>
 </ul></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -137,8 +137,8 @@
 <li><a href="#9-a-production-server">9. A production server</a></li>
 <li><a href="#10-on-the-production-network-the-run-at-a-glance">10. On the production network: the run at a glance</a></li>
 </ul></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -179,6 +179,11 @@ rows of <a href="#9-a-production-server">section 9</a>.</p>
 <td>A host that reaches the device's management address over SSH, with the released bundle unpacked and <code>scripts/verify-bundle.sh</code> passed</td>
 <td>every row</td>
 <td>The OpenSSH client for <code>system</code>; <code>go</code> only to build <code>tools/paritycheck</code> (without it the comparison is marked skip and is run afterwards over the kept streams)</td>
+</tr>
+<tr>
+<td>A host and account where karvi reads no configuration</td>
+<td>every row</td>
+<td>No <code>/etc/karvi/config.toml</code>, <code>/opt/karvi/config.toml</code>, or <code>~/.config/karvi/config.toml</code>, and no exported <code>KARVI__</code> variable: the rows run under the script's own settings alone, and the script names any it finds and stops at its start</td>
 </tr>
 <tr>
 <td><code>python3</code></td>
@@ -244,7 +249,7 @@ operator's own trust store, configuration, or state (all under the
 evidence directory's <code>work/</code> while the run lasts), or a credential on a
 command line or in a file.</p>
 <h2 id="2-before-the-laboratory-the-script-against-the-fake">2. Before the laboratory: the script against the fake <a class="anchor" href="#2-before-the-laboratory-the-script-against-the-fake" aria-label="Link to this section">#</a></h2>
-<pre><code class="language-bash">cd karvi-v0.40.0
+<pre><code class="language-bash">cd karvi-v0.41.0
 sha256sum -c CHECKSUMS.sha256          # the released executables
 make tools-build                       # bin/secret-scan
 FAKE=1 CONFIG_ROW=1 RELOAD=&quot;system native&quot; scripts/device-qualification.sh
@@ -523,8 +528,12 @@ the session's raw bytes (<code>script -T timing -m advanced -c 'karvi login DEVI
   version.json          the same, as JSON
   device-release.txt    the release line of D1's `show version`
   results.tsv           row, check, disposition (pass, fail, skip, observe), detail
-  D1/ ... D14/          per invocation: TAG.out, TAG.err, TAG.exit, TAG.karvi.toml,
-                        and TAG.base/ (audit.jsonl, score/, and the job directory:
+  places.toml           every run's places, passed first: the private root, the
+                        spool, scoreboards, capacity root, and audit file under
+                        it, no shared root, no free-space floor
+  D1/ ... D14/          per invocation: TAG.out, TAG.err, TAG.exit, TAG.karvi.toml
+                        (the run's own settings, after places.toml), and TAG.base/
+                        (audit.jsonl, scoreboards/, spool/, and the job directory:
                         commands.jsonl, output.TARGET.txt (the session as text, on a
                         build that writes it), errors.jsonl, failed-devices.txt,
                         summary.json, metrics.json, manifest.json with the digests)
@@ -787,6 +796,9 @@ owners review the directory before it leaves the host.</p>
 network. Section 2 is the development environment's and is not theirs to
 repeat. A run that departs from these steps still counts: the evidence is
 read row by row, beside a note of what was done otherwise.</p>
+<p><strong>The host</strong>: one where karvi reads no configuration, neither the site's
+file nor the account's nor a <code>KARVI__</code> variable (<a href="#1-what-the-run-needs">section
+1</a>); the script names any it finds and stops.</p>
 <p><strong>The run</strong>, from the unpacked bundle's folder, the account's secrets in the
 environment alone:</p>
 <pre><code class="language-bash">export NETUSER=ACCOUNT
@@ -833,7 +845,7 @@ otherwise and why, and the account's privilege at login.</li>
 (section 5); the network operations and security owners review it before it
 leaves the production network.</p>
 
-<footer>Generated from <code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code> at <code>karvi-v0.40.0</code>.</footer>
+<footer>Generated from <code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code> at <code>karvi-v0.41.0</code>.</footer>
 </main>
 </body>
 </html>

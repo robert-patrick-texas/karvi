@@ -58,8 +58,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -119,8 +119,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.40.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.40.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -148,9 +148,9 @@ through an internal module proxy. No build tag is involved, and every build
 carries the native transport. Its text version output MUST include:</p>
 <pre><code class="language-text">  native: compiled-in
 </code></pre>
-<p>The suites run in three lanes at once (<code>scripts/lib/suites.sh</code>);
-<code>KARVI_SUITE_LANES=1</code> runs them one after
-another with the output live.</p>
+<p>The suites run in three lanes at once (<code>scripts/lib/suites.sh</code>); a Ctrl-C
+stops every lane, each suite running its cleanup. <code>KARVI_SUITE_LANES=1</code> runs
+them one after another with the output live.</p>
 <p>A build is stamped with its version and its commit, and no build time: <code>make build</code> takes <code>COMMIT</code> from the command line or the environment, else <code>git describe --always --dirty</code> in a git checkout's root, else <code>development</code>.
 <code>scripts/verify-release.sh</code> rebuilds <code>bin/</code> with that commit and rewrites
 <code>CHECKSUMS.sha256</code>, so pass <code>COMMIT=source-release-v$(cat VERSION)</code> to keep
@@ -161,7 +161,7 @@ qualification plan
 (<a href="docs/CISCO-IOSXE-QUALIFICATION.html"><code>docs/CISCO-IOSXE-QUALIFICATION.md</code></a>)
 before relying on the native transport in production.</p>
 
-<footer>Generated from <code>BUILDING.md</code> at <code>karvi-v0.40.0</code>.</footer>
+<footer>Generated from <code>BUILDING.md</code> at <code>karvi-v0.41.0</code>.</footer>
 </main>
 </body>
 </html>
