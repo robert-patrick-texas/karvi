@@ -22972,3 +22972,376 @@ the container install, the release notes and their check, the push, the site,
 the GitHub release, and the published check; `v0410-ch104-suites-test-*.out`
 the row's two runs above; `shell-fixes-2026-11/S10/battery/a-suites.log` the
 unread line).
+
+## 105. The release's numbers in a table (2026-11-08)
+
+At chapter 104's outline the operator asked that a release's numbers stand in
+a table beneath what the release does, said in plain words and without its
+schema counters. 0.41.0's CHANGELOG block opens with a paragraph of 238 words
+naming the release's parts, the two counters it moves and the ten it keeps,
+each with its value, Go and its modules, what a site changes for each
+Breaking entry, and the drain of an operator's 0.40.0 daemon; its release
+notes, 946 words, carry the same numbers in sentences. Each value is typed at
+the release, and of them only the manifest's counters are checked, seven by
+`verify-shipped.sh` against the shipped executable. The design session
+agreed five points, the second on the operator's own directions, each
+recorded on the operator's word; a plan of four sections builds them: the
+tool (S1), the documents (S2), this chapter (S3), and the release tools
+outside the tree (S4). Nothing in karvi changes, and 0.42.0 is the first
+release in the new form.
+
+**What it gains.** A reader of a CHANGELOG block finds what the release adds,
+fixes, and breaks under a heading each, and its numbers in a table where a
+moved value reads across its row; the release notes are half as long (0.41.0's
+in the new form, 494 words). Every number is printed from its owner, this
+release's from the tree and the previous release's from its tag, and checked
+in each document that carries it before the release's second commit, so a
+mistyped or forgotten value stops the release. The cost is a paste at each of
+two commits and a check in the sequence.
+
+**The rule, as agreed.**
+
+- **The table** (point 1). Every value, in the same order at each release:
+  Go, each module `go.mod` requires (the indirect ones included), the twelve
+  schema counters, each from its owner's constant (configuration schema,
+  configuration registry, execution plan, command record, plan report,
+  scoreboard, audit, job manifest and summary, metrics, daemon IPC, credential
+  package, inventory), and two counts. Three columns: the row's name, the
+  previous release's value, and this release's; the headings name the two
+  releases, so the release has no row. A moved version or counter is this
+  release's cell in bold. At the operator's direction each column is as wide
+  as its widest cell, the bold's asterisks counted, with a space on each side,
+  so a value with more digits widens its column and none touches a bar.
+- **The two counts** (point 2). "Lines of Code: Go", every line of the
+  tracked `.go` files outside `vendor/`, tests included (the manifest's
+  `go_lines_outside_vendor`), and "Lines of Code: Other", every line of the
+  other tracked programs outside `vendor/`: a file whose first line starts
+  `#!`, or a file named `Makefile` (51 files and 9,694 lines at 0.41.0, 43 and
+  8,247 at 0.40.0). They move at nearly every release, so they are never bold.
+- **The block** (point 2). Its entries under `### New features`, `### Bugs
+  fixed`, `### Breaking changes`, and `### Other notes`, in that order, then
+  the table. The first three always stand, "None." under one with no entry;
+  Other notes only when it has one. A bug fixed is a fix to what ships or a
+  site runs: karvi, its helpers, the package, the bundle and its verifiers,
+  the man pages. Other notes hold the suites' and the tests' own changes and
+  build tooling with no effect at a site. No summary paragraph, no
+  "Breaking:" prefix, no "a minor release on X" opener (the version number
+  tells a patch from a minor or a major release), and no sentence on the
+  daemon's drain after an upgrade, the same at every release; a change to the
+  drain is itself an entry.
+- **The CHANGELOG's table** (point 2). The rows that moved and the two
+  counts, then "Every other value is X's.", X the previous release; the full
+  table goes where a document is written fresh for each release.
+- **Which document carries which part** (point 3). The CHANGELOG: each block
+  as above, and a preamble under `# Changelog` saying what a block holds and
+  defining the two counts; the `## Unreleased` block files each entry under
+  its heading as it is written, its table and any "None." added at the
+  release's first commit. The release notes: the three topics, Other notes
+  when there is one, the full table, one pointer to the CHANGELOG and the
+  published documents, then Assets; "What a site changes", "Upgrade", and the
+  opener go. `release/BUILD-RESULT.md`: the Result paragraph keeps the
+  qualification and points to the CHANGELOG, its summary, counters, and "a
+  minor release" gone; "Build identity" keeps its version, commit, build,
+  dependencies, native, and CGO lines, the full table after them in place of
+  the Go and counter lines. `release/release-manifest.json` loses
+  `behavior_change_from_previous` and `previous_release.notes`, which nothing
+  reads (the scripts, tools, tests, and release tools searched), and
+  `configuration_migration.notes` its registry clause. The first commit's
+  message: the number, the block's count per heading, and the checksums. The
+  release's chapter here: its opening names the chapters the release carries
+  and its stops, no counters.
+- **Where each value is read** (point 4a). This release's column from the
+  working tree at the first commit: a counter from its owner's constant, read
+  by Go's parser; a module from `go.mod`'s require lines; Go from the
+  toolchain running the tool; the counts from `git ls-files`. The previous
+  release's column from its tag through git, the same way, Go from the tag's
+  manifest (`build.go_version`), the source not recording the toolchain. The
+  counter list (row, owner package, constant) is written once, in the tool. A
+  module one release lacks is "—" on that side, its row moved; the rows are
+  the two releases' values alone, so a module gone from both has no row: at
+  the operator's direction a removal shows in the release that made it, and
+  not after.
+- **How the tables reach the documents** (point 4b). The tool prints and the
+  release pastes: `go run ./tools/release-numbers` the full table, and
+  `-changelog` the CHANGELOG's with its closing line. This release is
+  `VERSION`; the previous one is the highest `karvi-v` tag below it (0.41.0
+  for 0.42.0, 0.34.0 for 0.34.1), true from the first commit to after the
+  tag; `-previous TAG` overrides.
+- **What checks the tables** (point 4c). `-check`, for the release `VERSION`
+  names, compares the CHANGELOG's block of that version (its table and closing
+  line equal `-changelog`'s), BUILD-RESULT's table (the full one), and the
+  manifest's ten counters, `build.go_version`, `vendored_modules`, and
+  `go_lines_outside_vendor`; `-check NOTES.md` adds a notes draft's table. The
+  first difference stops it, exit 1, the row named and the two values
+  stacked; exit 0 names what it compared, and exit 2 is a usage error or what
+  it cannot read. The three counters nothing checked before (execution plan,
+  plan report, credential package) are compared like the rest. It needs git
+  and the tags, so it runs in the release sequence, not in `go test`, a
+  battery, or a bundle.
+- **The past** (point 5). The 23 published blocks, 0.23.0 to 0.41.0 (255
+  entries, 63 of them Breaking), stay as published, as the preamble says, and
+  the tree's BUILD-RESULT and manifest stay 0.41.0's until 0.42.0's second
+  commit writes them in the new form. 0.42.0's block is the first with a
+  table, its 0.41.0 column joining it to the last block of the old form.
+
+**The session, as run.** Point 1 weighed every value against the moved values
+alone and a line for the rest, both laid out by a script from the tags'
+sources; the operator chose every value and added the padding rule. Point 2
+began as a lead paragraph over the table; the operator's directions put it
+under the three topics and dropped the drain sentence and the opener, then
+made the topics the block's headings and named the two counts, and the
+session's recommendations on what Other counts, how an entry is sorted, and
+which table the CHANGELOG takes were agreed. Point 4 was
+settled in three parts, where the values come from, how they reach the
+documents, and what checks them, on a mock-up that read every value at each
+pair of tags from 0.30.0 to 0.41.0.
+
+**The executed examples.** The tool on the tree at `87ce6ed`, `VERSION`
+0.41.0 and the previous release `karvi-v0.40.0` (S1's `tree-0410.out`, byte
+for byte point 4's mock-up):
+
+```text
+$ go run ./tools/release-numbers
+|                            | 0.40.0  | 0.41.0  |
+| -------------------------- | ------- | ------- |
+| Go                         | 1.27.3  | 1.27.3  |
+| `github.com/yuin/goldmark` | v1.8.7  | v1.8.7  |
+| `golang.org/x/crypto`      | v0.58.0 | v0.58.0 |
+| `golang.org/x/sys`         | v0.49.0 | v0.49.0 |
+| `golang.org/x/term`        | v0.47.0 | v0.47.0 |
+| configuration schema       | 6       | 6       |
+| configuration registry     | 33      | **34**  |
+| execution plan             | 17      | 17      |
+| command record             | 5       | 5       |
+| plan report                | 4       | 4       |
+| scoreboard                 | 5       | 5       |
+| audit                      | 3       | **4**   |
+| job manifest and summary   | 5       | 5       |
+| metrics                    | 1       | 1       |
+| daemon IPC                 | 12      | 12      |
+| credential package         | 2       | 2       |
+| inventory                  | 1       | 1       |
+| Lines of Code: Go          | 126,766 | 128,401 |
+| Lines of Code: Other       | 8,247   | 9,694   |
+$ go run ./tools/release-numbers -changelog
+|                        | 0.40.0  | 0.41.0  |
+| ---------------------- | ------- | ------- |
+| configuration registry | 33      | 34      |
+| audit                  | 3       | 4       |
+| Lines of Code: Go      | 126,766 | 128,401 |
+| Lines of Code: Other   | 8,247   | 9,694   |
+
+Every other value is 0.40.0's.
+```
+
+Wider values widen their columns, each cell keeping a space on each side:
+point 2's mock-up gives a made-up 10.100.0 a Go of 1.30.12, `x/crypto`
+v0.100.12, registry 1000, and daemon IPC 100, the full table's cell
+`**v0.100.12**` then 13 characters wide. Its CHANGELOG table:
+
+```text
+|                        | 0.40.0  | 10.100.0  |
+| ---------------------- | ------- | --------- |
+| Go                     | 1.27.3  | 1.30.12   |
+| `golang.org/x/crypto`  | v0.58.0 | v0.100.12 |
+| configuration registry | 33      | 1000      |
+| audit                  | 3       | 4         |
+| daemon IPC             | 12      | 100       |
+| Lines of Code: Go      | 126,766 | 1,234,567 |
+| Lines of Code: Other   | 8,247   | 12,345    |
+
+Every other value is 0.40.0's.
+```
+
+The published releases, from point 4's mock-up at each pair of tags: 0.37.0
+removed three modules, each "—" in its tables; 0.38.0's have no row for them,
+and its CHANGELOG table is the two counts alone, as at any release that moves
+nothing else; 0.34.0's `gotextfsm` pseudo-version, 36 characters, widens both
+columns of its full table:
+
+```text
+== 0.37.0: the CHANGELOG table
+|                                  | 0.36.0  | 0.37.0  |
+| -------------------------------- | ------- | ------- |
+| `github.com/scrapli/scrapligo`   | v1.4.3  | —       |
+| `github.com/creack/pty`          | v1.1.24 | —       |
+| `github.com/sirikothe/gotextfsm` | v1.2.0  | —       |
+| configuration registry           | 31      | 32      |
+| Lines of Code: Go                | 112,174 | 112,243 |
+| Lines of Code: Other             | 7,968   | 8,151   |
+
+Every other value is 0.36.0's.
+== 0.38.0: the CHANGELOG table
+|                      | 0.37.0  | 0.38.0  |
+| -------------------- | ------- | ------- |
+| Lines of Code: Go    | 112,243 | 112,342 |
+| Lines of Code: Other | 8,151   | 8,151   |
+
+Every other value is 0.37.0's.
+== 0.34.0: the full table's heading and one row
+|                                  | 0.33.0                               | 0.34.0                               |
+| -------------------------------- | ------------------------------------ | ------------------------------------ |
+| `github.com/sirikothe/gotextfsm` | v1.0.1-0.20200816110946-6aa2cfd355e4 | v1.0.1-0.20200816110946-6aa2cfd355e4 |
+```
+
+0.41.0's 38 entries under the headings, the titles alone (point 2's
+`block.py`): 2, 10, 4, and 22, shortened where a parenthesis says. The
+script drops the "Breaking:" prefix and leaves the next word's case, which a
+block written in the form capitalizes:
+
+```text
+## 0.41.0 - 2026-11-08
+
+### New features
+
+- **`targets.inventory-only` runs only the inventory's devices.** ...
+- **`--inventory`, `--inv`, and `--i` run only the inventory's devices, from files given on the line.** ...
+
+### Bugs fixed
+
+- **`karvi-sysutil` never acts as root on what the service account owns.** ...
+- **`karvi-sysutil` stops when it cannot write its record.** ...
+- **`karvi-sysutil` reads `daemon status` without colour.** ...
+  (seven more)
+
+### Breaking changes
+
+- **`security.require-fips` is removed; registry 34, audit schema 4.** ...
+- **`karvi version` has no `fips_mode` line.** ...
+- **a bracket of digits is a numeric range in every selector.** ...
+- **a target holding a numeric range creates the names it spells.** ...
+
+### Other notes
+
+- **The release's number is written once, in `VERSION`.** ...
+- **The daemon-upgrade suite builds its fixture before it starts it.** ...
+  (twenty more)
+```
+
+The check, on the tree and on a scratch clone of `87ce6ed` with the tool's
+two tables pasted into 0.41.0's CHANGELOG block and BUILD-RESULT, the
+manifest as shipped (S1's `check-tree.out` and `check-pasted.out`; the
+parenthesis says what each run was given). On the tree 0.41.0's block has no
+table, what the tool cannot read; `go run` reports any failure as exit 1, and
+the built tool exits 2:
+
+```text
+$ go run ./tools/release-numbers -check        (the tree)
+release-numbers: CHANGELOG.md: no table headed 0.40.0 and 0.41.0 in the 0.41.0 block
+exit status 1
+exit 1
+$ release-numbers -check                       (the clone, the tables pasted)
+release-numbers: CHANGELOG.md's 0.41.0 block, release/BUILD-RESULT.md, and release/release-manifest.json agree with the tree and karvi-v0.40.0
+exit 0
+$ release-numbers -check NOTES.md              (0.41.0's notes in the new form)
+release-numbers: CHANGELOG.md's 0.41.0 block, release/BUILD-RESULT.md, release/release-manifest.json, and NOTES.md agree with the tree and karvi-v0.40.0
+exit 0
+$ release-numbers -check NOTES-altered.md      (the same notes, audit 3)
+release-numbers: NOTES-altered.md: audit differs
+  NOTES-altered.md  3
+  the tree          **4**
+exit 1
+$ release-numbers -check                       (BUILD-RESULT: x/sys's 0.40.0 cell v0.48.0)
+release-numbers: release/BUILD-RESULT.md: golang.org/x/sys differs
+  release/BUILD-RESULT.md  v0.48.0
+  karvi-v0.40.0            v0.49.0
+exit 1
+$ release-numbers -check                       (the manifest: execution_plan_schema_version 16)
+release-numbers: release/release-manifest.json: execution_plan_schema_version differs
+  release/release-manifest.json  16
+  executionplan.SchemaVersion    17
+exit 1
+```
+
+Each stacked value stands beside its source: the tree's column, the tag's,
+or the owner's constant. 0.41.0's notes in the new form (point 3's
+`notes-0410-v2.md`) are the three topics, an Other notes paragraph, the full
+table, the pointer, and Assets, 494 words against the published notes' 946.
+
+**How the next release uses it.**
+
+- While the changes are made, each CHANGELOG entry is written under its
+  heading in `## Unreleased`; S1's is the first, under Other notes.
+- The first commit (1/3): the heading becomes `## 0.42.0 -` and the day,
+  "None." goes under any of the three headings with no entry, and
+  `-changelog`'s output is pasted at the block's end; the message gives the
+  number, the block's count per heading, and the checksums.
+- The second commit (2/3): BUILD-RESULT and the manifest as point 3 says, the
+  full table pasted after the Build identity lines; `-check` runs on the
+  draft before the commit, where `verify-shipped.sh` runs, and a difference
+  stops the release.
+- The release notes: drafted in the new form with the full table; the
+  release's notes check, copied from 0.41.0's, runs `-check` on the draft.
+- The release's chapter: its opening names the chapters the release carries
+  and its stops, with no counters.
+
+**What changed.**
+
+- `2e2080d` (S1): `tools/release-numbers`, of the standard library alone
+  (`go/parser`, `go/ast`, git through `os/exec`), beside `configgen` and
+  `errorcodegen`: the counter list (`numbers.go`), the readers of the tree
+  and of a tag, the layout (`table.go`), the comparison (`check.go`), and its
+  15 tests; `## Unreleased` opened in the new form, the tool's entry under
+  Other notes.
+- `d0a5765` (S2): the CHANGELOG's preamble; `tools/md-to-html/docs.go`'s line
+  for CHANGELOG.md ("What each release changed: new features, bugs fixed,
+  breaking changes, and its numbers."); README's Release status sentence,
+  which said the breaking changes come first in each block, as the old line
+  of `docs.go` did; `docs/DESIGN.md` section 16's entry "A release's changes
+  stand under three topics and its numbers in a table"; the ROADMAP item
+  removed.
+- S3: this chapter.
+- S4, outside the tree and not committed: `release-tools/evidence-rest.sh`
+  runs `-check` before the evidence, the release stopped on its failure, and
+  the next release's copy of the notes check runs `-check` on its draft.
+
+**Not taken.**
+
+- The moved values alone and a line for the rest in every document: the full
+  set then shown nowhere, `karvi version` reporting 7 of the 12 counters.
+- A lead paragraph over the table, in either of point 2's drafts: the
+  headings do its work, and the release notes keep a short paragraph under
+  each topic.
+- The full table in every CHANGELOG block: each unchanged row repeated in
+  every block, where the closing line says every other value is the previous
+  release's and a value's history is found by search.
+- The previous release's column read from its manifest: no metrics,
+  inventory, or Other count until a release writes them, a hole at 0.42.0.
+  `karvi version` reporting all twelve counters, read from the two
+  executables: no modules or counts, and 0.41.0's reports seven.
+- The tool writing the tables into the documents between markers: markers in
+  two hand-written documents, a tool editing prose, and the notes drafted
+  outside the tree; the check makes a wrong paste loud.
+- A Go test reading the real documents and tags (a bundle has no tags, and a
+  test that skips there does not run), and the manifest gaining the metrics,
+  inventory, and Other values (only the check would read them).
+- A removed module's "—" row kept in the releases after it.
+- 0.41.0's block alone rewritten as the first example (the tree would differ
+  from what 0.41.0 shipped; this chapter carries the example), and every past
+  block rewritten (255 entries sorted after the fact, for nothing a reader of
+  the past needs).
+
+**Left open.** Nothing; 0.42.0's chapter records the first paste and check.
+
+**Checks.** S1's 15 tests failed first against a stub of the same signatures,
+14 of them (the case accepting an equal table passed, the stub's check finding
+no difference), then passed; gofmt, `go vet ./...`, `go test ./...` on the
+whole tree, and `make generated-clean`. The tool's tests pass in a copy of the
+tree with no `.git` (`-mod=vendor`), so they run in a bundle. Built once from
+the tree, the tool ran in a scratch clone checked out at each tag from 0.31.0
+to 0.41.0: 0.34.1 to 0.41.0 equal point 4's mock-up, and 0.31.0 to 0.34.0
+differ only in the Go row, this release's Go being the running toolchain,
+1.27.3, against the 1.27.2 those six shipped with, so the full table bolds it
+and the CHANGELOG table carries it; at a release the toolchain is the
+release's own, and `-check` compares it with the manifest. S2's grep checks
+ran before and after: the ROADMAP item, the preamble, `build-deb.sh`'s read of
+the first `## ` heading, which still finds `## Unreleased` below the preamble,
+the lines of `docs.go` and README, no living document saying the breaking
+changes come first, and the DESIGN entry; then `go test ./...` (`docs.go` is
+code) and a check build of the site, 40 pages with every link resolving. S3 is
+a document: grep checks against `DECISIONS.md` and the sections' READMEs,
+`make generated-clean`, and the links through `tools/md-to-html`. No battery:
+no suite, karvi, or library a suite sources changed. The evidence is kept
+beside the tree (`release-design-evidence/release-numbers-2026-11/`:
+`DECISIONS.md`, `PLAN.md`, the session's mock-ups in `point1/` to `point4/`,
+and a folder per section with its README and runs).
