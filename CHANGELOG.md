@@ -1,6 +1,28 @@
 # Changelog
 
-## Unreleased
+## 0.41.0 - 2026-11-08
+
+A minor release on 0.40.0 for numeric ranges in every selector
+(`router[10-12]`), targets that create the names a range spells, runs limited
+to the inventory's devices (`targets.inventory-only`, and `--inventory`,
+`--inv`, or `--i`, with files given on the line), the removal of
+`security.require-fips` and of `karvi version`'s `fips_mode`, a
+`karvi-sysutil` that never acts as root on what the service account owns, the
+release's number written once in `VERSION`, and the shell-script review's
+fixes to the suites and scripts. The configuration registry moves to 34 and
+the audit to 4; every other counter is 0.40.0's (configuration schema 6,
+execution plan 17, command record 5, plan report 4, scoreboard 5, daemon IPC
+12, job manifest and summary 5, credential package 2, metrics 1, inventory 1).
+Go and every module are 0.40.0's. A site has something to change where a
+configuration file, `--set`, or a `KARVI__` variable names
+`security.require-fips`; a tool reads the audit policy's `fips_required`,
+reads the audit trail as schema 3, or reads `fips_mode` from `karvi version`
+or a job manifest's `app.build`; a selector, a credential CSV row, or a map
+rule holds a bracket of digits meant as a one-character class (`[123]`,
+`[05]`, `[1,3]`) or one now refused (`[1-]`, `[10, 12]`); or a target holding
+a range was meant to select from the inventory alone, as it now does under
+`--i` or `targets.inventory-only`. An operator's 0.40.0 daemon, of another
+build, is drained by the first submission after the upgrade.
 
 - **The release's number is written once, in `VERSION`.** A package at the
   module root embeds the file, and `karvi version` reports it through
