@@ -441,19 +441,19 @@ icmp_method=$("$KARVI" version --format json 2>/dev/null | json_get - icmp_metho
 if [ "$icmp_method" = socket ] || [ "$icmp_method" = system ]; then
   before_log=$(wc -l <"$FAKE.log" | tr -d ' ')
   # g1: one line per gated device before its header; the unreachable one is skipped.
-  row g1 101 -- k --set 'network.ping-timeout="200ms"' run --ping --target 127.0.0.1 --target 203.0.113.254 --transport system 'show clock'
+  row g1 101 -- k --set 'network.ping-timeout="200ms"' run --ping --target 127.0.0.1 --target 192.0.2.1 --transport system 'show clock'
   grep -Eq '^! 127\.0\.0\.1 \[127\.0\.0\.1\] ping\(1\) [<0-9.]+ms, ping\(2\) [<0-9.]+ms, proceed$' "$TMP/streams/g1.out" || fail "g1: no proceeding line for loopback"
-  grep -q '^! 203.0.113.254 \[203.0.113.254\] ping(1) timeout, ping(2) timeout, skip$' "$TMP/streams/g1.out" || fail "g1: no skipped line for TEST-NET"
+  grep -q '^! 192.0.2.1 \[192.0.2.1\] ping(1) timeout, ping(2) timeout, skip$' "$TMP/streams/g1.out" || fail "g1: no skipped line for TEST-NET"
   grep -q 'status=icmp_unreachable error=icmp_unreachable: ICMP gate enabled' "$TMP/streams/g1.out" || fail "g1: no icmp_unreachable failure line"
   [ "$(grep -c 'error=icmp_unreachable: icmp_unreachable' "$TMP/streams/g1.out")" -eq 0 ] || fail "g1: the code is printed twice"
   [ "$(wc -l <"$FAKE.log" | tr -d ' ')" -eq $((before_log + 1)) ] || fail "g1: expected exactly one new session at the fake device"
   # g2: display.ping.header="" prints no line; the records still carry the object.
-  row g2 101 -- k --set 'network.ping-timeout="200ms"' --set display.ping.header="" run --ping --target 127.0.0.1 --target 203.0.113.254 --transport system 'show clock'
+  row g2 101 -- k --set 'network.ping-timeout="200ms"' --set display.ping.header="" run --ping --target 127.0.0.1 --target 192.0.2.1 --transport system 'show clock'
   [ "$(grep -c 'ping(1)' "$TMP/streams/g2.out")" -eq 0 ] || fail "g2: an empty display.ping.header still printed the line"
   # g3: --quiet suppresses the line; --debug adds the gate's debug lines to stderr.
-  row g3 101 -- k --quiet --set 'network.ping-timeout="200ms"' run --ping --target 203.0.113.254 --transport system 'show clock'
+  row g3 101 -- k --quiet --set 'network.ping-timeout="200ms"' run --ping --target 192.0.2.1 --transport system 'show clock'
   [ "$(grep -c 'ping(1)' "$TMP/streams/g3.out")" -eq 0 ] || fail "g3: --quiet still printed the line"
-  row g4 101 -- k --debug --set 'network.ping-timeout="200ms"' run --ping --no-daemon --target 203.0.113.254 --transport system 'show clock'
+  row g4 101 -- k --debug --set 'network.ping-timeout="200ms"' run --ping --no-daemon --target 192.0.2.1 --transport system 'show clock'
   grep -q 'device ping gate target=.*decision=skip' "$TMP/streams/g4.err" || fail "g4: no gate debug line"
   # g5: the rehearsals detect the capability and send no probe or session.
   before_log=$(wc -l <"$FAKE.log" | tr -d ' ')

@@ -7,7 +7,7 @@
 # job, it is drained and the run refused, daemon_draining, the daemon's build
 # over the client's, and no daemon is started beside it; daemon stop and
 # daemon restart reach it at its own schema. Each run is an exercise to
-# 203.0.113.254, which reaches no device.
+# 192.0.2.1, which reaches no device.
 set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
@@ -70,12 +70,12 @@ fixture_gone() {
   wait "$FIXTURE_PID"
   FIXTURE_PID=
 }
-# exercise NAME: a run's exercise to 203.0.113.254, its exit in code, its output
+# exercise NAME: a run's exercise to 192.0.2.1, its exit in code, its output
 # in NAME.out and NAME.err.
 exercise() {
   set +e
   HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a-secret \
-    k run --exercise --target 203.0.113.254 --transport system 'show clock' \
+    k run --exercise --target 192.0.2.1 --transport system 'show clock' \
     >"$TMP/$1.out" 2>"$TMP/$1.err"
   code=$?
   set -e

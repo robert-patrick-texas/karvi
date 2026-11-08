@@ -115,13 +115,12 @@ smoke suites use `absent PATTERN FILE` (`scripts/lib/lab.sh`) or
 ## v0.10.0 ICMP-gate expectations
 
 - The canary suite runs twelve rows (thirteen with shutdown accounting): p1 runs
-  `--ping` over `127.0.0.1` and `203.0.113.254` with the real pinger and
-  asserts one new session at the fake device, the TEST-NET record
-  `icmp_unreachable` with decision `skip`, the loopback record `success` with
-  decision `proceed`, the summary block, and the skipped gate within two
-  timeouts plus one second; p2 runs `login --ping` against `203.0.113.254` and
-  asserts exit 110 with no session; p3 asserts `ping_flag_conflict`. The final
-  scan covers 106 files.
+  `--ping` over `127.0.0.1` and `192.0.2.1` with the real pinger and asserts one
+  new session at the fake device, the TEST-NET record `icmp_unreachable` with
+  decision `skip`, the loopback record `success` with decision `proceed`, the
+  summary block, and the skipped gate within two timeouts plus one second; p2
+  runs `login --ping` against `192.0.2.1` and asserts exit 110 with no session;
+  p3 asserts `ping_flag_conflict`. The final scan covers 106 files.
 - The v0100 suite runs twenty-two rows (twenty-five with shutdown accounting):
   g1–g7 assert the one-line text result for a proceeding and a skipped device,
   an empty `display.ping.header`, `--quiet`, the `--debug` gate line, the
@@ -159,8 +158,8 @@ smoke suites use `absent PATTERN FILE` (`scripts/lib/lab.sh`) or
   job from its directory after a forced restart, and a cancelled job.
 - `scripts/daemon-lifecycle-replay.sh OLD_KARVI` replays, against a daemon
   launched by an older executable, `status` with its stacked pairs, a run's
-  exercise to 203.0.113.254 that drains the idle older daemon and starts its
-  own, `stop`, and `restart`, `--grace` and `--after` draining first; release
+  exercise to 192.0.2.1 that drains the idle older daemon and starts its own,
+  `stop`, and `restart`, `--grace` and `--after` draining first; release
   engineering runs it with the prior bundle's executable and keeps
   the output with the release's evidence; the prior
   is the newest karvi release whose daemon IPC schema differs from the new
@@ -191,7 +190,7 @@ smoke suites use `absent PATTERN FILE` (`scripts/lib/lab.sh`) or
 `scripts/daemon-upgrade-smoke-test.sh` runs each step beside a lifecycle-only
 fixture daemon, built from `tools/daemon-fixture`, which answers a drain as a
 daemon of this tree does: holding no job it exits, and holding its emulated
-jobs it stays, answering `draining`. Each run is an exercise to 203.0.113.254,
+jobs it stays, answering `draining`. Each run is an exercise to 192.0.2.1,
 which reaches no device.
 
 - An idle daemon of an older IPC schema MUST be reported incompatible by

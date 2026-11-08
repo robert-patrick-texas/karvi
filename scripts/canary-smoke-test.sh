@@ -239,8 +239,8 @@ e1_dir=$(find "$BASE/jobs" -name exercise.json -type f -newer "$TMP/streams/d1.o
 json_is "$(dirname "$e1_dir")/summary.json" final_status exercise || fail "e1: the summary is not exercise"
 [ "$(audit_events "$BASE/audit.jsonl" event_name outcome | grep -cx "run\.end${TAB}exercise")" -ge 1 ] || fail "e1: no run.end audit event with the outcome exercise"
 # p1–p3: the two-probe ICMP gate with the
-# real pinger against one loopback target and one TEST-NET-3 target
-# (203.0.113.254, RFC 5737, never answered). The rows need an ICMP method on
+# real pinger against one loopback target and one TEST-NET-1 target
+# (192.0.2.1, RFC 5737, never answered). The rows need an ICMP method on
 # this host, the ping socket or the system ping; when karvi version reports
 # it unavailable they are skipped with the reason, so the bundle verifier
 # passes on a host without capability and the gate is claimed from a host
@@ -249,11 +249,11 @@ icmp_method=$("$KARVI" version --format json 2>/dev/null | json_get - icmp_metho
 if [ "$icmp_method" = socket ] || [ "$icmp_method" = system ]; then
   before_auth=$(grep -c '^AUTH:' "$FAKE.log" || true)
   before_manifests=$(find "$BASE/jobs" -name manifest.json -type f | wc -l | tr -d ' ')
-  row p1 101 -- k run --ping --target 127.0.0.1 --target 203.0.113.254 --transport system --format jsonl 'show clock'
+  row p1 101 -- k run --ping --target 127.0.0.1 --target 192.0.2.1 --transport system --format jsonl 'show clock'
   [ "$(wc -l <"$TMP/streams/p1.out" | tr -d ' ')" -eq 3 ] || fail "p1: expected two records and the summary line"
   p1=$(jsonl_records "$TMP/streams/p1.out" selected_address status ping.decision)
-  printf '%s\n' "$p1" | grep -qx "$(printf '203.0.113.254\ticmp_unreachable\t.*')" || fail "p1: the unreachable target was not skipped as icmp_unreachable"
-  printf '%s\n' "$p1" | grep -qx "$(printf '203.0.113.254\t.*\tskip')" || fail "p1: the skipped record's ping decision is not skip"
+  printf '%s\n' "$p1" | grep -qx "$(printf '192.0.2.1\ticmp_unreachable\t.*')" || fail "p1: the unreachable target was not skipped as icmp_unreachable"
+  printf '%s\n' "$p1" | grep -qx "$(printf '192.0.2.1\t.*\tskip')" || fail "p1: the skipped record's ping decision is not skip"
   printf '%s\n' "$p1" | grep -qx "$(printf '127.0.0.1\tsuccess\t.*')" || fail "p1: the reachable target did not succeed"
   printf '%s\n' "$p1" | grep -qx "$(printf '127.0.0.1\t.*\tproceed')" || fail "p1: the reachable record's ping decision is not proceed"
   [ "$(jsonl_records "$TMP/streams/p1.out" ping.method | sort -u)" = "$icmp_method" ] || fail "p1: the records do not name the method $icmp_method"
@@ -263,13 +263,13 @@ if [ "$icmp_method" = socket ] || [ "$icmp_method" = system ]; then
   json_is "$p1_summary" ping.devices.gated 2 && json_is "$p1_summary" ping.devices.skip 1 && json_is "$p1_summary" ping.devices.proceed 1 || fail "p1: the summary's ping block does not count one skip and one proceed"
   # The gate's own duration is the ping object's total_ns (the device's
   # timing.total_ns also covers queueing and the failure set).
-  skip_ns=$(jsonl_records "$TMP/streams/p1.out" selected_address ping.decision ping.total_ns | awk -F"$TAB" '$1 == "203.0.113.254" && $2 == "skip" { print $3; exit }')
+  skip_ns=$(jsonl_records "$TMP/streams/p1.out" selected_address ping.decision ping.total_ns | awk -F"$TAB" '$1 == "192.0.2.1" && $2 == "skip" { print $3; exit }')
   [ "${skip_ns:-0}" -gt 0 ] && [ "$skip_ns" -le 2000000000 ] || fail "p1: the skipped gate took ${skip_ns:-?} ns, want within two timeouts plus a second"
   [ "$(find "$BASE/jobs" -name manifest.json -type f | wc -l | tr -d ' ')" -eq $((before_manifests + 1)) ] || fail "p1: expected one new job directory"
   # p2: login with the gate against the unreachable target exits 110 before
   # any transport; the fake device sees no session.
   before_auth=$(grep -c '^AUTH:' "$FAKE.log" || true)
-  row p2 110 -- k login --ping --management-address 203.0.113.254 canary-device
+  row p2 110 -- k login --ping --management-address 192.0.2.1 canary-device
   grep -q 'ping(1) timeout, ping(2) timeout, skip' "$TMP/streams/p2.err" || fail "p2: no one-line gate result"
   grep -q '^icmp_unreachable: ' "$TMP/streams/p2.err" || fail "p2: no icmp_unreachable failure"
   [ "$(grep -c '^AUTH:' "$FAKE.log" || true)" -eq "$before_auth" ] || fail "p2: the fake device saw a session for a skipped target"

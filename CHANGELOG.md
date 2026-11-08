@@ -443,16 +443,6 @@
   `cli_command_near_miss`. A direct target is told by its source path, `cli`,
   which no inventory path can be (the loader makes each absolute), so a
   source's name, and an `--inventory` value, is a label alone.
-- **The ping-gate tests' address that never answers is 203.0.113.254.** The
-  tests that expect an address to time out (the ICMP gate's own, the canary
-  suite's p1 and p2, the v0100 suite's g1 to g4, and `ping_flags_test`'s
-  unreachable login) and the daemon suites' exercises, chosen to reach no
-  device, used `192.0.2.1`. This host's network now answers it in about a
-  millisecond through its gateway, so the ICMP gate's test and the canary and
-  v0100 rows failed on every build, 0.40.0's too. They use `203.0.113.254`
-  (TEST-NET-3, RFC 5737), as do `docs/BUILD-QUALIFICATION.md` and the ping
-  example in `docs/OPERATIONS.md`; the EXAMPLES chapters keep the address
-  their runs used.
 
 ## 0.40.0 - 2026-11-05
 
