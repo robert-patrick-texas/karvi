@@ -1,5 +1,20 @@
 # Changelog
 
+A release's block holds its entries under New features, Bugs fixed, and
+Breaking changes, each heading there with "None." when it has no entry, and
+under Other notes, when there is one, the changes to the suites, the tests,
+and the build's tooling that reach no site. A table of the release's numbers
+ends the block: each value that moved since the release before (Go, a module
+`go.mod` requires, a schema counter), and two counts, "Lines of Code: Go",
+the lines of the tracked `.go` files outside `vendor/`, tests included, and
+"Lines of Code: Other", the lines of the other tracked programs outside
+`vendor/` (a file whose first line starts `#!`, or one named `Makefile`).
+Every value the table does not show is the previous release's; the release
+notes and the release's `release/BUILD-RESULT.md` show every value. The
+block headed Unreleased takes its table, and "None." under an empty heading,
+when the release is made. The blocks before the first table keep the form
+they were published in.
+
 ## Unreleased
 
 ### Other notes

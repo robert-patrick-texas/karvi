@@ -43,7 +43,7 @@ var documents = []document{
 	{"docs/DESIGN.md", "Design and records", "The settled design decisions, and why each was taken."},
 	{"docs/TRANSPORT-DRIVER-ARCHITECTURE.md", "Design and records", "The transport and driver layers karvi owns, and the rule for adding one."},
 	{"docs/EXAMPLES.md", "Design and records", "Each design session as it was executed against the tree, with the alternatives not taken."},
-	{"CHANGELOG.md", "Design and records", "What each release changed, the breaking changes first."},
+	{"CHANGELOG.md", "Design and records", "What each release changed: new features, bugs fixed, breaking changes, and its numbers."},
 	{"ROADMAP.md", "Design and records", "What is decided and not built yet, in the order it will be taken up."},
 
 	{"BUILDING.md", "Building, qualification, and release", "The release build, in brief."},

@@ -22,9 +22,9 @@ describe the behavior of the code as it exists; `VERSION` names the release.
 
 ## Release status
 
-[`CHANGELOG.md`](CHANGELOG.md) lists every release's changes, the breaking ones
-first in each release's block. A daemon serves a client only when its IPC
-schema and its build, the Go build ID of its executable, equal the client's:
+[`CHANGELOG.md`](CHANGELOG.md) lists each release's new features, bugs fixed,
+and breaking changes, and its numbers. A daemon serves a client only when its
+IPC schema and its build, the Go build ID of its executable, equal the client's:
 after an upgrade the next submission drains an operator's daemon of the older
 build, replacing an idle one in the same invocation and refusing new jobs while
 a busy one finishes its own and exits

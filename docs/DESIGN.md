@@ -3743,6 +3743,40 @@ is installed as new from the bundle, and the archive's own verification is the
 claim a site repeats. *Not taken:* a cumulative patch beside the bundle (no
 site built from one, and the diff between two tags is one command).
 
+**A release's changes stand under three topics and its numbers in a table.** A
+CHANGELOG block files each entry under New features, Bugs fixed, or Breaking
+changes, the three always there and "None." under one with no entry, and under
+Other notes, when there is one, a change that reaches no site: the suites' and
+the tests' own, and the build's tooling. A fix to what ships or a site runs
+(karvi, its helpers, the package, the bundle and its verifiers, the man pages)
+is a bug fixed. No paragraph sums the block up, no entry is marked "Breaking:",
+no block calls the release minor, and none repeats the daemon's drain after an
+upgrade, the same at every release: the headings sort the entries, the version
+number tells a patch from a minor or a major release, and a change to the drain
+is itself an entry. The numbers stand in a table, a row per value, the previous
+release's beside this one's: Go, each module `go.mod` requires, each schema
+counter, and the lines of Go and of the other programs outside `vendor/`. The
+CHANGELOG's table holds what moved and the two counts, then "Every other value
+is X's."; the release notes and `release/BUILD-RESULT.md`, written fresh at
+each release, hold every row, a moved version or counter bold and the counts
+never, and the notes take the same three topics, Other notes when there is one,
+then the table and the assets. A module one release lacks is "—" there, in the
+release that adds or drops it alone. `tools/release-numbers` prints both
+tables, this release's values from the working tree and the previous release's
+from its tag, and `-check` compares the CHANGELOG's block, BUILD-RESULT's
+table, the manifest's numbers, and the notes draft's table with them before the
+release's second commit; a difference stops the release. *Why:* a lead that
+carried the numbers in its sentences buried what the release does among values
+a reader compares, each typed at the release and checked by nothing but the
+manifest's counters; a row reads a move across, and a table printed from the
+owners and checked cannot drift. *Not taken:* the moved values alone in every
+document (the full set then shown nowhere, `karvi version` reporting only some
+of the counters); the previous release's column read from its manifest (it
+lacks the metrics and inventory counters and the Other count); the tool writing
+the tables into the documents between markers (a tool editing prose, where the
+check makes a wrong paste loud); the past blocks rewritten (they stay as
+published).
+
 **Suites and tests keep off the host.** Every suite sets its trust store,
 base directory, spool directory, scoreboard directory, and `sharedroot none`
 under its own work directory; every test binary that reaches the shared-tree
