@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+### Other notes
+
+- **`tools/release-numbers` prints the release's numbers and checks the
+  documents that carry them.** `go run ./tools/release-numbers` prints a
+  table of every number a release carries, the previous release's value
+  beside this one's: Go, each module `go.mod` requires (the indirect ones
+  included), the twelve schema counters, each read from its owner's
+  constant, and two counts, "Lines of Code: Go" (the tracked `.go` files
+  outside `vendor/`, tests included) and "Lines of Code: Other" (the other
+  tracked programs outside `vendor/`: a file whose first line starts `#!`,
+  or a file named `Makefile`). A moved version or counter is bold, the two
+  counts never; a module one release lacks is "—" there. `-changelog`
+  prints what moved and the two counts, then the line saying every other
+  value is the previous release's. `-check` compares, for the release
+  `VERSION` names, the CHANGELOG's block, `release/BUILD-RESULT.md`'s table,
+  and the release manifest's counters, Go, modules, and Go lines, and a
+  notes draft's table when one is named; the first difference stops it,
+  the row named and the two values stacked. This release is `VERSION`, read
+  from the working tree; the previous one is the highest `karvi-v` tag below
+  it (`-previous TAG`), read from the tag through git. It needs git and the
+  tags, so it runs in the release tree, not in a bundle; its tests, which
+  run everywhere, check the counter list against the constants karvi
+  imports and that the tree holds no `SchemaVersion` constant the list
+  lacks.
+
 ## 0.41.0 - 2026-11-08
 
 A minor release on 0.40.0 for numeric ranges in every selector
