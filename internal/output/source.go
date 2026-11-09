@@ -39,6 +39,10 @@ type Source struct {
 	// rules; nil on a shell record and for an exec command that did not
 	// run. The record's line streams it as it streams the output.
 	stderr *Source
+	// region, with path the file's, is the output inside a commands.jsonl
+	// line read back (ReadRecordAt): a spool to every pass, which reads the
+	// device's bytes from it, digest being the record's own.
+	region *lineRegion
 }
 
 // FromRecord is the output as the record carries it: its Output string
@@ -99,7 +103,8 @@ func FromSpool(path string, bytes int64, digest, encoding string) Source {
 
 // Close closes the spools' descriptors, the output's and the standard
 // error's, once every pass is done: the executor's, before it removes the
-// files. A source without a spool has nothing to close.
+// files. A source without a spool has nothing to close, nor one read back
+// from a line (ReadRecordAt), whose file is the caller's.
 func (s Source) Close() error {
 	var err error
 	for _, src := range []*Source{&s, s.stderr} {
@@ -127,6 +132,9 @@ func (s Source) Empty() bool { return s.path == "" && s.text == "" }
 // descriptor (ReadAt, so no pass moves another's offset); a pass reads the
 // file once.
 func (s Source) open() (*bufio.Reader, error) {
+	if s.region != nil {
+		return s.region.open(s.path, s.encoding, s.digest), nil
+	}
 	if s.spool.err != nil {
 		return nil, errorcodes.Errorf("output_write_failed", "the output spool %s could not be read for the record: %v", s.path, s.spool.err)
 	}
