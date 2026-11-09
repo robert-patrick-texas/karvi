@@ -146,6 +146,44 @@ func TestGatherHeaderPlaceholders(t *testing.T) {
 	}
 }
 
+// TestGatherHeaderNamesNotCounted: a group header's folded names are the
+// job's own, however many, and the header is one line never cut, so the
+// rendered line's limit does not count the <targets> value, plain or
+// styled; a second copy of it and the template's other values are still
+// counted, so a line made long by them is refused as before.
+func TestGatherHeaderNamesNotCounted(t *testing.T) {
+	formatter, err := NewFormatter(DefaultTimestampPattern, "auto")
+	if err != nil {
+		t.Fatal(err)
+	}
+	style := LineStyle{Enabled: true, Target: "cyan", Label: "gray", Value: "white"}
+	names := strings.Repeat("sitea-core,", 40000) + "sitea-core"
+	values := Values{Targets: names, Count: 40001}
+	plain, err := formatter.RenderLine("! <targets> (<count>)", values)
+	if err != nil || plain != "! "+names+" (40001)" {
+		t.Fatalf("plain: %d bytes, %v", len(plain), err)
+	}
+	// A second copy counts, so a template repeating it stays bounded.
+	if _, err := formatter.RenderLine("! <targets> <targets>", values); errorcodes.Of(err) != "display_line_too_long" {
+		t.Fatalf("the names twice, plain: %v", err)
+	}
+	if _, err := formatter.RenderStyledLine("! <targets> <targets> <targets> <targets> <targets>", values, style); errorcodes.Of(err) != "display_line_too_long" {
+		t.Fatalf("the names five times, styled: %v", err)
+	}
+	styled, err := formatter.RenderStyledLine("! <targets> (<count>)", values, style)
+	if err != nil || !strings.Contains(styled, names) || strings.Contains(styled, "\n") {
+		t.Fatalf("styled: %d bytes, %v", len(styled), err)
+	}
+	long := Values{Targets: "edge1", Artifacts: strings.Repeat("a", maxTemplateBytes)}
+	if _, err := formatter.RenderLine("! <targets> <artifacts>", long); errorcodes.Of(err) != "display_line_too_long" {
+		t.Fatalf("another value past the limit, plain: %v", err)
+	}
+	long.Artifacts = strings.Repeat("a", 4*maxTemplateBytes)
+	if _, err := formatter.RenderStyledLine("! <targets> <artifacts>", long, style); errorcodes.Of(err) != "display_line_too_long" {
+		t.Fatalf("another value past the limit, styled: %v", err)
+	}
+}
+
 func TestBorderRepeat(t *testing.T) {
 	got, err := RenderBorder("<repeat:-:40>\n")
 	if err != nil {

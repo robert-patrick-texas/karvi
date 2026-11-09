@@ -1,0 +1,5 @@
+! show bogus
+! edge[1-2],router01 (3)
+     ^
+% Invalid input detected at '^' marker.
+karvi: status=device_error error=device_command_error

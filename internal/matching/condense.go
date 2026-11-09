@@ -58,7 +58,7 @@ func Condense(names []string) string {
 	for _, group := range shapes {
 		items = append(items, condenseShape(group)...)
 	}
-	slices.SortFunc(items, func(a, b condensed) int { return naturalCompare(a.first, b.first) })
+	slices.SortFunc(items, func(a, b condensed) int { return CompareNames(a.first, b.first) })
 	texts := make([]string, len(items))
 	for i, it := range items {
 		texts[i] = it.text
@@ -169,7 +169,7 @@ func foldOn(group []digitSplit, axis int) []condensed {
 		}
 		first := s.name
 		for _, m := range b.members[1:] {
-			if naturalCompare(m.name, first) < 0 {
+			if CompareNames(m.name, first) < 0 {
 				first = m.name
 			}
 		}
@@ -285,11 +285,11 @@ func escapeItem(item string) string {
 	return item
 }
 
-// naturalCompare orders names as Condense lists its items: rune by rune, a
+// CompareNames orders names as Condense lists its items: rune by rune, a
 // run of digits against a run of digits by value and then the fewer digits
 // first, any other rune lowercase by code point; a name that is the start of
 // the other first; names alike so far by their text as written.
-func naturalCompare(a, b string) int {
+func CompareNames(a, b string) int {
 	x, y := []rune(a), []rune(b)
 	i, j := 0, 0
 	for i < len(x) && j < len(y) {

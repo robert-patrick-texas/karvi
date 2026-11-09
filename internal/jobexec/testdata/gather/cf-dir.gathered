@@ -1,0 +1,12 @@
+! show clock
+! router[01-02] (2)
+*10:00:00.000 UTC Tue Sep 15 2026
+
+! show version
+! edge1,router[01-02] (3)
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+
+! show clock
+! router[01-02] (2)
+*10:00:00.000 UTC Tue Sep 15 2026

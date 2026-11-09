@@ -1,0 +1,43 @@
+! show version
+! edge[1-2],router[01-04,10] (7)
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+
+! router09 (1)
+karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:38537: connect: connection refused
+
+! show running-config
+! router[01-04,10] (5)
+Building configuration...
+
+Current configuration : 512 bytes
+!
+! Last configuration change at 10:00:00 UTC Tue Sep 15 2026
+!
+version 17.9
+hostname core
+!
+interface GigabitEthernet1
+ ip address 192.0.2.1 255.255.255.0
+!
+ntp clock-period 17179869
+end
+
+! edge[1-2] (2)
+Building configuration...
+
+Current configuration : 512 bytes
+!
+! Last configuration change at 10:00:00 UTC Tue Sep 15 2026
+!
+version 17.9
+hostname edge
+!
+interface GigabitEthernet1
+ ip address 192.0.2.1 255.255.255.0
+!
+ntp clock-period 17179869
+end
+
+! router09 (1)
+karvi: status=not_attempted_prior_command_failure

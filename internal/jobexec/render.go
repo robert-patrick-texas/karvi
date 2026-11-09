@@ -83,6 +83,11 @@ type recordRenderer struct {
 	live     bool
 	current  *liveDevice
 	lastByte byte
+	// gather, when set (gatherFrom), gathers the run's text display and
+	// shows it at the end (gather.go); gatherTemplate is its group header,
+	// display.gather.header.
+	gather         *gatherer
+	gatherTemplate string
 }
 
 func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, quiet, debug bool, activityID, artifact, activityType string, echo, dynamicBorder, noBorder bool) (*recordRenderer, error) {
@@ -107,6 +112,7 @@ func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, qu
 	headerTemplate := ""
 	footerTemplate := ""
 	borderTemplate := ""
+	gatherTemplate := ""
 	dynamicDefault := 72
 	lastBorder := false
 	switch activityType {
@@ -123,6 +129,7 @@ func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, qu
 		// run clears it (newRunReplayRenderer).
 		footerTemplate = cfg.String("display.run.footer")
 		borderTemplate = cfg.String("display.run.border")
+		gatherTemplate = cfg.String("display.gather.header")
 		dynamicDefault = cfg.Int("display.run.dynamic-border-length")
 		lastBorder = cfg.Bool("display.run.last-border")
 	}
@@ -142,6 +149,7 @@ func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, qu
 		activityID: activityID, artifact: artifact, terminalWidth: terminalWidth,
 		dynamicBorder: dynamicBorder, noBorder: noBorder, lastBorder: lastBorder, dynamicBorderDefault: dynamicDefault,
 		jsonIndent: cfg.Int("display.json.indent"), requested: map[string]int{}, sessionInit: map[string]int{}, seenDevices: map[string]bool{}, errors: map[string]int{},
+		gatherTemplate: gatherTemplate,
 	}, nil
 }
 
@@ -283,6 +291,15 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 			fmt.Fprintln(r.warnOut, line)
 		}
 	}
+	if r.gather != nil {
+		// Gathered: the record's key and line, no output; the blocks at the
+		// end (writeGatheredLocked), the footer's values the last record's.
+		r.gather.add(&rec)
+		if !hiddenRecord(&rec) {
+			r.lastValues = displayValuesFromRecord(rec)
+		}
+		return
+	}
 
 	switch r.format {
 	case "jsonl":
@@ -333,7 +350,7 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 	// border, echo, or output. A requested one leaves one line, shown under
 	// --quiet as a failure line is, so a device's not-attempted commands
 	// stack under its failure.
-	if (rec.Error == nil && (sessionInit || rec.Status != "success")) || (sessionInit && stoppedStatuses[rec.Status]) {
+	if hiddenRecord(&rec) {
 		if !sessionInit {
 			line := fmt.Sprintf("karvi: target=%s status=%s command=%d/%d", target, rec.Status, rec.CommandIndex, rec.CommandCount)
 			data = appendLine(data, display.ANSIStyle(line, r.lineStyle.Error, r.colorEnabled, true))
@@ -379,6 +396,30 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 		}
 		data = appendLine(data, prompt+rec.Command)
 	}
+	if !r.writeAnswerLocked(rec, src, data) {
+		return
+	}
+	data = nil
+
+	// Text output must make failed records visible. Earlier releases persisted
+	// a second target's failure but rendered no line when that record contained
+	// no device output, which made a partial run appear to stop after target one.
+	if rec.Error != nil {
+		data = appendLine(data, r.failureLine(rec, target))
+	}
+
+	r.write(data)
+	if r.err == nil {
+		r.pendingBorder, r.pendingBorderColor = r.nextBorder()
+	}
+}
+
+// writeAnswerLocked writes data, what precedes the record's answer, then
+// the answer: its output streamed from src (an exec record's stderr after
+// its stdout), or the follow's notice in its place, its last line ended.
+// It is today's display of a record's output and the gathered display's of
+// a group's; false when a write or a stream failed (r.err).
+func (r *recordRenderer) writeAnswerLocked(rec records.CommandRecord, src output.Source, data []byte) bool {
 	// The output streams from its source between what precedes it and what
 	// follows, the device's bytes as they were recorded (base64 decoded as
 	// it streams, a spool copied), through the escape-sequence stripper
@@ -390,7 +431,6 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 		last = data[len(data)-1]
 	}
 	r.write(data)
-	data = nil
 	if omitted := rec.OutputOmitted(); omitted != nil {
 		// The follow stream left the output out: the notice's message
 		// stands where
@@ -429,7 +469,7 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 			}
 			if err != nil {
 				r.setErrorLocked("record_output_decode_failed", err)
-				return
+				return false
 			}
 			if strip == nil || strip.wrote {
 				last, wrote = end.Last, true
@@ -437,20 +477,18 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 		}
 	}
 	if wrote && last != '\n' {
-		data = append(data, '\n')
+		r.write([]byte{'\n'})
 	}
+	return r.err == nil
+}
 
-	// Text output must make failed records visible. Earlier releases persisted
-	// a second target's failure but rendered no line when that record contained
-	// no device output, which made a partial run appear to stop after target one.
-	if rec.Error != nil {
-		data = appendLine(data, r.failureLine(rec, target))
-	}
-
-	r.write(data)
-	if r.err == nil {
-		r.pendingBorder, r.pendingBorderColor = r.nextBorder()
-	}
+// hiddenRecord says the text display shows no block for rec: a record
+// without an error object that did not succeed was not sent, a succeeded
+// session-init record is setup, and a stopped session-init record repeats
+// its device's requested status. A requested one of them leaves one line.
+func hiddenRecord(rec *records.CommandRecord) bool {
+	sessionInit := rec.CommandKind == "session_init"
+	return (rec.Error == nil && (sessionInit || rec.Status != "success")) || (sessionInit && stoppedStatuses[rec.Status])
 }
 
 // failureLine is a failed record's line, styled as an error.
@@ -696,6 +734,12 @@ func (r *recordRenderer) WriteFooter(ended time.Time, code int, elapsed time.Dur
 	if r.format == "jsonl" {
 		return nil
 	}
+	if r.gather != nil {
+		if err := r.writeGatheredLocked(); err != nil {
+			r.setErrorLocked("run_output_records_unreadable", err)
+			return r.err
+		}
+	}
 
 	// The pending separator is the border after the final record. Emit it only
 	// when the mode's explicit last-border setting requests one.
@@ -899,9 +943,11 @@ func (r *recordRenderer) finish(summary *records.Summary) error {
 		return r.err
 	}
 	if summary == nil {
-		// No summary, no footer: the format is closed and no more.
+		// No summary, no footer: the format is closed and no more, and a
+		// gathered display shows nothing (the job's end is not known).
 		r.mu.Lock()
 		r.footerTemplate = ""
+		r.gather = nil
 		r.mu.Unlock()
 		return r.WriteFooter(time.Time{}, 0, 0, nil)
 	}

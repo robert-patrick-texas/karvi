@@ -152,7 +152,11 @@ func appendDigits(out []byte, v, width int) []byte {
 	return append(out, digits...)
 }
 
-// RenderLine expands a validated one-line header or footer template.
+// RenderLine expands a validated one-line header or footer template. The
+// rendered line is refused above maxTemplateBytes, the first <targets>
+// value not counted: a gathered group's folded names are the job's own,
+// however many, and its header is never cut (the template itself is bounded
+// at load); a second copy counts, so the bound holds.
 func (f Formatter) RenderLine(template string, values Values) (string, error) {
 	if err := ValidateLineTemplate(template); err != nil {
 		return "", err
@@ -162,6 +166,7 @@ func (f Formatter) RenderLine(template string, values Values) (string, error) {
 	}
 	mapping := f.placeholderValues(values)
 	var out strings.Builder
+	names := -1 // the bytes of the first <targets> value, not counted
 	for i := 0; i < len(template); {
 		if template[i] != '<' {
 			out.WriteByte(template[i])
@@ -179,9 +184,12 @@ func (f Formatter) RenderLine(template string, values Values) (string, error) {
 			return "", errorcodes.Errorf("display_placeholder_unsupported", "unsupported display placeholder <%s>", name)
 		}
 		out.WriteString(value)
+		if name == "targets" && names < 0 {
+			names = len(value)
+		}
 		i = end + 1
 	}
-	if out.Len() > maxTemplateBytes {
+	if out.Len()-max(names, 0) > maxTemplateBytes {
 		return "", errorcodes.Errorf("display_line_too_long", "rendered display line exceeds %d bytes", maxTemplateBytes)
 	}
 	return out.String(), nil
@@ -376,8 +384,9 @@ func elementStart(template string, placeholder int) int {
 }
 
 // RenderStyledLine expands the same safe placeholders as RenderLine while
-// applying semantic ANSI colors. Machine output must continue to use
-// RenderLine or structured records and never this terminal projection.
+// applying semantic ANSI colors, the first <targets> value likewise not
+// counted in its limit. Machine output must continue to use RenderLine or
+// structured records and never this terminal projection.
 func (f Formatter) RenderStyledLine(template string, values Values, style LineStyle) (string, error) {
 	if err := ValidateLineTemplate(template); err != nil {
 		return "", err
@@ -387,6 +396,7 @@ func (f Formatter) RenderStyledLine(template string, values Values, style LineSt
 	}
 	mapping := f.placeholderValues(values)
 	var out strings.Builder
+	names := -1 // the bytes of the first styled <targets> value, not counted
 	for i := 0; i < len(template); {
 		if template[i] != '<' {
 			next := strings.IndexByte(template[i:], '<')
@@ -409,10 +419,14 @@ func (f Formatter) RenderStyledLine(template string, values Values, style LineSt
 			return "", errorcodes.Errorf("display_placeholder_unsupported", "unsupported display placeholder <%s>", name)
 		}
 		color, bold := placeholderStyle(name, value, style)
-		out.WriteString(ANSIStyle(value, color, style.Enabled, bold))
+		styled := ANSIStyle(value, color, style.Enabled, bold)
+		out.WriteString(styled)
+		if name == "targets" && names < 0 {
+			names = len(styled)
+		}
 		i = end + 1
 	}
-	if out.Len() > maxTemplateBytes*4 {
+	if out.Len()-max(names, 0) > maxTemplateBytes*4 {
 		// ANSI escapes add bounded overhead. Keep a hard limit even for an
 		// operator who chooses an unusually placeholder-dense template.
 		return "", errorcodes.Errorf("display_line_too_long", "rendered styled display line exceeds %d bytes", maxTemplateBytes*4)
