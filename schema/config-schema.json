@@ -11,8 +11,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__CONFIG__SCHEMA_VERSION",
       "cli_flags": null,
-      "documentation": "Must equal supported major 6.",
-      "since": "0.2.0"
+      "documentation": "Must equal supported major 6."
     },
     {
       "path": "config.allow-user-layer",
@@ -23,8 +22,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__CONFIG__ALLOW_USER_LAYER",
       "cli_flags": null,
-      "documentation": "Effective global value read before locating user config.",
-      "since": "0.2.0"
+      "documentation": "Effective global value read before locating user config."
     },
     {
       "path": "config.includes",
@@ -35,8 +33,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__CONFIG__INCLUDES",
       "cli_flags": null,
-      "documentation": "`false` disables further directives; equivalent include depth 0.",
-      "since": "0.2.0"
+      "documentation": "`false` disables further directives; equivalent include depth 0."
     },
     {
       "path": "config.include-depth",
@@ -49,8 +46,7 @@
       "cli_flags": null,
       "min": "0",
       "max": "32",
-      "documentation": "0–32 directive-chain depth.",
-      "since": "0.2.0"
+      "documentation": "0–32 directive-chain depth."
     },
     {
       "path": "config.dir-recursion-depth",
@@ -63,8 +59,7 @@
       "cli_flags": null,
       "min": "0",
       "max": "32",
-      "documentation": "0–32 included-directory nesting.",
-      "since": "0.2.0"
+      "documentation": "0–32 included-directory nesting."
     },
     {
       "path": "config.reject-unknown-env",
@@ -75,8 +70,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__CONFIG__REJECT_UNKNOWN_ENV",
       "cli_flags": null,
-      "documentation": "Reject unknown `KARVI__*` variables.",
-      "since": "0.2.0"
+      "documentation": "Reject unknown `KARVI__*` variables."
     },
     {
       "path": "basedir",
@@ -91,8 +85,7 @@
       "words": [
         "auto"
       ],
-      "documentation": "`auto` uses the private-state order; an explicit path is the exact effective private root, absolute or operator-home-relative, a real directory the operator can write to whatever its owner and mode; it cannot change its own config discovery. The `socket` and `state` subtrees under it are the operator's own, so a root is never shared: the shared trees are `sharedroot`'s.",
-      "since": "0.2.0"
+      "documentation": "`auto` uses the private-state order; an explicit path is the exact effective private root, absolute or operator-home-relative, a real directory the operator can write to whatever its owner and mode; it cannot change its own config discovery. The `socket` and `state` subtrees under it are the operator's own, so a root is never shared: the shared trees are `sharedroot`'s."
     },
     {
       "path": "sharedroot",
@@ -108,8 +101,7 @@
         "auto",
         "none"
       ],
-      "documentation": "The site's shared root, holding the `jobs`, `crun`, and `transcripts` trees that `sudo karvi setup shared` creates with group write and setgid: `auto` consults `/opt/karvi/shared`, then `/var/lib/karvi/shared`; `none` consults nothing; a path consults that directory. A tree that exists there is the default of `output.root`, `crun.directory`, or `transcript.root` in place of the one under `basedir`, and a tree the operator cannot create files in is refused.",
-      "since": "0.16.0"
+      "documentation": "The site's shared root, holding the `jobs`, `crun`, and `transcripts` trees that `sudo karvi setup shared` creates with group write and setgid: `auto` consults `/opt/karvi/shared`, then `/var/lib/karvi/shared`; `none` consults nothing; a path consults that directory. A tree that exists there is the default of `output.root`, `crun.directory`, or `transcript.root` in place of the one under `basedir`, and a tree the operator cannot create files in is refused."
     },
     {
       "path": "tempdir",
@@ -124,8 +116,7 @@
       "words": [
         "auto"
       ],
-      "documentation": "The scratch directory of the askpass socket and the system transport's ssh configuration. `auto` is the chain `/dev/shm/karvi/\u003cusername\u003e` (only when the site's scratch root `/dev/shm/karvi` exists: `sudo karvi setup shared` makes it, and karvi never does), `\u003cbasedir\u003e/tmp`, `/tmp/karvi-\u003cuid\u003e`, `/var/tmp/karvi-\u003cuid\u003e`, the first that is a writable real directory, made 0700 in its existing parent, a present one only when it is the operator's with no group or other access; an absolute path replaces the chain, taken whatever its owner and mode. The directory may be at most 69 bytes, so that an askpass socket's path, its name up to 37 bytes, fits 107: `auto` passes a longer candidate by, and an explicit path longer is `tempdir_too_long` at every job's admission and a login's start.",
-      "since": "0.2.0"
+      "documentation": "The scratch directory of the askpass socket and the system transport's ssh configuration. `auto` is the chain `/dev/shm/karvi/\u003cusername\u003e` (only when the site's scratch root `/dev/shm/karvi` exists: `sudo karvi setup shared` makes it, and karvi never does), `\u003cbasedir\u003e/tmp`, `/tmp/karvi-\u003cuid\u003e`, `/var/tmp/karvi-\u003cuid\u003e`, the first that is a writable real directory, made 0700 in its existing parent, a present one only when it is the operator's with no group or other access; an absolute path replaces the chain, taken whatever its owner and mode. The directory may be at most 69 bytes, so that an askpass socket's path, its name up to 37 bytes, fits 107: `auto` passes a longer candidate by, and an explicit path longer is `tempdir_too_long` at every job's admission and a login's start."
     },
     {
       "path": "spooldir",
@@ -140,8 +131,7 @@
       "words": [
         "auto"
       ],
-      "documentation": "The directory of the output spools, one file per command in flight whose response has passed `output.spool-threshold-bytes`. `auto` tries `/tmp/karvi-\u003cuid\u003e`, then `/var/tmp/karvi-\u003cuid\u003e`, each made 0700 for the effective uid, a present one only when it is the effective uid's with no group or other access, a real directory and not a link, probed with one file; an absolute path replaces the list, taken whatever its owner and mode; no candidate writable is `spool_directory_unavailable`, before any device is touched. Not `tempdir`: the scratch is for small, short-lived files and its `auto` chain prefers `/dev/shm`, a tmpfs, while a spool is infrequent and possibly large and must cost disk, never memory; a site that wants both on one volume points both keys at explicit paths there. Resolved and swept at the daemon's start and at every job's admission.",
-      "since": "0.20.0"
+      "documentation": "The directory of the output spools, one file per command in flight whose response has passed `output.spool-threshold-bytes`. `auto` tries `/tmp/karvi-\u003cuid\u003e`, then `/var/tmp/karvi-\u003cuid\u003e`, each made 0700 for the effective uid, a present one only when it is the effective uid's with no group or other access, a real directory and not a link, probed with one file; an absolute path replaces the list, taken whatever its owner and mode; no candidate writable is `spool_directory_unavailable`, before any device is touched. Not `tempdir`: the scratch is for small, short-lived files and its `auto` chain prefers `/dev/shm`, a tmpfs, while a spool is infrequent and possibly large and must cost disk, never memory; a site that wants both on one volume points both keys at explicit paths there. Resolved and swept at the daemon's start and at every job's admission."
     },
     {
       "path": "scoreboards",
@@ -156,8 +146,7 @@
       "words": [
         "auto"
       ],
-      "documentation": "The folder every activity writes its scoreboard in and `karvi watch` reads. `auto` is `/dev/shm/karvi/scoreboards`, every operator's, where the site's scratch root `/dev/shm/karvi` exists (`sudo karvi setup shared` makes it, at 3770 in the operators' group; a missing `scoreboards` is made in the root with its bits), else the private `\u003cbasedir\u003e/state/scoreboards`; a shared folder present but not writable by the operator is passed by for the private one with one warning. `karvi watch` reads every place of the chain that exists, the shared folder and the private one. A path (`~` the operator's home, a relative path from the working directory) replaces the chain, used or refused.",
-      "since": "0.27.0"
+      "documentation": "The folder every activity writes its scoreboard in and `karvi watch` reads. `auto` is `/dev/shm/karvi/scoreboards`, every operator's, where the site's scratch root `/dev/shm/karvi` exists (`sudo karvi setup shared` makes it, at 3770 in the operators' group; a missing `scoreboards` is made in the root with its bits), else the private `\u003cbasedir\u003e/state/scoreboards`; a shared folder present but not writable by the operator is passed by for the private one with one warning. `karvi watch` reads every place of the chain that exists, the shared folder and the private one. A path (`~` the operator's home, a relative path from the working directory) replaces the chain, used or refused."
     },
     {
       "path": "freecheck",
@@ -173,8 +162,7 @@
         "always",
         "never"
       ],
-      "documentation": "The free-space check of every volume an activity writes, read once per volume at admission before any device is contacted: the job's output root, a `crun`'s collection directory, `spooldir`, and a recorded login's transcripts root, grouped by the device behind each path. `auto` (the default) asks each volume for the sum of what the places on it will hold when the job has finished (the output root `output.expected-bytes-per-device` × devices × its copies × `output.reserve-multiplier`, the collection directory one copy, the spool directory the job's width × the largest command limit in the job, `output.max-command-bytes` or a larger `--maxbytes`, the transcripts root nothing) plus `output.min-free-bytes-after-job` once; when the spool's term alone is short but at least one command's limit fits, the job runs narrower with the warning `spool_width_narrowed`, and below that, or short of the other terms, the job is refused with `output_preflight_space` naming the volume's paths and both figures. `always` asks each volume for the floor alone. `never` reads nothing (the directories are still resolved and probed writable). The audit file, the scoreboard directory, and the state root are not checked: their first write lands before any device and they write kilobytes after. Alerting on free space is the site's monitoring, not this check (`docs/SCALE.md`).",
-      "since": "0.21.0"
+      "documentation": "The free-space check of every volume an activity writes, read once per volume at admission before any device is contacted: the job's output root, a `crun`'s collection directory, `spooldir`, and a recorded login's transcripts root, grouped by the device behind each path. `auto` (the default) asks each volume for the sum of what the places on it will hold when the job has finished (the output root `output.expected-bytes-per-device` × devices × its copies × `output.reserve-multiplier`, the collection directory one copy, the spool directory the job's width × the largest command limit in the job, `output.max-command-bytes` or a larger `--maxbytes`, the transcripts root nothing) plus `output.min-free-bytes-after-job` once; when the spool's term alone is short but at least one command's limit fits, the job runs narrower with the warning `spool_width_narrowed`, and below that, or short of the other terms, the job is refused with `output_preflight_space` naming the volume's paths and both figures. `always` asks each volume for the floor alone. `never` reads nothing (the directories are still resolved and probed writable). The audit file, the scoreboard directory, and the state root are not checked: their first write lands before any device and they write kilobytes after. Alerting on free space is the site's monitoring, not this check (`docs/SCALE.md`)."
     },
     {
       "path": "timezone",
@@ -185,8 +173,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__TIMEZONE",
       "cli_flags": null,
-      "documentation": "`auto` or loadable IANA zone.",
-      "since": "0.2.0"
+      "documentation": "`auto` or loadable IANA zone."
     },
     {
       "path": "name.address-family-preference",
@@ -201,8 +188,7 @@
         "ipv4",
         "ipv6"
       ],
-      "documentation": "`ipv4` or `ipv6`.",
-      "since": "0.2.0"
+      "documentation": "`ipv4` or `ipv6`."
     },
     {
       "path": "name.default-address-authority",
@@ -217,8 +203,7 @@
         "client",
         "daemon"
       ],
-      "documentation": "`client` or `daemon`; normalized into each target before hashing.",
-      "since": "0.10.0"
+      "documentation": "`client` or `daemon`; normalized into each target before hashing."
     },
     {
       "path": "name.allow-daemon-resolution",
@@ -229,8 +214,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__NAME__ALLOW_DAEMON_RESOLUTION",
       "cli_flags": null,
-      "documentation": "Global governance gate; a daemon-authority target fails validation unless enabled.",
-      "since": "0.10.0"
+      "documentation": "Global governance gate; a daemon-authority target fails validation unless enabled."
     },
     {
       "path": "name.dns-timeout",
@@ -243,8 +227,7 @@
       "cli_flags": null,
       "min": "1ms",
       "max": "60s",
-      "documentation": "Independent timeout for each address family's lookup; 1ms–60s; no karvi retry.",
-      "since": "0.2.0"
+      "documentation": "Independent timeout for each address family's lookup; 1ms–60s; no karvi retry."
     },
     {
       "path": "name.resolver",
@@ -258,8 +241,7 @@
       "enum": [
         "system"
       ],
-      "documentation": "V1 only `system`.",
-      "since": "0.2.0"
+      "documentation": "V1 only `system`."
     },
     {
       "path": "network.ping-targets",
@@ -270,8 +252,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__NETWORK__PING_TARGETS",
       "cli_flags": null,
-      "documentation": "Send exactly two ICMP echo probes to each target's selected address before opening its device transport. One reply proceeds with a packet-loss notice; two misses skip the target as `icmp_unreachable` with no transport attempt. `--ping` and `--noping` override per invocation.",
-      "since": "0.10.0"
+      "documentation": "Send exactly two ICMP echo probes to each target's selected address before opening its device transport. One reply proceeds with a packet-loss notice; two misses skip the target as `icmp_unreachable` with no transport attempt. `--ping` and `--noping` override per invocation."
     },
     {
       "path": "network.ping-timeout",
@@ -284,8 +265,7 @@
       "cli_flags": null,
       "min": "1ms",
       "max": "10s",
-      "documentation": "Independent timeout for each of the two ICMP probes; 1ms–10s.",
-      "since": "0.10.0"
+      "documentation": "Independent timeout for each of the two ICMP probes; 1ms–10s."
     },
     {
       "path": "network.ping-socket",
@@ -296,8 +276,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__NETWORK__PING_SOCKET",
       "cli_flags": null,
-      "documentation": "Allow the internal ping-socket pinger, which sends ICMP directly over a Linux ping socket. The kernel grants ping sockets to the groups in the sysctl `net.ipv4.ping_group_range` (for example `net.ipv4.ping_group_range = 1000 9999` covering the operators' groups); widening it is the recommended setup, since the fallback runs a sub-process per gated device.",
-      "since": "0.10.0"
+      "documentation": "Allow the internal ping-socket pinger, which sends ICMP directly over a Linux ping socket. The kernel grants ping sockets to the groups in the sysctl `net.ipv4.ping_group_range` (for example `net.ipv4.ping_group_range = 1000 9999` covering the operators' groups); widening it is the recommended setup, since the fallback runs a sub-process per gated device."
     },
     {
       "path": "network.ping-system",
@@ -308,8 +287,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__NETWORK__PING_SYSTEM",
       "cli_flags": null,
-      "documentation": "Allow the external system `ping` executable (found on PATH) as the fallback when ping sockets are refused; less performant because it opens a sub-process per gated device. With both methods disabled while `network.ping-targets` is true the configuration is rejected.",
-      "since": "0.10.0"
+      "documentation": "Allow the external system `ping` executable (found on PATH) as the fallback when ping sockets are refused; less performant because it opens a sub-process per gated device. With both methods disabled while `network.ping-targets` is true the configuration is rejected."
     },
     {
       "path": "ssh.login.transport",
@@ -320,8 +298,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__LOGIN__TRANSPORT",
       "cli_flags": null,
-      "documentation": "Transport selector: `native`, `telnet`, or an `ssh.transports` slot. `default` resolves to system for login.",
-      "since": "0.6.0"
+      "documentation": "Transport selector: `native`, `telnet`, or an `ssh.transports` slot. `default` resolves to system for login."
     },
     {
       "path": "ssh.command.transport",
@@ -332,8 +309,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__COMMAND__TRANSPORT",
       "cli_flags": null,
-      "documentation": "Transport selector: `native`, `telnet`, or an `ssh.transports` slot. `default` resolves to native for command.",
-      "since": "0.6.0"
+      "documentation": "Transport selector: `native`, `telnet`, or an `ssh.transports` slot. `default` resolves to native for command."
     },
     {
       "path": "ssh.run.transport",
@@ -344,8 +320,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__RUN__TRANSPORT",
       "cli_flags": null,
-      "documentation": "Transport selector: `native`, `telnet`, or an `ssh.transports` slot. `default` resolves to native for run.",
-      "since": "0.6.0"
+      "documentation": "Transport selector: `native`, `telnet`, or an `ssh.transports` slot. `default` resolves to native for run."
     },
     {
       "path": "ssh.transports.system",
@@ -356,8 +331,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__TRANSPORTS__SYSTEM",
       "cli_flags": null,
-      "documentation": "System-SSH executable name or path. Relative paths resolve from the karvi executable directory.",
-      "since": "0.6.0"
+      "documentation": "System-SSH executable name or path. Relative paths resolve from the karvi executable directory."
     },
     {
       "path": "ssh.include-user-config",
@@ -368,8 +342,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__INCLUDE_USER_CONFIG",
       "cli_flags": null,
-      "documentation": "Include `~/.ssh/config` after compatibility and managed-default blocks; it supplies only still-unset options such as approved bastion routing.",
-      "since": "0.2.0"
+      "documentation": "Include `~/.ssh/config` after compatibility and managed-default blocks; it supplies only still-unset options such as approved bastion routing."
     },
     {
       "path": "ssh.host-key-policy",
@@ -385,8 +358,7 @@
         "secure",
         "insecure"
       ],
-      "documentation": "Unified login, command, and run host-key policy: accept-new accepts new keys and rejects changes; secure requires prior enrollment; insecure accepts all keys with warnings. The removed values auto and default are rejected.",
-      "since": "0.4.0"
+      "documentation": "Unified login, command, and run host-key policy: accept-new accepts new keys and rejects changes; secure requires prior enrollment; insecure accepts all keys with warnings. The removed values auto and default are rejected."
     },
     {
       "path": "ssh.known-hosts-file",
@@ -401,8 +373,7 @@
       "words": [
         "auto"
       ],
-      "documentation": "The karvi trust store, the one `known_hosts` file both transports trust. `auto` is `\u003cbasedir\u003e/known_hosts`: the operator's root under the site's `users` directory, else `~/.local/share/karvi/known_hosts`; an explicit path is taken as given, `~` the home. `config show --explain ssh.known-hosts-file` names the file.",
-      "since": "0.4.0"
+      "documentation": "The karvi trust store, the one `known_hosts` file both transports trust. `auto` is `\u003cbasedir\u003e/known_hosts`: the operator's root under the site's `users` directory, else `~/.local/share/karvi/known_hosts`; an explicit path is taken as given, `~` the home. `config show --explain ssh.known-hosts-file` names the file."
     },
     {
       "path": "ssh.halt-run-on-host-key-mismatch",
@@ -413,8 +384,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__HALT_RUN_ON_HOST_KEY_MISMATCH",
       "cli_flags": null,
-      "documentation": "When true, the first changed or revoked SSH host key stops new run scheduling while allowing in-flight devices to finish.",
-      "since": "0.5.0"
+      "documentation": "When true, the first changed or revoked SSH host key stops new run scheduling while allowing in-flight devices to finish."
     },
     {
       "path": "ssh.identities",
@@ -426,8 +396,7 @@
       "environment": "KARVI__SSH__IDENTITIES",
       "cli_flags": null,
       "place": true,
-      "documentation": "The operator's own keys, offered in this order where a platform's `fallback` reaches `keys`: each an absolute path or `~/`, the home the password database names. A file that does not exist is passed over; one that is not the operator's own regular file without group or other access, holds a passphrase, or is hardware-backed is skipped with `operator_key_skipped`.",
-      "since": "0.27.0"
+      "documentation": "The operator's own keys, offered in this order where a platform's `fallback` reaches `keys`: each an absolute path or `~/`, the home the password database names. A file that does not exist is passed over; one that is not the operator's own regular file without group or other access, holds a passphrase, or is hardware-backed is skipped with `operator_key_skipped`."
     },
     {
       "path": "ssh.password-authentication",
@@ -438,8 +407,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__PASSWORD_AUTHENTICATION",
       "cli_flags": null,
-      "documentation": "At least one auth mechanism must remain.",
-      "since": "0.2.0"
+      "documentation": "At least one auth mechanism must remain."
     },
     {
       "path": "ssh.keyboard-interactive-authentication",
@@ -450,8 +418,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__KEYBOARD_INTERACTIVE_AUTHENTICATION",
       "cli_flags": null,
-      "documentation": "Supports network-device challenge prompts.",
-      "since": "0.2.0"
+      "documentation": "Supports network-device challenge prompts."
     },
     {
       "path": "ssh.connect-timeout",
@@ -464,8 +431,7 @@
       "cli_flags": null,
       "min": "1s",
       "max": "5m",
-      "documentation": "1s–5m.",
-      "since": "0.2.0"
+      "documentation": "1s–5m."
     },
     {
       "path": "ssh.server-alive-interval",
@@ -479,8 +445,7 @@
       "min": "1s",
       "max": "10m",
       "zero_disables": true,
-      "documentation": "0 disables; otherwise 1s–10m.",
-      "since": "0.2.0"
+      "documentation": "0 disables; otherwise 1s–10m."
     },
     {
       "path": "ssh.server-alive-count-max",
@@ -493,8 +458,7 @@
       "cli_flags": null,
       "min": "1",
       "max": "100",
-      "documentation": "1–100 when interval nonzero.",
-      "since": "0.2.0"
+      "documentation": "1–100 when interval nonzero."
     },
     {
       "path": "ssh.control-path-root",
@@ -509,8 +473,7 @@
       "words": [
         "auto"
       ],
-      "documentation": "The directory of the system transport's control sockets, a private real directory (0700, the operator's). `auto` is `/dev/shm/karvi/\u003cusername\u003e/sockets` when the site's scratch root exists, else `\u003cbasedir\u003e/socket/ssh`; an absolute path, or one beginning with `~/` (the operator's home), replaces both. A socket's path holds the root, a 16-character name, and OpenSSH's 17-character binding suffix within 107 bytes, so the root may be at most 73 bytes (`control_path_root_too_long` at planning, for a target that runs exec over the system transport). A socket a master killed outright left is swept at the daemon's start and at every job's admission.",
-      "since": "0.2.0"
+      "documentation": "The directory of the system transport's control sockets, a private real directory (0700, the operator's). `auto` is `/dev/shm/karvi/\u003cusername\u003e/sockets` when the site's scratch root exists, else `\u003cbasedir\u003e/socket/ssh`; an absolute path, or one beginning with `~/` (the operator's home), replaces both. A socket's path holds the root, a 16-character name, and OpenSSH's 17-character binding suffix within 107 bytes, so the root may be at most 73 bytes (`control_path_root_too_long` at planning, for a target that runs exec over the system transport). A socket a master killed outright left is swept at the daemon's start and at every job's admission."
     },
     {
       "path": "ssh-algorithms.host-key",
@@ -521,8 +484,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH_ALGORITHMS__HOST_KEY",
       "cli_flags": null,
-      "documentation": "Host-key algorithms both SSH transports offer, strongest first; each transport offers the names it implements, filtered to the key types the trust store holds for the device. `ssh-dss`, certificate, and security-key algorithms are refused.",
-      "since": "0.12.0"
+      "documentation": "Host-key algorithms both SSH transports offer, strongest first; each transport offers the names it implements, filtered to the key types the trust store holds for the device. `ssh-dss`, certificate, and security-key algorithms are refused."
     },
     {
       "path": "ssh-algorithms.kex",
@@ -533,8 +495,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH_ALGORITHMS__KEX",
       "cli_flags": null,
-      "documentation": "Key exchanges both SSH transports offer, strongest first. `diffie-hellman-group1-sha1` and `diffie-hellman-group-exchange-sha1` only in an ssh-algorithms-profile.",
-      "since": "0.12.0"
+      "documentation": "Key exchanges both SSH transports offer, strongest first. `diffie-hellman-group1-sha1` and `diffie-hellman-group-exchange-sha1` only in an ssh-algorithms-profile."
     },
     {
       "path": "ssh-algorithms.ciphers",
@@ -545,8 +506,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH_ALGORITHMS__CIPHERS",
       "cli_flags": null,
-      "documentation": "Ciphers both SSH transports offer, strongest first. AES-192 and AES-128 only in an ssh-algorithms-profile; `3des-cbc`, non-AES CBC, `arcfour`, and `none` are refused.",
-      "since": "0.12.0"
+      "documentation": "Ciphers both SSH transports offer, strongest first. AES-192 and AES-128 only in an ssh-algorithms-profile; `3des-cbc`, non-AES CBC, `arcfour`, and `none` are refused."
     },
     {
       "path": "ssh-algorithms.macs",
@@ -557,8 +517,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH_ALGORITHMS__MACS",
       "cli_flags": null,
-      "documentation": "MACs both SSH transports offer, strongest first. UMAC-128 only in an ssh-algorithms-profile; MD5, truncated, and 64-bit MACs are refused.",
-      "since": "0.12.0"
+      "documentation": "MACs both SSH transports offer, strongest first. UMAC-128 only in an ssh-algorithms-profile; MD5, truncated, and 64-bit MACs are refused."
     },
     {
       "path": "ssh-algorithms.source",
@@ -574,8 +533,7 @@
         "transport",
         "auto"
       ],
-      "documentation": "Where the key exchange, cipher, and MAC lists come from: `karvi` (alias `auto`), the `ssh-algorithms` lists; `transport`, each transport's own defaults (OpenSSH's compiled ones or an included `~/.ssh/config`'s, x/crypto's), the names karvi refuses among them. The host-key list is `ssh-algorithms.host-key` under either. An `ssh-algorithms-profile` may set its own `source`.",
-      "since": "0.2.0"
+      "documentation": "Where the key exchange, cipher, and MAC lists come from: `karvi` (alias `auto`), the `ssh-algorithms` lists; `transport`, each transport's own defaults (OpenSSH's compiled ones or an included `~/.ssh/config`'s, x/crypto's), the names karvi refuses among them. The host-key list is `ssh-algorithms.host-key` under either. An `ssh-algorithms-profile` may set its own `source`."
     },
     {
       "path": "native-ssh.connect-timeout",
@@ -588,8 +546,7 @@
       "cli_flags": null,
       "min": "1s",
       "max": "5m",
-      "documentation": "1s–5m.",
-      "since": "0.2.0"
+      "documentation": "1s–5m."
     },
     {
       "path": "native-ssh.handshake-timeout",
@@ -602,8 +559,7 @@
       "cli_flags": null,
       "min": "1s",
       "max": "5m",
-      "documentation": "1s–5m.",
-      "since": "0.2.0"
+      "documentation": "1s–5m."
     },
     {
       "path": "native-ssh.keepalive-interval",
@@ -617,8 +573,7 @@
       "min": "1s",
       "max": "10m",
       "zero_disables": true,
-      "documentation": "0 disables; otherwise 1s–10m.",
-      "since": "0.2.0"
+      "documentation": "0 disables; otherwise 1s–10m."
     },
     {
       "path": "native-ssh.keepalive-count-max",
@@ -631,8 +586,7 @@
       "cli_flags": null,
       "min": "1",
       "max": "100",
-      "documentation": "1–100 when enabled.",
-      "since": "0.2.0"
+      "documentation": "1–100 when enabled."
     },
     {
       "path": "telnet.connect-timeout",
@@ -645,8 +599,7 @@
       "cli_flags": null,
       "min": "1s",
       "max": "5m",
-      "documentation": "1s–5m.",
-      "since": "0.2.0"
+      "documentation": "1s–5m."
     },
     {
       "path": "telnet.read-timeout",
@@ -659,8 +612,7 @@
       "cli_flags": null,
       "min": "1s",
       "max": "12h",
-      "documentation": "1s–12h; caps each command whole over telnet, from the write to the prompt, unless the command is given `--timeout`.",
-      "since": "0.2.0"
+      "documentation": "1s–12h; caps each command whole over telnet, from the write to the prompt, unless the command is given `--timeout`."
     },
     {
       "path": "execution.command-timeout",
@@ -673,8 +625,7 @@
       "cli_flags": null,
       "min": "1s",
       "max": "12h",
-      "documentation": "1s–12h; each command's timeout where a session-init profile sets none, which a requested command's `--timeout` replaces for that command.",
-      "since": "0.2.0"
+      "documentation": "1s–12h; each command's timeout where a session-init profile sets none, which a requested command's `--timeout` replaces for that command."
     },
     {
       "path": "execution.prompt-timeout",
@@ -687,8 +638,7 @@
       "cli_flags": null,
       "min": "1s",
       "max": "5m",
-      "documentation": "1s–5m; the first prompt after login and the prompt after each paging command. The system transport awaits the first prompt for `ssh.connect-timeout` plus this value from the start of its `ssh` process; the native transport for this value after its handshake.",
-      "since": "0.2.0"
+      "documentation": "1s–5m; the first prompt after login and the prompt after each paging command. The system transport awaits the first prompt for `ssh.connect-timeout` plus this value from the start of its `ssh` process; the native transport for this value after its handshake."
     },
     {
       "path": "execution.enable-timeout",
@@ -701,8 +651,7 @@
       "cli_flags": null,
       "min": "1s",
       "max": "5m",
-      "documentation": "1s–5m; one privilege level's whole step, from the escalate command to that level's prompt.",
-      "since": "0.12.0"
+      "documentation": "1s–5m; one privilege level's whole step, from the escalate command to that level's prompt."
     },
     {
       "path": "execution.device-timeout",
@@ -716,8 +665,7 @@
       "min": "1s",
       "max": "168h",
       "zero_disables": true,
-      "documentation": "0 disables; otherwise 1s–168h. Bounds one device's whole command list, the session-init profile included, from the prepared session; ends it with `device_timeout`. A command's `--timeout` above it is refused at planning.",
-      "since": "0.12.0"
+      "documentation": "0 disables; otherwise 1s–168h. Bounds one device's whole command list, the session-init profile included, from the prepared session; ends it with `device_timeout`. A command's `--timeout` above it is refused at planning."
     },
     {
       "path": "execution.blind-wait",
@@ -730,8 +678,7 @@
       "cli_flags": null,
       "min": "0s",
       "max": "10m",
-      "documentation": "0–10m, enforced when the plan is drafted. The wait for the prompt after a blind send, a command ending in `\\r` sequences or given `--blind-return N`, in place of its command timeout; 0 sends and does not wait. The client's effective value travels in the execution plan, so `--blind-wait` reaches the daemon.",
-      "since": "0.2.0"
+      "documentation": "0–10m, enforced when the plan is drafted. The wait for the prompt after a blind send, a command ending in `\\r` sequences or given `--blind-return N`, in place of its command timeout; 0 sends and does not wait. The client's effective value travels in the execution plan, so `--blind-wait` reaches the daemon."
     },
     {
       "path": "execution.halt-device-on-command-error",
@@ -742,8 +689,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__EXECUTION__HALT_DEVICE_ON_COMMAND_ERROR",
       "cli_flags": null,
-      "documentation": "CLI opt-out is explicit.",
-      "since": "0.2.0"
+      "documentation": "CLI opt-out is explicit."
     },
     {
       "path": "dispatch.default",
@@ -759,8 +705,7 @@
         "parallel",
         "wave"
       ],
-      "documentation": "`serial`, `parallel`, `wave`.",
-      "since": "0.2.0"
+      "documentation": "`serial`, `parallel`, `wave`."
     },
     {
       "path": "dispatch.parallel-workers",
@@ -773,8 +718,7 @@
       "cli_flags": null,
       "min": "0",
       "max": "4096",
-      "documentation": "0 means logical CPU count; otherwise 1–4096, the absolute ceiling.",
-      "since": "0.2.0"
+      "documentation": "0 means logical CPU count; otherwise 1–4096, the absolute ceiling."
     },
     {
       "path": "dispatch.absolute-max-width",
@@ -787,8 +731,7 @@
       "cli_flags": null,
       "min": "1",
       "max": "4096",
-      "documentation": "1–4096; hard validation ceiling.",
-      "since": "0.2.0"
+      "documentation": "1–4096; hard validation ceiling."
     },
     {
       "path": "dispatch.server-max-inflight",
@@ -801,8 +744,7 @@
       "cli_flags": null,
       "min": "0",
       "max": "4096",
-      "documentation": "0–4096. The host's cap on device sessions in flight at once, across every job, every operator's daemon, and in-process runs on the host, held as leases in the capacity ledger under `sessions.shared-capacity-root` (across operators where the site made the scratch root with `sudo karvi setup shared`, per operator where it did not); a job's width is also bounded by it. `0` means `min(256, max(32, 8 × CPU))`: 32 on a host of four logical CPUs, 128 on sixteen, 256 from thirty-two up. A site whose devices and AAA carry more sets the figure it wants, 512 or 1024 among them, together with `dispatch.parallel-workers` or `dispatch.wave-max-width` and `dispatch.absolute-max-width` (`docs/SCALE.md`).",
-      "since": "0.2.0"
+      "documentation": "0–4096. The host's cap on device sessions in flight at once, across every job, every operator's daemon, and in-process runs on the host, held as leases in the capacity ledger under `sessions.shared-capacity-root` (across operators where the site made the scratch root with `sudo karvi setup shared`, per operator where it did not); a job's width is also bounded by it. `0` means `min(256, max(32, 8 × CPU))`: 32 on a host of four logical CPUs, 128 on sixteen, 256 from thirty-two up. A site whose devices and AAA carry more sets the figure it wants, 512 or 1024 among them, together with `dispatch.parallel-workers` or `dispatch.wave-max-width` and `dispatch.absolute-max-width` (`docs/SCALE.md`)."
     },
     {
       "path": "dispatch.admission-poll-min",
@@ -815,8 +757,7 @@
       "cli_flags": null,
       "min": "10ms",
       "max": "1s",
-      "documentation": "10ms–1s; ≤ max.",
-      "since": "0.2.0"
+      "documentation": "10ms–1s; ≤ max."
     },
     {
       "path": "dispatch.admission-poll-max",
@@ -829,8 +770,7 @@
       "cli_flags": null,
       "min": "10ms",
       "max": "5s",
-      "documentation": "10ms–5s; ≥ min.",
-      "since": "0.2.0"
+      "documentation": "10ms–5s; ≥ min."
     },
     {
       "path": "dispatch.order",
@@ -848,8 +788,7 @@
         "shuffle",
         "random"
       ],
-      "documentation": "`default`, `sorted` (alias `name`), `shuffle`, `random`; `inventory` and `random-seeded` are removed.",
-      "since": "0.2.0"
+      "documentation": "`default`, `sorted` (alias `name`), `shuffle`, `random`; `inventory` and `random-seeded` are removed."
     },
     {
       "path": "output.directory-mode",
@@ -865,8 +804,7 @@
         "0750",
         "0770"
       ],
-      "documentation": "`0700`, `0750`, or `0770` for folders karvi creates in the job and transcript trees.",
-      "since": "0.2.0"
+      "documentation": "`0700`, `0750`, or `0770` for folders karvi creates in the job and transcript trees."
     },
     {
       "path": "targets.empty-source",
@@ -881,8 +819,7 @@
         "warn",
         "error"
       ],
-      "documentation": "`warn` or `error` for a target file or folder that yields no targets.",
-      "since": "0.2.0"
+      "documentation": "`warn` or `error` for a target file or folder that yields no targets."
     },
     {
       "path": "targets.inventory-only",
@@ -893,8 +830,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__TARGETS__INVENTORY_ONLY",
       "cli_flags": null,
-      "documentation": "`true` runs only the inventory's devices, and `--inventory` (`--inv`, `--i`) sets it for the invocation, bare or with its files: a plain target name the inventory lacks refuses the job before planning, `target_not_in_inventory`, naming each; a numeric range or a glob selects the inventory's devices among the names it matches, at any size, `targets.max-created-names` not applied. `false` makes a name the inventory lacks, typed or created by a range, a direct target.",
-      "since": "0.2.0"
+      "documentation": "`true` runs only the inventory's devices, and `--inventory` (`--inv`, `--i`) sets it for the invocation, bare or with its files: a plain target name the inventory lacks refuses the job before planning, `target_not_in_inventory`, naming each; a numeric range or a glob selects the inventory's devices among the names it matches, at any size, `targets.max-created-names` not applied. `false` makes a name the inventory lacks, typed or created by a range, a direct target."
     },
     {
       "path": "targets.max-created-names",
@@ -907,8 +843,7 @@
       "cli_flags": null,
       "min": "1",
       "max": "100000",
-      "documentation": "1–100,000; the most names one target value's numeric ranges may create, brackets multiplying (`--target 'router[01-12]'` creates 12): a `--target`, a `--tl` name, or a positional device is counted after the configuration is read and before any target file, the inventory, or DNS, and a target-file or standard-input line as it is read; over it the value is refused, `target_created_names_exceeded`, and nothing is made. A `!` value, `--exclude`, and the inventory selectors match a range of any size and create nothing; under `targets.inventory-only` no range creates or is counted.",
-      "since": "0.2.0"
+      "documentation": "1–100,000; the most names one target value's numeric ranges may create, brackets multiplying (`--target 'router[01-12]'` creates 12): a `--target`, a `--tl` name, or a positional device is counted after the configuration is read and before any target file, the inventory, or DNS, and a target-file or standard-input line as it is read; over it the value is refused, `target_created_names_exceeded`, and nothing is made. A `!` value, `--exclude`, and the inventory selectors match a range of any size and create nothing; under `targets.inventory-only` no range creates or is counted."
     },
     {
       "path": "targets.recursion-max-depth",
@@ -921,8 +856,7 @@
       "cli_flags": null,
       "min": "1",
       "max": "16",
-      "documentation": "1–16; `--tfr` PATH is level 0.",
-      "since": "0.2.0"
+      "documentation": "1–16; `--tfr` PATH is level 0."
     },
     {
       "path": "platform-resolution.default",
@@ -933,8 +867,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__PLATFORM_RESOLUTION__DEFAULT",
       "cli_flags": null,
-      "documentation": "The platform of a device whose platform is not set (a blank inventory row without a source default, or a direct target without `--platform`): a known platform, `cisco_ios` as shipped since registry 17, `generic` or empty for `generic`, or the platform a site's network is predominantly.",
-      "since": "0.12.0"
+      "documentation": "The platform of a device whose platform is not set (a blank inventory row without a source default, or a direct target without `--platform`): a known platform, `cisco_ios` as shipped since registry 17, `generic` or empty for `generic`, or the platform a site's network is predominantly."
     },
     {
       "path": "platform-resolution.on-unknown",
@@ -949,8 +882,7 @@
         "fail",
         "warn"
       ],
-      "documentation": "`fail` refuses an activity whose target set holds an inventory row naming an unknown platform (`platform_unknown`); `warn` runs the device as `platform-resolution.unknown-fallback` with a warning and the notice `platform_unknown_fallback`. Configuration values fail validation whatever this says.",
-      "since": "0.12.0"
+      "documentation": "`fail` refuses an activity whose target set holds an inventory row naming an unknown platform (`platform_unknown`); `warn` runs the device as `platform-resolution.unknown-fallback` with a warning and the notice `platform_unknown_fallback`. Configuration values fail validation whatever this says."
     },
     {
       "path": "platform-resolution.unknown-fallback",
@@ -961,8 +893,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__PLATFORM_RESOLUTION__UNKNOWN_FALLBACK",
       "cli_flags": null,
-      "documentation": "The known platform an unknown inventory row runs as under `on-unknown = \"warn\"`; not read under `fail`.",
-      "since": "0.12.0"
+      "documentation": "The known platform an unknown inventory row runs as under `on-unknown = \"warn\"`; not read under `fail`."
     },
     {
       "path": "dispatch.shuffle-key",
@@ -973,8 +904,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPATCH__SHUFFLE_KEY",
       "cli_flags": null,
-      "documentation": "Key for the `shuffle` rank; empty allowed; recorded with the order.",
-      "since": "0.2.0"
+      "documentation": "Key for the `shuffle` rank; empty allowed; recorded with the order."
     },
     {
       "path": "dispatch.wave-start-width",
@@ -987,8 +917,7 @@
       "cli_flags": null,
       "min": "0",
       "max": "4096",
-      "documentation": "0 auto; else 1–ceiling.",
-      "since": "0.2.0"
+      "documentation": "0 auto; else 1–ceiling."
     },
     {
       "path": "dispatch.wave-max-width",
@@ -1001,8 +930,7 @@
       "cli_flags": null,
       "min": "0",
       "max": "4096",
-      "documentation": "0 auto; else start–absolute max.",
-      "since": "0.2.0"
+      "documentation": "0 auto; else start–absolute max."
     },
     {
       "path": "dispatch.wave-cpu-half-life",
@@ -1015,8 +943,7 @@
       "cli_flags": null,
       "min": "1s",
       "max": "10m",
-      "documentation": "1s–10m; the CPU sampler's smoothing constant.",
-      "since": "0.2.0"
+      "documentation": "1s–10m; the CPU sampler's smoothing constant."
     },
     {
       "path": "dispatch.wave-cpu-warmup-samples",
@@ -1029,8 +956,7 @@
       "cli_flags": null,
       "min": "1",
       "max": "60",
-      "documentation": "V1 1–60; default 5.",
-      "since": "0.2.0"
+      "documentation": "V1 1–60; default 5."
     },
     {
       "path": "dispatch.wave-cpu-threshold-percent",
@@ -1043,8 +969,7 @@
       "cli_flags": null,
       "min": "\u003e0",
       "max": "\u003c100",
-      "documentation": "\u003e0 and \u003c100.",
-      "since": "0.2.0"
+      "documentation": "\u003e0 and \u003c100."
     },
     {
       "path": "dispatch.wave-cpu-target-zone-percent",
@@ -1056,8 +981,7 @@
       "environment": "KARVI__DISPATCH__WAVE_CPU_TARGET_ZONE_PERCENT",
       "cli_flags": null,
       "min": "0",
-      "documentation": "≥0 and threshold±zone inside 0..100.",
-      "since": "0.2.0"
+      "documentation": "≥0 and threshold±zone inside 0..100."
     },
     {
       "path": "dispatch.wave-step-up-percent",
@@ -1070,8 +994,7 @@
       "cli_flags": null,
       "min": "\u003e0",
       "max": "1000",
-      "documentation": "\u003e0–1000.",
-      "since": "0.2.0"
+      "documentation": "\u003e0–1000."
     },
     {
       "path": "dispatch.wave-step-down-percent",
@@ -1084,8 +1007,7 @@
       "cli_flags": null,
       "min": "\u003e0",
       "max": "100",
-      "documentation": "\u003e0–100.",
-      "since": "0.2.0"
+      "documentation": "\u003e0–100."
     },
     {
       "path": "dispatch.wave-cooldown-waves",
@@ -1098,8 +1020,7 @@
       "cli_flags": null,
       "min": "0",
       "max": "100",
-      "documentation": "0–100.",
-      "since": "0.2.0"
+      "documentation": "0–100."
     },
     {
       "path": "dispatch.wave-depth-multiplier",
@@ -1112,8 +1033,7 @@
       "cli_flags": null,
       "min": "1",
       "max": "100",
-      "documentation": "1–100.",
-      "since": "0.2.0"
+      "documentation": "1–100."
     },
     {
       "path": "dispatch.halt-on-error-count",
@@ -1125,8 +1045,7 @@
       "environment": "KARVI__DISPATCH__HALT_ON_ERROR_COUNT",
       "cli_flags": null,
       "min": "0",
-      "documentation": "0 disabled; else ≥1.",
-      "since": "0.2.0"
+      "documentation": "0 disabled; else ≥1."
     },
     {
       "path": "dispatch.halt-on-error-percent",
@@ -1139,8 +1058,7 @@
       "cli_flags": null,
       "min": "0",
       "max": "100",
-      "documentation": "0 disabled; else 1–100.",
-      "since": "0.2.0"
+      "documentation": "0 disabled; else 1–100."
     },
     {
       "path": "dispatch.wave-gate-error-count",
@@ -1152,8 +1070,7 @@
       "environment": "KARVI__DISPATCH__WAVE_GATE_ERROR_COUNT",
       "cli_flags": null,
       "min": "0",
-      "documentation": "0 disabled; else ≥1.",
-      "since": "0.2.0"
+      "documentation": "0 disabled; else ≥1."
     },
     {
       "path": "dispatch.wave-gate-error-percent",
@@ -1166,8 +1083,7 @@
       "cli_flags": null,
       "min": "0",
       "max": "100",
-      "documentation": "0 disabled; else 1–100.",
-      "since": "0.2.0"
+      "documentation": "0 disabled; else 1–100."
     },
     {
       "path": "dispatch.wave-gate-timed-delay",
@@ -1180,8 +1096,7 @@
       "cli_flags": null,
       "min": "0s",
       "max": "1h",
-      "documentation": "0–1h.",
-      "since": "0.2.0"
+      "documentation": "0–1h."
     },
     {
       "path": "sessions.shared-capacity-root",
@@ -1196,8 +1111,7 @@
       "words": [
         "auto"
       ],
-      "documentation": "The capacity ledger's root. `auto` is `/dev/shm/karvi/capacity`, the ledger every operator on the host shares, where the site's scratch root `/dev/shm/karvi` exists (`sudo karvi setup shared` makes it, at 2770 in the operators' group; a missing `capacity` is made in the root with its bits), else the private `\u003cbasedir\u003e/state/capacity`; a shared root present but not usable by the operator (the sticky bit on another's directory, a closed directory or lock file) is passed by for the private one with one warning (`capacity_root_unusable`). The ledger's files take the root's group modes. A path (`~` the operator's home, a relative path from the working directory) replaces the chain, used or refused.",
-      "since": "0.2.0"
+      "documentation": "The capacity ledger's root. `auto` is `/dev/shm/karvi/capacity`, the ledger every operator on the host shares, where the site's scratch root `/dev/shm/karvi` exists (`sudo karvi setup shared` makes it, at 2770 in the operators' group; a missing `capacity` is made in the root with its bits), else the private `\u003cbasedir\u003e/state/capacity`; a shared root present but not usable by the operator (the sticky bit on another's directory, a closed directory or lock file) is passed by for the private one with one warning (`capacity_root_unusable`). The ledger's files take the root's group modes. A path (`~` the operator's home, a relative path from the working directory) replaces the chain, used or refused."
     },
     {
       "path": "daemon.sockets",
@@ -1212,8 +1126,7 @@
       "words": [
         "auto"
       ],
-      "documentation": "The daemon's socket directory, private to the operator, where the daemon binds `d.sock` and the credential channel's `c.sock`: `auto` is `\u003cbasedir\u003e/socket`, so another `basedir` reaches or starts another daemon; an explicit path reaches the daemon there whatever the client's `basedir`, that daemon's own state and log staying under the `basedir` it started with. The directory may be at most 100 bytes, so that each socket's path fits 107 (under `auto`, a `basedir` of at most 93): a longer one is `daemon_socket_too_long` wherever the daemon is reached or started.",
-      "since": "0.2.0"
+      "documentation": "The daemon's socket directory, private to the operator, where the daemon binds `d.sock` and the credential channel's `c.sock`: `auto` is `\u003cbasedir\u003e/socket`, so another `basedir` reaches or starts another daemon; an explicit path reaches the daemon there whatever the client's `basedir`, that daemon's own state and log staying under the `basedir` it started with. The directory may be at most 100 bytes, so that each socket's path fits 107 (under `auto`, a `basedir` of at most 93): a longer one is `daemon_socket_too_long` wherever the daemon is reached or started."
     },
     {
       "path": "daemon.launch",
@@ -1228,8 +1141,7 @@
         "client",
         "systemd"
       ],
-      "documentation": "Who starts the account's daemon. `client`, the default: the client launches its own daemon when none of its build answers and drains one of another build, as on an operator's jump box. `systemd`: the daemon is the unit `karvi-daemon@USER.service`'s, USER the client's own account, which no client drains or starts: a daemon of another build, or none, refuses a submission and `daemon start`, naming `systemctl restart` or `systemctl start` of the unit, and `daemon stop` and `daemon restart` are refused, `daemon_managed`. `sudo karvi-sysutil daemon install` sets it in the service account's own configuration (`karvi-sysutil(8)`); a site that runs every operator's daemon so sets it in its global file, locked.",
-      "since": "0.30.0"
+      "documentation": "Who starts the account's daemon. `client`, the default: the client launches its own daemon when none of its build answers and drains one of another build, as on an operator's jump box. `systemd`: the daemon is the unit `karvi-daemon@USER.service`'s, USER the client's own account, which no client drains or starts: a daemon of another build, or none, refuses a submission and `daemon start`, naming `systemctl restart` or `systemctl start` of the unit, and `daemon stop` and `daemon restart` are refused, `daemon_managed`. `sudo karvi-sysutil daemon install` sets it in the service account's own configuration (`karvi-sysutil(8)`); a site that runs every operator's daemon so sets it in its global file, locked."
     },
     {
       "path": "daemon.start-timeout",
@@ -1242,8 +1154,7 @@
       "cli_flags": null,
       "min": "1s",
       "max": "2m",
-      "documentation": "1s–2m.",
-      "since": "0.2.0"
+      "documentation": "1s–2m."
     },
     {
       "path": "daemon.shutdown-grace-seconds",
@@ -1256,8 +1167,7 @@
       "cli_flags": null,
       "min": "0",
       "max": "43200",
-      "documentation": "0–43,200. After a SIGTERM, how long the daemon waits for its jobs before it cancels and records them; the default stays under systemd's 90-second stop limit for a login session, so a host's shutdown records them.",
-      "since": "0.2.0"
+      "documentation": "0–43,200. After a SIGTERM, how long the daemon waits for its jobs before it cancels and records them; the default stays under systemd's 90-second stop limit for a login session, so a host's shutdown records them."
     },
     {
       "path": "daemon.shutdown-idle-timer",
@@ -1271,8 +1181,7 @@
       "min": "1m",
       "max": "720h",
       "zero_disables": true,
-      "documentation": "0 never exits; else 1m–30d. The daemon stops itself, as `daemon stop` would, once this long has passed with no active job, no preparation in progress, and no request but ping and status; checked once a minute. The packaged systemd unit sets 0.",
-      "since": "0.13.0"
+      "documentation": "0 never exits; else 1m–30d. The daemon stops itself, as `daemon stop` would, once this long has passed with no active job, no preparation in progress, and no request but ping and status; checked once a minute. The packaged systemd unit sets 0."
     },
     {
       "path": "daemon.forced-grace-seconds",
@@ -1285,8 +1194,7 @@
       "cli_flags": null,
       "min": "0",
       "max": "60",
-      "documentation": "0–60; ≤ normal grace unless normal 0.",
-      "since": "0.2.0"
+      "documentation": "0–60; ≤ normal grace unless normal 0."
     },
     {
       "path": "daemon.max-ipc-frame-bytes",
@@ -1299,8 +1207,7 @@
       "cli_flags": null,
       "min": "65536",
       "max": "67108864",
-      "documentation": "64 KiB–64 MiB.",
-      "since": "0.2.0"
+      "documentation": "64 KiB–64 MiB."
     },
     {
       "path": "daemon.max-accepted-jobs",
@@ -1313,8 +1220,7 @@
       "cli_flags": null,
       "min": "10",
       "max": "10000",
-      "documentation": "10–10,000; terminal jobs leave memory after finalization.",
-      "since": "0.2.0"
+      "documentation": "10–10,000; terminal jobs leave memory after finalization."
     },
     {
       "path": "output.root",
@@ -1329,8 +1235,7 @@
       "words": [
         "auto"
       ],
-      "documentation": "`auto`: the shared `jobs` tree under `sharedroot` when one exists, else `\u003cbasedir\u003e/jobs`; an explicit path is that writable real directory.",
-      "since": "0.2.0"
+      "documentation": "`auto`: the shared `jobs` tree under `sharedroot` when one exists, else `\u003cbasedir\u003e/jobs`; an explicit path is that writable real directory."
     },
     {
       "path": "output.persist-command",
@@ -1341,8 +1246,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__OUTPUT__PERSIST_COMMAND",
       "cli_flags": null,
-      "documentation": "Whether the activity keeps a job folder and its files, on every path (`command`, `run --no-daemon`, and a run through the daemon); false, or `--nof`, writes nothing and displays the records from memory or the socket.",
-      "since": "0.2.0"
+      "documentation": "Whether the activity keeps a job folder and its files, on every path (`command`, `run --no-daemon`, and a run through the daemon); false, or `--nof`, writes nothing and displays the records from memory or the socket."
     },
     {
       "path": "output.files.output-txt",
@@ -1353,8 +1257,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__OUTPUT__FILES__OUTPUT_TXT",
       "cli_flags": null,
-      "documentation": "Write every device's `output.TARGET.txt`, the session as text; false does not create them. Written from the record in memory, so it does not need `commands.jsonl`.",
-      "since": "0.13.0"
+      "documentation": "Write every device's `output.TARGET.txt`, the session as text; false does not create them. Written from the record in memory, so it does not need `commands.jsonl`."
     },
     {
       "path": "output.files.commands-jsonl",
@@ -1365,8 +1268,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__OUTPUT__FILES__COMMANDS_JSONL",
       "cli_flags": null,
-      "documentation": "Write `commands.jsonl`, the records; false does not create it, on every path (records travel over the socket). Without it `job follow` cannot replay the job and a device's text cannot be derived again.",
-      "since": "0.13.0"
+      "documentation": "Write `commands.jsonl`, the records; false does not create it, on every path (records travel over the socket). Without it `job follow` cannot replay the job and a device's text cannot be derived again."
     },
     {
       "path": "output.files.commands-txt",
@@ -1377,8 +1279,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__OUTPUT__FILES__COMMANDS_TXT",
       "cli_flags": null,
-      "documentation": "Write `commands.txt`, the rerun's command file (`--cf`); false does not create it.",
-      "since": "0.13.0"
+      "documentation": "Write `commands.txt`, the rerun's command file (`--cf`); false does not create it."
     },
     {
       "path": "output.files.errors-jsonl",
@@ -1389,8 +1290,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__OUTPUT__FILES__ERRORS_JSONL",
       "cli_flags": null,
-      "documentation": "Write `errors.jsonl`, the records that did not succeed (each is also in `commands.jsonl`); false does not create it.",
-      "since": "0.26.0"
+      "documentation": "Write `errors.jsonl`, the records that did not succeed (each is also in `commands.jsonl`); false does not create it."
     },
     {
       "path": "output.files.failed-devices-txt",
@@ -1401,8 +1301,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__OUTPUT__FILES__FAILED_DEVICES_TXT",
       "cli_flags": null,
-      "documentation": "Write `failed-devices.txt`, the rerun's target file (`--tf`); false does not create it.",
-      "since": "0.13.0"
+      "documentation": "Write `failed-devices.txt`, the rerun's target file (`--tf`); false does not create it."
     },
     {
       "path": "output.files.manifest-json",
@@ -1413,8 +1312,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__OUTPUT__FILES__MANIFEST_JSON",
       "cli_flags": null,
-      "documentation": "Write `manifest.json`, the job as it was accepted; false does not create it.",
-      "since": "0.13.0"
+      "documentation": "Write `manifest.json`, the job as it was accepted; false does not create it."
     },
     {
       "path": "output.files.metrics-json",
@@ -1425,8 +1323,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__OUTPUT__FILES__METRICS_JSON",
       "cli_flags": null,
-      "documentation": "Write `metrics.json`; false does not create it.",
-      "since": "0.13.0"
+      "documentation": "Write `metrics.json`; false does not create it."
     },
     {
       "path": "output.crop-to-dot",
@@ -1437,8 +1334,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__OUTPUT__CROP_TO_DOT",
       "cli_flags": null,
-      "documentation": "The device name in a file name (`output.NAME.txt`, `crun/NAME`) is the canonical name's first label, lowercased; `false` writes the whole name, lowercased. An address is never cropped: its dots and colons are hyphens. Carried in the plan, so a job's files are named as its invocation said on every path.",
-      "since": "0.15.0"
+      "documentation": "The device name in a file name (`output.NAME.txt`, `crun/NAME`) is the canonical name's first label, lowercased; `false` writes the whole name, lowercased. An address is never cropped: its dots and colons are hyphens. Carried in the plan, so a job's files are named as its invocation said on every path."
     },
     {
       "path": "crun.directory",
@@ -1453,8 +1349,7 @@
       "words": [
         "auto"
       ],
-      "documentation": "The collection directory, one file per device named by the device, of `crun` and of `run` or `command` given `--cd`: `auto` is the shared `crun` tree under `sharedroot` when one exists, else `\u003cbasedir\u003e/crun`; an explicit path is resolved as `output.root` is (`~` expanded, a relative path from the working directory). `--cd=PATH` sets it for one invocation, and on `run` and `command` asks for the collection. Carried in the plan.",
-      "since": "0.15.0"
+      "documentation": "The collection directory, one file per device named by the device, of `crun` and of `run` or `command` given `--cd`: `auto` is the shared `crun` tree under `sharedroot` when one exists, else `\u003cbasedir\u003e/crun`; an explicit path is resolved as `output.root` is (`~` expanded, a relative path from the working directory). `--cd=PATH` sets it for one invocation, and on `run` and `command` asks for the collection. Carried in the plan."
     },
     {
       "path": "crun.directory-mode",
@@ -1470,8 +1365,7 @@
         "0755",
         "0770"
       ],
-      "documentation": "`0750`, `0755`, or `0770`: the mode of the collection directory when karvi creates it. An existing directory is left as it is in mode, group, and setgid bit; a shared one is made once by the site with `chgrp` and `chmod 2770` or `2775`.",
-      "since": "0.15.0"
+      "documentation": "`0750`, `0755`, or `0770`: the mode of the collection directory when karvi creates it. An existing directory is left as it is in mode, group, and setgid bit; a shared one is made once by the site with `chgrp` and `chmod 2770` or `2775`."
     },
     {
       "path": "crun.file-mode",
@@ -1487,8 +1381,7 @@
         "0644",
         "0660"
       ],
-      "documentation": "`0640`, `0644`, or `0660`: the mode of each collection file, applied to the temporary before the rename, so the file appears at that mode and takes the directory's group under setgid.",
-      "since": "0.15.0"
+      "documentation": "`0640`, `0644`, or `0660`: the mode of each collection file, applied to the temporary before the rename, so the file appears at that mode and takes the directory's group under setgid."
     },
     {
       "path": "crun.mask",
@@ -1499,8 +1392,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__CRUN__MASK",
       "cli_flags": null,
-      "documentation": "`true` masks each collection file, its `! COMMAND` markers and the device's output, line by line by the device's platform's `masks`, every capturing group of a match written `\u003cremoved\u003e`, after `crun-filters` has dropped its lines; `false`, the default, keeps the file as the device sent it, secrets and all, for a restore. It applies to every collection, a `crun`'s and a `run` or `command` given `--cd`; the audit is masked whatever it says.",
-      "since": "0.32.0"
+      "documentation": "`true` masks each collection file, its `! COMMAND` markers and the device's output, line by line by the device's platform's `masks`, every capturing group of a match written `\u003cremoved\u003e`, after `crun-filters` has dropped its lines; `false`, the default, keeps the file as the device sent it, secrets and all, for a restore. It applies to every collection, a `crun`'s and a `run` or `command` given `--cd`; the audit is masked whatever it says."
     },
     {
       "path": "crun.after",
@@ -1511,8 +1403,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__CRUN__AFTER",
       "cli_flags": null,
-      "documentation": "An executable the client runs once a `crun` has ended and its display is printed (never after a `run` or `command` given `--cd`), empty for none: in the collection directory, with the replaced files' names on standard input one per line and the job in `KARVI_JOB_ID`, `KARVI_JOB_DIR` (empty under `--nof`), `KARVI_CRUN_DIRECTORY`, `KARVI_CRUN_REPLACE`, `KARVI_CRUN_KEEP`, and `KARVI_EXIT`; its output goes to karvi's standard error after the display. It runs on the in-process and the daemon path alike, not under `--detach`; a hook that cannot start, exits non-zero, or runs past `crun.after-timeout` is the warning `crun_after_failed`, and the run's exit code stands (docs/COLLECTION.md).",
-      "since": "0.19.0"
+      "documentation": "An executable the client runs once a `crun` has ended and its display is printed (never after a `run` or `command` given `--cd`), empty for none: in the collection directory, with the replaced files' names on standard input one per line and the job in `KARVI_JOB_ID`, `KARVI_JOB_DIR` (empty under `--nof`), `KARVI_CRUN_DIRECTORY`, `KARVI_CRUN_REPLACE`, `KARVI_CRUN_KEEP`, and `KARVI_EXIT`; its output goes to karvi's standard error after the display. It runs on the in-process and the daemon path alike, not under `--detach`; a hook that cannot start, exits non-zero, or runs past `crun.after-timeout` is the warning `crun_after_failed`, and the run's exit code stands (docs/COLLECTION.md)."
     },
     {
       "path": "crun.after-timeout",
@@ -1525,8 +1416,7 @@
       "cli_flags": null,
       "min": "1s",
       "max": "1h",
-      "documentation": "1s–1h. How long `crun.after` may run: on expiry the hook's process group is sent SIGTERM, killed five seconds later if still there, and the warning `crun_after_failed` says it ran past the timeout.",
-      "since": "0.19.0"
+      "documentation": "1s–1h. How long `crun.after` may run: on expiry the hook's process group is sent SIGTERM, killed five seconds later if still there, and the warning `crun_after_failed` says it ran past the timeout."
     },
     {
       "path": "output.max-command-bytes",
@@ -1539,8 +1429,7 @@
       "cli_flags": null,
       "min": "1024",
       "max": "1073741824",
-      "documentation": "1 KiB–1 GiB; the bound on one command's output, which a command's `--maxbytes` replaces for that command (at most `output.max-job-bytes`).",
-      "since": "0.2.0"
+      "documentation": "1 KiB–1 GiB; the bound on one command's output, which a command's `--maxbytes` replaces for that command (at most `output.max-job-bytes`)."
     },
     {
       "path": "output.spool-threshold-bytes",
@@ -1553,8 +1442,7 @@
       "cli_flags": null,
       "min": "0",
       "max": "1073741824",
-      "documentation": "0–1 GiB, in bytes; the spool threshold per in-flight command: a response is held in memory up to it and spools to a file under `spooldir` from the byte that crosses it. `0` spools every response from its first byte; a value at or above `output.max-command-bytes` means no command spools, since the limit ends a response first, and no rule refuses the pair. The daemon's memory for output is then in flight × (this threshold + a few windows of at most 4 KiB), whatever the responses' sizes.",
-      "since": "0.20.0"
+      "documentation": "0–1 GiB, in bytes; the spool threshold per in-flight command: a response is held in memory up to it and spools to a file under `spooldir` from the byte that crosses it. `0` spools every response from its first byte; a value at or above `output.max-command-bytes` means no command spools, since the limit ends a response first, and no rule refuses the pair. The daemon's memory for output is then in flight × (this threshold + a few windows of at most 4 KiB), whatever the responses' sizes."
     },
     {
       "path": "output.max-job-bytes",
@@ -1567,8 +1455,7 @@
       "cli_flags": null,
       "min": "1024",
       "max": "1099511627776",
-      "documentation": "≥ max command; ≤1 TiB. Counts what is written of the devices' output: the `commands.jsonl` lines and the text blocks of every `output.TARGET.txt`.",
-      "since": "0.2.0"
+      "documentation": "≥ max command; ≤1 TiB. Counts what is written of the devices' output: the `commands.jsonl` lines and the text blocks of every `output.TARGET.txt`."
     },
     {
       "path": "output.expected-bytes-per-device",
@@ -1581,8 +1468,7 @@
       "cli_flags": null,
       "min": "0",
       "max": "1073741824",
-      "documentation": "0–1 GiB; capacity estimate.",
-      "since": "0.2.0"
+      "documentation": "0–1 GiB; capacity estimate."
     },
     {
       "path": "output.reserve-multiplier",
@@ -1595,8 +1481,7 @@
       "cli_flags": null,
       "min": "1.0",
       "max": "10.0",
-      "documentation": "1.0–10.0.",
-      "since": "0.2.0"
+      "documentation": "1.0–10.0."
     },
     {
       "path": "output.min-free-bytes-after-job",
@@ -1609,8 +1494,7 @@
       "cli_flags": null,
       "min": "0",
       "max": "1099511627776",
-      "documentation": "0–1 TiB; 2 GiB by default. The floor every volume an activity writes must keep free after the activity's estimate: under `freecheck = \"auto\"` it is added once to each volume's sum, under `always` it is the whole ask.",
-      "since": "0.2.0"
+      "documentation": "0–1 TiB; 2 GiB by default. The floor every volume an activity writes must keep free after the activity's estimate: under `freecheck = \"auto\"` it is added once to each volume's sum, under `always` it is the whole ask."
     },
     {
       "path": "output.fsync-command-records",
@@ -1621,8 +1505,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__OUTPUT__FSYNC_COMMAND_RECORDS",
       "cli_flags": null,
-      "documentation": "False requires global lock and durability warning.",
-      "since": "0.2.0"
+      "documentation": "False requires global lock and durability warning."
     },
     {
       "path": "output.ansi",
@@ -1638,8 +1521,7 @@
         "strip",
         "preserve"
       ],
-      "documentation": "`auto`, `strip`, `preserve`.",
-      "since": "0.2.0"
+      "documentation": "`auto`, `strip`, `preserve`."
     },
     {
       "path": "display.theme",
@@ -1656,8 +1538,7 @@
         "light",
         "nocolor"
       ],
-      "documentation": "Shared terminal theme: `auto`, `dark`, `light`, or `nocolor`; `--nocolor` sets `nocolor` for one invocation.",
-      "since": "0.5.0"
+      "documentation": "Shared terminal theme: `auto`, `dark`, `light`, or `nocolor`; `--nocolor` sets `nocolor` for one invocation."
     },
     {
       "path": "display.color",
@@ -1673,8 +1554,7 @@
         "always",
         "never"
       ],
-      "documentation": "Terminal color policy: `auto`, `always`, or `never`. `auto` colours at a terminal unless `NO_COLOR` is set and not empty; `always` colours a terminal and a pipe; `always` and `never` are explicit and `NO_COLOR` does not override them. A regular file is written plain whatever the policy.",
-      "since": "0.5.0"
+      "documentation": "Terminal color policy: `auto`, `always`, or `never`. `auto` colours at a terminal unless `NO_COLOR` is set and not empty; `always` colours a terminal and a pipe; `always` and `never` are explicit and `NO_COLOR` does not override them. A regular file is written plain whatever the policy."
     },
     {
       "path": "display.timestamp",
@@ -1685,8 +1565,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__TIMESTAMP",
       "cli_flags": null,
-      "documentation": "Human-facing timestamp pattern. Supports yyyy, yy, MM/month-context mm, dd, hh, minute-context mm, ss, and sss. Stored records remain RFC 3339.",
-      "since": "0.5.0"
+      "documentation": "Human-facing timestamp pattern. Supports yyyy, yy, MM/month-context mm, dd, hh, minute-context mm, ss, and sss. Stored records remain RFC 3339."
     },
     {
       "path": "display.ping.header",
@@ -1697,8 +1576,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__PING__HEADER",
       "cli_flags": null,
-      "documentation": "One-line template for the ICMP gate's result of each gated device in text output, before the device's header, styled as the headers are; empty disables it. `\u003crtt1\u003e` and `\u003crtt2\u003e` are the two probes' round-trip times, `timeout`, or `error`; `\u003cresult\u003e` is `proceed` or `skip`. Suppressed by `--quiet`; ICMP error details and the packet-loss notice line appear only under `--debug`.",
-      "since": "0.23.0"
+      "documentation": "One-line template for the ICMP gate's result of each gated device in text output, before the device's header, styled as the headers are; empty disables it. `\u003crtt1\u003e` and `\u003crtt2\u003e` are the two probes' round-trip times, `timeout`, or `error`; `\u003cresult\u003e` is `proceed` or `skip`. Suppressed by `--quiet`; ICMP error details and the packet-loss notice line appear only under `--debug`."
     },
     {
       "path": "display.colors.success",
@@ -1722,8 +1600,7 @@
         "gray",
         "orange"
       ],
-      "documentation": "Color for successful terminal status; default selects the active theme palette.",
-      "since": "0.5.0"
+      "documentation": "Color for successful terminal status; default selects the active theme palette."
     },
     {
       "path": "display.colors.warning",
@@ -1747,8 +1624,7 @@
         "gray",
         "orange"
       ],
-      "documentation": "Color for warning and halted terminal status; default selects the active theme palette.",
-      "since": "0.5.0"
+      "documentation": "Color for warning and halted terminal status; default selects the active theme palette."
     },
     {
       "path": "display.colors.error",
@@ -1772,8 +1648,7 @@
         "gray",
         "orange"
       ],
-      "documentation": "Color for failed terminal status; default selects the active theme palette.",
-      "since": "0.5.0"
+      "documentation": "Color for failed terminal status; default selects the active theme palette."
     },
     {
       "path": "display.colors.muted",
@@ -1797,8 +1672,7 @@
         "gray",
         "orange"
       ],
-      "documentation": "Color for stale or secondary terminal information; default selects the active theme palette.",
-      "since": "0.5.0"
+      "documentation": "Color for stale or secondary terminal information; default selects the active theme palette."
     },
     {
       "path": "display.colors.accent",
@@ -1822,8 +1696,7 @@
         "gray",
         "orange"
       ],
-      "documentation": "Color for changing or emphasized terminal information; default selects the active theme palette.",
-      "since": "0.5.0"
+      "documentation": "Color for changing or emphasized terminal information; default selects the active theme palette."
     },
     {
       "path": "display.colors.timestamp",
@@ -1847,8 +1720,7 @@
         "gray",
         "orange"
       ],
-      "documentation": "Color for the \u003ctimestamp\u003e placeholder in generated terminal headers and footers; default is gray in the built-in themes.",
-      "since": "0.8.0"
+      "documentation": "Color for the \u003ctimestamp\u003e placeholder in generated terminal headers and footers; default is gray in the built-in themes."
     },
     {
       "path": "display.colors.target",
@@ -1872,8 +1744,7 @@
         "gray",
         "orange"
       ],
-      "documentation": "Color for the target device identity in generated terminal headers and footers; default selects the active theme palette.",
-      "since": "0.7.0"
+      "documentation": "Color for the target device identity in generated terminal headers and footers; default selects the active theme palette."
     },
     {
       "path": "display.colors.address",
@@ -1897,8 +1768,7 @@
         "gray",
         "orange"
       ],
-      "documentation": "Color for the resolved management address in generated terminal headers and footers; default selects the active theme palette.",
-      "since": "0.7.0"
+      "documentation": "Color for the resolved management address in generated terminal headers and footers; default selects the active theme palette."
     },
     {
       "path": "display.colors.label",
@@ -1922,8 +1792,7 @@
         "gray",
         "orange"
       ],
-      "documentation": "Color for brackets, punctuation, and element labels such as platform, user, backend, and transport; default is blue under the dark theme and gray under the light theme.",
-      "since": "0.7.0"
+      "documentation": "Color for brackets, punctuation, and element labels such as platform, user, backend, and transport; default is blue under the dark theme and gray under the light theme."
     },
     {
       "path": "display.colors.value",
@@ -1947,8 +1816,7 @@
         "gray",
         "orange"
       ],
-      "documentation": "Color for ordinary generated header and footer values; default selects the active theme palette.",
-      "since": "0.7.0"
+      "documentation": "Color for ordinary generated header and footer values; default selects the active theme palette."
     },
     {
       "path": "display.colors.border",
@@ -1972,8 +1840,7 @@
         "gray",
         "orange"
       ],
-      "documentation": "Color for generated command border text; default is gray in the built-in themes.",
-      "since": "0.7.0"
+      "documentation": "Color for generated command border text; default is gray in the built-in themes."
     },
     {
       "path": "display.colors.dynamic-border",
@@ -1997,8 +1864,7 @@
         "gray",
         "orange"
       ],
-      "documentation": "Color for the dash line requested by command or run --border; default is gray in the built-in themes.",
-      "since": "0.8.0"
+      "documentation": "Color for the dash line requested by command or run --border; default is gray in the built-in themes."
     },
     {
       "path": "display.login.header",
@@ -2009,8 +1875,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__LOGIN__HEADER",
       "cli_flags": null,
-      "documentation": "One-line login header template; empty disables it.",
-      "since": "0.5.0"
+      "documentation": "One-line login header template; empty disables it."
     },
     {
       "path": "display.login.footer",
@@ -2021,8 +1886,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__LOGIN__FOOTER",
       "cli_flags": null,
-      "documentation": "One-line login footer template; empty disables it.",
-      "since": "0.5.0"
+      "documentation": "One-line login footer template; empty disables it."
     },
     {
       "path": "display.record.header",
@@ -2033,8 +1897,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__RECORD__HEADER",
       "cli_flags": null,
-      "documentation": "One-line template naming a recorded login's transcript (`login --record`) before the session, rendered as the login header is; `\u003ctranscript\u003e` is the file's path. Empty disables it.",
-      "since": "0.26.0"
+      "documentation": "One-line template naming a recorded login's transcript (`login --record`) before the session, rendered as the login header is; `\u003ctranscript\u003e` is the file's path. Empty disables it."
     },
     {
       "path": "display.record.footer",
@@ -2045,8 +1908,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__RECORD__FOOTER",
       "cli_flags": null,
-      "documentation": "One-line template naming a recorded login's transcript after the session's last output, a failed session included; the same default as `display.record.header`, so the two lines match. Empty disables it.",
-      "since": "0.26.0"
+      "documentation": "One-line template naming a recorded login's transcript after the session's last output, a failed session included; the same default as `display.record.header`, so the two lines match. Empty disables it."
     },
     {
       "path": "display.command.header",
@@ -2057,8 +1919,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__COMMAND__HEADER",
       "cli_flags": null,
-      "documentation": "One-line command header template; empty disables it.",
-      "since": "0.5.0"
+      "documentation": "One-line command header template; empty disables it."
     },
     {
       "path": "display.command.footer",
@@ -2069,8 +1930,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__COMMAND__FOOTER",
       "cli_flags": null,
-      "documentation": "One-line command footer template; empty disables it. \u003creference-id\u003e remains available for custom templates but is omitted from the default because the activity ID is already present in the artifacts path.",
-      "since": "0.5.0"
+      "documentation": "One-line command footer template; empty disables it. \u003creference-id\u003e remains available for custom templates but is omitted from the default because the activity ID is already present in the artifacts path."
     },
     {
       "path": "display.command.border",
@@ -2081,8 +1941,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__COMMAND__BORDER",
       "cli_flags": null,
-      "documentation": "Separator emitted between command outputs. Default is one blank line. Newlines are allowed; `\u003crepeat:TEXT:COUNT\u003e` expands repeated text, for example `\u003crepeat:-:40\u003e\\n`.",
-      "since": "0.5.0"
+      "documentation": "Separator emitted between command outputs. Default is one blank line. Newlines are allowed; `\u003crepeat:TEXT:COUNT\u003e` expands repeated text, for example `\u003crepeat:-:40\u003e\\n`."
     },
     {
       "path": "display.command.dynamic-border-length",
@@ -2095,8 +1954,7 @@
       "cli_flags": null,
       "min": "1",
       "max": "4096",
-      "documentation": "1–4096. Dash count used by command --border when no header is displayed. A displayed header instead determines the dynamic border length.",
-      "since": "0.8.0"
+      "documentation": "1–4096. Dash count used by command --border when no header is displayed. A displayed header instead determines the dynamic border length."
     },
     {
       "path": "display.command.last-border",
@@ -2107,8 +1965,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__COMMAND__LAST_BORDER",
       "cli_flags": null,
-      "documentation": "When true, emit the configured or dynamic border after the final command. False suppresses the unnecessary trailing separator.",
-      "since": "0.9.0"
+      "documentation": "When true, emit the configured or dynamic border after the final command. False suppresses the unnecessary trailing separator."
     },
     {
       "path": "display.command.echo",
@@ -2119,8 +1976,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__COMMAND__ECHO",
       "cli_flags": null,
-      "documentation": "Show the effective device prompt and sent command before each attempted command result in human text output, including device-reported errors.",
-      "since": "0.6.0"
+      "documentation": "Show the effective device prompt and sent command before each attempted command result in human text output, including device-reported errors."
     },
     {
       "path": "display.run.header",
@@ -2131,8 +1987,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__RUN__HEADER",
       "cli_flags": null,
-      "documentation": "Per-device header used by run --format text; empty disables it. A failed record still emits an explicit error line.",
-      "since": "0.8.0"
+      "documentation": "Per-device header used by run --format text; empty disables it. A failed record still emits an explicit error line."
     },
     {
       "path": "display.run.footer",
@@ -2143,8 +1998,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__RUN__FOOTER",
       "cli_flags": null,
-      "documentation": "One-line footer template that ends a run's text display on every path, the daemon follow, --no-daemon, job follow, and a finished job's replay, from the job's summary (its exit, duration, and job folder); empty disables it. Under --format jsonl the summary document is the stream's last line instead, and nothing ends the run on standard error.",
-      "since": "0.13.0"
+      "documentation": "One-line footer template that ends a run's text display on every path, the daemon follow, --no-daemon, job follow, and a finished job's replay, from the job's summary (its exit, duration, and job folder); empty disables it. Under --format jsonl the summary document is the stream's last line instead, and nothing ends the run on standard error."
     },
     {
       "path": "display.collection.footer",
@@ -2155,8 +2009,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__COLLECTION__FOOTER",
       "cli_flags": null,
-      "documentation": "One-line template after the footer of a job with a collection (`crun`, or `run` or `command` with `--cd`), on standard output under `--format text` on every path: `\u003ccollection\u003e` the absolute collection directory, `\u003creplace\u003e` and `\u003ckeep\u003e` the devices whose files were replaced and kept. Under json and jsonl nothing is printed (the summary carries the collection block). Empty disables it.",
-      "since": "0.26.0"
+      "documentation": "One-line template after the footer of a job with a collection (`crun`, or `run` or `command` with `--cd`), on standard output under `--format text` on every path: `\u003ccollection\u003e` the absolute collection directory, `\u003creplace\u003e` and `\u003ckeep\u003e` the devices whose files were replaced and kept. Under json and jsonl nothing is printed (the summary carries the collection block). Empty disables it."
     },
     {
       "path": "display.run.border",
@@ -2167,8 +2020,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__RUN__BORDER",
       "cli_flags": null,
-      "documentation": "Separator emitted between run command records. Default is one blank line. Newlines and `\u003crepeat:TEXT:COUNT\u003e` are supported.",
-      "since": "0.9.0"
+      "documentation": "Separator emitted between run command records. Default is one blank line. Newlines and `\u003crepeat:TEXT:COUNT\u003e` are supported."
     },
     {
       "path": "display.run.dynamic-border-length",
@@ -2181,8 +2033,7 @@
       "cli_flags": null,
       "min": "1",
       "max": "4096",
-      "documentation": "1–4096. Dash count used by run --border when no per-device header is displayed.",
-      "since": "0.9.0"
+      "documentation": "1–4096. Dash count used by run --border when no per-device header is displayed."
     },
     {
       "path": "display.run.last-border",
@@ -2193,8 +2044,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__RUN__LAST_BORDER",
       "cli_flags": null,
-      "documentation": "When true, emit the configured or dynamic border after the final run command record. False suppresses the trailing separator.",
-      "since": "0.9.0"
+      "documentation": "When true, emit the configured or dynamic border after the final run command record. False suppresses the trailing separator."
     },
     {
       "path": "display.run.echo",
@@ -2205,8 +2055,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__RUN__ECHO",
       "cli_flags": null,
-      "documentation": "Show the effective device prompt and sent command before each attempted run command result in human text output, including device-reported errors; JSONL remains undecorated.",
-      "since": "0.6.0"
+      "documentation": "Show the effective device prompt and sent command before each attempted run command result in human text output, including device-reported errors; JSONL remains undecorated."
     },
     {
       "path": "display.run.gather",
@@ -2217,8 +2066,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__RUN__GATHER",
       "cli_flags": null,
-      "documentation": "Gather a run's text display, shown at the job's end: a block per requested command, in it a group per answer, the devices that answered alike under one header (`display.gather.header`), the succeeded groups first. Under `--format jsonl` or `json` it has no effect. It reads the job's `commands.jsonl`: under `--nof` or `output.files.commands-jsonl = false` the display is the ordinary one. `display.run.echo` is not applied when gathering.",
-      "since": "0.2.0"
+      "documentation": "Gather a run's text display, shown at the job's end: a block per requested command, in it a group per answer, the devices that answered alike under one header (`display.gather.header`), the succeeded groups first. Under `--format jsonl` or `json` it has no effect. It reads the job's `commands.jsonl`: under `--nof` or `output.files.commands-jsonl = false` the display is the ordinary one. `display.run.echo` is not applied when gathering."
     },
     {
       "path": "display.run.prefix",
@@ -2229,8 +2077,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__RUN__PREFIX",
       "cli_flags": null,
-      "documentation": "Line mode: a run's text display writes each line as `NAME: line`, its device's name first (gathered, the group's folded names), with no device or group header and no border. Under `--format jsonl` or `json` it has no effect.",
-      "since": "0.2.0"
+      "documentation": "Line mode: a run's text display writes each line as `NAME: line`, its device's name first (gathered, the group's folded names), with no device or group header and no border. Under `--format jsonl` or `json` it has no effect."
     },
     {
       "path": "display.gather.header",
@@ -2241,8 +2088,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__GATHER__HEADER",
       "cli_flags": null,
-      "documentation": "One-line header of each group of the gathered display (`display.run.gather`): `\u003ctargets\u003e` the group's devices folded into one `--tl` value, `\u003ccount\u003e` how many. Empty disables it.",
-      "since": "0.2.0"
+      "documentation": "One-line header of each group of the gathered display (`display.run.gather`): `\u003ctargets\u003e` the group's devices folded into one `--tl` value, `\u003ccount\u003e` how many. Empty disables it."
     },
     {
       "path": "display.json.indent",
@@ -2255,8 +2101,7 @@
       "cli_flags": null,
       "min": "1",
       "max": "8",
-      "documentation": "1–8. Spaces per indentation level for --format json. Compact --format jsonl remains one record per line.",
-      "since": "0.8.0"
+      "documentation": "1–8. Spaces per indentation level for --format json. Compact --format jsonl remains one record per line."
     },
     {
       "path": "transcript.root",
@@ -2271,8 +2116,7 @@
       "words": [
         "auto"
       ],
-      "documentation": "`auto`: the shared `transcripts` tree under `sharedroot` when one exists, else `\u003cbasedir\u003e/transcripts`; an explicit path is that directory.",
-      "since": "0.2.0"
+      "documentation": "`auto`: the shared `transcripts` tree under `sharedroot` when one exists, else `\u003cbasedir\u003e/transcripts`; an explicit path is that directory."
     },
     {
       "path": "transcript.format",
@@ -2288,8 +2132,7 @@
         "jsonl",
         "json"
       ],
-      "documentation": "`text`, `jsonl`, or `json`; `jsonl` and `json` are refused until the transcript event recorder exists.",
-      "since": "0.2.0"
+      "documentation": "`text`, `jsonl`, or `json`; `jsonl` and `json` are refused until the transcript event recorder exists."
     },
     {
       "path": "transcript.metadata-format",
@@ -2305,8 +2148,7 @@
         "jsonl",
         "json"
       ],
-      "documentation": "`text`, `jsonl`, or `json`.",
-      "since": "0.2.0"
+      "documentation": "`text`, `jsonl`, or `json`."
     },
     {
       "path": "transcript.on-write-error",
@@ -2321,8 +2163,7 @@
         "terminate",
         "continue"
       ],
-      "documentation": "`terminate` or `continue`.",
-      "since": "0.2.0"
+      "documentation": "`terminate` or `continue`."
     },
     {
       "path": "audit.enabled",
@@ -2333,8 +2174,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__AUDIT__ENABLED",
       "cli_flags": null,
-      "documentation": "Mandatory audit cannot be disabled.",
-      "since": "0.2.0"
+      "documentation": "Mandatory audit cannot be disabled."
     },
     {
       "path": "audit.journald-required",
@@ -2345,8 +2185,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__AUDIT__JOURNALD_REQUIRED",
       "cli_flags": null,
-      "documentation": "Failure blocks new work when true.",
-      "since": "0.2.0"
+      "documentation": "Failure blocks new work when true."
     },
     {
       "path": "audit.file",
@@ -2358,8 +2197,7 @@
       "environment": "KARVI__AUDIT__FILE",
       "cli_flags": null,
       "place": true,
-      "documentation": "Empty disables secondary file.",
-      "since": "0.2.0"
+      "documentation": "Empty disables secondary file."
     },
     {
       "path": "audit.file-required",
@@ -2370,8 +2208,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__AUDIT__FILE_REQUIRED",
       "cli_flags": null,
-      "documentation": "Requires nonempty file when true.",
-      "since": "0.2.0"
+      "documentation": "Requires nonempty file when true."
     },
     {
       "path": "watch.enabled",
@@ -2382,8 +2219,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__WATCH__ENABLED",
       "cli_flags": null,
-      "documentation": "Applies to snapshot writers.",
-      "since": "0.2.0"
+      "documentation": "Applies to snapshot writers."
     },
     {
       "path": "watch.refresh",
@@ -2396,8 +2232,7 @@
       "cli_flags": null,
       "min": "250ms",
       "max": "60s",
-      "documentation": "250ms–60s; the screen's refresh, 2s since registry 15.",
-      "since": "0.2.0"
+      "documentation": "250ms–60s; the screen's refresh, 2s since registry 15."
     },
     {
       "path": "watch.stale-after",
@@ -2410,8 +2245,7 @@
       "cli_flags": null,
       "min": "500ms",
       "max": "24h",
-      "documentation": "≥2× refresh, ≤24h.",
-      "since": "0.2.0"
+      "documentation": "≥2× refresh, ≤24h."
     },
     {
       "path": "watch.max-files",
@@ -2424,8 +2258,7 @@
       "cli_flags": null,
       "min": "100",
       "max": "1000000",
-      "documentation": "100–1,000,000.",
-      "since": "0.2.0"
+      "documentation": "100–1,000,000."
     },
     {
       "path": "metrics.process-sample-interval",
@@ -2438,8 +2271,7 @@
       "cli_flags": null,
       "min": "250ms",
       "max": "1m",
-      "documentation": "250ms–1m.",
-      "since": "0.2.0"
+      "documentation": "250ms–1m."
     },
     {
       "path": "security.shared-group",
@@ -2450,8 +2282,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SECURITY__SHARED_GROUP",
       "cli_flags": null,
-      "documentation": "Existing group name or configured numeric GID form.",
-      "since": "0.2.0"
+      "documentation": "Existing group name or configured numeric GID form."
     },
     {
       "path": "security.approved-admin-users",
@@ -2462,8 +2293,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SECURITY__APPROVED_ADMIN_USERS",
       "cli_flags": null,
-      "documentation": "Nonempty; shared credential-file owners.",
-      "since": "0.2.0"
+      "documentation": "Nonempty; shared credential-file owners."
     },
     {
       "path": "security.allow-credential-symlinks",
@@ -2474,8 +2304,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SECURITY__ALLOW_CREDENTIAL_SYMLINKS",
       "cli_flags": null,
-      "documentation": "When true, canonical target still undergoes all checks.",
-      "since": "0.2.0"
+      "documentation": "When true, canonical target still undergoes all checks."
     },
     {
       "path": "security.allow-telnet",
@@ -2486,8 +2315,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SECURITY__ALLOW_TELNET",
       "cli_flags": null,
-      "documentation": "Explicit second gate.",
-      "since": "0.2.0"
+      "documentation": "Explicit second gate."
     },
     {
       "path": "security.child-environment-allowlist",
@@ -2498,8 +2326,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SECURITY__CHILD_ENVIRONMENT_ALLOWLIST",
       "cli_flags": null,
-      "documentation": "Names only; secret values not shown by config explain.",
-      "since": "0.2.0"
+      "documentation": "Names only; secret values not shown by config explain."
     },
     {
       "path": "creds.backend-sequence",
@@ -2510,8 +2337,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__CREDS__BACKEND_SEQUENCE",
       "cli_flags": null,
-      "documentation": "Existing backends; built-in env fallback remains last.",
-      "since": "0.2.0"
+      "documentation": "Existing backends; built-in env fallback remains last."
     },
     {
       "path": "creds.interactive-prompt",
@@ -2522,8 +2348,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__CREDS__INTERACTIVE_PROMPT",
       "cli_flags": null,
-      "documentation": "`/dev/tty` only; after all backends/fallback.",
-      "since": "0.2.0"
+      "documentation": "`/dev/tty` only; after all backends/fallback."
     },
     {
       "path": "creds.prompt-for-username",
@@ -2534,8 +2359,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__CREDS__PROMPT_FOR_USERNAME",
       "cli_flags": null,
-      "documentation": "Prompt missing username when TTY exists.",
-      "since": "0.2.0"
+      "documentation": "Prompt missing username when TTY exists."
     },
     {
       "path": "creds.prompt-for-password",
@@ -2546,8 +2370,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__CREDS__PROMPT_FOR_PASSWORD",
       "cli_flags": null,
-      "documentation": "Masked prompt.",
-      "since": "0.2.0"
+      "documentation": "Masked prompt."
     },
     {
       "path": "creds.helper",
@@ -2560,8 +2383,7 @@
       "cli_flags": null,
       "place": true,
       "beside_executable": true,
-      "documentation": "The credential helper: an executable karvi runs once per invocation that resolves credentials, before any backend is asked, whose `export NAME=value` lines set values every credential reader finds in place of the process environment's. A name without `/` is that file beside the running karvi executable, never searched on `PATH`; any other value is a place (`~/` the operator's home, a relative path from the working directory). Not empty: `creds.helper-enabled = false` turns the helper off. A site restricts it by locking the key.",
-      "since": "0.2.0"
+      "documentation": "The credential helper: an executable karvi runs once per invocation that resolves credentials, before any backend is asked, whose `export NAME=value` lines set values every credential reader finds in place of the process environment's. A name without `/` is that file beside the running karvi executable, never searched on `PATH`; any other value is a place (`~/` the operator's home, a relative path from the working directory). Not empty: `creds.helper-enabled = false` turns the helper off. A site restricts it by locking the key."
     },
     {
       "path": "creds.helper-enabled",
@@ -2572,8 +2394,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__CREDS__HELPER_ENABLED",
       "cli_flags": null,
-      "documentation": "Whether the credential helper runs; `--no-credh` sets false for one invocation.",
-      "since": "0.2.0"
+      "documentation": "Whether the credential helper runs; `--no-credh` sets false for one invocation."
     },
     {
       "path": "creds.helper-unavailable",
@@ -2589,8 +2410,7 @@
         "warn",
         "fail"
       ],
-      "documentation": "An enabled helper that cannot be run (no file at its path, or one the operator cannot execute): `skip` passes it by silently, `warn` says why first, `fail` refuses the invocation (`credential_helper_unavailable`). A helper present but unsafe, or one that fails, refuses it under any value.",
-      "since": "0.2.0"
+      "documentation": "An enabled helper that cannot be run (no file at its path, or one the operator cannot execute): `skip` passes it by silently, `warn` says why first, `fail` refuses the invocation (`credential_helper_unavailable`). A helper present but unsafe, or one that fails, refuses it under any value."
     },
     {
       "path": "creds.helper-timeout",
@@ -2603,8 +2423,7 @@
       "cli_flags": null,
       "min": "1s",
       "max": "1h",
-      "documentation": "1s–1h. How long the helper may run; then SIGTERM to it and every process it started that is still its descendant, two seconds on SIGKILL, and `credential_helper_failed`.",
-      "since": "0.2.0"
+      "documentation": "1s–1h. How long the helper may run; then SIGTERM to it and every process it started that is still its descendant, two seconds on SIGKILL, and `credential_helper_failed`."
     },
     {
       "path": "tabular.max-physical-line-bytes",
@@ -2617,8 +2436,7 @@
       "cli_flags": null,
       "min": "1024",
       "max": "67108864",
-      "documentation": "1 KiB–64 MiB; over-limit is hard file error.",
-      "since": "0.2.0"
+      "documentation": "1 KiB–64 MiB; over-limit is hard file error."
     }
   ],
   "dynamic_tables": [

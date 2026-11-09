@@ -28,7 +28,8 @@ import (
 // a key's sensitive mark, set on none; 33 removes a platform table's
 // legacy-class, read by nothing; 34 removes security.require-fips, which
 // enforced nothing; 35 takes display.run.gather, display.run.prefix, and
-// display.gather.header, the gathered display and line mode.
+// display.gather.header, the gathered display and line mode, and removes a
+// key's since, read by nothing (a row that set none said 0.2.0).
 const (
 	RegistrySchemaVersion = 35
 	ConfigSchemaVersion   = 6
@@ -83,7 +84,6 @@ type Entry struct {
 	// (creds.helper). BareName says which values those are.
 	BesideExecutable bool   `json:"beside_executable,omitempty"`
 	Documentation    string `json:"documentation"`
-	Since            string `json:"since"`
 }
 
 // BareName reports whether value, of key, is a name kept as written: key
@@ -178,9 +178,6 @@ func Entries() []Entry {
 	out := make([]Entry, len(fixedEntries))
 	copy(out, fixedEntries)
 	for i := range out {
-		if out[i].Since == "" {
-			out[i].Since = "0.2.0"
-		}
 		if out[i].ReloadClass == "" {
 			out[i].ReloadClass = "next-job"
 		}

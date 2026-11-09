@@ -17,6 +17,14 @@ they were published in.
 
 ## Unreleased
 
+### Breaking changes
+
+- **The registry artifact's keys no longer carry `since`.** Each key in
+  `schema/config-schema.json` carried a `since`, meant as the release it first
+  shipped in; nothing in karvi read it, and a key whose row set none said
+  `0.2.0`: 101 of 0.41.0's 179, every key added since 0.33.0 among them. The
+  field and its default are removed.
+
 ### Other notes
 
 - **`tools/release-numbers` prints the release's numbers and checks the
