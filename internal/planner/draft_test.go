@@ -176,7 +176,11 @@ func draftOptions(commands []string) DraftOptions {
 // configuration block's new key and its digest; nothing else moved.
 // Re-pinned at targets.inventory-only (EXAMPLES chapter 103): the
 // configuration block's new key and its digest; nothing else moved.
-const goldenK03Draft = "80d685c962bd34fd0c4eb3a6b8cb22835754290133cb4bc1c957e36808f4bddd"
+// Re-pinned at display.run.gather, display.run.prefix, and
+// display.gather.header (EXAMPLES chapter 106): the configuration block's
+// three new keys and its digest; the plan schema stays 17, nothing else
+// moved.
+const goldenK03Draft = "d6b76e421ec23840f3a7db50533a4a660ef45e220fdc4155bc3358f1c8498635"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)
@@ -256,10 +260,12 @@ func TestDraftSettingsPrecedence(t *testing.T) {
 // TestDraftCarriesNoCopyOfAKey: the draft's configuration block holds the
 // invocation's values, set and default alike, and the plan holds no field
 // that copies a key: no execution or ping block, no blind wait, no byte
-// limits, files, or crop in output, no collection file mode, no halt or gate
-// value in dispatch.
+// limits, files, crop, gather, or prefix in output, no collection file mode,
+// no halt or gate value in dispatch. The gathered display and line mode are
+// the configuration's display.run.gather and display.run.prefix, which every
+// path's renderer reads as it reads display.run.header.
 func TestDraftCarriesNoCopyOfAKey(t *testing.T) {
-	sets := []string{`execution.command-timeout="45m"`, `execution.device-timeout="2h"`, "execution.halt-device-on-command-error=false", "network.ping-targets=true", "dispatch.halt-on-error-count=5", `crun.file-mode="0640"`}
+	sets := []string{`execution.command-timeout="45m"`, `execution.device-timeout="2h"`, "execution.halt-device-on-command-error=false", "network.ping-targets=true", "dispatch.halt-on-error-count=5", `crun.file-mode="0640"`, "display.run.gather=true", "display.run.prefix=true"}
 	opts := draftOptions(plantest.Commands)
 	opts.Collection = "crun"
 	draft, err := Draft(context.Background(), testConfig(t, append(sets, `crun.directory="`+t.TempDir()+`"`)...), operator, k03Set(t), opts, plantest.DraftedAt)
@@ -267,7 +273,7 @@ func TestDraftCarriesNoCopyOfAKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := draft.Configuration
-	if c["execution.command-timeout"] != "45m" || c["execution.device-timeout"] != "2h" || c["execution.halt-device-on-command-error"] != false || c["network.ping-targets"] != true || c["dispatch.halt-on-error-count"] != int64(5) || c["crun.file-mode"] != "0640" || c["execution.prompt-timeout"] != "10s" {
+	if c["execution.command-timeout"] != "45m" || c["execution.device-timeout"] != "2h" || c["execution.halt-device-on-command-error"] != false || c["network.ping-targets"] != true || c["dispatch.halt-on-error-count"] != int64(5) || c["crun.file-mode"] != "0640" || c["execution.prompt-timeout"] != "10s" || c["display.run.gather"] != true || c["display.run.prefix"] != true || c["display.gather.header"] != "! <targets> (<count>)" {
 		t.Fatalf("the configuration block: %v", c)
 	}
 	data, err := json.Marshal(draft)
@@ -284,7 +290,7 @@ func TestDraftCarriesNoCopyOfAKey(t *testing.T) {
 		}
 	}
 	for block, keys := range map[string][]string{
-		"output":   {"max_command_bytes", "max_job_bytes", "persist", "files", "crop_to_dot"},
+		"output":   {"max_command_bytes", "max_job_bytes", "persist", "files", "crop_to_dot", "gather", "prefix"},
 		"dispatch": {"halt_error_count", "halt_error_percent", "wave_gate_error_count", "wave_gate_error_percent", "wave_gate_timed_delay_ns", "continue_device_on_error"},
 	} {
 		for _, key := range keys {

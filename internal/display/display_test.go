@@ -119,6 +119,33 @@ func TestLineTemplate(t *testing.T) {
 	}
 }
 
+// TestGatherHeaderPlaceholders: <targets> and <count>, the gathered
+// display's group header (display.gather.header), render plain as written
+// and styled by role: the folded names in the target role, bold as a
+// target is, the count a value.
+func TestGatherHeaderPlaceholders(t *testing.T) {
+	formatter, err := NewFormatter(DefaultTimestampPattern, "auto")
+	if err != nil {
+		t.Fatal(err)
+	}
+	values := Values{Targets: "edge[1-2],router[01-04,10]", Count: 7}
+	got, err := formatter.RenderLine("! <targets> (<count>)", values)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "! edge[1-2],router[01-04,10] (7)" {
+		t.Fatalf("plain %q", got)
+	}
+	style := LineStyle{Enabled: true, Target: "cyan", Label: "gray", Value: "white"}
+	styled, err := formatter.RenderStyledLine("! <targets> (<count>)", values, style)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "\x1b[90m! \x1b[0m\x1b[1;36medge[1-2],router[01-04,10]\x1b[0m\x1b[90m (\x1b[0m\x1b[37m7\x1b[0m\x1b[90m)\x1b[0m"; styled != want {
+		t.Fatalf("styled %q\nwant   %q", styled, want)
+	}
+}
+
 func TestBorderRepeat(t *testing.T) {
 	got, err := RenderBorder("<repeat:-:40>\n")
 	if err != nil {

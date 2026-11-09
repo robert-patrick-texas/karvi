@@ -562,6 +562,16 @@ last-border = false
 # Show the effective device prompt and sent command before each attempted run command result
 # in human text output, including device-reported errors; JSONL remains undecorated.
 echo = false
+# Gather a run's text display, shown at the job's end: a block per requested command, in it a
+# group per answer, the devices that answered alike under one header (display.gather.header),
+# the succeeded groups first. Under --format jsonl or json it has no effect. It reads the
+# job's commands.jsonl: under --nof or output.files.commands-jsonl = false the display is the
+# ordinary one. display.run.echo is not applied when gathering.
+gather = false
+# Line mode: a run's text display writes each line as NAME: line, its device's name first
+# (gathered, the group's folded names), with no device or group header and no border. Under
+# --format jsonl or json it has no effect.
+prefix = false
 
 [display.collection]
 # One-line template after the footer of a job with a collection (crun, or run or command with
@@ -570,6 +580,11 @@ echo = false
 # Under json and jsonl nothing is printed (the summary carries the collection block). Empty
 # disables it.
 footer = "! collection=<collection> replace=<replace> keep=<keep>"
+
+[display.gather]
+# One-line header of each group of the gathered display (display.run.gather): <targets> the
+# group's devices folded into one --tl value, <count> how many. Empty disables it.
+header = "! <targets> (<count>)"
 
 [display.json]
 # 1–8. Spaces per indentation level for --format json. Compact --format jsonl remains one

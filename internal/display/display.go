@@ -52,6 +52,10 @@ type Values struct {
 	Collection string
 	Replaced   int
 	Kept       int
+	// A group of the gathered display (display.gather.header): its devices
+	// folded into one --tl value, and how many.
+	Targets string
+	Count   int
 }
 
 var allowedPlaceholders = map[string]bool{
@@ -62,6 +66,7 @@ var allowedPlaceholders = map[string]bool{
 	"rtt1": true, "rtt2": true, "result": true,
 	"transcript": true,
 	"collection": true, "replace": true, "keep": true,
+	"targets": true, "count": true,
 }
 
 var repeatRE = regexp.MustCompile(`<repeat:([^:>]*)\:([0-9]+)>`)
@@ -437,6 +442,8 @@ func (f Formatter) placeholderValues(values Values) map[string]string {
 		"collection":   values.Collection,
 		"replace":      strconv.Itoa(values.Replaced),
 		"keep":         strconv.Itoa(values.Kept),
+		"targets":      values.Targets,
+		"count":        strconv.Itoa(values.Count),
 	}
 }
 
@@ -448,8 +455,9 @@ func RoleBold(role string) bool { return role == "target" || role == "address" |
 
 func placeholderStyle(name, value string, style LineStyle) (string, bool) {
 	switch name {
-	case "target":
-		return style.Target, RoleBold(name)
+	case "target", "targets":
+		// The gathered display's folded names are targets too.
+		return style.Target, RoleBold("target")
 	case "address":
 		return style.Address, RoleBold(name)
 	case "timestamp":
