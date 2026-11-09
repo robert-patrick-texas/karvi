@@ -69,6 +69,11 @@ they were published in.
   under `--no-daemon`. A standard output closed while the job still runs
   ends the follow as before: the job continues in the daemon, and no
   program runs.
+- **A job whose `failed-devices.txt` cannot be written no longer leaves its
+  record files open.** At the job's end the store returned at that failure
+  without closing `commands.jsonl` and `errors.jsonl`, so the daemon kept two
+  descriptors open for each such job until it ended. It now closes every
+  file and reports the first failure, as before (`output_store_close_failed`).
 - **`job follow` from a job's folder names a gone `commands.jsonl` once.**
   The error read `open PATH: open PATH: no such file or directory`; it reads
   `open PATH: no such file or directory`.

@@ -1103,3 +1103,50 @@ func TestCreateRefusesAnotherFileAtCommandsJSONL(t *testing.T) {
 		t.Fatalf("create: %v", err)
 	}
 }
+
+// openPaths is which of paths this process holds open, each resolved as
+// the kernel names an open file.
+func openPaths(t *testing.T, paths ...string) []string {
+	t.Helper()
+	var open []string
+	fds, err := os.ReadDir("/proc/self/fd")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range paths {
+		if resolved, err := filepath.EvalSymlinks(p); err == nil {
+			p = resolved
+		}
+		for _, fd := range fds {
+			if target, err := os.Readlink(filepath.Join("/proc/self/fd", fd.Name())); err == nil && target == p {
+				open = append(open, fd.Name()+" "+filepath.Base(p))
+			}
+		}
+	}
+	return open
+}
+
+// TestCloseClosesItsFilesWhenFailedDevicesFails: a failed-devices.txt that
+// cannot be put in place (a folder at its name) is Close's error, and
+// every file the store holds is closed all the same: commands.jsonl's
+// writer and reader and errors.jsonl's writer, none left open for the
+// daemon's life.
+func TestCloseClosesItsFilesWhenFailedDevicesFails(t *testing.T) {
+	s, err := Create(Options{Root: t.TempDir(), ID: "id", Fsync: true, MaxJobBytes: 1 << 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := s.Paths()
+	if open := openPaths(t, p.CommandsJSONL, p.ErrorsJSONL); len(open) != 3 {
+		t.Fatalf("before the close: %v", open)
+	}
+	if err := os.MkdirAll(filepath.Join(p.FailedDevices, "x"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Close(); err == nil || !strings.Contains(err.Error(), "failed-devices.txt") {
+		t.Fatalf("Close: %v", err)
+	}
+	if open := openPaths(t, p.CommandsJSONL, p.ErrorsJSONL); len(open) != 0 {
+		t.Fatalf("after the close: %v still open", open)
+	}
+}

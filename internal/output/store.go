@@ -718,13 +718,13 @@ func (s *Store) Close() error {
 	if len(names) > 0 {
 		content = strings.Join(names, "\n") + "\n"
 	}
+	// The first failure is Close's; every file is closed whatever failed
+	// before it, so a long-running daemon keeps none open.
+	var first error
 	if !s.skip.FailedDevicesTxt {
-		if err := atomicBytes(s.paths.FailedDevices, []byte(content), osutil.OutputFileMode); err != nil {
-			return err
-		}
+		first = atomicBytes(s.paths.FailedDevices, []byte(content), osutil.OutputFileMode)
 	}
 	// A skipped file is nil and has nothing to close.
-	var first error
 	for _, f := range []jsonlFile{s.commands, s.errs} {
 		if f == nil {
 			continue
