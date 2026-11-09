@@ -94,6 +94,9 @@ type Request struct {
 	// device's session bytes in place of the text display. It is not in the
 	// plan, so the job's digest is the same without it.
 	Live bool
+	// Unshown is a display that goes nowhere (run --no-daemon
+	// --follow=false): nothing is gathered, so nothing is read back for it.
+	Unshown bool
 
 	// OnAccepted is called once the job is accepted: the manifest is
 	// durable and the started audit record written. The daemon answers

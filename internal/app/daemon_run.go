@@ -300,9 +300,19 @@ func RunViaDaemon(ctx context.Context, opts RunOptions, socket string, maxFrame 
 			r.JobID, r.ArtifactDir = jobReceipt.JobID, jobReceipt.ArtifactDir
 			return r
 		}
-		fmt.Fprintf(streams.Stderr, "job %s continues in the daemon; artifacts %s\n", jobReceipt.JobID, ArtifactsLabel(jobReceipt.ArtifactDir))
+		if line := EndedLine(jobReceipt.JobID, jobReceipt.ArtifactDir, err); line != "" {
+			fmt.Fprintln(streams.Stderr, line)
+		} else {
+			fmt.Fprintf(streams.Stderr, "job %s continues in the daemon; artifacts %s\n", jobReceipt.JobID, ArtifactsLabel(jobReceipt.ArtifactDir))
+		}
 		r := failedResult("follow_stream_lost", err)
 		r.JobID, r.ArtifactDir = jobReceipt.JobID, jobReceipt.ArtifactDir
+		var ended *EndedError
+		if errors.As(err, &ended) {
+			// The job ended: its summary is the result's, so a crun's
+			// hook runs after the display, as in process.
+			r.Summary = terminal.Outcome.Summary
+		}
 		return r
 	}
 	o := terminal.Outcome

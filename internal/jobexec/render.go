@@ -122,6 +122,7 @@ func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, qu
 		borderTemplate = cfg.String("display.command.border")
 		dynamicDefault = cfg.Int("display.command.dynamic-border-length")
 		lastBorder = cfg.Bool("display.command.last-border")
+		gatherTemplate = cfg.String("display.gather.header")
 	case "run":
 		headerTemplate = cfg.String("display.run.header")
 		// The footer of a run rendered where it executes (run --no-daemon),
@@ -734,11 +735,9 @@ func (r *recordRenderer) WriteFooter(ended time.Time, code int, elapsed time.Dur
 	if r.format == "jsonl" {
 		return nil
 	}
-	if r.gather != nil {
-		if err := r.writeGatheredLocked(); err != nil {
-			r.setErrorLocked("run_output_records_unreadable", err)
-			return r.err
-		}
+	r.endGatheredLocked()
+	if r.err != nil {
+		return r.err
 	}
 
 	// The pending separator is the border after the final record. Emit it only

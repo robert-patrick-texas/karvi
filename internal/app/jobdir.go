@@ -195,7 +195,8 @@ func openChecked(path string, group int) (*os.File, error) {
 	case errors.Is(err, osutil.ErrNotRegular):
 		return nil, errorcodes.Errorf("run_output_records_unreadable", "%s is not a regular file", path)
 	case err != nil:
-		return nil, errorcodes.Errorf("run_output_records_unreadable", "open %s: %w", path, err)
+		// The open's error names the path.
+		return nil, errorcodes.Ensure(err, "run_output_records_unreadable")
 	}
 	st, ok := fi.Sys().(*syscall.Stat_t)
 	if !ok {
@@ -274,12 +275,18 @@ func FollowJobDirectory(ctx context.Context, common CommonOptions, folder JobFol
 		}
 		if reader == nil && !absent && !notKept {
 			// The store makes commands.jsonl before the summary's first write.
-			f, err := openChecked(filepath.Join(folder.Path, "commands.jsonl"), folder.Group)
+			path := filepath.Join(folder.Path, "commands.jsonl")
+			f, err := openChecked(path, folder.Group)
 			if err != nil {
 				return summary, err
 			}
 			defer f.Close()
 			reader = bufio.NewReaderSize(f, 64*1024)
+			// Gathered (display.run.gather, the follower's): the answers
+			// read back at the end through the same checks.
+			if cfg.Bool("display.run.gather") {
+				renderer.Gather(func() (*os.File, error) { return openChecked(path, folder.Group) })
+			}
 		}
 		if reader != nil {
 			n := 0
@@ -295,7 +302,10 @@ func FollowJobDirectory(ctx context.Context, common CommonOptions, folder JobFol
 					return summary, err
 				}
 			}
-			return summary, renderer.Finish(&summary)
+			if err := renderer.Finish(&summary); err != nil {
+				return summary, &EndedError{Exit: summary.ExitCode, Err: err}
+			}
+			return summary, nil
 		}
 		if err := orphaned(boards, jobID, cfg.Duration("watch.stale-after")); err != nil {
 			if rendered {

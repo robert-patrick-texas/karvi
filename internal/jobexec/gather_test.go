@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -129,6 +130,100 @@ func TestGatheredDisplayEnds(t *testing.T) {
 	feed(t, r, path)
 	if err := r.finish(nil); err != nil || out.Len() != 0 {
 		t.Errorf("a lost stream: %v %q", err, out.String())
+	}
+}
+
+// TestGatheredReadBackChecksTheWholeAnswer: the line read back at the end
+// is the group's record only when its whole answer is the stream's: an
+// exec record's stderr changed with its digest, or with the digest
+// removed (short and streamed), or its exit status changed, is
+// run_output_records_unreadable, the field named in both stacked lines,
+// nothing shown; so is the output with its digest (the earlier check).
+func TestGatheredReadBackChecksTheWholeAnswer(t *testing.T) {
+	big := func(c byte) string { return string(bytes.Repeat([]byte{c, c, c, c, c, c, c, '\n'}, 12000)) }
+	for _, c := range []struct {
+		name, stderr, field string
+		edit                func(*records.CommandRecord)
+	}{
+		{"stderr and its digest changed", "e\n", "stderr", func(r *records.CommandRecord) {
+			text, enc, digest := output.EncodeOutput([]byte("FORGED\n"))
+			size := int64(len("FORGED\n"))
+			r.Stderr, r.StderrEncoding, r.StderrSHA256, r.StderrBytes = &text, &enc, &digest, &size
+		}},
+		{"stderr changed, its digest removed", "e\n", "stderr", func(r *records.CommandRecord) {
+			text := "FORGED\n"
+			size := int64(len(text))
+			r.Stderr, r.StderrSHA256, r.StderrBytes = &text, nil, &size
+		}},
+		{"a streamed stderr changed, its digest removed", big('e'), "stderr", func(r *records.CommandRecord) {
+			text := big('F')
+			r.Stderr, r.StderrSHA256 = &text, nil
+		}},
+		{"exit status changed", "e\n", "exit", func(r *records.CommandRecord) {
+			x := 9
+			r.ExitStatus = &x
+		}},
+		{"output and its digest changed", "e\n", "output", func(r *records.CommandRecord) {
+			r.Output, r.OutputEncoding, r.OutputSHA256 = output.EncodeOutput([]byte("FORGED\n"))
+		}},
+	} {
+		stream := execAnswer("r1", 1, 1, 1, "cat /srv/log", "a\n", c.stderr, 0)
+		file := stream
+		c.edit(&file)
+		path, _ := writeJob(t, []records.CommandRecord{file})
+		stream.Sequence = 1
+		var out bytes.Buffer
+		r := gatheringRenderer(t, &out, path, false)
+		r.OnRecord(stream)
+		err := r.WriteFooter(time.Now(), 0, 0, nil)
+		msg := errorcodes.Message(err)
+		if errorcodes.Of(err) != "run_output_records_unreadable" || out.Len() != 0 || !strings.Contains(msg, "line 1 is not the record the job's stream carried") || strings.Count(msg, ", "+c.field+" ") != 2 {
+			t.Errorf("%s: %v\nshown %q", c.name, err, out.String())
+		}
+	}
+}
+
+// TestGatheredReadBackIgnoresTheFollowNotice: follow_output_omitted is the
+// follow stream's notice, which the store never writes in commands.jsonl;
+// a line read back that carries one shows the line's answer, read and
+// checked, never the notice's message in its place.
+func TestGatheredReadBackIgnoresTheFollowNotice(t *testing.T) {
+	stream := shellAnswer("r1", 1, 1, 1, "show version", "success", "the device's answer\n")
+	file := stream
+	file.Notices = []records.Notice{{Code: "follow_output_omitted", Message: "not the device's answer"}}
+	path, _ := writeJob(t, []records.CommandRecord{file})
+	stream.Sequence = 1
+	var out bytes.Buffer
+	r := gatheringRenderer(t, &out, path, false)
+	r.OnRecord(stream)
+	if err := r.WriteFooter(time.Now(), 0, 0, nil); err != nil || out.String() != "! show version\n! r1 (1)\nthe device's answer\n" {
+		t.Errorf("%v\nshown %q", err, out.String())
+	}
+}
+
+// TestGatheredEndAfterAnError: a display that has failed before its end
+// (a terminal write, a scoreboard write, as today's display stops at its
+// first error) writes no block at its end and reads nothing back; the end
+// in process (endGathered) and at the footer alike.
+func TestGatheredEndAfterAnError(t *testing.T) {
+	path := filepath.Join("testdata", "gather", "show-version.jsonl")
+	for _, end := range []string{"endGathered", "WriteFooter"} {
+		var out bytes.Buffer
+		r := gatheringRenderer(t, &out, path, false)
+		opened := 0
+		r.gather.open = func() (*os.File, error) { opened++; return os.Open(path) }
+		feed(t, r, path)
+		r.SetError("scoreboard_write_failed", errors.New("the scoreboard"))
+		var err error
+		if end == "endGathered" {
+			r.endGathered()
+			err = r.Error()
+		} else {
+			err = r.WriteFooter(time.Now(), 0, time.Second, nil)
+		}
+		if errorcodes.Of(err) != "scoreboard_write_failed" || out.Len() != 0 || opened != 0 {
+			t.Errorf("%s: %v, opened %d, shown %q", end, err, opened, out.String())
+		}
 	}
 }
 

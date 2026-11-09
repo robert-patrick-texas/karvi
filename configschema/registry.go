@@ -27,9 +27,10 @@ import (
 // ssh.transports.native, the native transport having one implementation, and
 // a key's sensitive mark, set on none; 33 removes a platform table's
 // legacy-class, read by nothing; 34 removes security.require-fips, which
-// enforced nothing; 35 takes display.run.gather, display.run.prefix, and
-// display.gather.header, the gathered display and line mode, and removes a
-// key's since, read by nothing (a row that set none said 0.2.0).
+// enforced nothing; 35 takes display.run.gather, display.command.gather,
+// display.run.prefix, and display.gather.header, the gathered display and
+// line mode, and removes a key's since, read by nothing (a row that set none
+// said 0.2.0).
 const (
 	RegistrySchemaVersion = 35
 	ConfigSchemaVersion   = 6

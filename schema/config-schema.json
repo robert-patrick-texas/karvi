@@ -1979,6 +1979,17 @@
       "documentation": "Show the effective device prompt and sent command before each attempted command result in human text output, including device-reported errors."
     },
     {
+      "path": "display.command.gather",
+      "kind": "boolean",
+      "default_literal": "false",
+      "required": false,
+      "lock_eligible": true,
+      "reload_class": "next-job",
+      "environment": "KARVI__DISPLAY__COMMAND__GATHER",
+      "cli_flags": null,
+      "documentation": "Gather the command's text display as `display.run.gather` gathers a run's, shown at the job's end: a block per requested command, the device's answer under the group header (`display.gather.header`). Under `--format jsonl` or `json` it has no effect. It reads the job's `commands.jsonl`: under `--nof` or `output.files.commands-jsonl = false` the display is the ordinary one. `display.command.echo` is not applied when gathering. `job follow` shows a command's job by `display.run.gather`, as by the other `display.run` keys."
+    },
+    {
       "path": "display.run.header",
       "kind": "string",
       "default_literal": "\"! \u003ctarget\u003e [\u003caddress\u003e] platform=\u003cplatform\u003e user=\u003cuser\u003e backend=\u003cauth-backend\u003e transport=\u003ctransport\u003e\"",
@@ -2088,7 +2099,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__GATHER__HEADER",
       "cli_flags": null,
-      "documentation": "One-line header of each group of the gathered display (`display.run.gather`): `\u003ctargets\u003e` the group's devices folded into one `--tl` value, `\u003ccount\u003e` how many. Empty disables it."
+      "documentation": "One-line header of each group of the gathered display (`display.run.gather`, `display.command.gather`): `\u003ctargets\u003e` the group's devices folded into one `--tl` value, `\u003ccount\u003e` how many. Empty disables it."
     },
     {
       "path": "display.json.indent",

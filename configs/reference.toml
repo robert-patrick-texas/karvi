@@ -541,6 +541,13 @@ last-border = false
 # Show the effective device prompt and sent command before each attempted command result in
 # human text output, including device-reported errors.
 echo = false
+# Gather the command's text display as display.run.gather gathers a run's, shown at the job's
+# end: a block per requested command, the device's answer under the group header
+# (display.gather.header). Under --format jsonl or json it has no effect. It reads the job's
+# commands.jsonl: under --nof or output.files.commands-jsonl = false the display is the
+# ordinary one. display.command.echo is not applied when gathering. job follow shows a
+# command's job by display.run.gather, as by the other display.run keys.
+gather = false
 
 [display.run]
 # Per-device header used by run --format text; empty disables it. A failed record still emits
@@ -582,8 +589,9 @@ prefix = false
 footer = "! collection=<collection> replace=<replace> keep=<keep>"
 
 [display.gather]
-# One-line header of each group of the gathered display (display.run.gather): <targets> the
-# group's devices folded into one --tl value, <count> how many. Empty disables it.
+# One-line header of each group of the gathered display (display.run.gather,
+# display.command.gather): <targets> the group's devices folded into one --tl value, <count>
+# how many. Empty disables it.
 header = "! <targets> (<count>)"
 
 [display.json]

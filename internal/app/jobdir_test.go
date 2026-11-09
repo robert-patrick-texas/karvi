@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -120,8 +121,8 @@ func TestInspectJobDirectorySummaryNotARegularFile(t *testing.T) {
 }
 
 // folderFollow is a job folder FollowJobDirectory reads, under a
-// configuration whose scoreboards are the test's own: the folder, its
-// commands.jsonl path, and the scoreboards folder.
+// configuration whose scoreboards are the test's own, and sets after them:
+// the folder, its commands.jsonl path, and the scoreboards folder.
 type folderFollow struct {
 	common   CommonOptions
 	folder   JobFolder
@@ -130,14 +131,14 @@ type folderFollow struct {
 	boards   string
 }
 
-func newFolderFollow(t *testing.T) folderFollow {
+func newFolderFollow(t *testing.T, sets ...string) folderFollow {
 	t.Helper()
 	dir := t.TempDir()
 	boards := filepath.Join(dir, "scoreboards")
 	if err := os.Mkdir(boards, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := configload.Load(configload.Options{HomeDir: dir, SkipAuto: true, Environment: []string{}, Sets: []string{`basedir="` + dir + `"`, `sharedroot="none"`, `scoreboards="` + boards + `"`, `timezone="UTC"`}})
+	cfg, err := configload.Load(configload.Options{HomeDir: dir, SkipAuto: true, Environment: []string{}, Sets: append([]string{`basedir="` + dir + `"`, `sharedroot="none"`, `scoreboards="` + boards + `"`, `timezone="UTC"`}, sets...)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,13 +157,19 @@ func newFolderFollow(t *testing.T) folderFollow {
 }
 
 // summary writes the folder's summary.json, naming its commands.jsonl,
-// final under status or, with status empty, not yet final: written aside
-// and renamed into place, as the store writes it.
+// final under status (exit 0) or, with status empty, not yet final:
+// written aside and renamed into place, as the store writes it.
 func (ff folderFollow) summary(t *testing.T, status string) {
+	t.Helper()
+	ff.final(t, status, 0)
+}
+
+// final is summary with the job's exit.
+func (ff folderFollow) final(t *testing.T, status string, exit int) {
 	t.Helper()
 	final := ""
 	if status != "" {
-		final = `,"final_status":"` + status + `","primary_exit_code":0`
+		final = `,"final_status":"` + status + `","primary_exit_code":` + strconv.Itoa(exit)
 	}
 	body := `{"schema_version":5,"job_id":"` + ff.id + `","kind":"run","devices":[{"name":"router1"}],"device_counts":{"total":1},"paths":{"commands_jsonl":"` + ff.commands + `"}` + final + `}`
 	tmp := filepath.Join(ff.folder.Path, ".summary.json.tmp")

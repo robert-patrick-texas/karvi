@@ -291,7 +291,8 @@ var openRegular = osutil.OpenRegularFile
 // readerOf opens read-only the file w has just created at path, and
 // requires it to be w's file: the job folder may be the group's to write
 // (output.directory-mode 0770), so another member may have put an entry at
-// the name since. The daemon's followers read commands.jsonl through it
+// the name since. The daemon's followers, and in process the gathered
+// display at the job's end, read commands.jsonl through it
 // (CommandsReader), never looking the name up again.
 func readerOf(path string, w *os.File) (*os.File, error) {
 	r, rfi, err := openRegular(path)
@@ -311,9 +312,9 @@ func readerOf(path string, w *os.File) (*os.File, error) {
 }
 
 // CommandsReader hands over commands.jsonl opened read-only beside the
-// writer at Create, for the daemon's followers: the caller keeps it and
-// closes it, and Close no longer does. Nil when the file is not written,
-// or once handed over.
+// writer at Create, for the daemon's followers or the in-process gathered
+// display: the caller keeps it and closes it, and Close no longer does.
+// Nil when the file is not written, or once handed over.
 func (s *Store) CommandsReader() *os.File {
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -548,8 +548,44 @@ func TestRegionRefusesAFileChangedSinceItsRead(t *testing.T) {
 		t.Fatalf("the stderr was not streamed")
 	}
 	data[stderr.region.off+100] = 'b'
-	if err := stderr.WriteRaw(io.Discard); errorcodes.Of(err) != "run_output_records_unreadable" || !strings.Contains(err.Error(), "line 5's output is not the record's") {
+	if err := stderr.WriteRaw(io.Discard); errorcodes.Of(err) != "run_output_records_unreadable" || !strings.Contains(err.Error(), "line 5's stderr is not the record's") {
 		t.Errorf("a stderr byte changed: %v", err)
+	}
+
+	// A short output and a short stderr are in the record, checked when
+	// the line is read: a byte changed, the digest left, is the same
+	// refusal, the two digests stacked; base64 and utf-8 alike.
+	for _, c := range []struct {
+		name           string
+		stdout, stderr []byte
+		field          string
+		from, to       string
+	}{
+		{"output utf-8", []byte("ok\n"), []byte("e\n"), "output", `"output":"ok\n"`, `"output":"no\n"`},
+		{"output base64", []byte{0xff, 'o', 'k'}, []byte("e\n"), "output", `"output":"/29r"`, `"output":"/29s"`},
+		{"stderr utf-8", []byte("ok\n"), []byte("e\n"), "stderr", `"stderr":"e\n"`, `"stderr":"f\n"`},
+	} {
+		whole, _, src := execRecord(t, c.stdout, c.stderr, false, false)
+		var buf bytes.Buffer
+		if _, err := WriteRecordLine(&buf, &whole, src); err != nil {
+			t.Fatal(err)
+		}
+		good := buf.Bytes()
+		if _, _, err := ReadRecordAt(bytes.NewReader(good), "commands.jsonl", 6, LineSpan{Offset: 0, Length: int64(len(good))}); err != nil {
+			t.Fatalf("%s: the line as written: %v", c.name, err)
+		}
+		if bytes.Count(good, []byte(c.from)) != 1 {
+			t.Fatalf("%s: %q not once in %s", c.name, c.from, good)
+		}
+		bad := bytes.Replace(good, []byte(c.from), []byte(c.to), 1)
+		want := whole.OutputSHA256
+		if c.field == "stderr" {
+			want = *whole.StderrSHA256
+		}
+		_, _, err := ReadRecordAt(bytes.NewReader(bad), "commands.jsonl", 6, LineSpan{Offset: 0, Length: int64(len(bad))})
+		if errorcodes.Of(err) != "run_output_records_unreadable" || !strings.Contains(err.Error(), "commands.jsonl line 6's "+c.field+" is not the record's\n  record  "+want+"\n  read    ") {
+			t.Errorf("%s, a byte changed: %v", c.name, err)
+		}
 	}
 
 	withReadbackBuffer(t, 16)

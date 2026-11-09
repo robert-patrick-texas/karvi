@@ -5,6 +5,7 @@ import (
 	"os"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
@@ -28,9 +29,10 @@ import (
 // back from the job's commands.jsonl (output.ReadRecordAt), its output
 // streamed as today's display streams a record's.
 
-// GatherFile opens the job's commands.jsonl at the gathered display's end,
-// each path its own way (the in-process store's file, the folder follow's
-// checks), its failure coded.
+// GatherFile gives the job's commands.jsonl at the gathered display's end,
+// which closes it, each path its own way (in process the file the store
+// holds open, on the follow paths opened by its name with the folder
+// follow's checks), its failure coded.
 type GatherFile func() (*os.File, error)
 
 // blockKey is a block's command: its text, a root command (--sudo) apart
@@ -256,14 +258,14 @@ func (group *gatherGroup) failureLine() string {
 	return "karvi: status=" + group.key.status + " error=" + group.key.code
 }
 
-// gatherFrom has the renderer gather a run's text display, read back at
-// the end through open; it says whether it does: never under another
-// format, for another activity, in the daemon (which formats nothing), or
-// under the live view.
+// gatherFrom has the renderer gather a run's or a command's text display,
+// read back at the end through open; it says whether it does: never under
+// another format, for another activity, in the daemon (which formats
+// nothing), or under the live view.
 func (r *recordRenderer) gatherFrom(open GatherFile) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.format != "text" || r.activityType != "run" || r.daemon || r.live {
+	if r.format != "text" || (r.activityType != "run" && r.activityType != "command") || r.daemon || r.live {
 		return false
 	}
 	r.gather = newGatherer(open)
@@ -274,6 +276,37 @@ func (r *recordRenderer) gatherFrom(open GatherFile) bool {
 // open (gatherFrom); false when the format is not text.
 func (rr *RunRenderer) Gather(open GatherFile) bool {
 	return rr.r != nil && rr.r.gatherFrom(open)
+}
+
+// endGathered writes the gathered display, once: in process when every
+// record of the job is in its commands.jsonl, where today's display has
+// written its last record, so that the job's own failures found after its
+// records follow the blocks as they follow today's records; on the follow
+// paths from WriteFooter, before the footer. After an error nothing is
+// written; a file that cannot be read back is run_output_records_unreadable.
+func (r *recordRenderer) endGathered() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.endGatheredLocked()
+}
+
+func (r *recordRenderer) endGatheredLocked() {
+	if r.gather != nil && r.err == nil {
+		if err := r.writeGatheredLocked(); err != nil {
+			r.setErrorLocked("run_output_records_unreadable", err)
+		}
+	}
+	r.gather = nil
+}
+
+// gatherKey is the key that gathers an activity's display, in the
+// activity's family of display keys as its header and footer are: a
+// command's display.command.gather, a run's display.run.gather.
+func gatherKey(activityType string) string {
+	if activityType == "command" {
+		return "display.command.gather"
+	}
+	return "display.run.gather"
 }
 
 // appendBorderLocked appends the border due before what follows.
@@ -362,6 +395,9 @@ func (r *recordRenderer) writeGatheredLocked() error {
 				if err := g.check(f.Name(), group, &rec); err != nil {
 					return err
 				}
+				// The notice is the follow stream's, which the store never
+				// writes in the file: the answer is the line's, read back.
+				rec.Notices = slices.DeleteFunc(rec.Notices, func(n records.Notice) bool { return n.Code == "follow_output_omitted" })
 				if !r.writeAnswerLocked(rec, src, data) {
 					return r.err
 				}
@@ -381,12 +417,30 @@ func (r *recordRenderer) writeGatheredLocked() error {
 }
 
 // check is the line read back against the group's first record as the
-// job's stream carried it: its sequence, device, command, and output
-// digest; another record is run_output_records_unreadable, the two stacked.
+// job's stream carried it: its sequence, device, command, and answer (the
+// group's key: status, error code, output digest, and on the exec channel
+// exit status, signal, and stderr digest); another record is
+// run_output_records_unreadable, the two stacked.
 func (g *gatherer) check(name string, group *gatherGroup, rec *records.CommandRecord) error {
-	if rec.Sequence == group.first && recordDevice(rec) == g.names[group.device] && rec.CommandIndex == group.index && rec.OutputSHA256 == group.key.output {
+	read := answerOf(rec)
+	if rec.Sequence == group.first && recordDevice(rec) == g.names[group.device] && rec.CommandIndex == group.index && read == group.key {
 		return nil
 	}
-	return errorcodes.Errorf("run_output_records_unreadable", "%s line %d is not the record the job's stream carried\n  carried  record %d, %s command %d, output %s\n  read     record %d, %s command %d, output %s",
-		name, group.first, group.first, g.names[group.device], group.index, group.key.output, rec.Sequence, recordDevice(rec), rec.CommandIndex, rec.OutputSHA256)
+	return errorcodes.Errorf("run_output_records_unreadable", "%s line %d is not the record the job's stream carried\n  carried  record %d, %s command %d, %s\n  read     record %d, %s command %d, %s",
+		name, group.first, group.first, g.names[group.device], group.index, group.key.stacked(read), rec.Sequence, recordDevice(rec), rec.CommandIndex, read.stacked(group.key))
+}
+
+// stacked is k for a message beside other: its output digest and status,
+// then each of the rest either one has (error code, exit, signal, stderr
+// digest), so the two lines name the same fields.
+func (k answerKey) stacked(other answerKey) string {
+	text := "output " + k.output + ", status " + k.status
+	for _, f := range []struct{ name, mine, theirs string }{
+		{"code", k.code, other.code}, {"exit", k.exit, other.exit}, {"signal", strings.TrimPrefix(k.signal, "signal "), other.signal}, {"stderr", k.stderr, other.stderr},
+	} {
+		if f.mine != "" || f.theirs != "" {
+			text += ", " + f.name + " " + cmp.Or(f.mine, "none")
+		}
+	}
+	return text
 }

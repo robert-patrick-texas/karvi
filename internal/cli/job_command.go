@@ -266,9 +266,12 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 			return exitcode.ExitCancelled
 		}
 		if errorcodes.Of(err) != "job_unknown" {
-			if artifactDir != "" {
+			switch line := app.EndedLine(jobID, artifactDir, err); {
+			case line != "":
+				fmt.Fprintln(streams.Stderr, line)
+			case artifactDir != "":
 				fmt.Fprintf(streams.Stderr, "job %s continues in the daemon; artifacts %s\n", jobID, artifactDir)
-			} else {
+			default:
 				fmt.Fprintf(streams.Stderr, "job %s continues in the daemon\n", jobID)
 			}
 			return g.reportError(streams.Stderr, "follow_stream_lost", err)
@@ -298,6 +301,9 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 		if ctx.Err() != nil {
 			fmt.Fprintln(streams.Stderr, app.InterruptedLine(jobID, folder.Path, "continues"))
 			return exitcode.ExitCancelled
+		}
+		if line := app.EndedLine(jobID, folder.Path, err); line != "" {
+			fmt.Fprintln(streams.Stderr, line)
 		}
 		return g.reportError(streams.Stderr, "run_output_records_unreadable", err)
 	}

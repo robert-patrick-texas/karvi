@@ -17,6 +17,62 @@ they were published in.
 
 ## Unreleased
 
+### New features
+
+- **A run's text display can be gathered: `display.run.gather`.** Set true
+  (false by default), a run's text display is shown at the job's end, every
+  block at once: a block per requested command, headed by its marker line
+  (`! show version`, `! --sudo COMMAND`), and in it a group per answer, the
+  devices whose records have the same status, error code, and output (on the
+  exec channel the same exit status, signal, and stderr too) under one
+  header, `display.gather.header`, by default `! <targets> (<count>)` with
+  the devices folded into one `--tl` value (`! router[01-04,10] (5)`), the
+  succeeded groups first, the largest first. A failed group shows its output,
+  then its failure line, the message too when the group is one device; a
+  failed session-init command is a block of its own ahead of the others,
+  `! session_init=PROFILE: COMMAND`. While the job runs the client holds no
+  output, each group's place in the job's `commands.jsonl` and each device's
+  name; at the end it reads each group's answer back from that file,
+  streamed as today's display streams a spooled answer. It applies to `run`
+  and its stream lines and `crun`, in process and through the daemon, and to
+  `job follow` through the daemon or from the job's folder, each by the
+  configuration of the invocation showing it, so `job follow` with the key
+  set gathers a job run without it. `command` gathers under its own key,
+  `display.command.gather`, as `display.command.echo` mirrors
+  `display.run.echo`; `job follow` shows any job, a command's too, by the
+  `display.run` keys. Under `--format jsonl` or `json`, under `--live`,
+  under `--nof`, and where `output.files.commands-jsonl` is false the
+  display is the ordinary one; under `--follow=false` nothing is shown and
+  nothing is read back. A `commands.jsonl` that cannot be read at the
+  end, or whose line is no longer the answer the job recorded (its device,
+  command, status, error, output, or an exec command's exit and stderr
+  differ), is `run_output_records_unreadable`, exit 111: through the daemon
+  the job is unaffected, and the line before the error says so, `job ID
+  ended exit=N; artifacts DIR`; under `--no-daemon` the job's summary and
+  scoreboard carry the exit, as a footer that cannot be written does.
+
+### Bugs fixed
+
+- **A followed job's display failing at its end no longer says the job
+  continues.** Through the daemon (`run`, `crun`, `job follow`), a display
+  that failed once the job had ended, its footer or summary line not written
+  to a closed standard output, printed `job ID continues in the daemon;
+  artifacts DIR` before the error; it now prints `job ID ended exit=N;
+  artifacts DIR` with the job's exit. `job follow` from the job's folder,
+  which printed no line before the same failure, prints it too.
+- **`crun.after` runs when a `crun`'s display fails at the job's end
+  through the daemon.** A `crun` followed through the daemon whose display
+  failed once the job had ended (its footer, or now its gathered blocks,
+  not written to a closed standard output, as under `karvi crun … | head`)
+  skipped the site's `crun.after` program, though the collection was
+  complete; it now runs, told the invocation's exit (`KARVI_EXIT=111`), as
+  under `--no-daemon`. A standard output closed while the job still runs
+  ends the follow as before: the job continues in the daemon, and no
+  program runs.
+- **`job follow` from a job's folder names a gone `commands.jsonl` once.**
+  The error read `open PATH: open PATH: no such file or directory`; it reads
+  `open PATH: no such file or directory`.
+
 ### Breaking changes
 
 - **The registry artifact's keys no longer carry `since`.** Each key in

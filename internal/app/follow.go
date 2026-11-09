@@ -5,6 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
+	"os"
+	"path/filepath"
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/daemon"
@@ -75,6 +78,7 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 		if err != nil {
 			return ipc.FollowTerminal{}, err
 		}
+		o.gatherInto(r, artifactDir)
 		renderer = r
 	}
 	for failures < followRetries {
@@ -105,6 +109,7 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 					if err != nil {
 						return err
 					}
+					o.gatherInto(r, start.ArtifactDir)
 					renderer = r
 				}
 				return nil
@@ -126,7 +131,7 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 				summary := terminal.Outcome.Summary
 				summary.ExitCode, summary.ExitName = terminal.Outcome.ExitCode, terminal.Outcome.ExitName
 				if err := renderer.Finish(&summary); err != nil {
-					return terminal, err
+					return terminal, &EndedError{Exit: summary.ExitCode, Err: err}
 				}
 			}
 			return terminal, nil
@@ -149,6 +154,49 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 		}
 	}
 	return ipc.FollowTerminal{}, errorcodes.Errorf("follow_stream_lost", "the follow stream failed %d times without progress; last: %v", followRetries, errorText(lastErr))
+}
+
+// gatherInto has the follow's renderer gather when the follower's
+// configuration says so (display.run.gather) and the job keeps its
+// commands.jsonl in artifactDir: the store makes the file with the job's
+// files, before the receipt and the follow's start, so one absent then is
+// not kept, and the display is today's. At the end the answers are read
+// back from it with the folder follow's checks (openChecked), the file
+// the follower's own: only the daemon's own account reaches it (a service
+// platform's daemon is the service account's, its followers that account),
+// so no tree's group is asked.
+func (o followOptions) gatherInto(r *jobexec.RunRenderer, artifactDir string) {
+	if artifactDir == "" || !o.cfg.Bool("display.run.gather") {
+		return
+	}
+	path := filepath.Join(artifactDir, "commands.jsonl")
+	if _, err := os.Lstat(path); errors.Is(err, fs.ErrNotExist) {
+		return
+	}
+	r.Gather(func() (*os.File, error) { return openChecked(path, -1) })
+}
+
+// EndedError is a followed job's display failing at the job's end, from
+// the follow's terminal or the folder's final summary: the job ended, its
+// exit Exit, and is unaffected (its summary keeps it).
+type EndedError struct {
+	Exit int
+	Err  error
+}
+
+func (e *EndedError) Error() string { return e.Err.Error() }
+func (e *EndedError) Unwrap() error { return e.Err }
+
+// EndedLine is what a client says before the error of a display that
+// failed at the job's end (EndedError), as the follow's failure line says
+// that a job continues: "job ID ended exit=N; artifacts DIR"; "" for any
+// other error.
+func EndedLine(jobID, artifactDir string, err error) string {
+	var ended *EndedError
+	if !errors.As(err, &ended) {
+		return ""
+	}
+	return fmt.Sprintf("job %s ended exit=%d; artifacts %s", jobID, ended.Exit, ArtifactsLabel(artifactDir))
 }
 
 func errorText(err error) string {

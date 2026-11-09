@@ -330,6 +330,22 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	// keeps the counts and formats nothing.
 	renderer.daemon = req.Daemon
 	renderer.live = req.Live
+	// The gathered display (display.run.gather, a command's
+	// display.command.gather), read back at the end from the job's
+	// commands.jsonl through the file the store holds open, checked at its
+	// creation as the store's own (CommandsReader), never by its name, where
+	// a member of a group's job folder may have put another file: none where
+	// the job keeps no such file (--nof, output.files.commands-jsonl false),
+	// which shows today's display, nor where the display goes nowhere
+	// (Unshown); gatherFrom refuses another format, the daemon, and --live.
+	// The read-back closes the file; the close here is for a display that
+	// never read it.
+	if store.Paths().CommandsJSONL != "" && !req.Unshown && cfg.Bool(gatherKey(req.ActivityType)) {
+		if commands := store.CommandsReader(); commands != nil {
+			defer commands.Close()
+			renderer.gatherFrom(func() (*os.File, error) { return commands, nil })
+		}
+	}
 	var live func(records.CommandRecord) executor.LiveView
 	if req.Live {
 		live = renderer.LiveDevice
@@ -404,6 +420,11 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		work := task.Value.(executor.Work)
 		devExec.EmitUnstarted(work, dispatch.Context{Mode: plan.Dispatch.Mode, ScopePosition: task.Position, DesiredWidth: summary.FinalWidth}, unstartedStatus, unstartedReason, unstartedCause)
 	}
+	// Every record is in commands.jsonl: the gathered display is written
+	// here, where today's display has shown its last record, and the job's
+	// own failures found after (the store's close, below) end it as they
+	// end today's.
+	renderer.endGathered()
 	if err := store.Close(); err != nil {
 		renderer.SetError("output_store_close_failed", err)
 	}
