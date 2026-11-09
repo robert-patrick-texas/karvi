@@ -33,7 +33,6 @@ type Source struct {
 	encoding string     // utf-8 or base64, the record's output_encoding
 	path     string     // the spool file, when the output is there
 	spool    *spoolFile // the spool opened once, read by every pass
-	bytes    int64      // the spool's settled count
 	digest   string     // the reader's running SHA-256 of the spool's bytes, hex
 	// stderr is an exec record's standard error where it is, by the same
 	// rules; nil on a shell record and for an exec command that did not
@@ -92,13 +91,13 @@ type spoolFile struct {
 	err error
 }
 
-// FromSpool is the output in its spool file: the settled bytes, their
-// count, the reader's digest of them, and the encoding the record takes
-// (utf-8 when they are valid UTF-8, else base64). The file is opened here,
-// once, and stays open until Close.
-func FromSpool(path string, bytes int64, digest, encoding string) Source {
+// FromSpool is the output in its spool file: the settled bytes, the
+// reader's digest of them, and the encoding the record takes (utf-8 when
+// they are valid UTF-8, else base64). The file is opened here, once, and
+// stays open until Close.
+func FromSpool(path, digest, encoding string) Source {
 	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW, 0)
-	return Source{path: path, spool: &spoolFile{f: f, err: err}, bytes: bytes, digest: digest, encoding: encoding}
+	return Source{path: path, spool: &spoolFile{f: f, err: err}, digest: digest, encoding: encoding}
 }
 
 // Close closes the spools' descriptors, the output's and the standard

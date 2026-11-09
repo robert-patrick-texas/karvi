@@ -28,7 +28,7 @@ func spooledRecord(t *testing.T, raw []byte) (fromString records.CommandRecord, 
 	if err := os.WriteFile(path, raw, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	src = output.FromSpool(path, int64(len(raw)), digest, enc)
+	src = output.FromSpool(path, digest, enc)
 	t.Cleanup(func() { src.Close() })
 	return fromString, fromSpool, src
 }

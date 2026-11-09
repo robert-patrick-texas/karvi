@@ -24,7 +24,7 @@ func spoolOf(t *testing.T, raw []byte) (Source, string) {
 		t.Fatal(err)
 	}
 	_, enc, digest := EncodeOutput(raw)
-	src := FromSpool(path, int64(len(raw)), digest, enc)
+	src := FromSpool(path, digest, enc)
 	t.Cleanup(func() { src.Close() })
 	return src, enc
 }
@@ -192,7 +192,7 @@ func TestSpoolReplacedByALinkAfterTheFirstPassDoesNotReachTheOutput(t *testing.T
 		t.Fatal(err)
 	}
 	_, enc, digest := EncodeOutput(raw)
-	linked := FromSpool(link, int64(len(raw)), digest, enc)
+	linked := FromSpool(link, digest, enc)
 	t.Cleanup(func() { linked.Close() })
 	s2, err := Create(Options{Root: filepath.Join(dir, "job2"), ID: "id2"})
 	if err != nil {

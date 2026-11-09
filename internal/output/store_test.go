@@ -752,7 +752,7 @@ func TestFailedAppendTakesNoSequence(t *testing.T) {
 		{"a spool that does not match its digest", isCode("output_spool_mismatch"), func(t *testing.T, _ *Store, r *records.CommandRecord) Source {
 			src, enc := spoolOf(t, []byte("Cisco IOS XE Software\n"))
 			r.OutputEncoding = enc
-			return FromSpool(src.path, src.bytes, strings.Repeat("0", 64), enc)
+			return FromSpool(src.path, strings.Repeat("0", 64), enc)
 		}},
 		{"a write that fails partway", isENOSPC, func(_ *testing.T, s *Store, r *records.CommandRecord) Source {
 			fault(&s.commands).cut = 40

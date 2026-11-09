@@ -688,7 +688,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 		stderrSrc, ran := execFields(&record, r.Exec)
 		outputBytes, src := len(r.Output), output.FromRecord(&record)
 		if r.Spool != nil {
-			outputBytes, src = int(r.Spool.Bytes), output.FromSpool(r.Spool.Path, r.Spool.Bytes, r.Spool.SHA256, record.OutputEncoding)
+			outputBytes, src = int(r.Spool.Bytes), output.FromSpool(r.Spool.Path, r.Spool.SHA256, record.OutputEncoding)
 		}
 		if ran {
 			src = src.WithStderr(stderrSrc)
@@ -1219,7 +1219,7 @@ func execFields(r *records.CommandRecord, x *platform.ExecResult) (output.Source
 		if !sp.UTF8 {
 			encoding = "base64"
 		}
-		src = output.FromSpool(sp.Path, sp.Bytes, sp.SHA256, encoding)
+		src = output.FromSpool(sp.Path, sp.SHA256, encoding)
 	}
 	r.Stderr, r.StderrEncoding, r.StderrBytes, r.StderrSHA256 = &text, &encoding, &size, &digest
 	return src, true
