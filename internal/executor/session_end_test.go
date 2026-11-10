@@ -428,3 +428,17 @@ func TestSpooledRecordIsWrittenFromItsFileAndTheSpoolRemoved(t *testing.T) {
 		t.Fatalf("the spool's opening and removal are not in the debug stream:\n%s", strings.Join(h.debug, "\n"))
 	}
 }
+
+// TestSessionLostMessageNamesItsCodeOnce: a device whose session ends
+// while a command runs (the fake exits on `exit`) fails that command
+// command_session_lost, its record's message the cause alone, as every
+// other failure record's is: the display's failure line, `error=CODE:
+// MESSAGE`, names the code once (it read `error=command_session_lost:
+// command_session_lost: the device session ended`).
+func TestSessionLostMessageNamesItsCodeOnce(t *testing.T) {
+	h := newSessionHarness(t, []string{"exit"}, false)
+	_, recs := h.run(context.Background())
+	if len(recs) != 1 || recs[0].Error == nil || recs[0].Error.Code != "command_session_lost" || recs[0].Error.Message != "the device session ended" {
+		t.Fatalf("records: %s; error %+v", describe(recs), recs[0].Error)
+	}
+}

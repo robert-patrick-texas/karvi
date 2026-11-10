@@ -92,6 +92,13 @@ they were published in.
 - **`job follow` from a job's folder names a gone `commands.jsonl` once.**
   The error read `open PATH: open PATH: no such file or directory`; it reads
   `open PATH: no such file or directory`.
+- **A failed command's record names its error code once.** A command
+  whose own run failed with a coded cause (its session lost, among others)
+  kept the code at the head of its record's message, so the display's
+  failure line read `error=command_session_lost: command_session_lost: the
+  device session ended`; the message is now the cause alone, as every
+  other failure record's is: `error=command_session_lost: the device
+  session ended`.
 - **`job follow` from a job's folder names a `summary.json` it cannot open
   once.** The error read `read PATH: open PATH: permission denied`; it reads
   `open PATH: permission denied`.

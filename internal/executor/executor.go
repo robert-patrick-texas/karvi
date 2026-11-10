@@ -696,7 +696,10 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 		}
 		r.Output = nil
 		if r.Err != nil {
-			record.Error = &records.StructuredError{Code: defaultString(r.ErrorCode, "command_failed"), Category: defaultString(r.ErrorCategory, "device"), Message: errorcodes.Message(r.Err), Operation: st.operation(), Retryable: r.Retryable, External: r.External}
+			// The message is the cause, its code the record's own, named
+			// once as emitFailureSet names it.
+			code := defaultString(r.ErrorCode, "command_failed")
+			record.Error = &records.StructuredError{Code: code, Category: defaultString(r.ErrorCategory, "device"), Message: strings.TrimPrefix(errorcodes.Message(r.Err), code+": "), Operation: st.operation(), Retryable: r.Retryable, External: r.External}
 			record.RetryEligible = r.Retryable
 		}
 		for _, n := range r.Notices {
