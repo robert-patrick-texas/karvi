@@ -2171,8 +2171,10 @@ run, a detached run, and an exercise.
 **The follow stream carries the records themselves.** `follow_job` answers one
 request with a start, zero or more `record` frames each holding the record's
 `commands.jsonl` line without its LF, and a terminal with the whole summary;
-the cursor is the sequence alone. The client opens no file, and `--format
-jsonl` output equals the file byte for byte. A record whose frame would pass
+the cursor is the sequence alone. The client opens no file for the records (a
+gathered display reads its groups' answers back from the job's `commands.jsonl`
+at the end, [section 12](#12-display-and-help)), and `--format jsonl` output
+equals the file byte for byte. A record whose frame would pass
 `daemon.max-ipc-frame-bytes` (default 8 MiB) is sent without its output and
 with the notice `follow_output_omitted` naming where the output is. Followers
 are subscribed first and then caught up from the daemon's own reading of the
@@ -2186,12 +2188,17 @@ sessions open).
 
 **`--detach` returns at acceptance; `--follow=false` waits and renders nothing;
 an interrupted client never cancels the job.** Ctrl-C during a follow ends the
-client's follow alone with a line naming the job, the folder, and `karvi job
-follow`; from the frame through the commit the client runs without
-cancellation so a package is never left without a decision. A broken stdout
-ends the follow with `terminal_write_failed` (exit 111) and the job continues.
-*Why:* cancellation proper is `cancel_job`; a client's disappearance must not
-change the job; the job still produces output the client would lose.
+client's follow alone with a line naming the job, the folder, and
+`karvi job follow` (`karvi job follow --gather` where the display was gathering
+and `display.run.gather` is not locked, [section 12](#12-display-and-help));
+from the frame through the commit the client runs without cancellation so a
+package is never left without a decision. A broken stdout while the job runs
+ends the follow with `terminal_write_failed` (exit 111) and the job continues;
+once the job has ended (its footer, or a gathered display's blocks, not
+written), the line before the error is `job ID ended exit=N; artifacts DIR`,
+and a `crun`'s `crun.after` runs, told exit 111. *Why:* cancellation proper is
+`cancel_job`; a client's disappearance must not change the job; the job still
+produces output the client would lose.
 
 **`job follow` renders the whole job as the foreground run would have.** It
 follows from the zero cursor; the daemon catches it up and feeds it live; the
@@ -2220,14 +2227,16 @@ group stacked over the tree's. A job's scoreboard is the one sign that it runs:
 with none (`watch.enabled = false`) the follow of a summary not final answers
 `job_orphaned` at once. A summary naming no `commands_jsonl` is followed with
 one warning that the job's records are not kept, then the job's end, live or
-finished. *Why:* `job list` shows another member's running jobs, and following
-one is the next thing an operator does; the summary at acceptance says the job
-runs, and every member reads the tree's files through the group. *Not taken:* a
-daemon serving followers of another UID (the daemon's one boundary crossed);
-following on without a scoreboard (a dead job's follow never ends); no warning
-where the records are not kept (the follower may not be the one who chose it,
-and the daemon's follow warns); the file's absence alone for that (a lost file
-and one never written alike).
+finished; under `job follow --gather` it is refused instead,
+`gather_option_conflict`, before the warning ([section
+12](#12-display-and-help)). *Why:* `job list` shows another member's running
+jobs, and following one is the next thing an operator does; the summary at
+acceptance says the job runs, and every member reads the tree's files through
+the group. *Not taken:* a daemon serving followers of another UID (the daemon's
+one boundary crossed); following on without a scoreboard (a dead job's follow
+never ends); no warning where the records are not kept (the follower may not be
+the one who chose it, and the daemon's follow warns); the file's absence alone
+for that (a lost file and one never written alike).
 
 **`job list` lists the output root's jobs from their summaries.** It reads the
 day folders newest first and each one's job folders newest first by job ID, and
@@ -2421,12 +2430,13 @@ detection for the daemon's lifetime.
 
 **The gate's line is a template.** `display.ping.header` renders once per
 gated device before its first record, `! <target> [<address>] ping(1) <rtt1>,
-ping(2) <rtt2>, <result>` by default; an empty template prints no line. The
-record carries a `ping` object with both outcomes, and the summary a `ping`
-block. *Why:* the line printed plain above a header carrying the `! ` prefix
-and the roles' colours; as a template it reads as the header it precedes and a
-site can reorder it. *Not taken:* a boolean beside a header key (TOML cannot
-hold both spellings).
+ping(2) <rtt2>, <result>` by default; an empty template prints no line, and the
+gathered display and line mode print none, a skipped device shown by its
+failure line ([section 12](#12-display-and-help)). The record carries a `ping`
+object with both outcomes, and the summary a `ping` block. *Why:* the line
+printed plain above a header carrying the `! ` prefix and the roles' colours;
+as a template it reads as the header it precedes and a site can reorder it.
+*Not taken:* a boolean beside a header key (TOML cannot hold both spellings).
 
 ## 10. Output: records, files, and the spool
 
@@ -3024,6 +3034,426 @@ taken:* the result line beside the footer; a plain counts line on standard
 error under json and jsonl (the unstyled line replaced); a `<collection>`
 placeholder in the run footer (empty for every run without one).
 
+**`--gather` shows a run's text display gathered at the job's end.** The key
+`display.run.gather` (false by default), beside `display.run.echo`, gathers the
+text display of `run`, its stream's lines, and `crun`, in process and through
+the daemon, and of `job follow`, through the daemon or from the job's folder;
+`command` gathers under its own key, `display.command.gather`, as
+`display.command.echo` mirrors `display.run.echo`, and `job follow` shows every
+job, a command's too, by the `display.run` keys; `login` never gathers.
+`--gather` sets the word's key true for the invocation in the options layer,
+and `--gather=false` sets it false, turning a site's true off, as `--order`
+sets `dispatch.order`: a site's lock on the key refuses either form
+(`config_lock_violation`, exit 3), and `--set` beats it. Each display reads the
+key, as it reads `display.run.header` and the borders, from the configuration
+of the invocation showing it: the in-process run's, the daemon follow's (the
+submitting client's), and `job follow`'s (the follower's own), so
+`job follow --gather` gathers a job run without it, and a command's job,
+followed, gathers by `display.run.gather`, the two displays alike where a site
+sets the two keys alike and always under `--gather` on both. The plan holds no
+field for it: its configuration block, every key's value set and default, holds
+the value the run used, as for every key (`TestDraftCarriesNoCopyOfAKey`). The
+key shapes the text display alone: under `--format jsonl` or `json` the format
+is written, under `--live` the live view, and under `--detach` or
+`--follow=false` nothing is shown and nothing is read back. The option is
+refused, `gather_option_conflict` (exit 4), beside what leaves the gathered
+display nowhere to show it, in this order: `--format jsonl` or `json`,
+`--echo`, `--detach`, and `--follow=false`, each as far as the word has it
+(`command` has neither of the last two; `job follow` has `--format` and
+`--echo` alone); and beside what leaves it nothing to read back (below). Beside
+`--live` it is `live_option_conflict`: `--live`'s check is the first of the
+display checks after the `--border` and `--noborder` pair, so
+`--live --gather --nof` names `--live`, the mode chosen. `--dry-run` and
+`--exercise` take it, a rehearsal of the real line, nothing gathered and the
+text report unchanged, and every other refusal applies rehearsed as without
+them. On a stream's lines it is an option line as any other ([section
+2](#2-the-command-line): a one-word `--g` is never it), judged when `--go` runs
+the job through `run`'s handler. `--gather=false` and the key set true are
+never refused beside any of these. *Why:* across a fleet most answers are
+alike, and the text display shows each under its own device's header, so the
+few that differ are found by reading them all; a key, so that a site can make
+gathering its default, and an option that sets it as `--order` sets its key, so
+that `--gather=false` turns a site's true off (an option ORed with its key, as
+`--echo` is, could not); the key shapes the text display alone, so a site's
+true never breaks a script's `--format jsonl`; `command` gathers so that a test
+on one device before the fleet shows the fleet run's shape, under its own key
+so that a site gathering its runs keeps a single device's full header; each
+display read by the invocation showing it, so the follower chooses how a job is
+shown; a gathered JSON has no reader (a script groups by `output_sha256`), and
+`--detach` and `--follow=false` show nothing (`job follow --gather` shows the
+job later). *Not taken:* a valued option (`--display gather|lines`); gathering
+by default (the live display is what an operator watching a change wants); a
+plan field copying the key, or one holding the decided value (derived from the
+plan's format and configuration block); one key for `run` and `command` (always
+alike, but a run's key ruling `command`); `gather_option_conflict` beside
+`--live` (two codes for one conflict across the two options); the option
+refused beside `--dry-run` and `--exercise` as `--live` is (its reasons are its
+own: a serial run displayed in the client's process), or as beside
+`--follow=false` (a real run's display discarded, where a rehearsal promises
+the same line run for real).
+
+**A gathered block is one requested command, and a group the devices whose
+records answered it alike.** A block per requested command, identified across
+devices by its text, its privilege (a `--sudo` command apart from the same text
+without), and its occurrence in the device's list (the first `show clock`, the
+second), so that `--cf DIR` lists giving `show version` at index 1 on one
+device and 2 on another give one block; the blocks in the order the commands
+first appear in the plan. Session-init records are setup, hidden as the text
+display hides them: a succeeded, stopped, or not-attempted one is not shown,
+and a failed one, which the text display shows with its cause (where the
+failure ends the device, its requested records are
+`not_attempted_session_init_failure` without one), is gathered as a requested
+record is, in a block of its own ahead of the requested ones (setup runs first
+on every device), identified by its profile, its command, and its index in the
+profile. In a block the devices answered alike when their records have the same
+status, error code (where there is one), and `output_sha256`, and on the exec
+channel the same `exit_status`, `exit_signal`, and `stderr_sha256`. Left out:
+the header's values (name, address, platform, user, backend, transport), the
+prompt, the timings, the notices (a host-key notice is first contact, not the
+answer), and the error message (it names the device's address and port). The
+bytes are the device's, with no drop list and no white-space rule: the client
+hashes nothing, the record's digest being the key, and the device's `| include`
+or `| exclude` is the filter, so a real `show clock`, which differs every
+second, is a group per device, as a raw `show version` is until `| include`
+keeps the lines alike. *Why:* text and occurrence line up per-device lists by
+what was asked, where a position would not, and keep a before-and-after
+`show clock` two blocks; the digest the job records already says whether two
+answers are the same, so the client reads no answer while the job runs; a
+failed setup command is the cause of its device's not-attempted records, which
+carry none. *Not taken:* by position (splits per-device lists); by text alone
+(merges a before-and-after `show clock`); after `crun-filters`, or with white
+space ignored (the client would read and hash every output; the device's filter
+or a post-processing does it); notices in the key; every session-init record
+shown (the text display hides a succeeded one); the cause in the not-attempted
+group's line (another record's).
+
+**A block opens with its marker, then each group under its header, the
+succeeded groups first.** A block's first line is the collection file's marker,
+`! COMMAND`, a root command's `! --sudo COMMAND`, a failed session-init
+command's `! session_init=PROFILE: COMMAND`, its words in the label colour and
+the profile and the command in the value colour. Each group follows under its
+header, the template `display.gather.header` (default `! <targets> (<count>)`,
+`<targets>` the group's devices folded into one `--tl` value, `<count>` how
+many), styled by role as `display.run.header` is, the names in the target
+colour, one line however long (the fold, below); an empty template leaves the
+groups apart by the border alone. In a block the succeeded groups come first,
+the largest first, then the others, the largest first, a tie by the first name
+in natural order. A succeeded group shows its first device's answer (stdout
+then stderr on the exec channel, under `output.ansi` as the text display's); a
+group that failed shows its answer first when it has one, then one line in the
+error colour, the text display's failure line without what the header and the
+marker name (`target=`, and for a session-init command
+`session_init=PROFILE command=i/n`), `karvi: status=S error=CODE`, with
+`: MESSAGE` when the group is one device (for several the messages stay in
+`errors.jsonl` and each device's `output.NAME.txt`); a group whose record
+carries no error (a command not sent) is `karvi: status=S`. The run's border (a
+blank line by default) comes between groups and between blocks, `--border`
+dashes as wide as the header before it (with no header,
+`display.run.dynamic-border-length`, a `command`'s
+`display.command.dynamic-border-length`; never wider than the terminal),
+`--noborder` none, a last border only where the mode's `last-border` asks; the
+footer follows the last group, a `crun`'s collection line after it, and
+`command`'s exit and error report are unchanged. Left out: each device's
+header, the ICMP gate's line and its `--debug` lines (a skipped device is a
+failed group, `icmp_unreachable`), and the echo line: `--echo` is refused
+beside `--gather`, and an echo asked for otherwise, by `display.run.echo`
+(`display.command.echo`) or by `--echo` beside the key alone, is not applied.
+Kept as on the text display: the lines on standard error, the host-key lines
+and the warnings among them. Under `--quiet` no marker, header, border, or
+footer, the answers and the failure lines kept. The job's files are unchanged.
+*Why:* the marker is the collection file's, one form for a command's block
+wherever karvi writes one; the header a template as karvi's other lines are,
+its names a value an operator gives back to `--tl`; a failed group's output is
+in its key, so it is every device's in the group, and where the message is
+generic ("device reported a command error") the output is the device's
+explanation (`% Invalid input detected at '^' marker.`); a failure message
+names its device's address and port, so a group of several shows none. *Not
+taken:* `! command: TEXT` (a second form for the marker); the command in each
+group header; groups in the plan order of their first device; the first
+device's message on a group of several; a failed group's output in its line's
+message (device text over lines); the output for `device_error` alone (a rule
+by status, not by output).
+
+**The gathered display prints at the job's end, each group's answer read back
+from the job's `commands.jsonl`; the client holds no output while it waits.**
+While the job runs no block is printed, and the client holds, per group, its
+key and the line of its first device's record in `commands.jsonl` (the follow's
+`sequence`), and per device its name. When every record is in, it finds the
+groups' lines in one pass and reads each back in block order, an answer
+streamed as the text display streams a spooled one: none held whole, no copy
+written, the free-space check unchanged, and an answer the follow stream left
+out (`follow_output_omitted`) shown whole. In process the file is the one the
+store holds open, checked at its creation as the store's own
+(`store.CommandsReader()`), never opened by name, where a member of a group's
+0770 job folder may put another entry; the blocks are written once every record
+is in it, before the store's close, where the text display has shown its last
+record, so the job's own failures found after (the store's close,
+`output.max-job-bytes`, a full disk) follow the blocks as they follow the text
+display's records, the summary's output bytes count the blocks, and a read-back
+failure decides the exit before the summary, scoreboard, and audit end are
+written. The follow paths open it by name with the folder follow's checks
+(`openChecked`: a regular file, no link followed or FIFO waited on, mode 0640
+or stricter, the operator's own or, from the shared tree, standing in its
+group). Each line read back must be the record the job's stream carried (its
+sequence, device, command, and answer), and each answer must match its
+record's digest: a short one is checked before it is shown, a long one,
+streamed from the file in pieces (from about 64 KiB), as its pass ends, so a
+changed answer ends the display with the error, a streamed one's bytes already
+written. A file that cannot be read, or a line that is not that record, is
+`run_output_records_unreadable` (exit 111, the two records stacked), a line
+that does not decode `run_output_record_decode_failed` (exit 111): the blocks
+written stand, no footer follows, and the error is on standard error in the
+error colour. On the follow paths (`run` and `crun` through the daemon,
+`job follow` through the daemon or from the folder) the job is unaffected and
+its summary keeps its exit: the line before the error is
+`job ID ended exit=N; artifacts DIR`, `karvi job follow --gather ID` shows the
+job again once the file reads, and a `crun`'s `crun.after` runs, told the
+invocation's exit (`KARVI_EXIT=111`), as under `--no-daemon`. In process (`run`
+and `crun` under `--no-daemon`, and `command`) the display is the job's own, as
+a footer that cannot be written is: exit 111, in the summary, the scoreboard,
+and the audit's end. *Why:* the job's file already holds every answer, so the
+client neither holds them (2,500 configurations of 100 KB are 250 MB, and no
+input may size memory) nor copies them; in process the file is the store's own,
+and a name in a group's folder any member's; at the footer, a job whose own
+failure came after its records would show nothing and then its error; a failure
+is a hard stop, and a followed job has ended by then, so the line says so. *Not
+taken:* each distinct answer in memory; a client spool of the first answers (a
+second copy on disk, a new free-space term); blocks printed as each completes;
+a new code for the same file; the job's exit with a warning; the footer after
+the error.
+
+**`--gather` needs the job's `commands.jsonl`; whether a job kept one is judged
+by its `summary.json`.** `--gather` is refused, `gather_option_conflict`,
+beside `--nof` before the configuration is read, and after the read where the
+configuration keeps no `commands.jsonl` (`output.SkippedFiles`, the one rule
+for a job's files), on `run`, `crun`, a stream's lines, and `command`,
+rehearsed or not, before a credential is asked for or a daemon reached:
+`--gather and output.persist-command = false at SOURCE are mutually exclusive`,
+or the same of `output.files.commands-jsonl`, the key named with where it was
+set (a file's line, a `KARVI__` variable, `--set[N]`); under `--exercise` the
+exercise's own refusal of `output.persist-command = false`
+(`run_mode_conflict`) comes first. The first ends `; --of` only where `--of`
+would take effect, the key false from a file or a `KARVI__` variable and not
+locked: after a `--set` of the key, which beats `--of`, or under a site's lock,
+which refuses it (exit 3), the message names the key and its source alone, and
+`output.files.commands-jsonl` takes no hint (`--of` does not set it); the
+`--exercise` refusal's hint follows the same rule (`ofRemedy`).
+`job follow --gather` of a job that kept none is refused when the follow learns
+it, before any record, warning, or footer: one line on standard error, nothing
+on standard output, exit 4, `gather_option_conflict: --gather needs the job's
+commands.jsonl; job ID kept none (output.files.commands-jsonl was false)`,
+`(output.persist-command was false)` for a job without a folder, with no
+"continues in the daemon" line before it, the job untouched and a running one
+continuing in the daemon; through the daemon the code ends the follow at once,
+never retried. It answers `--gather` as given: the key set true by a file or
+`--set`, and `--gather=false`, show such a job as before, the not-kept warning
+and the job's end; the follower's own `output.*` keys play no part. Whether a
+job kept the file is judged on every follow path by the folder follow's rule,
+from the job's `summary.json`: no folder, none (`output.persist-command` was
+false); a summary naming no `commands_jsonl`, none
+(`output.files.commands-jsonl` was false); one naming it, kept, and a file gone
+since is `run_output_records_unreadable`, the gone file named: through the
+daemon at the read-back at the end; from the folder at the follow's own open
+when it starts, or at the read-back when the file goes after. From the folder
+it is judged at the first readable summary; through the daemon once, at the
+follow's first start, from the folder the start names, the one judgement
+deciding the refusal and the gathering. The summary is read there only where
+the display gathers (`run` and `crun` through the daemon too, never under
+`--format jsonl` or `json`), or under `job follow --gather` for its refusal
+whatever the key; one that cannot be read is `run_output_records_unreadable`
+(one that does not decode `run_output_record_decode_failed`), the follow ended
+and the job unaffected.
+The key set true where no `commands.jsonl` is kept (`--nof`,
+`output.files.commands-jsonl = false`) shows the text display, unrefused.
+*Why:* the answers are read back from the file at the end; a failure is a hard
+stop, so a `--gather` that cannot gather is refused, never shown otherwise; a
+hint pointing at a remedy that fails (`--of` after a `--set` gives the same
+line again) is worse than none; the command line is refused, not a follow lost;
+the summary records what the job kept, where a file's absence does not (a lost
+file and one never written alike). *Not taken:* `; --of` every time (it can
+point at a remedy that fails); no hint (it loses the common case, a site's file
+turning the job files off); today's display with a warning under
+`job follow --gather`; the follow's "continues in the daemon" line first; the
+file's presence at the name (`os.Lstat`: a removed file, or a folder the
+follower cannot search, blamed on a key that was true, and the key alone
+showing the text display unsaid).
+
+**While a gathered display waits, one line on a terminal's standard error
+counts the devices: `gather: done=N/M fail=F`.** It is drawn when the display
+starts, `gather: done=0/M fail=0`: in process before the devices start, after
+the admission warnings; through the daemon (`run`, `crun`, `job follow`) when
+the follow's start comes, after the receipt's warnings (`job follow`: the
+start's); on `job follow` from the folder when it opens `commands.jsonl`. It is
+rewritten in place as each device ends, its words in the label colour and its
+counts in the value colour, as the footer's; any line written to standard error
+after it (a host-key line, a warning, a debug line, the follow's own) erases it
+first and draws it again after, so nothing is written after a half line; it is
+erased before the blocks print, at an interrupt, and at an error. It is shown
+when standard error is itself a terminal, judged as the colour policy judges
+that stream (`DisplayDestination`), whatever standard output is and never by
+whether colour is on: `karvi run … > out.txt` shows it, `2> err.log` none,
+`--nocolor` at a terminal a plain one, `display.color = always` into a pipe
+colours the pipe and writes no line there; `--quiet` none. It is drawn only
+where it renders, checked before each draw: karvi's process group the
+terminal's foreground group (`tcgetpgrp`) and the terminal wider than the line;
+otherwise the draw is skipped and the counts kept, so the line comes back at
+the next record, or the next line on standard error, once the job is in the
+foreground or the terminal wide enough, and a terminal that cannot say (not the
+controlling terminal) is drawn on. `N` and `F` are `job list`'s DONE and FAIL
+counted from the records the renderer is given: a device is done when its last
+record comes (the requested record whose index is the command count) and failed
+when one of its requested records is not `success` (a cancelled device among
+them; a session-init profile failing under `continue` leaves its device a
+success, one under `fail-device` makes its requested records not attempted),
+and a device dispatch never started (a halt, a wave gate, a cancel or a
+shutdown before its start) is neither, as `job list` counts the devices
+dispatch ran. `M` is the plan's targets where the client holds the plan (in
+process; `run` and `crun` through the daemon, the submitting client's) and, on
+`job follow`, the devices the job's `summary.json` names. Every gathered
+display at a terminal shows it, `command`'s too: `gather: done=0/1 fail=0`
+through its one device's wait. *Why:* the gathered display shows nothing until
+the job's end, and the line says it is held back, not hung; standard error is
+the stream it is drawn on, so `> out.txt` still shows the wait and `2> err.log`
+takes no line; drawn as the display starts, because a device is done at its
+last record and a one-command `command`'s first record is its end; the records
+give the counts on every path; a backgrounded job's draw would write over the
+shell's line or, under `tostop`, stop the job, and at exactly the terminal's
+width the clear to the line's end erases its last character on xterm-class
+terminals, so the line is drawn where it renders, as `wget` and `pv` draw
+theirs, one column spare. *Not taken:* the line judged by standard output (a
+line written into `2> err.log`); both streams at a terminal (none for
+`> out.txt`, where a long wait shows nothing at all); the line drawn at the
+first record; the scoreboard file, `job list`'s own source (a ticker and file
+reads on every follow path for what the records give); a total in the follow's
+start (an IPC schema change, a daemon change for one number); no total
+(`done=N fail=F`: how far along a run is unknown); the line drawn whatever the
+job's place; a line cut to the width (a cut count reads wrong); the clear
+written before the text (a terminal that wraps at once leaves a row behind); no
+line for `command` (a case by activity, and `command` and `job follow` of its
+job two different waits).
+
+**A Ctrl-C stops the gathered display at once, on every path.** The progress
+line is erased first. While the job runs nothing gathered is printed: through
+the daemon the follow ends as it does without gathering, the job continuing,
+and its line names `run "karvi job follow --gather ID" again` where the display
+was gathering and the option would take effect, the key not locked, on `run`
+and `crun` and on `job follow`'s own interrupt; under a site's lock on
+`display.run.gather` the line stays plain (a locked true gathers a plain
+follow, and the lock refuses the option, exit 3), as does
+`job cancel --follow`'s, which shows no display. In process the Ctrl-C cancels
+the job as it does without gathering, its end written (summary, scoreboard,
+audit), no blocks, and the footer the in-process display writes
+(`! exit=113 elapsed=… artifacts=DIR`). During the read-back the display stops
+between groups and between a streamed answer's pieces, what is written standing
+and a cut line ended with its line break: through the daemon the job has ended,
+so the line `job ID ended exit=N; artifacts DIR`, then `cancelled: the display
+of job ID was interrupted`, exit 113, no footer, and no `crun.after` (an
+interrupt before the hook starts runs none, [section
+11](#11-the-collection-run)); in process the job's end goes on, exit 113, the
+footer after. `karvi job follow --gather ID` shows the job whole later. A job
+cancelled from elsewhere (`karvi job cancel`, a daemon's job alone) ends with
+its `cancel` groups, then the cancelled line: the follow ends at the job's
+terminal, and the display watches the follower's own interrupt; in process the
+job's context is the invocation's, ended by its signals alone. *Why:* the wait
+is what a Ctrl-C answers, so it never waits on a read-back, however large the
+answer or slow the reader; a follow's interrupt never cancels a daemon's job;
+the line names the one command that shows what the gathered display held back,
+where that command works. *Not taken:* the in-process blocks kept after a
+Ctrl-C (a partial view, its read-back unstoppable); a first Ctrl-C cancelling
+the job and a second stopping the display (one key, two meanings); the
+read-back finished without the footer (the wait is the problem); every display
+option repeated in the line (`--echo`, the borders, `--prefix`: those displays
+were shown live, nothing lost); the line unchanged (a gathered run never told
+the one command that shows what it missed).
+
+**A group's header folds its devices' names into one `--tl` value that selects
+exactly them (`matching.Condense`).** `edge1`, `edge2`, `router01` to
+`router04`, and `router10` are `edge[1-2],router[01-04,10]`, which
+`karvi run --tl` selects again (under `--i`, from the inventory alone). Names
+alike but for their runs of ASCII digits, a shape (`pod#-sw#`), fold on the run
+that gives the fewest items, the last run on a tie (`pod1-sw1,pod2-sw1` is
+`pod[1-2]-sw1`); a name of no other's shape, or with no digits, is its own
+item. A range is the grammar's: consecutive numbers written at the start's
+width make one item (`[01-04]`, `[9-10]`, `[099-100]`), and a number written at
+another width is an item of its own (`[08,9]`, `[1,01,001]`), as karvi's
+expansion pads a range to its lower bound's width and takes a list item as
+written; a run of one number is written bare. Items are joined by `,` with no
+space, in natural order of the first name each covers: rune by rune, a run of
+digits by value (then the fewer digits first), any other rune lowercase as
+`--order sorted` compares it, a name that is the start of another first, names
+alike but for case as written (`austin1,Boston[1-2],dallas1`;
+`core1,EDGE-CORE1,edge[1-2]`, `-` before `1`); names alike but for case are
+never folded together (`Austin-rtr1,austin-rtr2`). Every name folds the same
+way, an address too (`192.0.2.[1-3,10]`, `2001:db8::[1-2]`). A name may hold
+the grammar's characters, so a backslash goes before each of `\ * ? [ ] , ^ $`
+and white space, before a `!` that begins an item, and before an item that is
+`-`: an ordinary name is unchanged, and every header reads back as exactly its
+devices (the round trip, every fold expanding back to its names,
+`TestCondenseReadsBackAsOneTl`). The header is never cut: one line however
+long, the terminal wrapping it, rendered once per group with no layout at the
+terminal's width, and the rendered-line limit (`display_line_too_long`, 256
+KiB, the styled renderer's, colour on or off) counts what the template adds,
+never the first `<targets>` value (a second counts), the template itself
+bounded at load (`display_template_too_long`); `<targets>` is empty outside the
+group header, and line mode's gathered names have no template and no limit.
+*Why:* a header the operator can give back to `--tl`, to run the group again or
+the odd device alone; one rule for names and addresses; the names are the job's
+own, so a limit on them would refuse or cut a large group's header (6,000
+unalike names of up to 12 characters are 77,271 bytes), and a cut header no
+longer selects its devices. *Not taken:* the last run alone; two runs at once
+(`pod[1-2]-sw[1-2]`, later if long headers show the need); a space after the
+comma; addresses unfolded; a header cut at the terminal's width with `+N`
+(`job list`'s way); a higher limit (a cut at a larger size); the display
+refused; names written as they are (`lab*[1-2]` also selects `labx1`), or such
+names left out of the fold; case as written in the order
+(`Boston[1-2],austin1,dallas1`); the text between digits compared whole
+(`core1,edge[1-2],EDGE-CORE1`); the fold in `job list`'s TARGET column and on
+the watch screen (later); the names `Fold` (the package's `FoldKey` is case
+folding), `Collapse`, `Compact`, and `Pack`.
+
+**Line mode writes every line of the display as `NAME: line`.** `--prefix` and
+the key `display.run.prefix` (false by default), `command`'s
+`display.command.prefix`, reach the paths `--gather` reaches and are set and
+read as its keys are (no plan field). Without the gathered display the records
+stream as written, nothing held, an answer prefixed as it streams and never
+held whole: every line of a record begins with its device's name and `: `, the
+answer (stdout then stderr on the exec channel), the `--echo` line when one is
+asked for, the follow's notice in the answer's place, and the failure and
+not-attempted lines without the `target=` the name repeats, a not-attempted
+line keeping `command=i/n` (`router09: karvi: status=connection_error
+error=...`); an empty line is `NAME: `, and an empty answer prints nothing. No
+device header, no border, and no ICMP gate's line nor its `--debug` lines
+(`karvi: ping(N) error: ...`, `karvi: ICMP packet loss ...`), as in the
+gathered display: a skipped device shows by its failure line
+(`NAME: karvi: status=icmp_unreachable ...`), and its record keeps the ping
+report. Gathered, each line of a group begins with the group's folded names
+(`edge[1-2],router[01-04,10]: line`, clubak -bL's form), a group of one with
+its name as the fold writes it: no group header, no border, the block's marker
+unprefixed (none under `--quiet`), the progress line unchanged. One fixed form,
+no template: the name, `: `, then the line. karvi's own lines begin with `! `
+(the marker, and by the default templates the footer and a `crun`'s collection
+line after it), and the footer stays the last line. At a terminal the name is
+in the target colour, `: ` in the label colour, a failure line in the error
+colour, and the device's output uncoloured; nothing is coloured into a file.
+The option is refused, `prefix_option_conflict` (exit 4), beside what line mode
+cannot take, in this order: `--format jsonl` or `json`, `--border`,
+`--noborder`, `--detach`, and `--follow=false`, as far as the word has each
+(`job follow` the first three); beside `--live` it is `live_option_conflict`.
+Line mode needs no file, so `--prefix` is taken beside `--nof` and a
+configuration that keeps no `commands.jsonl` (a gathered display falling back
+there shows line mode streamed), beside `--echo` (its line prefixed), and
+beside `--dry-run` and `--exercise`. The key set true is never refused: beside
+`--border` it draws none, and under `--format jsonl` or `json` and under
+`--live` it has no effect. A reader splits a line at its first `: `, not its
+first colon: a device's name holds no white space (the plan refuses it), and an
+IPv6 address holds colons. *Why:* `grep` and `sort` read a fleet's answers by
+device, in the one form pdsh and clush write; the ICMP gate's line left out
+with the header, one rule for it across the two displays, a skipped device
+shown by its failure line. *Not taken:* `--lines`, `--label`, `-L`; a template;
+the device header kept; the marker prefixed; a mark on standard error's lines;
+the ICMP gate's `! ` line kept and its `--debug` lines prefixed (the round-trip
+times shown, but two rules for one line across the two displays).
+
 **The helper's help is karvi's layout, coloured without configuration.**
 `internal/helplayout` holds the one help layout (the title tag in the label
 colour, headings in bold, option words in the accent colour, a Usage line's
@@ -3153,22 +3583,22 @@ A run is serial and follows each device in turn: `dispatch.default` is set to
 `serial` from `--live` in the lock-aware layer when the configuration says
 another mode, a site's lock on the key refusing it as it refuses `--ds`.
 Refused beside it (`live_option_conflict`): the display's own options
-(`--format jsonl|json`, `--echo`, `--border`, `--noborder`); on a run,
-`--dispatch parallel` or `wave`, the key set so by `--set`, and a run with no
-display in the client's process (no `--no-daemon`, `--dry-run`, `--exercise`,
-`--follow=false`). The transport hands the view each secret before writing it,
-and the view writes its exact value `<removed>`, found across a read's edge
-(`platform.SecretFilter`); escape sequences follow `output.ansi`; an exec
-command is shown at the prompt `--echo` shows. *Why:* the text display renders
-each record once its command completes, so a long command showed nothing until
-its end and the setup never; one device at a time keeps one session's bytes on
-the screen; display only keeps every record, file, and digest the same with or
-without it. *Not taken:* the device's bytes in `--debug`, which carries no
-device output; the echo line printed when a command is sent, which names the
-command and shows nothing more until it completes; the bytes beside the text
-display (each twice); the bytes through the daemon (an IPC frame of their own,
-in [`ROADMAP.md`](../ROADMAP.md#later)); `serial` set whatever the
-configuration says (a site's lock on `serial` would refuse it).
+(`--format jsonl|json`, `--echo`, `--border`, `--noborder`, `--gather`,
+`--prefix`); on a run, `--dispatch parallel` or `wave`, the key set so by
+`--set`, and a run with no display in the client's process (no `--no-daemon`,
+`--dry-run`, `--exercise`, `--follow=false`). The transport hands the view each
+secret before writing it, and the view writes its exact value `<removed>`,
+found across a read's edge (`platform.SecretFilter`); escape sequences follow
+`output.ansi`; an exec command is shown at the prompt `--echo` shows. *Why:*
+the text display renders each record once its command completes, so a long
+command showed nothing until its end and the setup never; one device at a time
+keeps one session's bytes on the screen; display only keeps every record, file,
+and digest the same with or without it. *Not taken:* the device's bytes in
+`--debug`, which carries no device output; the echo line printed when a command
+is sent, which names the command and shows nothing more until it completes; the
+bytes beside the text display (each twice); the bytes through the daemon (an
+IPC frame of their own, in [`ROADMAP.md`](../ROADMAP.md#later)); `serial` set
+whatever the configuration says (a site's lock on `serial` would refuse it).
 
 ## 13. The watch screen
 

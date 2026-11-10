@@ -339,9 +339,10 @@ privilege_failed: sudo asked for the password a second time, refusing the one gi
 login user is at `srv1$`: in the text display, `--echo`, `output.TARGET.txt`,
 and `--live`, and one not sent is `! not sent: --sudo TEXT`. Its record keeps
 the command as written and adds `privilege: "sudo"`, as the audit's action
-does, and `karvi-audit`'s row shows `--sudo TEXT`; a collection's marker is `!
---sudo TEXT`; a job's rerun files write it back as `--sudo TEXT`. The dry run names the root
-commands and each device's password source:
+does, and `karvi-audit`'s row shows `--sudo TEXT`; a collection's marker, and a
+gathered display's block marker, is `! --sudo TEXT`; a job's rerun files write
+it back as `--sudo TEXT`. The dry run names the root commands and each device's
+password source:
 
 ```text
 commands: 3
@@ -403,8 +404,11 @@ echo = true
 ```
 
 prints the prompt the statement was sent at plus the command before each
-result, including a device-reported command error, as the job's text file
-shows it (`router1#configure terminal`, then `router1(config)#end`):
+result, including a device-reported command error, as the job's text file shows
+it (`router1#configure terminal`, then `router1(config)#end`), in line mode
+after the device's `NAME: ` (a gathered display shows none: `--echo` is refused
+beside `--gather`, and an echo asked for otherwise, the key or `--echo` beside
+`display.command.gather`, is not applied):
 
 ```text
 router1#show clock
@@ -488,8 +492,8 @@ each command is shown at the prompt `--echo` shows it at (`srv1$ uname -a`, a
 root command's `srv1#`), its stdout and stderr as they arrive. `--quiet`
 drops the header and the footer. Beside `--live`, the options that shape the
 display it replaces are refused (`live_option_conflict`): `--format jsonl` or
-`json`, `--echo`, `--border`, and `--noborder`; a configured echo or border is
-set aside.
+`json`, `--echo`, `--border`, `--noborder`, `--gather`, and `--prefix`; a
+configured echo, border, gathered display, or line mode is set aside.
 
 ## Debugging
 
