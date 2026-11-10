@@ -192,6 +192,10 @@ they were published in.
   exercise report is a file in the job folder` (a file's line, a `KARVI__`
   variable, `--set[N]`), and ends `; --of` only for a file or a `KARVI__`
   variable with the key not locked.
+- **`karvi-command(1)` names `command`'s footer key.** Its OUTPUT section
+  said the display ends with `display.run.footer`; it ends with
+  `display.command.footer` (a `job follow` of a command job ends with
+  `display.run.footer`).
 
 ### Breaking changes
 
