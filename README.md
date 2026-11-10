@@ -220,6 +220,8 @@ border = "\n"
 dynamic-border-length = 72
 last-border = false
 echo = false
+gather = false
+prefix = false
 
 [display.run]
 header = "! <target> [<address>] platform=<platform> user=<user> backend=<auth-backend> transport=<transport>"
@@ -227,6 +229,11 @@ border = "\n"
 dynamic-border-length = 72
 last-border = false
 echo = false
+gather = false
+prefix = false
+
+[display.gather]
+header = "! <targets> (<count>)"
 
 [display.json]
 indent = 2
@@ -266,10 +273,11 @@ Command and run formats are:
 Generated headers and footers measure visible columns without counting ANSI
 escape sequences. When a generated line exceeds terminal width, karvi first
 moves a trailing `artifacts=<artifacts>` element to a new line; otherwise it
-splits only between complete template elements. A single element value is never
-cut to fit. `--quiet` suppresses generated headers, footers, and borders but not
-device output, mandatory warnings, errors, or explicitly requested debug
-messages.
+splits only between complete template elements, and the gathered display's
+group header is never split: the terminal wraps it. A single element value is
+never cut to fit. `--quiet` suppresses generated headers, footers, and borders
+but not device output, mandatory warnings, errors, or explicitly requested
+debug messages.
 
 ## Safe debug diagnostics
 

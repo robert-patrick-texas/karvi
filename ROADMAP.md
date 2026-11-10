@@ -442,6 +442,19 @@ None chosen: the operator names the next item, from "Later" or anew.
   suite and writes a case per hazard site; the suites run under three `flock`
   slots; the orchestrator checks every issue, merges, and runs the battery,
   the container suite, and the release path in a copy.
+- **A placeholder set per template.** Every display template is checked at
+  load against one set of placeholders, and a placeholder its line has no
+  value for renders empty, `0` for a count or an exit code, `0s` for
+  `<elapsed>`, and the time now for `<timestamp>`: `"! <target> (<count>)"`
+  as `display.gather.header` draws `!  (2)`, the name empty
+  ([`docs/DISPLAY-CONFIGURATION.md`, "The gathered display's
+  header"](docs/DISPLAY-CONFIGURATION.md#the-gathered-displays-header)). The
+  item: each template its own set, and a placeholder the template can never
+  fill refused at load as an unknown one is, `display_placeholder_unsupported`,
+  a hard stop. What it gains: a mistyped template refused, not drawn blank.
+  It changes the rule of every template, the eleven
+  `internal/configload/validate.go` checks, the released ones among them: a
+  design of its own.
 
 ## Competitive features to consider for later
 
@@ -554,6 +567,42 @@ karvi's seven) and NETCONF. An item that would reopen a settled decision of
   directory, which needs nothing of karvi but a shipped example. The
   questions: the rules' form, a karvi command or an example hook, and the
   report's place.
+- **ClusterShell's node sets and gathered output, beyond karvi's.**
+  ClusterShell's `clush` runs a command over a node set and, under `-b`,
+  gathers the nodes that answered alike under one header naming the folded
+  node set and its count; `clubak` gathers `NAME: line` output read from
+  another tool, `-bL` writing each line after its group's folded names. karvi
+  takes that much, the gathered display and line mode
+  ([`docs/OPERATIONS.md`, "Gathered output and line
+  mode"](docs/OPERATIONS.md#gathered-output-and-line-mode)), and leaves the
+  rest: `--diff`, a unified diff between the gathered outputs, where karvi
+  shows each group whole and a diff is post-processing or a wrapper reading
+  line mode's `NAME: line`, split at the first `: `; the node-set operator
+  `&`, keeping the nodes two sets share, where karvi's selectors add up in
+  command-line order and a `!` value removes, so no line keeps only the
+  devices two selectors share ([`docs/DESIGN.md`, section
+  3](docs/DESIGN.md#3-targets-inventory-and-platforms)); node groups in the
+  header (`-r`, `--regroup`, writes `@group` for a group's nodes), where
+  karvi's header names devices; two digit runs folded at once (`nodeset -f`
+  writes `pod[1-2]-sw[1-2]`), where karvi folds one,
+  `pod1-sw[1-2],pod2-sw[1-2]`, a rule of the fold this would reopen
+  ([`docs/DESIGN.md`, section
+  12](docs/DESIGN.md#12-display-and-help)); `--pick N`, N nodes of the set at
+  random, where karvi orders a set at random (`--order random`) and runs
+  every device of it; and the fold outside the display, where `job list`'s
+  TARGET column names devices whole and counts the rest `+N` and the watch
+  screen's names a target file, then the devices in flight, then the rest.
+  What it gains: what differs between two groups, seen without reading both;
+  a selection by two inventory fields in one line; shorter headers on a fleet
+  named by group or on two axes; a sample of a fleet for a check; a job's
+  whole scope in one column. The questions: a diff's reference (the largest
+  group, or the first), and a karvi option or a shipped wrapper; the AND
+  operator's spelling on karvi's line and its order beside `!`; the inventory
+  field a group's name comes from, and whether a header naming a group still
+  reads back as one `--tl` value; when two runs fold, and in which order; a
+  pick recorded, so a rerun picks the same devices, as the recorded
+  `dispatch.shuffle-key` reproduces a `random` order; and a fold that is
+  never cut in a column that cuts at the terminal's width.
 
 ## The device-qualification track
 

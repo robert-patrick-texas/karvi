@@ -3378,14 +3378,16 @@ width make one item (`[01-04]`, `[9-10]`, `[099-100]`), and a number written at
 another width is an item of its own (`[08,9]`, `[1,01,001]`), as karvi's
 expansion pads a range to its lower bound's width and takes a list item as
 written; a run of one number is written bare. Items are joined by `,` with no
-space, in natural order of the first name each covers: rune by rune, a run of
-digits by value (then the fewer digits first), any other rune lowercase as
-`--order sorted` compares it, a name that is the start of another first, names
-alike but for case as written (`austin1,Boston[1-2],dallas1`;
-`core1,EDGE-CORE1,edge[1-2]`, `-` before `1`); names alike but for case are
-never folded together (`Austin-rtr1,austin-rtr2`). Every name folds the same
-way, an address too (`192.0.2.[1-3,10]`, `2001:db8::[1-2]`). A name may hold
-the grammar's characters, so a backslash goes before each of `\ * ? [ ] , ^ $`
+space, in natural order of the first name each covers: character by
+character, a run of digits by value (`router2` before `router10`, then the
+fewer digits first), any other character lowercase as `--order sorted`
+compares it (which takes digits as characters, `router10` before `router2`),
+a name that is the start of another first, names alike but for case as
+written (`austin1,Boston[1-2],dallas1`; `core1,EDGE-CORE1,edge[1-2]`, `-`
+before `1`); names alike but for case are never folded together
+(`Austin-rtr1,austin-rtr2`). Every name folds the same way, an address too
+(`192.0.2.[1-3,10]`, `2001:db8::[1-2]`). A name may hold the grammar's
+characters, so a backslash goes before each of `\ * ? [ ] , ^ $`
 and white space, before a `!` that begins an item, and before an item that is
 `-`: an ordinary name is unchanged, and every header reads back as exactly its
 devices (the round trip, every fold expanding back to its names,

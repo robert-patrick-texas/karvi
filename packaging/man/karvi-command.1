@@ -327,7 +327,18 @@ the command before each block under
 .BR \-\-echo ,
 and the display ends with the footer
 .RB ( display.command.footer ,
-.BR "! exit=EXIT elapsed=TIME artifacts=DIR" ).
+.BR "! exit=EXIT elapsed=TIME artifacts=DIR" );
+under
+.B \-\-gather
+.RB ( display.command.gather )
+it waits for the job's end and shows a block per command, the answer
+under the device's name and count
+.RB ( "! router01 (1)" );
+under
+.B \-\-prefix
+.RB ( display.command.prefix )
+each line begins with the device's name
+.RB ( "router01: line" ).
 A job folder is kept as for a run, its files described in
 .BR karvi\-run (1);
 .B \-\-nof

@@ -265,6 +265,33 @@ directory must be a disk: `tempdir`'s chain prefers `/dev/shm` by design
 for small scratch files, and a spool on a tmpfs would cost the memory the
 threshold saved.
 
+The client's gathered display (`--gather`, `display.run.gather`;
+[`docs/OPERATIONS.md`, "Gathered output and line
+mode"](OPERATIONS.md#gathered-output-and-line-mode)) holds no answer while it
+waits for the job's end: per group of devices that answered alike, its key
+(the status, the error code, the digests, and on the exec channel the exit
+status and signal), the line of its first record in the job's
+`commands.jsonl` and, for a failure, that record's error message, and per
+device its name. At the end it reads back from that file the record of each
+group that has output and streams the answer as the text display streams a
+spooled one, none held whole and no copy written; the daemon formats nothing
+for a display, so its memory is the budget above.
+Measured with `scripts/output-scale-run.sh` (`FORMAT=text`, `GATHER=1` for
+the gathered display, the default `FORMAT=jsonl` for `--format jsonl`)
+through one daemon on the native transport, the client's peak resident set
+by `/usr/bin/time`'s `%M`:
+
+- 32 devices answering `show big` at once, 5,256,000 bytes each, six runs of
+  each display: 48,868 to 58,896 kB gathered (one group of 32, the answer
+  shown once), against 52,832 to 63,004 kB for the text display, and 47,184
+  kB for `--format jsonl` (one run). The runs spread over about 10 MB, more
+  than the two displays differ.
+- One device answering 52,560,000 bytes, four runs of each: 15,780 to 16,804
+  kB gathered, the answer shown whole, against 15,712 to 16,036 kB for the
+  text display, which leaves the answer out (its `commands.jsonl` line is
+  more than `daemon.max-ipc-frame-bytes` allows in a frame,
+  `follow_output_omitted`).
+
 ## Storage layout
 
 - Put `spooldir` on the volume with the room, not under `basedir` if the

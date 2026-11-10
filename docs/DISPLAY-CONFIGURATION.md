@@ -19,6 +19,8 @@ border = "\n"
 dynamic-border-length = 72
 last-border = false
 echo = false
+gather = false
+prefix = false
 
 [display.run]
 header = "! <target> [<address>] platform=<platform> user=<user> backend=<auth-backend> transport=<transport>"
@@ -27,6 +29,8 @@ border = "\n"
 dynamic-border-length = 72
 last-border = false
 echo = false
+gather = false
+prefix = false
 
 [display.record]
 header = "! transcript=<transcript>"
@@ -34,6 +38,9 @@ footer = "! transcript=<transcript>"
 
 [display.collection]
 footer = "! collection=<collection> replace=<replace> keep=<keep>"
+
+[display.gather]
+header = "! <targets> (<count>)"
 
 [display.json]
 indent = 2
@@ -86,7 +93,84 @@ probe's round-trip time, `timeout`, or `error`) in the `value` role, and
 `"! <target> [<address>] ping(1) <rtt1>, ping(2) <rtt2>, <result>"`. An
 empty template prints no line; `--quiet` suppresses it; `--debug` adds the
 error details and the packet-loss notice after it. `login` prints the same
-line on standard error. The template replaced a boolean switch.
+line on standard error. The gathered display and line mode leave it out, with
+its `--debug` lines: a device the gate skipped shows by its failure line
+(`icmp_unreachable`). The template replaced a boolean switch.
+
+## The gathered display's header
+
+`display.gather.header` heads each group of the gathered display
+(`display.run.gather`, `display.command.gather`, `--gather`;
+[`docs/OPERATIONS.md`, "Gathered output and line
+mode"](OPERATIONS.md#gathered-output-and-line-mode)): the devices that
+answered a command alike, under the command's block marker. The default,
+`"! <targets> (<count>)"`, renders `<targets>`, the group's devices folded
+into one `--tl` value, in the `target` role, bold, and `<count>`, how many,
+in the `value` role, the literals in the `label` role, as the headers are
+rendered:
+
+```text
+! show version
+! edge[1-2],router[01-04,10] (7)
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+
+! router09 (1)
+karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused
+```
+
+The header renders `<targets>`, `<count>`, and `<timestamp>`, the time the
+blocks print, in the `timestamp` role. As every template, it accepts the
+other placeholders of the one set every template is checked against at load,
+and they render empty, or `0` for a count or an exit code, `0s` for
+`<elapsed>`: `"! <target> (<count>)"` renders `!  (2)`, the name empty. In
+every other template `<targets>` renders empty and `<count>` `0`. A
+placeholder outside the set refuses the configuration (exit 2):
+
+```text
+display_placeholder_unsupported: unsupported display placeholder <devices> for display.gather.header at --set[1]
+```
+
+Under `display.gather.header = "[<count>] <targets>"` the groups above are
+headed `[7] edge[1-2],router[01-04,10]` and `[1] router09`; an empty template
+writes no header, the groups parted by the border alone. `--quiet` writes
+none, nor the marker, and line mode uses none, the folded names beginning
+each line instead. The marker before a block's groups is fixed, as the
+collection file's marker and the `--echo` line are: `! ` (`! --sudo `,
+`! session_init=` and `: `) in the `label` role, the command and a
+session-init profile in the `value` role.
+
+The header is one line however long: it is rendered once per group, never
+split between elements at the terminal's width as the headers and footers
+are ([Width and colors](#width-and-colors)), and the terminal wraps it. The
+rendered line's limit (`display_line_too_long`) counts what the template
+adds, never the folded names of its first `<targets>`: a group's names are
+the job's own, however many, and the template itself is bounded at load
+(`display_template_too_long`). `--border`'s dashes after a group are as wide
+as its header, `dynamic-border-length` where the template is empty.
+
+## Line mode
+
+`display.run.prefix` and `display.command.prefix` (`--prefix`;
+[`docs/OPERATIONS.md`, "Gathered output and line
+mode"](OPERATIONS.md#gathered-output-and-line-mode)) write every line of the
+text display as `NAME: line`, the device's name first, an empty line `NAME: `
+too; gathered, the name is the group's folded names
+(`edge[1-2],router[01-04,10]: line`). The form is fixed: no template sets it.
+No device header, group header, ICMP gate's line, or border is written, so
+`display.run.header`, `display.command.header`, `display.gather.header`,
+`display.ping.header`, and the borders take no part, and `--border` and
+`--noborder` are refused beside `--prefix` (`prefix_option_conflict`). The
+footer and a collection's line are their templates', beginning with `!` by
+default as a block's marker does, so karvi's lines stand apart from the
+devices'.
+
+The colours are by role: the name in the `target` role, bold, `: ` in the
+`label` role, a failure or not-attempted line in the `error` role, bold, and
+the device's output and the echo line uncoloured, as the ordinary display
+leaves them. Colour follows `display.color` as every line does, and a regular
+file is written plain whatever the policy, so a display redirected to a file
+holds `NAME: line` and karvi's `!` lines alone.
 
 ## The recorded login's lines
 
@@ -109,11 +193,13 @@ created.
 
 A border separates adjacent command records. With the default `"\n"`, two
 records have one blank line between them. No border follows the last record
-unless the applicable `last-border` is true.
+unless the applicable `last-border` is true. In the gathered display a border
+separates adjacent groups and blocks; line mode writes none.
 
 `--border` replaces the configured border with dashes. The length is the visible
-width of the displayed header; with no header, the mode-specific
-`dynamic-border-length` is used. The line is capped at terminal width.
+width of the displayed header (in the gathered display, the group's header);
+with no header, the mode-specific `dynamic-border-length` is used. The line is
+capped at terminal width.
 
 `--noborder` suppresses configured and dynamic borders. Combining `--border`
 and `--noborder` is a usage error. A configured empty string disables the
@@ -123,9 +209,10 @@ static separator without requiring a CLI option.
 
 Visible width excludes ANSI escape sequences. Overlong headers and footers are
 split only between complete template elements, with a trailing artifacts
-element moved to a new line first. Only border lines may be cropped. Device
-output and prompt/command echo are preserved byte-for-byte after the existing
-ANSI policy.
+element moved to a new line first; the gathered display's group header is
+never split. Only border lines may be cropped. Device output and
+prompt/command echo are preserved byte-for-byte after the existing ANSI
+policy.
 
 Dark-theme defaults render target bold yellow, address bold magenta (as the
 light theme does), labels and brackets blue, values white, success green, and
@@ -184,10 +271,17 @@ more.
 `display.command.echo`, `display.run.echo`, and `--echo` show the effective
 prompt plus exact command before text output. This includes device-reported
 command errors. Structured records distinguish observed and inferred prompts.
+The gathered display shows no echo line: `--echo` beside `--gather` is refused
+(`gather_option_conflict`), and the echo keys, or `--echo` beside a gather key
+set true, show none. In line mode the echo line begins `NAME: ` as every line
+does.
 
 ## Output formats
 
-- `text`: human projection with optional header, echo, separator, and footer.
+- `text`: human projection with optional header, echo, separator, and footer;
+  gathered at the job's end (`display.run.gather`, [the gathered display's
+  header](#the-gathered-displays-header)) or in line mode
+  (`display.run.prefix`, [line mode](#line-mode)).
 - `jsonl`: one compact record per line for programs.
 - `json`: one indented JSON array for human inspection.
 

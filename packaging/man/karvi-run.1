@@ -472,6 +472,18 @@ In text, each device's output follows its header line, and the display
 ends with the footer
 .RB ( display.run.footer ,
 .BR "! exit=EXIT elapsed=TIME artifacts=DIR" );
+under
+.B \-\-gather
+.RB ( display.run.gather )
+it waits for the job's end and shows a block per command, a group per
+answer under the devices' folded names
+.RB ( "! router[01\-04,10] (5)" );
+under
+.B \-\-prefix
+.RB ( display.run.prefix )
+each line begins with its device's name
+.RB ( "router01: line" ),
+a group's names when both are set.
 .B \-\-format jsonl
 prints the records one per line and the job's summary as the last line;
 .B \-\-format json
