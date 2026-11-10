@@ -35,8 +35,11 @@ import (
 // crun.after-timeout is the warning crun_after_failed; the collection stands
 // and the run's exit code is unchanged. The audit holds a crun.after event
 // either way. A detached run has no client at its end, so no hook (the CLI's
-// gate); a run without a collection summary (a follow lost, an interrupt) has
-// nothing to hand the hook.
+// gate); a run without a collection summary (a follow lost, an interrupt
+// through the daemon) has nothing to hand the hook; and an interrupt that
+// comes before the hook starts, an interrupted in-process crun keeping its
+// summary, starts none: no warning, no audit event, as through the daemon.
+// One while the hook runs ends it, the warning and the event saying so.
 
 // collectionHook is one run of crun.after: the configured path and bound, and
 // what the hook is told about the job.
@@ -50,12 +53,14 @@ type collectionHook struct {
 }
 
 // hookOutcome is what the hook did: its exit code, how long it ran, whether
-// the bound ended it, and the error a warning names (nil when it exited 0).
+// the bound ended it, and the error a warning names (nil when it exited 0);
+// or, notStarted, that the invocation's interrupt came before it started.
 type hookOutcome struct {
-	exit     int
-	duration time.Duration
-	timedOut bool
-	err      error
+	exit       int
+	duration   time.Duration
+	timedOut   bool
+	err        error
+	notStarted bool
 }
 
 // killGrace is how long the hook's process group has after SIGTERM before it
@@ -66,8 +71,9 @@ const killGrace = 5 * time.Second
 const groupPoll = 20 * time.Millisecond
 
 // RunCollectionHook runs crun.after for a crun that ended with a collection
-// summary; without one, or with the key empty, it does nothing. Every failure
-// is a warning on stderr, never an exit code.
+// summary; without one, with the key empty, or interrupted before the hook
+// starts, it does nothing. Every failure is a warning on stderr, never an
+// exit code.
 func RunCollectionHook(ctx context.Context, common CommonOptions, result ActivityResult, stderr io.Writer) {
 	c := result.Summary.Collection
 	if c == nil {
@@ -81,6 +87,9 @@ func RunCollectionHook(ctx context.Context, common CommonOptions, result Activit
 	}
 	h := collectionHook{Path: path, Timeout: cfg.Duration("crun.after-timeout"), JobID: result.JobID, JobDir: result.ArtifactDir, Exit: result.ExitCode, Summary: c}
 	o := h.run(ctx, stderr)
+	if o.notStarted {
+		return
+	}
 	if o.err != nil {
 		jobexec.WriteWarning(stderr, cfg, errorcodes.Message(o.err))
 	}
@@ -132,6 +141,11 @@ func (h collectionHook) run(ctx context.Context, stderr io.Writer) hookOutcome {
 	cmd.WaitDelay = killGrace
 	start := time.Now()
 	err := cmd.Run()
+	if cmd.Process == nil && ctx.Err() != nil {
+		// The invocation's interrupt came first: exec starts no process
+		// under a done context, so the hook never ran.
+		return hookOutcome{notStarted: true}
+	}
 	o := hookOutcome{duration: time.Since(start)}
 	if !signalled.IsZero() {
 		endGroup(cmd.Process.Pid, signalled.Add(killGrace))

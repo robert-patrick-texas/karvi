@@ -3,7 +3,9 @@ package app
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -12,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/robert-patrick-texas/karvi/internal/configload"
+	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
@@ -112,6 +116,94 @@ func TestCollectionHookEndsItsGroup(t *testing.T) {
 	if wall < killGrace || wall > killGrace+3*time.Second {
 		t.Fatalf("run returned after %s, want the bound and killGrace", wall)
 	}
+}
+
+// TestCollectionHookUnderTheInterrupt covers RunCollectionHook and the
+// invocation's interrupt: one that came before the hook started (exec
+// starts nothing under a done context) runs none, so nothing on stderr, no
+// hook started, and no crun.after audit event, as through the daemon,
+// where the interrupted follow hands the hook no summary. One while the
+// hook runs ends it, "was interrupted after", and a hook that cannot start
+// under a live context is "could not be started": each the warning and an
+// event, outcome fail.
+func TestCollectionHookUnderTheInterrupt(t *testing.T) {
+	operator, err := osutil.CurrentOperator()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// hook runs RunCollectionHook under ctx for a hook that says it started
+	// (the file started) and waits to be ended, or for the path absent;
+	// it returns stderr, whether the hook started, and the audit's
+	// crun.after events, EVENT:OUTCOME.
+	hook := func(t *testing.T, ctx context.Context, absent bool, cancel func()) (string, bool, []string) {
+		t.Helper()
+		dir := t.TempDir()
+		started := filepath.Join(dir, "started")
+		script := filepath.Join(dir, "hook.sh")
+		if err := os.WriteFile(script, []byte("#!/bin/sh\n: >\""+started+"\"\nsleep 30\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if absent {
+			script = filepath.Join(dir, "absent")
+		}
+		audit := filepath.Join(dir, "audit.jsonl")
+		cfg, err := configload.Load(configload.Options{SkipAuto: true, HomeDir: dir, Environment: []string{}, Sets: []string{"audit.journald-required=false", fmt.Sprintf("audit.file=%q", audit), fmt.Sprintf("crun.after=%q", script)}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cancel != nil {
+			// The operator's Ctrl-C once the hook has started.
+			go func() {
+				for deadline := time.Now().Add(10 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
+					if _, err := os.Stat(started); err == nil {
+						break
+					}
+				}
+				cancel()
+			}()
+		}
+		result := ActivityResult{JobID: "261110-120000-00", ArtifactDir: filepath.Join(dir, "261110-120000-00"), ExitCode: 113, Summary: records.Summary{Collection: &records.CollectionSummary{Directory: dir}}}
+		var stderr bytes.Buffer
+		RunCollectionHook(ctx, CommonOptions{Config: cfg, Operator: operator}, result, &stderr)
+		_, statErr := os.Stat(started)
+		data, err := os.ReadFile(audit)
+		if err != nil && !os.IsNotExist(err) {
+			t.Fatal(err)
+		}
+		var events []string
+		for line := range strings.Lines(string(data)) {
+			var r records.AuditRecord
+			if err := json.Unmarshal([]byte(line), &r); err != nil {
+				t.Fatal(err)
+			}
+			if r.EventName == "crun.after" {
+				events = append(events, r.EventName+":"+r.Outcome)
+			}
+		}
+		return stderr.String(), statErr == nil, events
+	}
+
+	t.Run("before the hook starts", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		if stderr, started, events := hook(t, ctx, false, nil); stderr != "" || started || len(events) != 0 {
+			t.Fatalf("stderr=%q started=%v audit %q, want nothing", stderr, started, events)
+		}
+	})
+	t.Run("while the hook runs", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		stderr, started, events := hook(t, ctx, false, cancel)
+		if !started || !strings.Contains(stderr, "warning: crun_after_failed: ") || !strings.Contains(stderr, " was interrupted after ") || strings.Join(events, " ") != "crun.after:fail" {
+			t.Fatalf("stderr=%q started=%v audit %q, want interrupted after and crun.after:fail", stderr, started, events)
+		}
+	})
+	t.Run("a hook that cannot start", func(t *testing.T) {
+		stderr, _, events := hook(t, context.Background(), true, nil)
+		if !strings.Contains(stderr, "warning: crun_after_failed: ") || !strings.Contains(stderr, " could not be started: ") || strings.Join(events, " ") != "crun.after:fail" {
+			t.Fatalf("stderr=%q audit %q, want could not be started and crun.after:fail", stderr, events)
+		}
+	})
 }
 
 // TestCollectionHookHoldsNoDeviceCredentials: the hook has the operator's

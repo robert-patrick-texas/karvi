@@ -2938,14 +2938,21 @@ the file; tolerating the sticky bit.
 executable run once when the summary is written, in the collection directory,
 with the replaced files' names on stdin and the counts in its environment,
 bounded by `crun.after-timeout`; two example hooks ship (a git commit and a
-diff mail). The hook has the operator's shell environment without the device
-credentials `NETUSER`, `NETPASS`, `NETENABLE`, and `NETSUDO`. *Why:* the client has the
+diff mail). An interrupt that comes before the hook starts runs none, with no
+warning and no audit event, on either path: an interrupted follow through the
+daemon has no summary to hand it, and an interrupted in-process `crun`, which
+keeps its summary, starts none as well. The hook has the operator's shell
+environment without the device credentials `NETUSER`, `NETPASS`, `NETENABLE`,
+and `NETSUDO`. *Why:* the client has the
 operator's shell environment (git identity, mail transport) while the daemon
 has the user manager's; git and mail are a site's choices; a device password
 the hook has no use for would reach every process it starts. *Not taken:* a
 built-in `crun.git`; the daemon running the hook; mail sent by karvi; the
 allow-list filter of ssh and the daemon, which drops the shell environment the
-client runs the hook for.
+client runs the hook for; after an interrupt before the hook starts, a warning
+that it did not start (the in-process path speaking where the daemon's is
+silent) or the hook run anyway (against the operator's Ctrl-C, which a second
+could not stop).
 
 **A hook's process group is gone when the client returns.** The hook leads a
 process group of its own. At `crun.after-timeout`, or at the invocation's

@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -16,6 +17,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/testpty"
+	"github.com/robert-patrick-texas/karvi/records"
 )
 
 // The gathered display's progress line and the operator's Ctrl-C, end to
@@ -140,7 +142,10 @@ func TestRunGatheredProgressAtATerminal(t *testing.T) {
 // runs (the first device between its two commands, serial) cancels the
 // job as today and shows nothing gathered, only the footer with exit 113;
 // a Ctrl-C as the read-back starts stops it between the answer's pieces:
-// what was written stands, the cut line ended, the footer after, exit 113.
+// what was written stands, the cut line ended, the footer after, exit 113;
+// a crun's the same, its job ended with its collection summary, and its
+// crun.after not started: no hook, no warning, no audit event, as through
+// the daemon.
 func TestRunNoDaemonGatheredInterrupted(t *testing.T) {
 	guardInterrupt(t)
 	base, _, _ := daemonTestRuntime(t)
@@ -179,6 +184,51 @@ func TestRunNoDaemonGatheredInterrupted(t *testing.T) {
 	if code != exitcode.ExitCancelled || !strings.HasPrefix(got, "! show big\n! 127.0.0.[1-2] (2)\n") || !strings.HasSuffix(got, "\n! exit=113\n") || len(got) > 750_000 {
 		t.Fatalf("during the read-back: exit=%d stderr=%q\n%d bytes: %q ... %q", code, stderr.String(), len(got), got[:min(len(got), 60)], got[max(0, len(got)-60):])
 	}
+
+	// The daemon test's crun case in process: the job has ended, so the
+	// hook is asked for under the interrupted invocation's context.
+	if err := os.RemoveAll(filepath.Join(base, "jobs")); err != nil {
+		t.Fatal(err)
+	}
+	hookOut := filepath.Join(base, "hook.out")
+	hook := filepath.Join(base, "hook")
+	if err := os.WriteFile(hook, []byte("#!/bin/sh\necho ran >"+hookOut+"\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	out = &interruptOnWrite{}
+	stderr.Reset()
+	code = Main(append(append([]string{}, sets...), "--set", `platform.cisco_ios.crun-commands=["show big"]`, "--set", fmt.Sprintf("crun.after=%q", hook), "crun", "--no-daemon", "--cd="+filepath.Join(base, "crun"), "--format", "text", "--target", "127.0.0.1", "--target", "127.0.0.2", "--transport", "system"), strings.NewReader(""), out, &stderr)
+	summary, _ := jobSummary(t, base)
+	if code != exitcode.ExitCancelled || summary.Collection == nil || !strings.HasPrefix(out.String(), "! show big\n") || out.Len() > 750_000 {
+		t.Fatalf("crun during the read-back: exit=%d collection %+v stderr=%q\n%d bytes shown", code, summary.Collection, stderr.String(), out.Len())
+	}
+	if _, err := os.Stat(hookOut); err == nil {
+		t.Fatal("crun.after ran after the display was interrupted")
+	}
+	if events := crunAfterEvents(t, base); strings.Contains(stderr.String(), "crun_after") || len(events) != 0 {
+		t.Fatalf("crun.after was started after the display was interrupted: stderr=%q audit %q", stderr.String(), events)
+	}
+}
+
+// crunAfterEvents is the crun.after events of the audit under base,
+// EVENT:OUTCOME.
+func crunAfterEvents(t *testing.T, base string) []string {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join(base, "audit.jsonl"))
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	var events []string
+	for line := range strings.Lines(string(data)) {
+		var r records.AuditRecord
+		if err := json.Unmarshal([]byte(line), &r); err != nil {
+			t.Fatal(err)
+		}
+		if r.EventName == "crun.after" {
+			events = append(events, r.EventName+":"+r.Outcome)
+		}
+	}
+	return events
 }
 
 // TestRunThroughTheDaemonGatheredInterrupted: through the daemon the
@@ -251,11 +301,12 @@ func TestRunThroughTheDaemonGatheredInterrupted(t *testing.T) {
 	if _, err := os.Stat(hookOut); err == nil {
 		t.Fatal("crun.after ran after the display was interrupted")
 	}
-	// The hook is not asked for at all: one asked for under the invocation's
-	// cancelled context is never started, so its file alone cannot tell,
-	// but the hook's own warning names it.
-	if strings.Contains(stderr, "crun_after") {
-		t.Fatalf("crun.after was asked for after the display was interrupted: stderr=%q", stderr)
+	// Nor a warning or an audit event: the interrupted display hands the
+	// hook no summary, and one asked for under the interrupted context
+	// would not start either, silent in process too
+	// (TestRunNoDaemonGatheredInterrupted).
+	if events := crunAfterEvents(t, base); strings.Contains(stderr, "crun_after") || len(events) != 0 {
+		t.Fatalf("crun.after was asked for after the display was interrupted: stderr=%q audit %q", stderr, events)
 	}
 }
 

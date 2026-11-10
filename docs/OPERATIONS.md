@@ -2257,9 +2257,9 @@ karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
   section 1.1](COLLECTION.md#11-a-runs-collection---cd-on-run-and-command).
 - **The hook.** `crun.after` names an executable the client runs once the
   collection has ended and its display is printed, on the in-process path and
-  through the daemon alike, never for `--detach`: in the collection directory,
-  the replaced files' names on stdin one per line, and `KARVI_JOB_ID`,
-  `KARVI_JOB_DIR`, `KARVI_CRUN_DIRECTORY`, `KARVI_CRUN_REPLACE`,
+  through the daemon alike, never for `--detach` nor after an interrupt: in the
+  collection directory, the replaced files' names on stdin one per line, and
+  `KARVI_JOB_ID`, `KARVI_JOB_DIR`, `KARVI_CRUN_DIRECTORY`, `KARVI_CRUN_REPLACE`,
   `KARVI_CRUN_KEEP`, and `KARVI_EXIT` in its environment; its output follows the
   display on stderr. A hook that fails, cannot start, or runs past
   `crun.after-timeout` (`5m`) is the warning `crun_after_failed`, the run's exit

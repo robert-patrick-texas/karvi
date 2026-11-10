@@ -167,6 +167,17 @@ they were published in.
   (output.files.commands-jsonl is false)`, naming a key the job did not
   set; it now ends `(output.persist-command is false)`. A job with a folder
   that kept no `commands.jsonl` keeps the first wording.
+- **An interrupted `crun` no longer warns that its `crun.after` "was
+  interrupted after 0s".** A `crun` run in process (`--no-daemon`) and
+  interrupted before its hook started, while the job ran or during its
+  display, kept its collection summary, so the hook was asked for under the
+  interrupted invocation, where it could not start: karvi warned
+  `crun_after_failed: PATH was interrupted after 0s`, and the audit held a
+  `crun.after` event, outcome `fail`, `exit_code` 0, for a hook that never
+  ran. An interrupt that comes before the hook starts now runs none, with no
+  warning and no audit event, on either path, as through the daemon. A
+  Ctrl-C while the hook runs still ends it (`was interrupted after Ns`), and
+  a hook that cannot start still warns.
 
 ### Breaking changes
 

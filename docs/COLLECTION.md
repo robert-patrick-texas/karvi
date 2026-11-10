@@ -513,9 +513,11 @@ so that no device collects an error block every day.
 `crun.after` names one executable the client runs once a `crun` has ended
 and its display is printed, on the in-process path and through the
 daemon alike, never for `--detach` (a detached run has no client at its
-end; a cron does not detach). The hook runs in the collection directory,
-reads the replaced files' names on standard input, one per line, sorted
-(empty when nothing was replaced), and finds the job in its environment:
+end; a cron does not detach) nor after an interrupt (one before the hook
+starts runs none, with no warning and no audit event; one while it runs
+ends it, below). The hook runs in the collection directory, reads the
+replaced files' names on standard input, one per line, sorted (empty when
+nothing was replaced), and finds the job in its environment:
 
 | Variable | Value |
 |---|---|

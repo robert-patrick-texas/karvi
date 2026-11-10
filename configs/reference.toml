@@ -446,9 +446,9 @@ mask = false
 # files' names on standard input one per line and the job in KARVI_JOB_ID, KARVI_JOB_DIR
 # (empty under --nof), KARVI_CRUN_DIRECTORY, KARVI_CRUN_REPLACE, KARVI_CRUN_KEEP, and
 # KARVI_EXIT; its output goes to karvi's standard error after the display. It runs on the
-# in-process and the daemon path alike, not under --detach; a hook that cannot start, exits
-# non-zero, or runs past crun.after-timeout is the warning crun_after_failed, and the run's
-# exit code stands (docs/COLLECTION.md).
+# in-process and the daemon path alike, not under --detach nor after an interrupt; a hook that
+# cannot start, exits non-zero, or runs past crun.after-timeout is the warning
+# crun_after_failed, and the run's exit code stands (docs/COLLECTION.md).
 after = ""
 # 1s–1h. How long crun.after may run: on expiry the hook's process group is sent SIGTERM,
 # killed five seconds later if still there, and the warning crun_after_failed says it ran past

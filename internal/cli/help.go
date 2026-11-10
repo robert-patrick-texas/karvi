@@ -405,8 +405,9 @@ every collection file by <removed>, the "! COMMAND" markers included; a
 one-off crun.mask=false keeps one run's files whole unless the site locks
 the key. The audit masks every statement always.
 crun.after names an executable the client runs once the collection has
-ended (not with --detach): in the collection directory, the replaced
-files' names on stdin, the job in KARVI_* variables (docs/COLLECTION.md).
+ended (not with --detach, nor after an interrupt): in the collection
+directory, the replaced files' names on stdin, the job in KARVI_*
+variables (docs/COLLECTION.md).
 A recurring collection is the site's systemd timer or cron over this word
 (/usr/share/karvi/systemd/user/karvi-crun.timer,
 /usr/share/karvi/cron/karvi-crun).
