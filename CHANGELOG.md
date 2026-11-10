@@ -160,6 +160,13 @@ they were published in.
   both, `--noborder` silently winning, where `run` and `command` refuse
   the pair; it now refuses it as they do, `border_options_conflict: --border
   and --noborder are mutually exclusive` (exit 4), before any other check.
+- **A followed job without a folder names `output.persist-command` in its
+  not-kept warning.** Through the daemon, a follow of a job run with `--nof`
+  (or under `output.persist-command = false`), which keeps no folder, warned
+  `records 1 to N were before this follow and are not kept
+  (output.files.commands-jsonl is false)`, naming a key the job did not
+  set; it now ends `(output.persist-command is false)`. A job with a folder
+  that kept no `commands.jsonl` keeps the first wording.
 
 ### Breaking changes
 

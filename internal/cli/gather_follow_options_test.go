@@ -404,8 +404,9 @@ func holdCommand(t *testing.T, base string) (release, started string) {
 // the job itself unaffected (it completes, exit 0); and a job run with
 // --nof, which has no folder (output.persist-command false). The key set
 // true without the option, and --gather=false beside it, keep today's
-// display and not-kept line; a plain follow of either job still shows it
-// with the job's own exit.
+// display and not-kept line, the line naming the key that was false
+// (output.persist-command for the --nof job, which has no folder); a
+// plain follow of either job still shows it with the job's own exit.
 func TestJobFollowGatherThroughTheDaemon(t *testing.T) {
 	base, _, socket := daemonTestRuntime(t)
 	sets := gatherSets(t, base)
@@ -460,17 +461,18 @@ func TestJobFollowGatherThroughTheDaemon(t *testing.T) {
 			}
 		}
 	}
-	unrefused := func(what string, id string) {
+	unrefused := func(what string, id, key string) {
 		t.Helper()
+		line := "are not kept (" + key + " is false)"
 		for _, args := range [][]string{
 			{"--set", "display.run.gather=true", "job", "follow", id},
 			{"--set", "display.run.gather=true", "job", "follow", "--gather=false", id},
 		} {
-			if code, stdout, stderr := main(args...); code != 0 || strings.Contains(stderr, "_conflict") || !strings.Contains(stderr, "were before this follow and are not kept") || strings.Contains(stdout, "! show") {
+			if code, stdout, stderr := main(args...); code != 0 || strings.Contains(stderr, "_conflict") || !strings.Contains(stderr, line) || strings.Contains(stdout, "! show") {
 				t.Errorf("%s %q: exit=%d stdout=%q stderr=%q", what, args, code, stdout, stderr)
 			}
 		}
-		if code, stdout, stderr := main("job", "follow", id); code != 0 || strings.Contains(stderr, "_conflict") {
+		if code, stdout, stderr := main("job", "follow", id); code != 0 || strings.Contains(stderr, "_conflict") || !strings.Contains(stderr, line) {
 			t.Errorf("%s, a plain follow: exit=%d stdout=%q stderr=%q", what, code, stdout, stderr)
 		}
 	}
@@ -488,12 +490,12 @@ func TestJobFollowGatherThroughTheDaemon(t *testing.T) {
 		t.Fatalf("the refused follow's job: %v final %q exit %d", err, s.FinalStatus, s.ExitCode)
 	}
 	refused("ended, commands-jsonl false", running, "output.files.commands-jsonl")
-	unrefused("commands-jsonl false", running)
+	unrefused("commands-jsonl false", running, "output.files.commands-jsonl")
 
 	// A job run with --nof: no folder.
 	nof := jsonlJobID(t, run(nil, "--nof", "--format", "jsonl", "--cmd", "show version"))
 	refused("--nof", nof, "output.persist-command")
-	unrefused("--nof", nof)
+	unrefused("--nof", nof, "output.persist-command")
 }
 
 // TestJobFollowHelpNamesGatherAndPrefix: job's help gives follow's usage

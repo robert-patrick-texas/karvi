@@ -19,19 +19,24 @@ import (
 // TestNotKeptLine is the not-kept sentence: named
 // from the cursor and the start's first_sequence, for the first follow of
 // a job without commands.jsonl and for a resume; empty when the stream
-// starts right after the cursor.
+// starts right after the cursor. The key it names is the one that was
+// false: output.persist-command for a job without a folder (the start's
+// artifact directory empty, a --nof job), output.files.commands-jsonl for
+// one with a folder.
 func TestNotKeptLine(t *testing.T) {
 	for _, c := range []struct {
 		cursor, first int64
+		dir           string
 		want          string
 	}{
-		{0, 1, ""},
-		{4, 5, ""},
-		{0, 5, "records 1 to 4 were before this follow and are not kept (output.files.commands-jsonl is false)"},
-		{2, 8, "records 3 to 7 were before this follow and are not kept (output.files.commands-jsonl is false)"},
+		{0, 1, "/j", ""},
+		{4, 5, "", ""},
+		{0, 5, "/j", "records 1 to 4 were before this follow and are not kept (output.files.commands-jsonl is false)"},
+		{2, 8, "/j", "records 3 to 7 were before this follow and are not kept (output.files.commands-jsonl is false)"},
+		{0, 5, "", "records 1 to 4 were before this follow and are not kept (output.persist-command is false)"},
 	} {
-		if got := NotKeptLine(c.cursor, c.first); got != c.want {
-			t.Errorf("cursor %d first %d: %q", c.cursor, c.first, got)
+		if got := NotKeptLine(c.cursor, c.first, c.dir); got != c.want {
+			t.Errorf("cursor %d first %d dir %q: %q", c.cursor, c.first, c.dir, got)
 		}
 	}
 }

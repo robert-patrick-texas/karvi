@@ -57,12 +57,18 @@ type followOptions struct {
 // nothing to catch a follower up from, and the records from the cursor to
 // the edge are not kept anywhere. It is the one sentence for the first
 // follow of such a job and for a resume after follow_lagged or a lost
-// stream; empty when nothing was missed.
-func NotKeptLine(cursor, first int64) string {
+// stream; empty when nothing was missed. It names the key that was false
+// by the start's artifactDir, as judgeRecords does: none, a job without a
+// folder, output.persist-command; a folder, output.files.commands-jsonl.
+func NotKeptLine(cursor, first int64, artifactDir string) string {
 	if first <= cursor+1 {
 		return ""
 	}
-	return fmt.Sprintf("records %d to %d were before this follow and are not kept (output.files.commands-jsonl is false)", cursor+1, first-1)
+	key := "output.files.commands-jsonl"
+	if artifactDir == "" {
+		key = "output.persist-command"
+	}
+	return fmt.Sprintf("records %d to %d were before this follow and are not kept (%s is false)", cursor+1, first-1, key)
 }
 
 // followJob follows the accepted job to its terminal, rendering every
@@ -153,7 +159,7 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 					jobexec.WriteAdmissionWarnings(o.stderr, o.cfg, start.Warnings)
 					warned = true
 				}
-				if line := NotKeptLine(cursor, start.FirstSequence); line != "" {
+				if line := NotKeptLine(cursor, start.FirstSequence, start.ArtifactDir); line != "" {
 					jobexec.WriteWarning(o.stderr, o.cfg, line)
 				}
 				if renderer == nil && o.render {
