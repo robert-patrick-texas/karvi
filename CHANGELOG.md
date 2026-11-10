@@ -156,6 +156,10 @@ they were published in.
 - **`job follow` from a job's folder names a `summary.json` it cannot open
   once.** The error read `read PATH: open PATH: permission denied`; it reads
   `open PATH: permission denied`.
+- **`job follow` refuses `--border` and `--noborder` together.** It took
+  both, `--noborder` silently winning, where `run` and `command` refuse
+  the pair; it now refuses it as they do, `border_options_conflict: --border
+  and --noborder are mutually exclusive` (exit 4), before any other check.
 
 ### Breaking changes
 

@@ -214,8 +214,10 @@ func cancelResultLine(res ipc.CancelResult) string {
 // job's directory, derived from the ID, is followed to the job's end
 // (app.FollowJobDirectory). The verb never launches a daemon.
 //
+// --border and --noborder together are refused first, as on run and
+// command (checkBorders, border_options_conflict).
 // --gather and --prefix are run's (DECISIONS points 1 and 6, settled at
-// S6, gather-2026-11): refused first, as run's options are, beside what
+// S6, gather-2026-11): refused next, as run's options are, beside what
 // job follow has of their lists (checkGather: --format jsonl or json and
 // --echo; checkPrefix: --format jsonl or json, --border, and --noborder),
 // before the job ID's check and the read; then, given true or false, they
@@ -230,6 +232,9 @@ func cancelResultLine(res ipc.CancelResult) string {
 func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 	g := inv.Global
 	jobID := inv.Positional[0]
+	if code, ok := checkBorders(inv, streams.Stderr); !ok {
+		return code
+	}
 	if code, ok := checkGather(inv, streams.Stderr); !ok {
 		return code
 	}

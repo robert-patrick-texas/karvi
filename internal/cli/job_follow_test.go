@@ -478,3 +478,49 @@ func recordsThenSummary(t *testing.T, stdout, file []byte, jobID, finalStatus st
 		t.Fatalf("summary line: job %q status %q, want %q %q", s.JobID, s.FinalStatus, jobID, finalStatus)
 	}
 }
+
+// TestJobFollowRefusesBothBorders: job follow refuses --border and
+// --noborder together as run and command do, border_options_conflict,
+// exit 4, the one line on stderr, nothing on stdout (it took both, and
+// --noborder won); first of its option checks, as run's checkBorders is,
+// so before --gather's and --prefix's, the job ID's check, and the read.
+// The guards: either alone, and either given false beside the other,
+// reach the follow of the finished folder and exit with the job's exit.
+func TestJobFollowRefusesBothBorders(t *testing.T) {
+	base, g, _ := daemonTestRuntime(t)
+	sets := dryRunSets(t, base)
+	bad := filepath.Join(base, "bad.toml")
+	if err := os.WriteFile(bad, []byte("[dispatch]\nnope = 1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	unread := []string{"--config", bad}
+	const want = "border_options_conflict: --border and --noborder are mutually exclusive\n"
+	for _, tc := range []struct {
+		pre  []string
+		id   string
+		opts []string
+	}{
+		{nil, fixtureJobID, []string{"--border", "--noborder"}},
+		{nil, fixtureJobID, []string{"--noborder", "--border"}},
+		{nil, fixtureJobID, []string{"--prefix", "--border", "--noborder"}},
+		{nil, fixtureJobID, []string{"--gather", "--echo", "--border", "--noborder"}},
+		{nil, fixtureJobID, []string{"--format", "json", "--border", "--noborder"}},
+		{nil, "not-a-job-id", []string{"--border", "--noborder"}},
+		{unread, fixtureJobID, []string{"--border", "--noborder"}},
+	} {
+		t.Run(strings.Join(append(append([]string{tc.id}, tc.pre...), tc.opts...), "_"), func(t *testing.T) {
+			code, stdout, stderr := mainOutputs(followLine(sets, tc.pre, tc.id, tc.opts...), "")
+			if code != exitcode.ExitUsageError || stderr != want || stdout != "" {
+				t.Fatalf("exit=%d stdout=%q\nstderr=%q\nwant  %q", code, stdout, stderr, want)
+			}
+		})
+	}
+	finishedDirectory(t, g, fixtureJobID, records.Summary{FinalStatus: "complete", ExitCode: 0, ExitName: "ExitSuccess"})
+	for _, opts := range [][]string{{"--border"}, {"--noborder"}, {"--border", "--noborder=false"}, {"--border=false", "--noborder"}} {
+		var stdout, stderr bytes.Buffer
+		code := jobFollow(context.Background(), followInvocation(t, g, append(append([]string{}, opts...), fixtureJobID)...), app.IO{Stdout: &stdout, Stderr: &stderr})
+		if code != exitcode.ExitSuccess || strings.Contains(stderr.String(), "_conflict") {
+			t.Errorf("%v: exit=%d stdout=%q stderr=%q", opts, code, stdout.String(), stderr.String())
+		}
+	}
+}

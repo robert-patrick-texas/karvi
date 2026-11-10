@@ -98,7 +98,7 @@ func TestJobFollowGatherAndPrefixRefused(t *testing.T) {
 		{nil, fixtureJobID, []string{"--p", "--noborder"}, prefix("--noborder")},
 		// The first in each list's order, whatever the line's.
 		{nil, fixtureJobID, []string{"--gather", "--echo", "--format", "json"}, gather("--format json")},
-		{nil, fixtureJobID, []string{"--prefix", "--noborder", "--border"}, prefix("--border")},
+		{nil, fixtureJobID, []string{"--prefix", "--noborder", "--format", "json"}, prefix("--format json")},
 		// --gather's before --prefix's.
 		{nil, fixtureJobID, []string{"--prefix", "--gather", "--format", "jsonl"}, gather("--format jsonl")},
 		{nil, fixtureJobID, []string{"--prefix", "--border", "--gather", "--echo"}, gather("--echo")},
