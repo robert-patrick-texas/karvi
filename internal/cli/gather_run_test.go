@@ -27,7 +27,8 @@ import (
 // it. `show close` puts a folder at failed-devices.txt, so the store's
 // close fails after every record is written. `show empty` empties the
 // store's own file in place (its name opened, cut to nothing): the records
-// before it are gone from the file.
+// before it are gone from the file. `show big` answers 20,000 lines
+// (about 1.5 MB), a read-back of many pieces.
 
 // gatherSets are the sets of a run over the fake device under base, the
 // footer left out so a display is its blocks alone.
@@ -42,6 +43,7 @@ func gatherSets(t *testing.T, base string) []string {
 		"    'show swap') for d in \"" + base + "\"/jobs/*/*/; do ln -sf nowhere \"${d}.swap\" && mv -T \"${d}.swap\" \"${d}commands.jsonl\"; done; printf '%s\\r\\nok\\r\\ndev#' \"$line\";;\n" +
 		"    'show empty') for d in \"" + base + "\"/jobs/*/*/; do : >\"${d}commands.jsonl\"; done; printf '%s\\r\\nok\\r\\ndev#' \"$line\";;\n" +
 		"    'show close') for d in \"" + base + "\"/jobs/*/*/; do mkdir -p \"${d}failed-devices.txt/x\"; done; printf '%s\\r\\nok\\r\\ndev#' \"$line\";;\n" +
+		"    'show big') printf '%s\\r\\n' \"$line\"; i=0; while [ $i -lt 20000 ]; do printf 'line %06d xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\\r\\n' $i; i=$((i+1)); done; printf 'dev#';;\n" +
 		"    *) printf '%s\\r\\nok\\r\\ndev#' \"$line\";;\n" +
 		"  esac\ndone\n"
 	if err := os.WriteFile(device, []byte(body), 0o755); err != nil {

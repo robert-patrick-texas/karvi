@@ -2,6 +2,9 @@ package jobexec
 
 import (
 	"cmp"
+	"context"
+	"errors"
+	"io"
 	"os"
 	"slices"
 	"strconv"
@@ -27,7 +30,10 @@ import (
 // no output: per group its key and the line of its first record in
 // commands.jsonl, per device its name. At the end each group with an answer to show is read
 // back from the job's commands.jsonl (output.ReadRecordAt), its output
-// streamed as today's display streams a record's.
+// streamed as today's display streams a record's. While it waits it counts
+// the devices for the progress line (progress.go); the invocation's
+// interrupt stops it at once, before the blocks or between a read-back's
+// pieces (DECISIONS point 4, "Settled at S4").
 
 // GatherFile gives the job's commands.jsonl at the gathered display's end,
 // which closes it, each path its own way (in process the file the store
@@ -85,17 +91,70 @@ type gatherGroup struct {
 // (the groups hold its number), and for each device in flight how often
 // each command has come so far, which gives a record's occurrence; a
 // device's counts go once its last command's record has come (a device's
-// records come in its commands' order).
+// records come in its commands' order). done and fail are job list's DONE
+// and FAIL from the records: the devices whose last requested record has
+// come, and those of them with a requested record that did not succeed
+// (failing holds the devices in flight that have one). interrupt is the
+// invocation's: closed, the display stops.
 type gatherer struct {
-	open     GatherFile
-	names    []string
-	byName   map[string]int32
-	inFlight map[string]map[[2]string]int
-	blocks   map[blockKey]*gatherBlock
+	open       GatherFile
+	interrupt  <-chan struct{}
+	names      []string
+	byName     map[string]int32
+	inFlight   map[string]map[[2]string]int
+	failing    map[string]bool
+	done, fail int
+	blocks     map[blockKey]*gatherBlock
 }
 
-func newGatherer(open GatherFile) *gatherer {
-	return &gatherer{open: open, byName: map[string]int32{}, inFlight: map[string]map[[2]string]int{}, blocks: map[blockKey]*gatherBlock{}}
+func newGatherer(open GatherFile, interrupt <-chan struct{}) *gatherer {
+	return &gatherer{open: open, interrupt: interrupt, byName: map[string]int32{}, inFlight: map[string]map[[2]string]int{}, failing: map[string]bool{}, blocks: map[blockKey]*gatherBlock{}}
+}
+
+// errGatherInterrupted is the gathered display stopped by the
+// invocation's interrupt; a follow's display ends with it (WriteFooter),
+// its code cancelled (app.InterruptedDisplay).
+var errGatherInterrupted = errorcodes.Errorf("cancelled", "the gathered display was interrupted")
+
+// interrupted says whether the invocation's interrupt has come.
+func (g *gatherer) interrupted() bool {
+	select {
+	case <-g.interrupt:
+		return true
+	default:
+		return false
+	}
+}
+
+// stopWriter is a read-back's writer that stops at the invocation's
+// interrupt, checked before each piece.
+type stopWriter struct {
+	w io.Writer
+	g *gatherer
+}
+
+func (s stopWriter) Write(p []byte) (int, error) {
+	if s.g.interrupted() {
+		return 0, errGatherInterrupted
+	}
+	return s.w.Write(p)
+}
+
+// stopReaderAt is the read-back's file stopped at the invocation's
+// interrupt, checked before each read, so the one pass that finds the
+// groups' lines (output.FindLines) and each group's scan of its line
+// (output.ReadRecordAt), which wrap the error with %w, stop at once
+// however large the file or the answer.
+type stopReaderAt struct {
+	r io.ReaderAt
+	g *gatherer
+}
+
+func (s stopReaderAt) ReadAt(p []byte, off int64) (int, error) {
+	if s.g.interrupted() {
+		return 0, errGatherInterrupted
+	}
+	return s.r.ReadAt(p, off)
 }
 
 // recordDevice is the name the display shows for a record's device.
@@ -160,8 +219,22 @@ func (g *gatherer) requestedKey(rec *records.CommandRecord, name string) blockKe
 	which := [2]string{rec.Command, rec.Privilege}
 	counts[which]++
 	key := blockKey{command: rec.Command, root: rec.Root(), occurrence: counts[which]}
+	failed := g.failing[unit] || rec.Status != "success"
 	if rec.CommandIndex >= rec.CommandCount {
 		delete(g.inFlight, unit)
+		delete(g.failing, unit)
+		// A device dispatch never started (a halt, a wave gate, a cancel or
+		// a shutdown before its start) is neither: job list's DONE and FAIL
+		// count the devices dispatch ran. Its records are EmitUnstarted's,
+		// the only ones whose error's operation is dispatch.
+		if rec.Error == nil || rec.Error.Operation != "dispatch" {
+			g.done++
+			if failed {
+				g.fail++
+			}
+		}
+	} else if failed {
+		g.failing[unit] = true
 	}
 	return key
 }
@@ -258,45 +331,117 @@ func (group *gatherGroup) failureLine() string {
 	return "karvi: status=" + group.key.status + " error=" + group.key.code
 }
 
-// gatherFrom has the renderer gather a run's or a command's text display,
-// read back at the end through open; it says whether it does: never under
-// another format, for another activity, in the daemon (which formats
-// nothing), or under the live view.
-func (r *recordRenderer) gatherFrom(open GatherFile) bool {
+// gathers says whether the renderer can gather: a run's or a command's
+// text display, never under another format, for another activity, in the
+// daemon (which formats nothing), or under the live view.
+func (r *recordRenderer) gathers() bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.format != "text" || (r.activityType != "run" && r.activityType != "command") || r.daemon || r.live {
+	return r.format == "text" && (r.activityType == "run" || r.activityType == "command") && !r.daemon && !r.live
+}
+
+// gatherFrom has the renderer gather its display where it can (gathers),
+// read back at the end through open, stopped by interrupt (the
+// invocation's), its progress drawn on progress (nil for none), drawn now
+// as the display starts and erased when the interrupt comes; it says
+// whether it does. An interrupt already come leaves the line never drawn.
+func (r *recordRenderer) gatherFrom(open GatherFile, interrupt <-chan struct{}, progress *ProgressLine) bool {
+	if !r.gathers() {
 		return false
 	}
-	r.gather = newGatherer(open)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.gather = newGatherer(open, interrupt)
+	r.progress = progress
+	if r.gather.interrupted() {
+		progress.Stop()
+		return true
+	}
+	progress.stopAt(interrupt)
+	progress.show(0, 0)
 	return true
 }
 
 // Gather has a run's text display gathered, read back at the end through
-// open (gatherFrom); false when the format is not text.
-func (rr *RunRenderer) Gather(open GatherFile) bool {
-	return rr.r != nil && rr.r.gatherFrom(open)
+// open (gatherFrom), stopped by ctx's end (the invocation's interrupt);
+// false when the format is not text. At a terminal (ShowsProgress) the
+// progress line over the job's devices is drawn on the renderer's
+// standard error, and is that standard error from here (Stderr); devices
+// is asked only then, so a display that does not gather, or shows no
+// line, never reads what it reads (a follow's summary.json), and its
+// error is Gather's.
+func (rr *RunRenderer) Gather(ctx context.Context, open GatherFile, devices func() (int, error)) (bool, error) {
+	if rr.r == nil || !rr.r.gathers() {
+		return false, nil
+	}
+	var progress *ProgressLine
+	if ShowsProgress(rr.warnOut, rr.r.quiet) {
+		m, err := devices()
+		if err != nil {
+			return false, err
+		}
+		progress = NewProgressLine(rr.warnOut, rr.warnStyle, m)
+	}
+	rr.r.gatherFrom(open, ctx.Done(), progress)
+	if progress != nil {
+		rr.warnOut = progress
+		rr.r.mu.Lock()
+		rr.r.warnOut = progress
+		rr.r.mu.Unlock()
+	}
+	return true, nil
+}
+
+// Stderr is the follow's standard error: the progress line while the
+// display is gathered at a terminal, so the follow's own lines erase and
+// redraw it, otherwise the standard error the renderer was given.
+func (rr *RunRenderer) Stderr() io.Writer { return rr.warnOut }
+
+// StopProgress erases the progress line, for every end of a follow (an
+// interrupt, a lost stream); the display's own end erased it already.
+func (rr *RunRenderer) StopProgress() {
+	if p, ok := rr.warnOut.(*ProgressLine); ok {
+		p.Stop()
+	}
 }
 
 // endGathered writes the gathered display, once: in process when every
 // record of the job is in its commands.jsonl, where today's display has
 // written its last record, so that the job's own failures found after its
 // records follow the blocks as they follow today's records; on the follow
-// paths from WriteFooter, before the footer. After an error nothing is
-// written; a file that cannot be read back is run_output_records_unreadable.
+// paths from WriteFooter, before the footer. The progress line is erased
+// first. After an error nothing is written; a file that cannot be read
+// back is run_output_records_unreadable. In process an interrupt is the
+// job's own (its end and exit 113 follow, then the footer), so endGathered
+// says nothing of it; WriteFooter on a follow path ends the display there.
 func (r *recordRenderer) endGathered() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.endGatheredLocked()
 }
 
-func (r *recordRenderer) endGatheredLocked() {
-	if r.gather != nil && r.err == nil {
-		if err := r.writeGatheredLocked(); err != nil {
-			r.setErrorLocked("run_output_records_unreadable", err)
-		}
-	}
+// endGatheredLocked says whether the invocation's interrupt stopped the
+// display: before it wrote anything (a Ctrl-C while the job ran), or
+// between a read-back's pieces, what was written standing and a cut line
+// ended with its line break.
+func (r *recordRenderer) endGatheredLocked() (interrupted bool) {
+	g := r.gather
 	r.gather = nil
+	r.progress.Stop()
+	if g == nil || r.err != nil {
+		return false
+	}
+	err := r.writeGatheredLocked(g)
+	switch {
+	case errors.Is(err, errGatherInterrupted):
+		if r.lastByte != 0 && r.lastByte != '\n' {
+			r.write([]byte{'\n'})
+		}
+		return true
+	case err != nil:
+		r.setErrorLocked("run_output_records_unreadable", err)
+	}
+	return false
 }
 
 // gatherKey is the key that gathers an activity's display, in the
@@ -335,17 +480,21 @@ func (r *recordRenderer) markerLine(key blockKey) string {
 	return label("! ") + value(key.command)
 }
 
-// writeGatheredLocked writes the gathered display at the job's end, before
-// the footer: each block's marker, then its groups, each its header
+// writeGatheredLocked writes g's display at the job's end, before the
+// footer: each block's marker, then its groups, each its header
 // (display.gather.header, one line however long), its answer read back
 // when it has one, and its failure line, the run's border between groups
 // and between blocks, a block's border and marker written with its first
 // group; under --quiet no marker, header, or border. A commands.jsonl that
 // cannot be read, or a line that is not the record the job's stream
 // carried, is run_output_records_unreadable: the groups written stand, and
-// the footer is not written.
-func (r *recordRenderer) writeGatheredLocked() error {
-	g := r.gather
+// the footer is not written. The invocation's interrupt is
+// errGatherInterrupted: before the first group nothing is written, after
+// it the display stops before the next group or the answer's next piece.
+func (r *recordRenderer) writeGatheredLocked(g *gatherer) error {
+	if g.interrupted() {
+		return errGatherInterrupted
+	}
 	blocks := g.sortedBlocks()
 	var lines []int64
 	for _, b := range blocks {
@@ -365,7 +514,7 @@ func (r *recordRenderer) writeGatheredLocked() error {
 			return errorcodes.Ensure(err, "run_output_records_unreadable")
 		}
 		defer f.Close()
-		if spans, err = output.FindLines(f, f.Name(), lines); err != nil {
+		if spans, err = output.FindLines(stopReaderAt{r: f, g: g}, f.Name(), lines); err != nil {
 			return err
 		}
 	}
@@ -375,6 +524,9 @@ func (r *recordRenderer) writeGatheredLocked() error {
 			lead = appendLine(r.appendBorderLocked(nil), r.markerLine(b.key))
 		}
 		for _, group := range g.sortedGroups(b) {
+			if g.interrupted() {
+				return errGatherInterrupted
+			}
 			data := r.appendBorderLocked(lead)
 			lead = nil
 			r.currentHeaderWidth = 0
@@ -388,7 +540,7 @@ func (r *recordRenderer) writeGatheredLocked() error {
 				data = appendLine(data, line)
 			}
 			if group.answer {
-				rec, src, err := output.ReadRecordAt(f, f.Name(), group.first, spans[group.first])
+				rec, src, err := output.ReadRecordAt(stopReaderAt{r: f, g: g}, f.Name(), group.first, spans[group.first])
 				if err != nil {
 					return err
 				}
@@ -398,8 +550,8 @@ func (r *recordRenderer) writeGatheredLocked() error {
 				// The notice is the follow stream's, which the store never
 				// writes in the file: the answer is the line's, read back.
 				rec.Notices = slices.DeleteFunc(rec.Notices, func(n records.Notice) bool { return n.Code == "follow_output_omitted" })
-				if !r.writeAnswerLocked(rec, src, data) {
-					return r.err
+				if err := r.writeAnswerLocked(rec, src, data, g); err != nil {
+					return err
 				}
 				data = nil
 			}

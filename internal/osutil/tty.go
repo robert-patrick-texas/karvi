@@ -62,6 +62,22 @@ func TerminalWidth(f *os.File) int {
 	return int(size.Columns)
 }
 
+// ForegroundGroup says whether this process's group is the foreground
+// process group of f's terminal (tcgetpgrp, as wget and pv ask before
+// drawing progress): false for a job sent to the background. known is
+// false where the terminal cannot say: f not a terminal, or not this
+// process's controlling terminal.
+func ForegroundGroup(f *os.File) (foreground, known bool) {
+	if f == nil {
+		return false, false
+	}
+	var group int32
+	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, f.Fd(), syscall.TIOCGPGRP, uintptr(unsafe.Pointer(&group))); errno != 0 {
+		return false, false
+	}
+	return int(group) == syscall.Getpgrp(), true
+}
+
 // TerminalSize returns the rows and columns of a terminal, or zeros when f is
 // not a terminal (login session metadata).
 func TerminalSize(f *os.File) (rows, columns int) {

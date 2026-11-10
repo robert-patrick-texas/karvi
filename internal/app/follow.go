@@ -33,6 +33,10 @@ type followOptions struct {
 	echo     bool
 	dynamic  bool
 	noBorder bool
+	// devices is the job's devices for the gathered display's progress
+	// line: the submitting client's plan's; 0 when the follower holds no
+	// plan (job follow), which reads them from the job's summary.json.
+	devices int
 	// learned receives the artifact directory announced by the stream's
 	// start, for a follower that did not know it (job follow).
 	learned *string
@@ -70,6 +74,9 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 		// warned is set once the start's admission warnings are said; a
 		// resume's start repeats them and they are not said again.
 		warned bool
+		// gathered is set once the renderer was asked to gather, at the
+		// first start, which draws the progress line.
+		gathered bool
 	)
 	// The renderer's artifacts value is the footer's label: the folder, or
 	// none for a run that keeps no files (28.4).
@@ -78,9 +85,16 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 		if err != nil {
 			return ipc.FollowTerminal{}, err
 		}
-		o.gatherInto(r, artifactDir)
 		renderer = r
 	}
+	// The gathered display's progress line is erased at every end of the
+	// follow, before the client's own lines (an interrupt, a lost stream);
+	// the display's end erased it already.
+	defer func() {
+		if renderer != nil {
+			renderer.StopProgress()
+		}
+	}()
 	for failures < followRetries {
 		if ctx.Err() != nil {
 			return ipc.FollowTerminal{}, ctx.Err()
@@ -109,8 +123,17 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 					if err != nil {
 						return err
 					}
-					o.gatherInto(r, start.ArtifactDir)
 					renderer = r
+				}
+				// The gathered display starts with the follow, its progress
+				// line drawn now, after the start's lines (a renderer built
+				// from the receipt, run's and crun's, too).
+				if renderer != nil && !gathered {
+					gathered = true
+					if err := o.gatherInto(ctx, renderer, start.ArtifactDir); err != nil {
+						return err
+					}
+					o.stderr = renderer.Stderr()
 				}
 				return nil
 			},
@@ -141,7 +164,7 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 		}
 		code := errorcodes.Of(err)
 		switch {
-		case code == "terminal_write_failed", code == "run_output_record_decode_failed", code == "ipc_result_malformed", code == "job_unknown", code == "follow_cursor_stale", code == "ipc_frame_too_large":
+		case code == "terminal_write_failed", code == "run_output_record_decode_failed", code == "run_output_records_unreadable", code == "ipc_result_malformed", code == "job_unknown", code == "follow_cursor_stale", code == "ipc_frame_too_large":
 			return ipc.FollowTerminal{}, err
 		}
 		// follow_lagged, a lost connection, or a daemon that closed the
@@ -164,16 +187,32 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 // back from it with the folder follow's checks (openChecked), the file
 // the follower's own: only the daemon's own account reaches it (a service
 // platform's daemon is the service account's, its followers that account),
-// so no tree's group is asked.
-func (o followOptions) gatherInto(r *jobexec.RunRenderer, artifactDir string) {
+// so no tree's group is asked. The display stops at ctx's end (the
+// invocation's interrupt). Its progress line, at a terminal, counts the
+// plan's devices, or a follower holding no plan reads them once from the
+// job's summary.json, written at the job's acceptance, with the folder
+// follow's codes: one that cannot be read is
+// run_output_records_unreadable, one that is not a summary
+// run_output_record_decode_failed, the follow ended and the job
+// unaffected. Where the display does not gather (--format jsonl or json)
+// or no line is drawn, it is never read.
+func (o followOptions) gatherInto(ctx context.Context, r *jobexec.RunRenderer, artifactDir string) error {
 	if artifactDir == "" || !o.cfg.Bool("display.run.gather") {
-		return
+		return nil
 	}
 	path := filepath.Join(artifactDir, "commands.jsonl")
 	if _, err := os.Lstat(path); errors.Is(err, fs.ErrNotExist) {
-		return
+		return nil
 	}
-	r.Gather(func() (*os.File, error) { return openChecked(path, -1) })
+	devices := func() (int, error) {
+		if o.devices > 0 {
+			return o.devices, nil
+		}
+		summary, err := readSummary(artifactDir)
+		return len(summary.Devices), err
+	}
+	_, err := r.Gather(ctx, func() (*os.File, error) { return openChecked(path, -1) }, devices)
+	return err
 }
 
 // EndedError is a followed job's display failing at the job's end, from
@@ -197,6 +236,21 @@ func EndedLine(jobID, artifactDir string, err error) string {
 		return ""
 	}
 	return fmt.Sprintf("job %s ended exit=%d; artifacts %s", jobID, ended.Exit, ArtifactsLabel(artifactDir))
+}
+
+// InterruptedDisplay is what a client says when the invocation's interrupt
+// stopped a gathered display at a job's end (EndedError, the code
+// cancelled; DECISIONS point 4, "Settled at S4"): the job's ended line,
+// "job ID ended exit=N; artifacts DIR", and the invocation's error,
+// "cancelled: the display of job ID was interrupted", its exit 113. ok is
+// false for any other error, an interrupt while the job ran among them
+// (the follow's own line says the job continues).
+func InterruptedDisplay(jobID, artifactDir string, err error) (line string, cause error, ok bool) {
+	var ended *EndedError
+	if !errors.As(err, &ended) || errorcodes.Of(ended.Err) != "cancelled" {
+		return "", nil, false
+	}
+	return EndedLine(jobID, artifactDir, err), errorcodes.Errorf("cancelled", "the display of job %s was interrupted", jobID), true
 }
 
 func errorText(err error) string {

@@ -292,8 +292,17 @@ func RunViaDaemon(ctx context.Context, opts RunOptions, socket string, maxFrame 
 	// Then follow the accepted job to its terminal, rendering its records
 	// as they become durable; an exercise has no record to render and its
 	// report is read afterwards.
-	terminal, err := followJob(ctx, followOptions{cfg: cd.cfg, socket: socket, maxFrame: maxFrame, jobID: jobReceipt.JobID, render: opts.Follow && mode == executionplan.ModeLive, format: opts.Format, quiet: opts.Quiet, debug: opts.Debug, echo: opts.Echo, dynamic: opts.DynamicBorder, noBorder: opts.NoBorder, stderr: streams.Stderr}, jobReceipt.ArtifactDir, streams.Stdout)
+	terminal, err := followJob(ctx, followOptions{cfg: cd.cfg, socket: socket, maxFrame: maxFrame, jobID: jobReceipt.JobID, render: opts.Follow && mode == executionplan.ModeLive, format: opts.Format, quiet: opts.Quiet, debug: opts.Debug, echo: opts.Echo, dynamic: opts.DynamicBorder, noBorder: opts.NoBorder, devices: len(final.Targets), stderr: streams.Stderr}, jobReceipt.ArtifactDir, streams.Stdout)
 	if err != nil {
+		// The invocation's interrupt during the gathered read-back, the
+		// job ended: its ended line and cancelled, no summary, so no
+		// crun.after (as for an interrupt during the follow).
+		if line, cause, ok := InterruptedDisplay(jobReceipt.JobID, jobReceipt.ArtifactDir, err); ok {
+			fmt.Fprintln(streams.Stderr, line)
+			r := failedResult("cancelled", cause)
+			r.JobID, r.ArtifactDir = jobReceipt.JobID, jobReceipt.ArtifactDir
+			return r
+		}
 		if ctx.Err() != nil {
 			fmt.Fprintln(streams.Stderr, InterruptedLine(jobReceipt.JobID, jobReceipt.ArtifactDir, "continues in the daemon"))
 			r := failedResult("cancelled", errorcodes.Errorf("cancelled", "the follow of job %s was interrupted; the job continues", jobReceipt.JobID))

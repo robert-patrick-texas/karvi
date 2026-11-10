@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 	"syscall"
 	"testing"
-	"unsafe"
+
+	"github.com/robert-patrick-texas/karvi/internal/testpty"
 )
 
 // TestRawTerminalLinesEndsEachLineAtTheFirstColumn writes karvi's lines in
@@ -40,38 +43,10 @@ func TestRawTerminalLinesTranslatesOnlyOnATerminal(t *testing.T) {
 	if w := RawTerminalLines(file); w != file {
 		t.Fatalf("a regular file became %T", w)
 	}
-	master, slave := openPTY(t)
-	defer master.Close()
-	defer slave.Close()
+	_, slave := testpty.Open(t)
 	if _, ok := RawTerminalLines(slave).(*rawLines); !ok {
 		t.Fatalf("a terminal was returned as %T", RawTerminalLines(slave))
 	}
-}
-
-// openPTY opens a pseudo-terminal pair without a library: /dev/ptmx, its
-// lock cleared, and the numbered slave.
-func openPTY(t *testing.T) (master, slave *os.File) {
-	t.Helper()
-	master, err := os.OpenFile("/dev/ptmx", os.O_RDWR|syscall.O_NOCTTY, 0)
-	if err != nil {
-		t.Skipf("no pseudo-terminal: %v", err)
-	}
-	var unlock int32
-	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, master.Fd(), syscall.TIOCSPTLCK, uintptr(unsafe.Pointer(&unlock))); errno != 0 {
-		master.Close()
-		t.Fatalf("unlock: %v", errno)
-	}
-	var n uint32
-	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, master.Fd(), syscall.TIOCGPTN, uintptr(unsafe.Pointer(&n))); errno != 0 {
-		master.Close()
-		t.Fatalf("number: %v", errno)
-	}
-	slave, err = os.OpenFile(fmt.Sprintf("/dev/pts/%d", n), os.O_RDWR|syscall.O_NOCTTY, 0)
-	if err != nil {
-		master.Close()
-		t.Fatal(err)
-	}
-	return master, slave
 }
 
 // TestIsRegularFile: a regular file is one, as a stream redirected into a
@@ -93,5 +68,62 @@ func TestIsRegularFile(t *testing.T) {
 	defer w.Close()
 	if IsRegularFile(w) {
 		t.Errorf("a pipe taken for a regular file")
+	}
+}
+
+// TestForegroundGroup: a terminal says whether this process's group is
+// its foreground group only to a process it is the controlling terminal
+// of. A pseudo-terminal opened here (O_NOCTTY), or a regular file, cannot
+// say. In a child made a session leader with the terminal as its
+// controlling one, the child's group is the foreground group; a
+// grandchild put in a group of its own, as a shell puts a job sent to the
+// background, is not.
+func TestForegroundGroup(t *testing.T) {
+	_, slave := testpty.Open(t)
+	if _, known := ForegroundGroup(slave); known {
+		t.Errorf("a terminal opened O_NOCTTY says")
+	}
+	file, err := os.CreateTemp(t.TempDir(), "stderr")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	if _, known := ForegroundGroup(file); known {
+		t.Errorf("a regular file says")
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=^TestForegroundGroupChild$")
+	cmd.Env = append(os.Environ(), "KARVI_TEST_FOREGROUND=leader")
+	cmd.Stdin = slave
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true, Setctty: true, Ctty: 0}
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("the child: %v\n%s", err, out)
+	}
+	for _, want := range []string{"leader foreground=true known=true\n", "background foreground=false known=true\n"} {
+		if !strings.Contains(string(out), want) {
+			t.Errorf("the child said\n%s\nwant %q", out, want)
+		}
+	}
+}
+
+// TestForegroundGroupChild is TestForegroundGroup's child: it says what
+// its standard input, its controlling terminal, tells it, as the session
+// leader and from a grandchild in a group of its own.
+func TestForegroundGroupChild(t *testing.T) {
+	role := os.Getenv("KARVI_TEST_FOREGROUND")
+	if role == "" {
+		t.Skip("run by TestForegroundGroup")
+	}
+	foreground, known := ForegroundGroup(os.Stdin)
+	fmt.Printf("%s foreground=%v known=%v\n", role, foreground, known)
+	if role != "leader" {
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=^TestForegroundGroupChild$")
+	cmd.Env = append(os.Environ(), "KARVI_TEST_FOREGROUND=background")
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("the grandchild: %v", err)
 	}
 }

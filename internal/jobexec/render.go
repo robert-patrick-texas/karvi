@@ -3,6 +3,7 @@ package jobexec
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -85,9 +86,11 @@ type recordRenderer struct {
 	lastByte byte
 	// gather, when set (gatherFrom), gathers the run's text display and
 	// shows it at the end (gather.go); gatherTemplate is its group header,
-	// display.gather.header.
+	// display.gather.header; progress, when set, is its progress line at
+	// a terminal (progress.go).
 	gather         *gatherer
 	gatherTemplate string
+	progress       *ProgressLine
 }
 
 func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, quiet, debug bool, activityID, artifact, activityType string, echo, dynamicBorder, noBorder bool) (*recordRenderer, error) {
@@ -299,6 +302,7 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 		if !hiddenRecord(&rec) {
 			r.lastValues = displayValuesFromRecord(rec)
 		}
+		r.progress.show(r.gather.done, r.gather.fail)
 		return
 	}
 
@@ -397,7 +401,7 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 		}
 		data = appendLine(data, prompt+rec.Command)
 	}
-	if !r.writeAnswerLocked(rec, src, data) {
+	if r.writeAnswerLocked(rec, src, data, nil) != nil {
 		return
 	}
 	data = nil
@@ -419,8 +423,11 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 // the answer: its output streamed from src (an exec record's stderr after
 // its stdout), or the follow's notice in its place, its last line ended.
 // It is today's display of a record's output and the gathered display's of
-// a group's; false when a write or a stream failed (r.err).
-func (r *recordRenderer) writeAnswerLocked(rec records.CommandRecord, src output.Source, data []byte) bool {
+// a group's; r.err when a write or a stream failed. For the gathered
+// display (g set) the stream stops at the invocation's interrupt, checked
+// before each piece: errGatherInterrupted, what was written standing, its
+// last line not ended (endGatheredLocked ends it).
+func (r *recordRenderer) writeAnswerLocked(rec records.CommandRecord, src output.Source, data []byte, g *gatherer) error {
 	// The output streams from its source between what precedes it and what
 	// follows, the device's bytes as they were recorded (base64 decoded as
 	// it streams, a spool copied), through the escape-sequence stripper
@@ -457,7 +464,11 @@ func (r *recordRenderer) writeAnswerLocked(rec records.CommandRecord, src output
 			}
 			// The last byte is read below the stripper: the block's closing
 			// newline follows what the terminal saw.
-			end := &output.LastByteWriter{W: rendererWriter{r}, Last: last}
+			var to io.Writer = rendererWriter{r}
+			if g != nil {
+				to = stopWriter{w: to, g: g}
+			}
+			end := &output.LastByteWriter{W: to, Last: last}
 			var w io.Writer = end
 			var strip *ansiStripper
 			if r.stripANSI {
@@ -468,9 +479,12 @@ func (r *recordRenderer) writeAnswerLocked(rec records.CommandRecord, src output
 			if err == nil && strip != nil {
 				err = strip.flush()
 			}
+			if errors.Is(err, errGatherInterrupted) && r.err == nil {
+				return err
+			}
 			if err != nil {
 				r.setErrorLocked("record_output_decode_failed", err)
-				return false
+				return r.err
 			}
 			if strip == nil || strip.wrote {
 				last, wrote = end.Last, true
@@ -480,7 +494,7 @@ func (r *recordRenderer) writeAnswerLocked(rec records.CommandRecord, src output
 	if wrote && last != '\n' {
 		r.write([]byte{'\n'})
 	}
-	return r.err == nil
+	return r.err
 }
 
 // hiddenRecord says the text display shows no block for rec: a record
@@ -735,7 +749,11 @@ func (r *recordRenderer) WriteFooter(ended time.Time, code int, elapsed time.Dur
 	if r.format == "jsonl" {
 		return nil
 	}
-	r.endGatheredLocked()
+	if r.endGatheredLocked() {
+		// A follow's display stopped by the invocation's interrupt at the
+		// job's end: no footer, the client says so (app.InterruptedDisplay).
+		return errGatherInterrupted
+	}
 	if r.err != nil {
 		return r.err
 	}
@@ -874,9 +892,13 @@ func (r *recordRenderer) SetError(code string, err error) {
 	r.mu.Unlock()
 }
 
+// setErrorLocked also erases the gathered display's progress line, which
+// nothing draws after an error: left drawn with its last counts, it would
+// look hung for the rest of the job.
 func (r *recordRenderer) setErrorLocked(code string, err error) {
 	if r.err == nil && err != nil {
 		r.err = errorcodes.Ensure(err, code)
+		r.progress.Stop()
 	}
 }
 func (r *recordRenderer) Error() error { r.mu.Lock(); defer r.mu.Unlock(); return r.err }

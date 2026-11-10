@@ -261,6 +261,10 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 		if err == nil {
 			return jobFollowResult(g, streams, jobID, terminal.Outcome.ArtifactDir, terminal.Outcome.Summary, terminal.Outcome.ExitCode)
 		}
+		if line, cause, ok := app.InterruptedDisplay(jobID, artifactDir, err); ok {
+			fmt.Fprintln(streams.Stderr, line)
+			return g.reportError(streams.Stderr, "cancelled", cause)
+		}
 		if ctx.Err() != nil {
 			fmt.Fprintln(streams.Stderr, app.InterruptedLine(jobID, artifactDir, "continues in the daemon"))
 			return exitcode.ExitCancelled
@@ -298,6 +302,10 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 	signal.Ignore(syscall.SIGPIPE)
 	summary, err := app.FollowJobDirectory(ctx, common, folder, jobID, render, streams.Stdout, streams.Stderr)
 	if err != nil {
+		if line, cause, ok := app.InterruptedDisplay(jobID, folder.Path, err); ok {
+			fmt.Fprintln(streams.Stderr, line)
+			return g.reportError(streams.Stderr, "cancelled", cause)
+		}
 		if ctx.Err() != nil {
 			fmt.Fprintln(streams.Stderr, app.InterruptedLine(jobID, folder.Path, "continues"))
 			return exitcode.ExitCancelled

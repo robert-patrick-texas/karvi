@@ -63,6 +63,17 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	}
 	result := ActivityResult{ActivityID: id, JobID: id}
 	cfg := req.Config
+	// The gathered display's progress line at a terminal (progress.go):
+	// standard error is its writer for the whole job, so every line the job
+	// writes there (a warning, a debug line, a host-key line) erases it and
+	// draws it again after; it is drawn once the display gathers
+	// (gatherFrom), and erased at the display's end or the job's.
+	var progress *ProgressLine
+	if !req.Daemon && cfg.Bool(gatherKey(req.ActivityType)) && ShowsProgress(streams.Stderr, req.Quiet) {
+		progress = NewProgressLine(streams.Stderr, DisplayLineStyle(cfg, DisplayDestination(streams.Stderr)), len(plan.Targets))
+		streams.Stderr = progress
+		defer progress.Stop()
+	}
 	// The ICMP gate's capability, once per live job and before anything is
 	// written: an enabled gate with no
 	// allowed method refuses the job here, so a daemon commit is refused
@@ -339,11 +350,14 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	// which shows today's display, nor where the display goes nowhere
 	// (Unshown); gatherFrom refuses another format, the daemon, and --live.
 	// The read-back closes the file; the close here is for a display that
-	// never read it.
+	// never read it. The invocation's interrupt (ctx, its signals alone in
+	// process) stops the display at once: a Ctrl-C while the job runs
+	// cancels the job and shows nothing gathered, one during the read-back
+	// stops it; the job's end, exit 113, and the footer follow.
 	if store.Paths().CommandsJSONL != "" && !req.Unshown && cfg.Bool(gatherKey(req.ActivityType)) {
 		if commands := store.CommandsReader(); commands != nil {
 			defer commands.Close()
-			renderer.gatherFrom(func() (*os.File, error) { return commands, nil })
+			renderer.gatherFrom(func() (*os.File, error) { return commands, nil }, ctx.Done(), progress)
 		}
 	}
 	var live func(records.CommandRecord) executor.LiveView

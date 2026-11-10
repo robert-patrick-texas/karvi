@@ -30,7 +30,7 @@ func gatheringRenderer(t *testing.T, out *bytes.Buffer, path string, quiet bool,
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !r.gatherFrom(func() (*os.File, error) { return os.Open(path) }) {
+	if !r.gatherFrom(func() (*os.File, error) { return os.Open(path) }, nil, nil) {
 		t.Fatal("the renderer does not gather")
 	}
 	return r
@@ -497,7 +497,7 @@ func TestGatheredBorderAndFooterValues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.gatherFrom(func() (*os.File, error) { return os.Open(path) })
+	r.gatherFrom(func() (*os.File, error) { return os.Open(path) }, nil, nil)
 	for _, rec := range recs {
 		r.OnRecord(rec)
 	}

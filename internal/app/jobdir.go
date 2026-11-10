@@ -173,7 +173,12 @@ func readSummary(dir string) (records.Summary, error) {
 	var summary records.Summary
 	path := filepath.Join(dir, "summary.json")
 	raw, err := osutil.ReadRegularFile(path, scoreboard.MaxSummaryBytes)
-	if err != nil {
+	var named *fs.PathError
+	switch {
+	case errors.As(err, &named):
+		// The open's error names the path.
+		return summary, errorcodes.Ensure(err, "run_output_records_unreadable")
+	case err != nil:
 		return summary, errorcodes.Errorf("run_output_records_unreadable", "read %s: %w", path, err)
 	}
 	if err := json.Unmarshal(raw, &summary); err != nil {
@@ -252,6 +257,9 @@ func FollowJobDirectory(ctx context.Context, common CommonOptions, folder JobFol
 	if err != nil {
 		return records.Summary{}, err
 	}
+	// The gathered display's progress line is erased at every end of the
+	// follow, before the client's own lines.
+	defer renderer.StopProgress()
 	var (
 		reader   *bufio.Reader
 		partial  []byte
@@ -283,9 +291,14 @@ func FollowJobDirectory(ctx context.Context, common CommonOptions, folder JobFol
 			defer f.Close()
 			reader = bufio.NewReaderSize(f, 64*1024)
 			// Gathered (display.run.gather, the follower's): the answers
-			// read back at the end through the same checks.
+			// read back at the end through the same checks, stopped by the
+			// invocation's interrupt; its progress line, at a terminal,
+			// over the devices the job's summary names.
 			if cfg.Bool("display.run.gather") {
-				renderer.Gather(func() (*os.File, error) { return openChecked(path, folder.Group) })
+				devices := len(summary.Devices)
+				if _, err := renderer.Gather(ctx, func() (*os.File, error) { return openChecked(path, folder.Group) }, func() (int, error) { return devices, nil }); err != nil {
+					return summary, err
+				}
 			}
 		}
 		if reader != nil {

@@ -50,6 +50,21 @@ they were published in.
   the job is unaffected, and the line before the error says so, `job ID
   ended exit=N; artifacts DIR`; under `--no-daemon` the job's summary and
   scoreboard carry the exit, as a footer that cannot be written does.
+  While it waits, when standard error is a terminal (judged by itself, as
+  colour is), one line there, `gather: done=N/M fail=F`, job list's DONE and
+  FAIL over the job's devices, is drawn as the display starts, rewritten as
+  each device ends, other lines on standard error written above it, and
+  cleared before the blocks; none is written to a pipe or a file, or under
+  `--quiet`, and it is drawn only while karvi is the terminal's foreground
+  job and the terminal is wider than the line (a job sent to the background
+  writes none over the shell). A Ctrl-C stops the display at once: while the
+  job runs nothing gathered is shown (in process the job is cancelled and
+  its footer follows; through the daemon the job continues, as before), and
+  during the read-back at the end the blocks stop between pieces, in process
+  (`--no-daemon`, `command`) the footer after with exit 113, through the
+  daemon the line `job ID ended exit=N; artifacts DIR` and then `cancelled:
+  the display of job ID was interrupted`, exit 113; `karvi job follow
+  JOB-ID` with the key set shows the job whole later.
 
 ### Bugs fixed
 
@@ -77,6 +92,9 @@ they were published in.
 - **`job follow` from a job's folder names a gone `commands.jsonl` once.**
   The error read `open PATH: open PATH: no such file or directory`; it reads
   `open PATH: no such file or directory`.
+- **`job follow` from a job's folder names a `summary.json` it cannot open
+  once.** The error read `read PATH: open PATH: permission denied`; it reads
+  `open PATH: permission denied`.
 
 ### Breaking changes
 
