@@ -485,7 +485,9 @@ func (r *recordRenderer) markerLine(key blockKey) string {
 // (display.gather.header, one line however long), its answer read back
 // when it has one, and its failure line, the run's border between groups
 // and between blocks, a block's border and marker written with its first
-// group; under --quiet no marker, header, or border. A commands.jsonl that
+// group; under --quiet no marker, header, or border. In line mode each of a
+// group's lines begins with its folded names, and no header or border is
+// written. A commands.jsonl that
 // cannot be read, or a line that is not the record the job's stream
 // carried, is run_output_records_unreadable: the groups written stand, and
 // the footer is not written. The invocation's interrupt is
@@ -530,7 +532,12 @@ func (r *recordRenderer) writeGatheredLocked(g *gatherer) error {
 			data := r.appendBorderLocked(lead)
 			lead = nil
 			r.currentHeaderWidth = 0
-			if !r.quiet && r.gatherTemplate != "" {
+			// Line mode: the group's folded names before each of its
+			// lines, no header (and no border, nextBorder).
+			var prefix []byte
+			if r.lineMode() {
+				prefix = r.linePrefix(matching.Condense(g.namesOf(group)))
+			} else if !r.quiet && r.gatherTemplate != "" {
 				values := display.Values{Targets: matching.Condense(g.namesOf(group)), Count: len(group.devices)}
 				line, err := r.formatter.RenderStyledLine(r.gatherTemplate, values, r.lineStyle)
 				if err != nil {
@@ -550,13 +557,13 @@ func (r *recordRenderer) writeGatheredLocked(g *gatherer) error {
 				// The notice is the follow stream's, which the store never
 				// writes in the file: the answer is the line's, read back.
 				rec.Notices = slices.DeleteFunc(rec.Notices, func(n records.Notice) bool { return n.Code == "follow_output_omitted" })
-				if err := r.writeAnswerLocked(rec, src, data, g); err != nil {
+				if err := r.writeAnswerLocked(rec, src, data, g, prefix); err != nil {
 					return err
 				}
 				data = nil
 			}
 			if line := group.failureLine(); line != "" {
-				data = appendLine(data, display.ANSIStyle(line, r.lineStyle.Error, r.colorEnabled, true))
+				data = r.appendLines(data, prefix, line, r.lineStyle.Error, true)
 			}
 			r.write(data)
 			if r.err != nil {

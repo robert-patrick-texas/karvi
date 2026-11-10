@@ -65,6 +65,29 @@ they were published in.
   daemon the line `job ID ended exit=N; artifacts DIR` and then `cancelled:
   the display of job ID was interrupted`, exit 113; `karvi job follow
   JOB-ID` with the key set shows the job whole later.
+- **Line mode: `display.run.prefix`.** Set true (false by default), a run's
+  text display writes every line as `NAME: line`, the device's name first,
+  as pdsh and clush write it, an empty line `NAME: ` too, so `grep` and
+  `sort` read a fleet's answers by device: the answer (stdout then stderr on
+  the exec channel), the `--echo` line, and the failure and not-attempted
+  lines without the `target=` the name repeats (`router09: karvi:
+  status=connection_error error=...`, `router09: karvi:
+  status=not_attempted_prior_command_failure command=2/2`). No device
+  header, no border, and no ICMP gate's line (nor its `--debug` lines), as
+  the gathered display: a skipped device shows by its failure line. The
+  records stream as written, nothing held; an answer is prefixed as it
+  streams, a long one never held whole. With `display.run.gather` each
+  line of a group is under the group's folded names,
+  `edge[1-2],router[01-04,10]: line`, the block's marker unprefixed, no
+  group header. karvi's own lines (the marker, and by the default
+  templates the footer and a `crun`'s collection line after it) begin with
+  `!`. At a terminal the name is in the
+  target colour, `: ` in the label colour, a failure line in the error
+  colour, the device's output uncoloured. It reaches the paths
+  `display.run.gather` reaches, each by the configuration of the invocation
+  showing it; `command` has its own key, `display.command.prefix`, and `job
+  follow` shows any job by `display.run.prefix`. Under `--format jsonl` or
+  `json`, and under `--live`, it has no effect.
 
 ### Bugs fixed
 

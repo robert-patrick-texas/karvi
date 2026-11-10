@@ -1,0 +1,10 @@
+edge1:      ^
+edge1: % Invalid input detected at '^' marker.
+edge1: karvi: status=device_error error=device_command_error: device reported a command error
+edge2:      ^
+edge2: % Invalid input detected at '^' marker.
+edge2: karvi: status=device_error error=device_command_error: device reported a command error
+router01:      ^
+router01: % Invalid input detected at '^' marker.
+router01: karvi: status=device_error error=device_command_error: device reported a command error
+! exit=0

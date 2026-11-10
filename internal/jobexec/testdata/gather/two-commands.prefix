@@ -1,0 +1,115 @@
+router01: Cisco IOS XE Software, Version 17.09.04a
+router01: fake-iosxe uptime is 1 day
+router02: Cisco IOS XE Software, Version 17.09.04a
+router02: fake-iosxe uptime is 1 day
+router04: Cisco IOS XE Software, Version 17.09.04a
+router04: fake-iosxe uptime is 1 day
+router03: Cisco IOS XE Software, Version 17.09.04a
+router03: fake-iosxe uptime is 1 day
+router01: Building configuration...
+router01: 
+router01: Current configuration : 512 bytes
+router01: !
+router01: ! Last configuration change at 10:00:00 UTC Tue Sep 15 2026
+router01: !
+router01: version 17.9
+router01: hostname core
+router01: !
+router01: interface GigabitEthernet1
+router01:  ip address 192.0.2.1 255.255.255.0
+router01: !
+router01: ntp clock-period 17179869
+router01: end
+router02: Building configuration...
+router02: 
+router02: Current configuration : 512 bytes
+router02: !
+router02: ! Last configuration change at 10:00:00 UTC Tue Sep 15 2026
+router02: !
+router02: version 17.9
+router02: hostname core
+router02: !
+router02: interface GigabitEthernet1
+router02:  ip address 192.0.2.1 255.255.255.0
+router02: !
+router02: ntp clock-period 17179869
+router02: end
+router04: Building configuration...
+router04: 
+router04: Current configuration : 512 bytes
+router04: !
+router04: ! Last configuration change at 10:00:00 UTC Tue Sep 15 2026
+router04: !
+router04: version 17.9
+router04: hostname core
+router04: !
+router04: interface GigabitEthernet1
+router04:  ip address 192.0.2.1 255.255.255.0
+router04: !
+router04: ntp clock-period 17179869
+router04: end
+router03: Building configuration...
+router03: 
+router03: Current configuration : 512 bytes
+router03: !
+router03: ! Last configuration change at 10:00:00 UTC Tue Sep 15 2026
+router03: !
+router03: version 17.9
+router03: hostname core
+router03: !
+router03: interface GigabitEthernet1
+router03:  ip address 192.0.2.1 255.255.255.0
+router03: !
+router03: ntp clock-period 17179869
+router03: end
+router09: karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:38537: connect: connection refused
+router09: karvi: status=not_attempted_prior_command_failure command=2/2
+router10: Cisco IOS XE Software, Version 17.09.04a
+router10: fake-iosxe uptime is 1 day
+edge1: Cisco IOS XE Software, Version 17.09.04a
+edge1: fake-iosxe uptime is 1 day
+edge2: Cisco IOS XE Software, Version 17.09.04a
+edge2: fake-iosxe uptime is 1 day
+router10: Building configuration...
+router10: 
+router10: Current configuration : 512 bytes
+router10: !
+router10: ! Last configuration change at 10:00:00 UTC Tue Sep 15 2026
+router10: !
+router10: version 17.9
+router10: hostname core
+router10: !
+router10: interface GigabitEthernet1
+router10:  ip address 192.0.2.1 255.255.255.0
+router10: !
+router10: ntp clock-period 17179869
+router10: end
+edge1: Building configuration...
+edge1: 
+edge1: Current configuration : 512 bytes
+edge1: !
+edge1: ! Last configuration change at 10:00:00 UTC Tue Sep 15 2026
+edge1: !
+edge1: version 17.9
+edge1: hostname edge
+edge1: !
+edge1: interface GigabitEthernet1
+edge1:  ip address 192.0.2.1 255.255.255.0
+edge1: !
+edge1: ntp clock-period 17179869
+edge1: end
+edge2: Building configuration...
+edge2: 
+edge2: Current configuration : 512 bytes
+edge2: !
+edge2: ! Last configuration change at 10:00:00 UTC Tue Sep 15 2026
+edge2: !
+edge2: version 17.9
+edge2: hostname edge
+edge2: !
+edge2: interface GigabitEthernet1
+edge2:  ip address 192.0.2.1 255.255.255.0
+edge2: !
+edge2: ntp clock-period 17179869
+edge2: end
+! exit=0

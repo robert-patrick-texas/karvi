@@ -1,0 +1,5 @@
+! show bogus
+edge[1-2],router01:      ^
+edge[1-2],router01: % Invalid input detected at '^' marker.
+edge[1-2],router01: karvi: status=device_error error=device_command_error
+! exit=0

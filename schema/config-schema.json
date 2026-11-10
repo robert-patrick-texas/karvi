@@ -1990,6 +1990,17 @@
       "documentation": "Gather the command's text display as `display.run.gather` gathers a run's, shown at the job's end: a block per requested command, the device's answer under the group header (`display.gather.header`). Under `--format jsonl` or `json` it has no effect. It reads the job's `commands.jsonl`: under `--nof` or `output.files.commands-jsonl = false` the display is the ordinary one. `display.command.echo` is not applied when gathering. While the device answers, a line on standard error, `gather: done=0/1 fail=0`, says the display is held back, when standard error is a terminal (none to a pipe or a file, none under `--quiet`), cleared before the blocks; a Ctrl-C stops the display, nothing gathered shown while the job runs, the blocks cut short during the read-back. `job follow` shows a command's job by `display.run.gather`, as by the other `display.run` keys."
     },
     {
+      "path": "display.command.prefix",
+      "kind": "boolean",
+      "default_literal": "false",
+      "required": false,
+      "lock_eligible": true,
+      "reload_class": "next-job",
+      "environment": "KARVI__DISPLAY__COMMAND__PREFIX",
+      "cli_flags": null,
+      "documentation": "Line mode for the command's text display as `display.run.prefix` for a run's: each line `NAME: line`, the device's name first (gathered, `display.command.gather`, the group's), with no device or group header, no ICMP gate's line, and no border. Under `--format jsonl` or `json`, and under `--live`, it has no effect. `job follow` shows a command's job by `display.run.prefix`, as by the other `display.run` keys."
+    },
+    {
       "path": "display.run.header",
       "kind": "string",
       "default_literal": "\"! \u003ctarget\u003e [\u003caddress\u003e] platform=\u003cplatform\u003e user=\u003cuser\u003e backend=\u003cauth-backend\u003e transport=\u003ctransport\u003e\"",
@@ -2088,7 +2099,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__RUN__PREFIX",
       "cli_flags": null,
-      "documentation": "Line mode: a run's text display writes each line as `NAME: line`, its device's name first (gathered, the group's folded names), with no device or group header and no border. Under `--format jsonl` or `json` it has no effect."
+      "documentation": "Line mode: a run's text display writes each line as `NAME: line`, its device's name first (gathered, `display.run.gather`, the group's folded names), as pdsh and clush write it, with no device or group header, no ICMP gate's line, and no border; karvi's own lines (a command's marker, and by the default templates the footer and a collection's line after it) begin with `!`. Under `--format jsonl` or `json`, and under `--live`, it has no effect."
     },
     {
       "path": "display.gather.header",

@@ -1,0 +1,35 @@
+! show version
+edge[1-2],router[01-04,10]: Cisco IOS XE Software, Version 17.09.04a
+edge[1-2],router[01-04,10]: fake-iosxe uptime is 1 day
+router09: karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:38537: connect: connection refused
+! show running-config
+router[01-04,10]: Building configuration...
+router[01-04,10]: 
+router[01-04,10]: Current configuration : 512 bytes
+router[01-04,10]: !
+router[01-04,10]: ! Last configuration change at 10:00:00 UTC Tue Sep 15 2026
+router[01-04,10]: !
+router[01-04,10]: version 17.9
+router[01-04,10]: hostname core
+router[01-04,10]: !
+router[01-04,10]: interface GigabitEthernet1
+router[01-04,10]:  ip address 192.0.2.1 255.255.255.0
+router[01-04,10]: !
+router[01-04,10]: ntp clock-period 17179869
+router[01-04,10]: end
+edge[1-2]: Building configuration...
+edge[1-2]: 
+edge[1-2]: Current configuration : 512 bytes
+edge[1-2]: !
+edge[1-2]: ! Last configuration change at 10:00:00 UTC Tue Sep 15 2026
+edge[1-2]: !
+edge[1-2]: version 17.9
+edge[1-2]: hostname edge
+edge[1-2]: !
+edge[1-2]: interface GigabitEthernet1
+edge[1-2]:  ip address 192.0.2.1 255.255.255.0
+edge[1-2]: !
+edge[1-2]: ntp clock-period 17179869
+edge[1-2]: end
+router09: karvi: status=not_attempted_prior_command_failure
+! exit=0

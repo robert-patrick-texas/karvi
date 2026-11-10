@@ -179,9 +179,10 @@ func draftOptions(commands []string) DraftOptions {
 // Re-pinned at display.run.gather, display.run.prefix, and
 // display.gather.header (EXAMPLES chapter 106): the configuration block's
 // three new keys and its digest; the plan schema stays 17, nothing else
-// moved. Re-pinned at display.command.gather: the configuration block's
-// new key and its digest; nothing else moved.
-const goldenK03Draft = "12fc6da6cc7a6088a822ac4b2b98da4e53d35b3ea7195f0ade01ac1b8e2c09fb"
+// moved. Re-pinned at display.command.gather, and at
+// display.command.prefix: each time the configuration block's new key and
+// its digest; nothing else moved.
+const goldenK03Draft = "7fdbea25cd20d6c368cf7f1e03ff79eff5bdce84d4db3877ada2339a69ec9bd0"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

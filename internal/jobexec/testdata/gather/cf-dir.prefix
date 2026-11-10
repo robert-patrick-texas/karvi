@@ -1,0 +1,11 @@
+router01: *10:00:00.000 UTC Tue Sep 15 2026
+router02: *10:00:00.000 UTC Tue Sep 15 2026
+edge1: Cisco IOS XE Software, Version 17.09.04a
+edge1: fake-iosxe uptime is 1 day
+router01: Cisco IOS XE Software, Version 17.09.04a
+router01: fake-iosxe uptime is 1 day
+router02: Cisco IOS XE Software, Version 17.09.04a
+router02: fake-iosxe uptime is 1 day
+router01: *10:00:00.000 UTC Tue Sep 15 2026
+router02: *10:00:00.000 UTC Tue Sep 15 2026
+! exit=0

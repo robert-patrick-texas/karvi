@@ -91,6 +91,9 @@ type recordRenderer struct {
 	gather         *gatherer
 	gatherTemplate string
 	progress       *ProgressLine
+	// prefix is line mode's key (display.run.prefix, a command's
+	// display.command.prefix), shown where lineMode says.
+	prefix bool
 }
 
 func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, quiet, debug bool, activityID, artifact, activityType string, echo, dynamicBorder, noBorder bool) (*recordRenderer, error) {
@@ -118,6 +121,7 @@ func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, qu
 	gatherTemplate := ""
 	dynamicDefault := 72
 	lastBorder := false
+	prefix := false
 	switch activityType {
 	case "command":
 		headerTemplate = cfg.String("display.command.header")
@@ -126,6 +130,7 @@ func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, qu
 		dynamicDefault = cfg.Int("display.command.dynamic-border-length")
 		lastBorder = cfg.Bool("display.command.last-border")
 		gatherTemplate = cfg.String("display.gather.header")
+		prefix = cfg.Bool("display.command.prefix")
 	case "run":
 		headerTemplate = cfg.String("display.run.header")
 		// The footer of a run rendered where it executes (run --no-daemon),
@@ -136,6 +141,7 @@ func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, qu
 		gatherTemplate = cfg.String("display.gather.header")
 		dynamicDefault = cfg.Int("display.run.dynamic-border-length")
 		lastBorder = cfg.Bool("display.run.last-border")
+		prefix = cfg.Bool("display.run.prefix")
 	}
 	border, err := display.RenderBorder(borderTemplate)
 	if err != nil {
@@ -153,7 +159,7 @@ func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, qu
 		activityID: activityID, artifact: artifact, terminalWidth: terminalWidth,
 		dynamicBorder: dynamicBorder, noBorder: noBorder, lastBorder: lastBorder, dynamicBorderDefault: dynamicDefault,
 		jsonIndent: cfg.Int("display.json.indent"), requested: map[string]int{}, sessionInit: map[string]int{}, seenDevices: map[string]bool{}, errors: map[string]int{},
-		gatherTemplate: gatherTemplate,
+		gatherTemplate: gatherTemplate, prefix: prefix,
 	}, nil
 }
 
@@ -357,8 +363,12 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 	// stack under its failure.
 	if hiddenRecord(&rec) {
 		if !sessionInit {
-			line := fmt.Sprintf("karvi: target=%s status=%s command=%d/%d", target, rec.Status, rec.CommandIndex, rec.CommandCount)
-			data = appendLine(data, display.ANSIStyle(line, r.lineStyle.Error, r.colorEnabled, true))
+			if prefix := r.linePrefix(target); prefix != nil {
+				data = r.appendLines(data, prefix, fmt.Sprintf("karvi: status=%s command=%d/%d", rec.Status, rec.CommandIndex, rec.CommandCount), r.lineStyle.Error, true)
+			} else {
+				line := fmt.Sprintf("karvi: target=%s status=%s command=%d/%d", target, rec.Status, rec.CommandIndex, rec.CommandCount)
+				data = appendLine(data, display.ANSIStyle(line, r.lineStyle.Error, r.colorEnabled, true))
+			}
 		}
 		r.writeKarviLocked(data)
 		return
@@ -399,9 +409,9 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 			}
 			prompt = promptTarget + "#"
 		}
-		data = appendLine(data, prompt+rec.Command)
+		data = r.appendLines(data, r.linePrefix(target), prompt+rec.Command, "", false)
 	}
-	if r.writeAnswerLocked(rec, src, data, nil) != nil {
+	if r.writeAnswerLocked(rec, src, data, nil, r.linePrefix(target)) != nil {
 		return
 	}
 	data = nil
@@ -410,7 +420,11 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 	// a second target's failure but rendered no line when that record contained
 	// no device output, which made a partial run appear to stop after target one.
 	if rec.Error != nil {
-		data = appendLine(data, r.failureLine(rec, target))
+		if prefix := r.linePrefix(target); prefix != nil {
+			data = r.appendLines(data, prefix, failureText(rec, ""), r.lineStyle.Error, true)
+		} else {
+			data = appendLine(data, r.failureLine(rec, target))
+		}
 	}
 
 	r.write(data)
@@ -426,8 +440,9 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 // a group's; r.err when a write or a stream failed. For the gathered
 // display (g set) the stream stops at the invocation's interrupt, checked
 // before each piece: errGatherInterrupted, what was written standing, its
-// last line not ended (endGatheredLocked ends it).
-func (r *recordRenderer) writeAnswerLocked(rec records.CommandRecord, src output.Source, data []byte, g *gatherer) error {
+// last line not ended (endGatheredLocked ends it). In line mode prefix,
+// "NAME: " (linePrefix), comes before each of the answer's lines.
+func (r *recordRenderer) writeAnswerLocked(rec records.CommandRecord, src output.Source, data []byte, g *gatherer, prefix []byte) error {
 	// The output streams from its source between what precedes it and what
 	// follows, the device's bytes as they were recorded (base64 decoded as
 	// it streams, a spool copied), through the escape-sequence stripper
@@ -445,7 +460,11 @@ func (r *recordRenderer) writeAnswerLocked(rec records.CommandRecord, src output
 		// the output would, as its own line, whatever --debug says about
 		// the other record notices. The record's output_bytes and digest
 		// still describe the output, which commands.jsonl holds when kept.
-		r.writeString("karvi: " + omitted.Message + "\n")
+		if prefix != nil {
+			r.write(r.appendLines(nil, prefix, "karvi: "+omitted.Message, "", false))
+		} else {
+			r.writeString("karvi: " + omitted.Message + "\n")
+		}
 		last, wrote = '\n', true
 	} else {
 		// An exec record's stderr follows its stdout, each ending its last
@@ -462,17 +481,22 @@ func (r *recordRenderer) writeAnswerLocked(rec records.CommandRecord, src output
 				r.write([]byte{'\n'})
 				last = '\n'
 			}
-			// The last byte is read below the stripper: the block's closing
-			// newline follows what the terminal saw.
+			// The last byte is read below the stripper and the prefix: the
+			// block's closing newline follows what the terminal saw.
 			var to io.Writer = rendererWriter{r}
 			if g != nil {
 				to = stopWriter{w: to, g: g}
 			}
 			end := &output.LastByteWriter{W: to, Last: last}
 			var w io.Writer = end
+			if prefix != nil {
+				// Each stream's first line prefixed: a line stdout left
+				// open is ended above.
+				w = &linePrefixer{w: end, prefix: prefix}
+			}
 			var strip *ansiStripper
 			if r.stripANSI {
-				strip = &ansiStripper{w: end}
+				strip = &ansiStripper{w: w}
 				w = strip
 			}
 			err := stream.WriteRaw(w)
@@ -508,11 +532,16 @@ func hiddenRecord(rec *records.CommandRecord) bool {
 
 // failureLine is a failed record's line, styled as an error.
 func (r *recordRenderer) failureLine(rec records.CommandRecord, target string) string {
-	failure := fmt.Sprintf("karvi: target=%s status=%s error=%s: %s", target, rec.Status, rec.Error.Code, rec.Error.Message)
+	return display.ANSIStyle(failureText(rec, "target="+target+" "), r.lineStyle.Error, r.colorEnabled, true)
+}
+
+// failureText is a failed record's line after "karvi: " and where, the
+// device's "target=NAME " (line mode's prefix names it, and where is "").
+func failureText(rec records.CommandRecord, where string) string {
 	if rec.CommandKind == "session_init" {
-		failure = fmt.Sprintf("karvi: target=%s session_init=%s command=%d/%d status=%s error=%s: %s", target, rec.SessionInitProfile, rec.CommandIndex, rec.CommandCount, rec.Status, rec.Error.Code, rec.Error.Message)
+		return fmt.Sprintf("karvi: %ssession_init=%s command=%d/%d status=%s error=%s: %s", where, rec.SessionInitProfile, rec.CommandIndex, rec.CommandCount, rec.Status, rec.Error.Code, rec.Error.Message)
 	}
-	return display.ANSIStyle(failure, r.lineStyle.Error, r.colorEnabled, true)
+	return fmt.Sprintf("karvi: %sstatus=%s error=%s: %s", where, rec.Status, rec.Error.Code, rec.Error.Message)
 }
 
 // pingLinesLocked is the ICMP gate's one line for the device, before its
@@ -520,7 +549,10 @@ func (r *recordRenderer) failureLine(rec records.CommandRecord, target string) s
 // live view: routine narration, so --quiet suppresses it, and an empty
 // display.ping.header switches it off. The line is the template rendered as
 // the headers are, styled by role; error details and the packet-loss notice
-// follow only under --debug. ok is false when the template did not render.
+// follow only under --debug. Line mode leaves the line and its --debug
+// lines out with the header, as the gathered display does (a skipped device
+// shows by its failure line, icmp_unreachable). ok is false when the
+// template did not render.
 func (r *recordRenderer) pingLinesLocked(rec records.CommandRecord, values display.Values, target string) (lines []byte, ok bool) {
 	deviceKey := rec.Device.ID
 	if deviceKey == "" {
@@ -528,7 +560,7 @@ func (r *recordRenderer) pingLinesLocked(rec records.CommandRecord, values displ
 	}
 	firstOfDevice := !r.seenDevices[deviceKey]
 	r.seenDevices[deviceKey] = true
-	if rec.Ping == nil || !firstOfDevice || r.quiet || r.pingTemplate == "" {
+	if rec.Ping == nil || !firstOfDevice || r.quiet || r.pingTemplate == "" || r.lineMode() {
 		return nil, true
 	}
 	rendered, err := r.formatter.RenderStyledLines(r.pingTemplate, PingValues(values.Target, values.Address, rec.Ping), r.lineStyle, r.terminalWidth)
@@ -552,7 +584,7 @@ func (r *recordRenderer) pingLinesLocked(rec records.CommandRecord, values displ
 // not render.
 func (r *recordRenderer) headerLinesLocked(values display.Values) (lines []byte, ok bool) {
 	headerKey := values.Target + "\x00" + values.Address
-	writeHeader := !r.quiet && r.headerTemplate != ""
+	writeHeader := !r.quiet && r.headerTemplate != "" && !r.lineMode()
 	if r.activityType == "command" {
 		writeHeader = writeHeader && !r.headerWritten
 	} else {
@@ -595,7 +627,7 @@ func echoRecord(rec records.CommandRecord) bool {
 }
 
 func (r *recordRenderer) nextBorder() (string, string) {
-	if r.quiet || r.noBorder {
+	if r.quiet || r.noBorder || r.lineMode() {
 		return "", ""
 	}
 	border := r.border
