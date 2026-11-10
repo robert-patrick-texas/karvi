@@ -569,13 +569,14 @@ func TestJobFollowOfACommandJobGatheredProgress(t *testing.T) {
 }
 
 // TestJobFollowGatheredSummaryUnreadable: job follow by job ID through the
-// daemon, at a terminal, of a running job whose summary.json cannot be
-// read (its mode 0000), so the line has no count of the job's devices:
-// the follow ends with nothing shown and no line drawn, its line that the
-// job continues in the daemon, then run_output_records_unreadable naming
-// the file, exit 111; the job is unaffected: a follow showing no line
-// waits for its end in the daemon and shows it whole, exit 0, and its
-// summary, written again at its end, keeps exit 0.
+// daemon of a running job whose summary.json cannot be read (its mode
+// 0000), so neither the job's records nor the line's count of its devices
+// can be judged: at a terminal and not, the summary read where the display
+// gathers (DECISIONS point 4, the third "Settled at S6"), the follow ends
+// with nothing shown and no line drawn, its line that the job continues
+// in the daemon, then run_output_records_unreadable naming the file, exit
+// 111; the job is unaffected: once it ends, its summary written again,
+// keeping exit 0, a follow shows it whole, exit 0.
 func TestJobFollowGatheredSummaryUnreadable(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("root reads a file of mode 0000")
@@ -610,9 +611,16 @@ func TestJobFollowGatheredSummaryUnreadable(t *testing.T) {
 	stdout.Reset()
 	stderr.Reset()
 	code = Main(append(append([]string{}, sets...), "job", "follow", summary.JobID), strings.NewReader(""), &stdout, &stderr)
+	if code != exitcode.ExitOutputFailure || stdout.String() != "" || !strings.HasSuffix(stderr.String(), want) {
+		t.Fatalf("job follow, no line: exit=%d stdout=%q\nstderr=%q\nwant the lines %q", code, stdout.String(), stderr.String(), want)
+	}
+	waitSummary(t, base, summary.JobID)
+	stdout.Reset()
+	stderr.Reset()
+	code = Main(append(append([]string{}, sets...), "job", "follow", summary.JobID), strings.NewReader(""), &stdout, &stderr)
 	want = gatheredOK("show version") + "\n" + gatheredOK("show clock")
 	if code != 0 || stdout.String() != want {
-		t.Fatalf("job follow, no line: exit=%d stderr=%q\nstdout:\n%s\nwant:\n%s", code, stderr.String(), stdout.String(), want)
+		t.Fatalf("job follow after the job's end: exit=%d stderr=%q\nstdout:\n%s\nwant:\n%s", code, stderr.String(), stdout.String(), want)
 	}
 	if ended, _ := jobSummary(t, base); ended.ExitCode != 0 || ended.FinalStatus == "" {
 		t.Fatalf("the job's end: exit %d status %q", ended.ExitCode, ended.FinalStatus)

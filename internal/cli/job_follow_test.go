@@ -157,18 +157,23 @@ func TestJobFollowRendersTheDetachedJob(t *testing.T) {
 }
 
 // TestJobFollowInterruptedBeforeTheStart: a cancelled context is the
-// interrupted shape with exit 113 and no artifact path yet.
+// interrupted shape with exit 113 and no artifact path yet; under --gather
+// too the line names the plain follow, nothing having gathered yet
+// (DECISIONS point 4, the fourth "Settled at S6", gather-2026-11: named
+// where the interrupted display was gathering).
 func TestJobFollowInterruptedBeforeTheStart(t *testing.T) {
 	_, g, socket := daemonTestRuntime(t)
 	startStopFixture(t, socket, 0, nil)
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	var stdout, stderr bytes.Buffer
-	if got := jobFollow(ctx, followInvocation(t, g, fixtureJobID), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitCancelled {
-		t.Fatalf("exit=%d stderr=%q", got, stderr.String())
-	}
-	if want := "interrupted: job " + fixtureJobID + " continues in the daemon; run \"karvi job follow " + fixtureJobID + "\" again or read its summary.json when it ends\n"; stderr.String() != want {
-		t.Fatalf("stderr=%q", stderr.String())
+	for _, opts := range [][]string{nil, {"--gather"}} {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		var stdout, stderr bytes.Buffer
+		if got := jobFollow(ctx, followInvocation(t, g, append(append([]string{}, opts...), fixtureJobID)...), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitCancelled {
+			t.Fatalf("%q: exit=%d stderr=%q", opts, got, stderr.String())
+		}
+		if want := "interrupted: job " + fixtureJobID + " continues in the daemon; run \"karvi job follow " + fixtureJobID + "\" again or read its summary.json when it ends\n"; stderr.String() != want {
+			t.Fatalf("%q: stderr=%q", opts, stderr.String())
+		}
 	}
 }
 

@@ -292,7 +292,9 @@ func RunViaDaemon(ctx context.Context, opts RunOptions, socket string, maxFrame 
 	// Then follow the accepted job to its terminal, rendering its records
 	// as they become durable; an exercise has no record to render and its
 	// report is read afterwards.
-	terminal, err := followJob(ctx, followOptions{cfg: cd.cfg, socket: socket, maxFrame: maxFrame, jobID: jobReceipt.JobID, render: opts.Follow && mode == executionplan.ModeLive, format: opts.Format, quiet: opts.Quiet, debug: opts.Debug, echo: opts.Echo, dynamic: opts.DynamicBorder, noBorder: opts.NoBorder, devices: len(final.Targets), stderr: streams.Stderr}, jobReceipt.ArtifactDir, streams.Stdout)
+	// gathering says whether the display gathered, for an interrupt's line.
+	var gathering bool
+	terminal, err := followJob(ctx, followOptions{cfg: cd.cfg, socket: socket, maxFrame: maxFrame, jobID: jobReceipt.JobID, render: opts.Follow && mode == executionplan.ModeLive, format: opts.Format, quiet: opts.Quiet, debug: opts.Debug, echo: opts.Echo, dynamic: opts.DynamicBorder, noBorder: opts.NoBorder, devices: len(final.Targets), gathering: &gathering, stderr: streams.Stderr}, jobReceipt.ArtifactDir, streams.Stdout)
 	if err != nil {
 		// The invocation's interrupt during the gathered read-back, the
 		// job ended: its ended line and cancelled, no summary, so no
@@ -304,7 +306,7 @@ func RunViaDaemon(ctx context.Context, opts RunOptions, socket string, maxFrame 
 			return r
 		}
 		if ctx.Err() != nil {
-			fmt.Fprintln(streams.Stderr, InterruptedLine(jobReceipt.JobID, jobReceipt.ArtifactDir, "continues in the daemon"))
+			fmt.Fprintln(streams.Stderr, InterruptedLine(jobReceipt.JobID, jobReceipt.ArtifactDir, "continues in the daemon", cd.cfg, gathering))
 			r := failedResult("cancelled", errorcodes.Errorf("cancelled", "the follow of job %s was interrupted; the job continues", jobReceipt.JobID))
 			r.JobID, r.ArtifactDir = jobReceipt.JobID, jobReceipt.ArtifactDir
 			return r
@@ -350,9 +352,6 @@ func RunViaDaemon(ctx context.Context, opts RunOptions, socket string, maxFrame 
 	return result
 }
 
-// InterruptedLine is the line of an interrupted follow: the job continues,
-// and the way back
-// to it is job follow or the summary.
 // ArtifactsLabel is a result line's <artifacts>: the job's folder, or
 // "none" for a job that keeps none (`--nof`),
 // so that no line ends in a bare "artifacts=" that reads as a fault. The
@@ -365,11 +364,27 @@ func ArtifactsLabel(artifactDir string) string {
 	return artifactDir
 }
 
-func InterruptedLine(jobID, artifactDir, state string) string {
-	if artifactDir == "" {
-		return fmt.Sprintf("interrupted: job %s %s; run \"karvi job follow %s\" again or read its summary.json when it ends", jobID, state, jobID)
+// InterruptedLine is the line of an interrupted follow: the job continues,
+// and the way back to it is job follow or the summary. One function builds
+// it and decides its form: it names `karvi job follow --gather ID`, the one
+// command that shows what the gathered display held back, where the
+// interrupted display was gathering (gathering, the renderer's Gather took
+// it) and the option would take effect, display.run.gather not locked in
+// cfg; under a site's lock the line stays plain (a locked true gathers a
+// plain follow, and the lock refuses the option, exit 3), as the "; --of"
+// hint is given only where --of works (DECISIONS point 4, the fourth
+// "Settled at S6", gather-2026-11). Otherwise the plain follow: job cancel
+// --follow, which shows no display, and an interrupt before anything
+// gathers pass gathering false.
+func InterruptedLine(jobID, artifactDir, state string, cfg configload.Snapshot, gathering bool) string {
+	again := "karvi job follow " + jobID
+	if gathering && !cfg.Locked("display.run.gather") {
+		again = "karvi job follow --gather " + jobID
 	}
-	return fmt.Sprintf("interrupted: job %s %s; artifacts %s; run \"karvi job follow %s\" again or read %s/summary.json when it ends", jobID, state, artifactDir, jobID, artifactDir)
+	if artifactDir == "" {
+		return fmt.Sprintf("interrupted: job %s %s; run \"%s\" again or read its summary.json when it ends", jobID, state, again)
+	}
+	return fmt.Sprintf("interrupted: job %s %s; artifacts %s; run \"%s\" again or read %s/summary.json when it ends", jobID, state, artifactDir, again, artifactDir)
 }
 
 // CancelledLine is the line a client prints for a job cancelled through

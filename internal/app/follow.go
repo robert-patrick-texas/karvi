@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -35,11 +34,19 @@ type followOptions struct {
 	noBorder bool
 	// devices is the job's devices for the gathered display's progress
 	// line: the submitting client's plan's; 0 when the follower holds no
-	// plan (job follow), which reads them from the job's summary.json.
+	// plan (job follow), which takes them from the job's summary.json, the
+	// one read that judges the job's records (judgeRecords).
 	devices int
 	// learned receives the artifact directory announced by the stream's
 	// start, for a follower that did not know it (job follow).
 	learned *string
+	// gather is job follow's --gather as given (FollowRenderOptions.Gather):
+	// a job that kept no commands.jsonl is refused at the first start.
+	gather bool
+	// gathering, when set, is set true once the display gathers (the
+	// renderer's Gather took it), so an interrupt's line can name --gather
+	// (InterruptedLine).
+	gathering *bool
 	// stderr takes the not-kept line (NotKeptLine); nil prints none.
 	stderr io.Writer
 }
@@ -77,6 +84,16 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 		// gathered is set once the renderer was asked to gather, at the
 		// first start, which draws the progress line.
 		gathered bool
+		// judged is the job's records as job follow --gather's first start
+		// judged them (judgeRecords), before anything is said, and handed
+		// to gatherInto; nil until then, and without --gather, where
+		// gatherInto judges them itself, once. A later start (a resume
+		// after a lost stream) is never judged again: the first found that
+		// the job kept its commands.jsonl, and a file lost since is the
+		// read-back's run_output_records_unreadable at the end, not a job
+		// that kept none (DECISIONS point 4, the third "Settled at S6",
+		// gather-2026-11).
+		judged *jobRecords
 	)
 	// The renderer's artifacts value is the footer's label: the folder, or
 	// none for a run that keeps no files (28.4).
@@ -103,17 +120,38 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 		terminal, err := daemon.FollowJob(ctx, o.socket, o.maxFrame, ipc.FollowRequest{JobID: o.jobID, Cursor: cursor},
 			func(start ipc.FollowStart) error {
 				// A follow named by job ID alone (job follow) learns the
-				// artifact directory from the
-				// start and builds its renderer then.
+				// artifact directory from the start (it writes nothing), so
+				// every failure from here names the folder, and builds its
+				// renderer then.
 				if o.learned != nil {
 					*o.learned = start.ArtifactDir
-					// A follow by job ID alone did not see the receipt, so the
-					// first start's admission warnings are its (IPC 10); the
-					// committing client printed them from the receipt.
-					if !warned {
-						jobexec.WriteAdmissionWarnings(o.stderr, o.cfg, start.Warnings)
-						warned = true
+				}
+				// job follow --gather judges the job's records here, at the
+				// first start, before the admission warnings, the not-kept
+				// line, and the renderer: a job that kept no
+				// commands.jsonl is refused, the refusal the only line on
+				// standard error, the job untouched, a running one
+				// continuing in the daemon (DECISIONS point 4, settled at
+				// S6, gather-2026-11); the code is terminal below, never
+				// retried. The judgement is the gathering's too
+				// (gatherInto), never made twice, so under --gather the
+				// display is gathered or refused, never silently today's.
+				if o.gather && judged == nil {
+					records, err := judgeRecords(start.ArtifactDir)
+					if err != nil {
+						return err
 					}
+					if records.notKept != "" {
+						return gatherNotKept(o.jobID, records.notKept)
+					}
+					judged = &records
+				}
+				// A follow by job ID alone did not see the receipt, so the
+				// first start's admission warnings are its (IPC 10); the
+				// committing client printed them from the receipt.
+				if o.learned != nil && !warned {
+					jobexec.WriteAdmissionWarnings(o.stderr, o.cfg, start.Warnings)
+					warned = true
 				}
 				if line := NotKeptLine(cursor, start.FirstSequence); line != "" {
 					jobexec.WriteWarning(o.stderr, o.cfg, line)
@@ -130,7 +168,7 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 				// from the receipt, run's and crun's, too).
 				if renderer != nil && !gathered {
 					gathered = true
-					if err := o.gatherInto(ctx, renderer, start.ArtifactDir); err != nil {
+					if err := o.gatherInto(ctx, renderer, start.ArtifactDir, judged); err != nil {
 						return err
 					}
 					o.stderr = renderer.Stderr()
@@ -164,7 +202,7 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 		}
 		code := errorcodes.Of(err)
 		switch {
-		case code == "terminal_write_failed", code == "run_output_record_decode_failed", code == "run_output_records_unreadable", code == "ipc_result_malformed", code == "job_unknown", code == "follow_cursor_stale", code == "ipc_frame_too_large":
+		case code == "terminal_write_failed", code == "run_output_record_decode_failed", code == "run_output_records_unreadable", code == "ipc_result_malformed", code == "job_unknown", code == "follow_cursor_stale", code == "ipc_frame_too_large", code == "gather_option_conflict":
 			return ipc.FollowTerminal{}, err
 		}
 		// follow_lagged, a lost connection, or a daemon that closed the
@@ -179,40 +217,91 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 	return ipc.FollowTerminal{}, errorcodes.Errorf("follow_stream_lost", "the follow stream failed %d times without progress; last: %v", followRetries, errorText(lastErr))
 }
 
-// gatherInto has the follow's renderer gather when the follower's
-// configuration says so (display.run.gather) and the job keeps its
-// commands.jsonl in artifactDir: the store makes the file with the job's
-// files, before the receipt and the follow's start, so one absent then is
-// not kept, and the display is today's. At the end the answers are read
-// back from it with the folder follow's checks (openChecked), the file
-// the follower's own: only the daemon's own account reaches it (a service
-// platform's daemon is the service account's, its followers that account),
-// so no tree's group is asked. The display stops at ctx's end (the
+// gatherInto has the follow's renderer gather, once, at the first start,
+// where the display gathers: the follower's configuration says so
+// (display.run.gather, the follower's own, so job follow gathers a job run
+// without it) and the renderer can (Gathers: text, never --format jsonl or
+// json, so a site's key never breaks a script). The job's records are
+// judged then by judgeRecords, or were judged already under job follow's
+// --gather (judged), the one judgement for the refusal and the gathering;
+// a job that kept none shows today's display (the key alone). The answers
+// are read back at the end from ARTIFACTDIR/commands.jsonl with the folder
+// follow's checks (openChecked), the file the follower's own: only the
+// daemon's own account reaches it (a service platform's daemon is the
+// service account's, its followers that account), so no tree's group is
+// asked; a file gone since the start is that read-back's
+// run_output_records_unreadable. The display stops at ctx's end (the
 // invocation's interrupt). Its progress line, at a terminal, counts the
-// plan's devices, or a follower holding no plan reads them once from the
-// job's summary.json, written at the job's acceptance, with the folder
-// follow's codes: one that cannot be read is
-// run_output_records_unreadable, one that is not a summary
-// run_output_record_decode_failed, the follow ended and the job
-// unaffected. Where the display does not gather (--format jsonl or json)
-// or no line is drawn, it is never read.
-func (o followOptions) gatherInto(ctx context.Context, r *jobexec.RunRenderer, artifactDir string) error {
-	if artifactDir == "" || !o.cfg.Bool("display.run.gather") {
+// plan's devices, or for a follower holding no plan the summary's. The
+// summary's own errors (run_output_records_unreadable,
+// run_output_record_decode_failed) end the follow, the job unaffected.
+func (o followOptions) gatherInto(ctx context.Context, r *jobexec.RunRenderer, artifactDir string, judged *jobRecords) error {
+	if !o.cfg.Bool("display.run.gather") || !r.Gathers() {
 		return nil
 	}
-	path := filepath.Join(artifactDir, "commands.jsonl")
-	if _, err := os.Lstat(path); errors.Is(err, fs.ErrNotExist) {
-		return nil
-	}
-	devices := func() (int, error) {
-		if o.devices > 0 {
-			return o.devices, nil
+	if judged == nil {
+		records, err := judgeRecords(artifactDir)
+		if err != nil {
+			return err
 		}
-		summary, err := readSummary(artifactDir)
-		return len(summary.Devices), err
+		judged = &records
 	}
-	_, err := r.Gather(ctx, func() (*os.File, error) { return openChecked(path, -1) }, devices)
+	if judged.notKept != "" {
+		return nil
+	}
+	devices := judged.devices
+	if o.devices > 0 {
+		devices = o.devices
+	}
+	gathering, err := r.Gather(ctx, func() (*os.File, error) { return openChecked(judged.path, -1) }, func() (int, error) { return devices, nil })
+	if gathering && o.gathering != nil {
+		*o.gathering = true
+	}
 	return err
+}
+
+// jobRecords is the daemon follow's judgement of the job's commands.jsonl
+// (judgeRecords): where none was kept, notKept, the key that was false when
+// the job ran; where it was, path, the file the read-back opens, and
+// devices, the job's devices as its summary names them.
+type jobRecords struct {
+	notKept string
+	path    string
+	devices int
+}
+
+// judgeRecords judges whether the job kept its commands.jsonl from the
+// folder the follow's start names, by the folder follow's rule: no folder,
+// none (output.persist-command was false); its summary.json naming no
+// commands_jsonl, none (output.files.commands-jsonl was false); naming it
+// (whether it names it, never the path it names), kept, the read-back
+// opening ARTIFACTDIR/commands.jsonl at the end (DECISIONS point 4, the
+// third "Settled at S6", gather-2026-11). The file's name is never looked
+// at: a file gone since is the read-back's error, not a job that kept
+// none. A summary that cannot be read is readSummary's error.
+func judgeRecords(artifactDir string) (jobRecords, error) {
+	if artifactDir == "" {
+		return jobRecords{notKept: "output.persist-command"}, nil
+	}
+	summary, err := readSummary(artifactDir)
+	if err != nil {
+		return jobRecords{}, err
+	}
+	if summary.Paths["commands_jsonl"] == "" {
+		return jobRecords{notKept: "output.files.commands-jsonl"}, nil
+	}
+	return jobRecords{path: filepath.Join(artifactDir, "commands.jsonl"), devices: len(summary.Devices)}, nil
+}
+
+// gatherNotKept is job follow --gather's refusal of a job that kept no
+// commands.jsonl, key the output key that was false when it ran
+// (DECISIONS point 4, settled at S6, gather-2026-11):
+// gather_option_conflict (usage, exit 4), the command line refused, not a
+// follow lost. One message for both follow paths, the daemon's
+// (followJob, from judgeRecords) and the folder's (FollowJobDirectory),
+// the job ID and the key its only parts.
+func gatherNotKept(jobID, key string) error {
+	return errorcodes.Errorf("gather_option_conflict", "--gather needs the job's commands.jsonl; job %s kept none (%s was false)", jobID, key)
 }
 
 // EndedError is a followed job's display failing at the job's end, from
@@ -279,6 +368,17 @@ type FollowRenderOptions struct {
 	Echo          bool
 	DynamicBorder bool
 	NoBorder      bool
+	// Gather is --gather as given on the command line (DECISIONS point 4,
+	// settled at S6, gather-2026-11): a job that kept no commands.jsonl is
+	// refused, gather_option_conflict, when the follow learns it, before
+	// anything is said or shown, whatever the key's final value. The key
+	// alone (display.run.gather, set by a file or --set) shapes the
+	// display, and keeps today's display and warning for such a job.
+	Gather bool
+	// Gathering, when set, is set true once the display gathers (the
+	// renderer's Gather took it), so the line of an interrupted follow
+	// can name --gather (InterruptedLine).
+	Gathering *bool
 }
 
 // FollowJobRendering follows a job named by its ID from the zero cursor to
@@ -292,6 +392,6 @@ type FollowRenderOptions struct {
 // rt is the invocation's runtime, resolved from its read.
 func FollowJobRendering(ctx context.Context, common CommonOptions, rt DaemonRuntime, jobID string, o FollowRenderOptions, stdout, stderr io.Writer) (ipc.FollowTerminal, string, error) {
 	var artifactDir string
-	terminal, err := followJob(ctx, followOptions{cfg: rt.Config, socket: rt.Socket, maxFrame: rt.MaxFrame, jobID: jobID, render: true, format: o.Format, quiet: common.Quiet, debug: common.Debug, echo: o.Echo, dynamic: o.DynamicBorder, noBorder: o.NoBorder, learned: &artifactDir, stderr: stderr}, "", stdout)
+	terminal, err := followJob(ctx, followOptions{cfg: rt.Config, socket: rt.Socket, maxFrame: rt.MaxFrame, jobID: jobID, render: true, format: o.Format, quiet: common.Quiet, debug: common.Debug, echo: o.Echo, dynamic: o.DynamicBorder, noBorder: o.NoBorder, learned: &artifactDir, gather: o.Gather, gathering: o.Gathering, stderr: stderr}, "", stdout)
 	return terminal, artifactDir, err
 }

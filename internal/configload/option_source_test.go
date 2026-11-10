@@ -97,11 +97,12 @@ func TestNoColorLock(t *testing.T) {
 
 // TestGatherAndPrefixOptionsLock: --gather and --prefix write their key in
 // the flags layer, sourced to the option, true or (by the =false form)
-// false; on run, crun, and a stream's lines the display.run key, on
-// command the display.command key (internal/cli,
-// TestGatherAndPrefixSetTheirKeys). A site that locks the key refuses either form, as it
-// refuses --order default (config_lock_violation, exit 3, at the option);
-// --set, applied after the layer, beats the option where nothing locks.
+// false; on run, crun, a stream's lines, and job follow the display.run
+// key, on command the display.command key (internal/cli,
+// TestGatherAndPrefixSetTheirKeys, TestJobFollowGatherAndPrefixSetTheirKeys).
+// A site that locks the key refuses either form, as it refuses --order
+// default (config_lock_violation, exit 3, at the option); --set, applied
+// after the layer, beats the option where nothing locks.
 func TestGatherAndPrefixOptionsLock(t *testing.T) {
 	saved := globalRoots
 	t.Cleanup(func() { globalRoots = saved })

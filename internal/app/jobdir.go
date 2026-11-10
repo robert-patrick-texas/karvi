@@ -239,10 +239,11 @@ const folderPoll = 250 * time.Millisecond
 // checks, and, once the summary names a final status, the display's end
 // from that summary; a finished job renders at once. A job whose summary
 // names no commands.jsonl keeps none: one warning says so, and the display
-// is its end alone. While the summary is not final the job's scoreboard
-// says whether it runs: one stale by watch's rule (watch.stale-after) or
-// gone is job_orphaned. The summary is returned for the result line and the
-// exit.
+// is its end alone; under job follow's --gather (o.Gather) it is refused
+// instead, gather_option_conflict. While the summary is not final the
+// job's scoreboard says whether it runs: one stale by watch's rule
+// (watch.stale-after) or gone is job_orphaned. The summary is returned for
+// the result line and the exit.
 func FollowJobDirectory(ctx context.Context, common CommonOptions, folder JobFolder, jobID string, o FollowRenderOptions, stdout, stderr io.Writer) (records.Summary, error) {
 	cfg, operator := common.Config, common.Operator
 	base, err := osutil.ResolveBaseDir(cfg.String("basedir"), operator.Home, operator.Username)
@@ -278,6 +279,14 @@ func FollowJobDirectory(ctx context.Context, common CommonOptions, folder JobFol
 		}
 		if !absent && !notKept && summary.Paths["commands_jsonl"] == "" {
 			// Whether the summary names the file, never the path it names.
+			// job follow --gather of such a job is refused here, at the
+			// first readable summary, before the warning, any record, or
+			// the footer, a running job's at once (DECISIONS point 4,
+			// settled at S6, gather-2026-11); the key alone keeps the
+			// warning and the display's end.
+			if o.Gather {
+				return summary, gatherNotKept(jobID, "output.files.commands-jsonl")
+			}
 			notKept = true
 			jobexec.WriteWarning(stderr, cfg, notKeptAtAll)
 		}
@@ -296,7 +305,11 @@ func FollowJobDirectory(ctx context.Context, common CommonOptions, folder JobFol
 			// over the devices the job's summary names.
 			if cfg.Bool("display.run.gather") {
 				devices := len(summary.Devices)
-				if _, err := renderer.Gather(ctx, func() (*os.File, error) { return openChecked(path, folder.Group) }, func() (int, error) { return devices, nil }); err != nil {
+				gathering, err := renderer.Gather(ctx, func() (*os.File, error) { return openChecked(path, folder.Group) }, func() (int, error) { return devices, nil })
+				if gathering && o.Gathering != nil {
+					*o.Gathering = true
+				}
+				if err != nil {
 					return summary, err
 				}
 			}

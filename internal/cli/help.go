@@ -756,7 +756,8 @@ of the unit, and stop and restart are refused (daemon_managed).
 const jobHelp = `Usage:
   karvi job list [--last N] [--failed] [--target NAME]... [--operator NAME]...
                  [--format text|json]
-  karvi job follow JOB-ID [--format text|jsonl|json] [--echo] [--border | --noborder]
+  karvi job follow JOB-ID [--format text|jsonl|json] [--echo]
+                   [--border | --noborder] [--gather] [--prefix]
   karvi job cancel JOB-ID [--reason TEXT] [--follow] [--format text|json]
 
 job lists the jobs of the output root, or operates on one accepted job, named
@@ -784,7 +785,12 @@ follow renders the job's records from its beginning as the foreground run
 would have, live until the job ends or at once for a job that has ended,
 ends as the run's display ends (the footer, and a collection's line), and
 exits with the job's own exit.
---format, --echo, --border, and --noborder mean what they mean for run.
+--format, --echo, --border, --noborder, --gather, and --prefix mean what they
+mean for run: every job, a command's too, is shown by run's display keys
+(display.run.gather, display.run.prefix), which --gather and --prefix set
+for the invocation. --gather of a job that kept no commands.jsonl (run with
+output.persist-command or output.files.commands-jsonl false) is refused,
+gather_option_conflict, the job untouched.
 Ctrl-C stops only the follow; the job continues.
 
 cancel stops the job and leaves every other job running; the daemon answers

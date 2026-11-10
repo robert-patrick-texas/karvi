@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -82,12 +83,18 @@ type followConn struct{ first, from, to int }
 // (when set), the terminal with the job's exit and final status; or, with
 // running set, no terminal, the connection open until the follower closes
 // it (the job still running); or, with lost set, the connection and the
-// listener closed (the daemon gone).
+// listener closed (the daemon gone). For every connection: warnings are
+// its start's admission warnings, beforeStart (when set) runs with the
+// connection's index (from 0) as its request arrives, before its start,
+// and served (when set) counts the follows answered.
 type followEnd struct {
 	exit          int
 	final         string
 	before        func()
 	running, lost bool
+	warnings      []string
+	beforeStart   func(conn int)
+	served        *atomic.Int32
 }
 
 // scriptedDaemon serves follows of jobID, one connection per conns entry
@@ -116,13 +123,19 @@ func scriptedDaemon(t *testing.T, jobID, dir string, lines [][]byte, conns []fol
 				conn.Close()
 				return
 			}
+			if end.served != nil {
+				end.served.Add(1)
+			}
+			if end.beforeStart != nil {
+				end.beforeStart(i)
+			}
 			var fr ipc.FollowRequest
 			_ = json.Unmarshal(req.Payload, &fr)
 			reply := func(event string, v any) {
 				raw, _ := json.Marshal(v)
 				_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: ipc.SchemaVersion, RequestID: req.RequestID, Event: event, Result: raw}, 1<<24)
 			}
-			reply("", ipc.FollowStart{JobID: jobID, ArtifactDir: dir, HighestDurableSequence: max(fr.Cursor, int64(c.to)), ResumeCursor: fr.Cursor, FirstSequence: int64(c.first)})
+			reply("", ipc.FollowStart{JobID: jobID, ArtifactDir: dir, HighestDurableSequence: max(fr.Cursor, int64(c.to)), ResumeCursor: fr.Cursor, FirstSequence: int64(c.first), Warnings: end.warnings})
 			for j := c.from; j < c.to; j++ {
 				reply(ipc.EventRecord, ipc.RecordFrame{Sequence: int64(j + 1), Record: lines[j]})
 			}
@@ -169,12 +182,13 @@ func followWith(ctx context.Context, t *testing.T, socket, jobID string, stdout,
 
 // TestDaemonFollowGathered: the daemon's follow gathers when the follower's
 // configuration says so (display.run.gather, never display.command.gather)
-// and the job's folder holds its commands.jsonl, reading the answers back
-// from it at the end and closing it; the key false, or the file absent at
-// the start (a job that keeps none), is today's display.
+// and the job kept its commands.jsonl (its summary.json names it), reading
+// the answers back from it at the end and closing it; the key false, or a
+// summary naming none (a job that keeps none), is today's display.
 func TestDaemonFollowGathered(t *testing.T) {
 	dir := t.TempDir()
 	jobID, lines, want := labJob(t, filepath.Join(dir, "commands.jsonl"))
+	summaryOfDevices(t, dir, 8, "")
 	got, stderr, err := gatherFollow(t, followDaemon(t, jobID, dir, lines, nil), jobID, gatherSets...)
 	if err != nil || got != want {
 		t.Fatalf("follow: %v (stderr %q)\n%s\nwant:\n%s", err, stderr, got, want)
@@ -194,6 +208,7 @@ func TestDaemonFollowGathered(t *testing.T) {
 	if err := os.Remove(filepath.Join(dir, "commands.jsonl")); err != nil {
 		t.Fatal(err)
 	}
+	summaryNamingNone(t, dir)
 	if got, _, err := gatherFollow(t, followDaemon(t, jobID, dir, lines, nil), jobID, gatherSets...); err != nil || got != today {
 		t.Fatalf("no commands.jsonl: %v\n%s\nwant today's:\n%s", err, got, today)
 	}
@@ -210,6 +225,7 @@ func TestDaemonFollowGatheredEndFails(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "commands.jsonl")
 	jobID, lines, _ := labJob(t, path)
+	summaryOfDevices(t, dir, 8, "")
 	opened := filepath.Join(dir, "opened")
 	raw, err := os.ReadFile(path)
 	if err != nil {
@@ -401,6 +417,7 @@ func labCuts(want string) []struct {
 func TestDaemonFollowGatheredInterrupted(t *testing.T) {
 	dir := t.TempDir()
 	jobID, lines, want := labJob(t, filepath.Join(dir, "commands.jsonl"))
+	summaryOfDevices(t, dir, 8, "")
 	var err error
 	for _, c := range labCuts(want) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -448,6 +465,16 @@ func TestFolderFollowGatheredInterrupted(t *testing.T) {
 	}
 }
 
+// summaryNamingNone writes dir's summary.json for a job that kept no
+// commands.jsonl (output.files.commands-jsonl false): its paths name none.
+func summaryNamingNone(t *testing.T, dir string) {
+	t.Helper()
+	body := `{"schema_version":5,"job_id":"x","kind":"run","devices":[{"name":"router01"}],"device_counts":{"total":1},"paths":{"summary":"summary.json"}}`
+	if err := os.WriteFile(filepath.Join(dir, "summary.json"), []byte(body), 0o640); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // summaryOfDevices writes dir's summary.json naming devices devices, as
 // the store writes it at the job's acceptance.
 func summaryOfDevices(t *testing.T, dir string, devices int, final string) {
@@ -465,12 +492,13 @@ func summaryOfDevices(t *testing.T, dir string, devices int, final string) {
 // TestFollowProgressDevices: job follow at a terminal draws the progress
 // line over the job's devices as its summary.json names them (the follow
 // by job ID through the daemon reads it once, when the start names the
-// folder; the folder follow reads it each poll), from done=0/M at the
-// start to the lab job's last counts, erased before the blocks. Through
-// the daemon a summary.json that cannot be read is
-// run_output_records_unreadable, nothing shown, the job unaffected; where
-// no line is drawn (standard error not a terminal) it is never read
-// (TestDaemonFollowGathered follows a folder without one).
+// folder, the read that judges the job's records; the folder follow reads
+// it each poll), from done=0/M at the start to the lab job's last counts,
+// erased before the blocks. Through the daemon a summary.json that cannot
+// be read is run_output_records_unreadable, nothing shown, the job
+// unaffected, at a terminal or not (TestFollowGatherJudgedBySummary);
+// where the display does not gather it is never read
+// (TestFollowRecordsNeverReadTheSummary).
 func TestFollowProgressDevices(t *testing.T) {
 	dir := t.TempDir()
 	jobID, lines, want := labJob(t, filepath.Join(dir, "commands.jsonl"))
@@ -593,10 +621,13 @@ func refusingDaemon(t *testing.T, code string) string {
 // their renderer from the receipt, and draw the progress line over the
 // plan's devices when the follow's start comes, as job follow by ID does,
 // not when the renderer is built: a follow refused before its start draws
-// nothing; one that starts draws done=0/M then the job's counts.
+// nothing; one that starts draws done=0/M then the job's counts, M the
+// plan's though the job's summary.json (read for its records) names
+// three.
 func TestRunFollowDrawsAtTheStart(t *testing.T) {
 	dir := t.TempDir()
 	jobID, lines, want := labJob(t, filepath.Join(dir, "commands.jsonl"))
+	summaryOfDevices(t, dir, 3, "")
 	home := t.TempDir()
 	cfg, err := configload.Load(configload.Options{HomeDir: home, SkipAuto: true, Environment: []string{}, Sets: append([]string{`basedir="` + home + `"`, `sharedroot="none"`, `timezone="UTC"`}, gatherSets...)})
 	if err != nil {
@@ -745,6 +776,7 @@ func TestFollowOfAJobCancelledElsewhere(t *testing.T) {
 	const blocks = "! show version\n! router1 (1)\nv\n\n! router2 (1)\nkarvi: status=cancel error=cancelled: the job was cancelled\n"
 	dir := t.TempDir()
 	lines := writeRecords(t, filepath.Join(dir, "commands.jsonl"), recs)
+	summaryOfDevices(t, dir, 2, "")
 	got, stderr, err := gatherFollow(t, scriptedDaemon(t, ff.id, dir, lines, nil, followEnd{exit: 113, final: "cancel"}), ff.id, sets...)
 	if want := blocks + "! exit=113 elapsed=0s artifacts=" + dir + "\n"; err != nil || got != want {
 		t.Fatalf("through the daemon: %v (stderr %q)\n%q\nwant:\n%q", err, stderr, got, want)
@@ -869,6 +901,7 @@ func TestFollowGatheredInterruptedInsideAnAnswer(t *testing.T) {
 
 	dir := t.TempDir()
 	lines := writeRecords(t, filepath.Join(dir, "commands.jsonl"), recs)
+	summaryOfDevices(t, dir, 1, "")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	out := &cancelOnWrite{n: 2, cancel: cancel}

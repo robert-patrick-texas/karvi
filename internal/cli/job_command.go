@@ -161,7 +161,8 @@ func jobCancel(ctx context.Context, inv *Invocation, streams app.IO) int {
 	terminal, err := app.FollowJobToTerminal(ctx, rt, jobID, res.ArtifactDir)
 	if err != nil {
 		if ctx.Err() != nil {
-			fmt.Fprintln(streams.Stderr, app.InterruptedLine(jobID, res.ArtifactDir, "continues cancelling in the daemon"))
+			// No display was shown: the plain follow.
+			fmt.Fprintln(streams.Stderr, app.InterruptedLine(jobID, res.ArtifactDir, "continues cancelling in the daemon", rt.Config, false))
 			return exitcode.ExitCancelled
 		}
 		return g.reportError(streams.Stderr, "follow_stream_lost", err)
@@ -205,26 +206,55 @@ func cancelResultLine(res ipc.CancelResult) string {
 }
 
 // jobFollow is karvi job follow JOB-ID [--format text|jsonl|json] [--echo]
-// [--border | --noborder]: the whole
+// [--border | --noborder] [--gather] [--prefix]: the whole
 // job from the zero cursor through the run's own follow loop, rendered as
 // the foreground run renders it, ending with the footer and a collection's
 // line; the exit is
 // the job's own. The daemon serves the job when it holds it; otherwise the
 // job's directory, derived from the ID, is followed to the job's end
 // (app.FollowJobDirectory). The verb never launches a daemon.
+//
+// --gather and --prefix are run's (DECISIONS points 1 and 6, settled at
+// S6, gather-2026-11): refused first, as run's options are, beside what
+// job follow has of their lists (checkGather: --format jsonl or json and
+// --echo; checkPrefix: --format jsonl or json, --border, and --noborder),
+// before the job ID's check and the read; then, given true or false, they
+// set run's keys for the invocation (displayOptions), every job, a
+// command's too, shown by run's keys (settled at S3c). The follower's
+// output.* keys are never judged (checkGatherRecords is run's and
+// command's): the job's files were decided by the invocation that
+// submitted it. --gather of a job that kept no commands.jsonl is refused
+// by the follow, on either path, when it learns so (app's
+// gather_option_conflict, DECISIONS point 4, settled at S6): reported
+// under its own code, exit 4, with nothing before it.
 func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 	g := inv.Global
 	jobID := inv.Positional[0]
+	if code, ok := checkGather(inv, streams.Stderr); !ok {
+		return code
+	}
+	if code, ok := checkPrefix(inv, streams.Stderr); !ok {
+		return code
+	}
 	format := inv.String(optFormat)
 	if format == "" {
 		format = "text"
 	}
-	render := app.FollowRenderOptions{Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder)}
+	// gathering says whether the display gathered, so an interrupt's line
+	// can name --gather (app.InterruptedLine).
+	var gathering bool
+	// Gather is the option as given, the not-kept refusal's alone: the key
+	// set true by a file or a --set, and --gather=false, keep today's
+	// display and warning there, and --gather is refused whatever --set
+	// makes the key (the option checks judge it as given too).
+	render := app.FollowRenderOptions{Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder), Gather: inv.Flag(optGather), Gathering: &gathering}
 	// A malformed ID fails before the read, as the daemon would fail it.
 	if err := app.CheckJobID(jobID); err != nil {
 		return g.reportError(streams.Stderr, "job_request_malformed", err)
 	}
-	common, code, ok := g.read(g.flags(), streams.Stderr)
+	flags := g.flags()
+	displayOptions(inv, "follow", flags)
+	common, code, ok := g.read(flags, streams.Stderr)
 	if !ok {
 		return code
 	}
@@ -242,8 +272,8 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 	probeCancel()
 	if err != nil && ctx.Err() != nil {
 		// An interrupt during the probe is an interrupt,
-		// not an unreachable daemon.
-		fmt.Fprintln(streams.Stderr, app.InterruptedLine(jobID, "", "continues in the daemon"))
+		// not an unreachable daemon; nothing gathered yet.
+		fmt.Fprintln(streams.Stderr, app.InterruptedLine(jobID, "", "continues in the daemon", common.Config, false))
 		return exitcode.ExitCancelled
 	}
 	// The daemon first, when reachable at the client's IPC schema, of any
@@ -261,12 +291,17 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 		if err == nil {
 			return jobFollowResult(g, streams, jobID, terminal.Outcome.ArtifactDir, terminal.Outcome.Summary, terminal.Outcome.ExitCode)
 		}
+		if errorcodes.Of(err) == "gather_option_conflict" {
+			// The command line refused, not a follow lost: the refusal
+			// alone, no "continues in the daemon" line, the job untouched.
+			return g.reportError(streams.Stderr, "gather_option_conflict", err)
+		}
 		if line, cause, ok := app.InterruptedDisplay(jobID, artifactDir, err); ok {
 			fmt.Fprintln(streams.Stderr, line)
 			return g.reportError(streams.Stderr, "cancelled", cause)
 		}
 		if ctx.Err() != nil {
-			fmt.Fprintln(streams.Stderr, app.InterruptedLine(jobID, artifactDir, "continues in the daemon"))
+			fmt.Fprintln(streams.Stderr, app.InterruptedLine(jobID, artifactDir, "continues in the daemon", common.Config, gathering))
 			return exitcode.ExitCancelled
 		}
 		if errorcodes.Of(err) != "job_unknown" {
@@ -302,12 +337,16 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 	signal.Ignore(syscall.SIGPIPE)
 	summary, err := app.FollowJobDirectory(ctx, common, folder, jobID, render, streams.Stdout, streams.Stderr)
 	if err != nil {
+		if errorcodes.Of(err) == "gather_option_conflict" {
+			// The refusal alone, as through the daemon.
+			return g.reportError(streams.Stderr, "gather_option_conflict", err)
+		}
 		if line, cause, ok := app.InterruptedDisplay(jobID, folder.Path, err); ok {
 			fmt.Fprintln(streams.Stderr, line)
 			return g.reportError(streams.Stderr, "cancelled", cause)
 		}
 		if ctx.Err() != nil {
-			fmt.Fprintln(streams.Stderr, app.InterruptedLine(jobID, folder.Path, "continues"))
+			fmt.Fprintln(streams.Stderr, app.InterruptedLine(jobID, folder.Path, "continues", common.Config, gathering))
 			return exitcode.ExitCancelled
 		}
 		if line := app.EndedLine(jobID, folder.Path, err); line != "" {

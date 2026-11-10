@@ -148,7 +148,7 @@ cancelled line is printed.
 To see a detached or interrupted job again, from any later invocation:
 
 ```bash
-karvi job follow JOB-ID [--format text|jsonl|json] [--echo] [--border|--noborder]
+karvi job follow JOB-ID [--format text|jsonl|json] [--echo] [--border|--noborder] [--gather] [--prefix]
 ```
 
 It renders the job from its beginning as the foreground run would have, live

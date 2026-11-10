@@ -46,40 +46,48 @@ they were published in.
   under `--follow=false` nothing is shown and nothing is read back.
   `--gather` sets the key for the invocation, and `--gather=false` turns a
   site's true off, as `--order` sets `dispatch.order` (a site's lock on the
-  key refuses either form, and `--set` beats it): on `run`, `crun`, and a
-  stream's lines, and on `command` its own key. The option is refused,
-  `gather_option_conflict` (exit 4), beside what leaves the gathered display
-  nowhere to show it or nothing to read back: `--format jsonl` or `json`,
-  `--echo`, `--detach`, `--follow=false`, and `--nof`, and a configuration
-  that keeps no `commands.jsonl`, the key named with where it was set
-  (`--gather and output.persist-command = false at
-  /etc/karvi/config.toml:12 are mutually exclusive; --of`, or
-  `output.files.commands-jsonl = false`), `; --of` only where `--of` would
-  take effect (not after a `--set` of the key, which beats it, nor under a
-  site's lock); beside `--live` it is `live_option_conflict`. `--dry-run` and `--exercise` take
-  it, a rehearsal of the real line, and the key set true is never refused. A
-  `commands.jsonl` that cannot be read at the end, or whose line is no
-  longer the answer the job recorded (its device, command, status, error,
-  output, or an exec command's exit and stderr differ), is
-  `run_output_records_unreadable`, exit 111: through the daemon the job is
-  unaffected, and the line before the error says so, `job ID ended exit=N;
-  artifacts DIR`; under `--no-daemon` the job's summary and scoreboard carry
-  the exit, as a footer that cannot be written does. While it waits, when
-  standard error is a terminal (judged by itself, as colour is), one line
-  there, `gather: done=N/M fail=F`, job list's DONE and FAIL over the job's
-  devices, is drawn as the display starts, rewritten as each device ends,
-  other lines on standard error written above it, and cleared before the
-  blocks; none is written to a pipe or a file, or under `--quiet`, and it is
-  drawn only while karvi is the terminal's foreground job and the terminal
-  is wider than the line (a job sent to the background writes none over the
-  shell). A Ctrl-C stops the display at once: while the job runs nothing
-  gathered is shown (in process the job is cancelled and its footer follows;
-  through the daemon the job continues, as before), and during the read-back
-  at the end the blocks stop between pieces, in process (`--no-daemon`,
-  `command`) the footer after with exit 113, through the daemon the line
-  `job ID ended exit=N; artifacts DIR` and then `cancelled: the display of
-  job ID was interrupted`, exit 113; `karvi job follow JOB-ID` with the key
-  set shows the job whole later.
+  key refuses either form, and `--set` beats it): on `run`, `crun`, a
+  stream's lines, and `job follow` (any job, a command's too), and on
+  `command` its own key. The option is refused, `gather_option_conflict`
+  (exit 4), beside what leaves the gathered display nowhere to show it or
+  nothing to read back: `--format jsonl` or `json`, `--echo`, `--detach`,
+  `--follow=false`, and `--nof`, and a configuration that keeps no
+  `commands.jsonl`, the key named with where it was set (`--gather and
+  output.persist-command = false at /etc/karvi/config.toml:12 are mutually
+  exclusive; --of`, or `output.files.commands-jsonl = false`), `; --of` only
+  where `--of` would take effect (not after a `--set` of the key, which
+  beats it, nor under a site's lock); beside `--live` it is
+  `live_option_conflict`. `--dry-run` and `--exercise` take it, a rehearsal
+  of the real line, and the key set true is never refused. On `job follow`
+  it is refused beside `--format jsonl` or `json` and `--echo`, and for a
+  job that kept no `commands.jsonl`, before anything is shown, the job
+  untouched: `gather_option_conflict: --gather needs the job's
+  commands.jsonl; job ID kept none (output.files.commands-jsonl was false)`,
+  `(output.persist-command was false)` for a job without a folder; the key
+  set true shows such a job as before. A `commands.jsonl` that cannot be
+  read at the end, or whose line is no longer the answer the job recorded
+  (its device, command, status, error, output, or an exec command's exit and
+  stderr differ), is `run_output_records_unreadable`, exit 111: through the
+  daemon the job is unaffected, and the line before the error says so, `job
+  ID ended exit=N; artifacts DIR`; under `--no-daemon` the job's summary and
+  scoreboard carry the exit, as a footer that cannot be written does. While
+  it waits, when standard error is a terminal (judged by itself, as colour
+  is), one line there, `gather: done=N/M fail=F`, job list's DONE and FAIL
+  over the job's devices, is drawn as the display starts, rewritten as each
+  device ends, other lines on standard error written above it, and cleared
+  before the blocks; none is written to a pipe or a file, or under
+  `--quiet`, and it is drawn only while karvi is the terminal's foreground
+  job and the terminal is wider than the line (a job sent to the background
+  writes none over the shell). A Ctrl-C stops the display at once: while the
+  job runs nothing gathered is shown (in process the job is cancelled and
+  its footer follows; through the daemon the job continues, as before, and
+  the line that says so names `karvi job follow --gather JOB-ID`, on `job
+  follow`'s own interrupt too, plain under a site's lock on the key), and
+  during the read-back at the end the blocks stop between pieces, in process
+  (`--no-daemon`, `command`) the footer after with exit 113, through the
+  daemon the line `job ID ended exit=N; artifacts DIR` and then `cancelled:
+  the display of job ID was interrupted`, exit 113; `karvi job follow
+  --gather JOB-ID` shows the job whole later.
 - **Line mode: `--prefix`, `display.run.prefix`.** Set true (false by
   default), a run's text display writes every line as `NAME: line`, the
   device's name first, as pdsh and clush write it, an empty line `NAME: `
@@ -106,9 +114,11 @@ they were published in.
   `--gather` reaches, `command` under its own key; it is refused,
   `prefix_option_conflict` (exit 4), beside what line mode cannot take:
   `--format jsonl` or `json`, `--border`, `--noborder`, `--detach`, and
-  `--follow=false`; beside `--live` it is `live_option_conflict`. Line mode
-  needs no file, so `--prefix` is taken beside `--nof`, and beside `--echo`
-  its line prefixed; the key set true is never refused.
+  `--follow=false`; beside `--live` it is `live_option_conflict`. `job
+  follow --prefix` shows any job so, a command's too, refused beside
+  `--format jsonl` or `json`, `--border`, and `--noborder`. Line mode needs
+  no file, so `--prefix` is taken beside `--nof`, and beside `--echo` its
+  line prefixed; the key set true is never refused.
 
 ### Bugs fixed
 

@@ -362,16 +362,20 @@ func (r *recordRenderer) gatherFrom(open GatherFile, interrupt <-chan struct{}, 
 	return true
 }
 
+// Gathers says whether the renderer can gather (gathers): a run's text
+// display, never jsonl or json. A follow judges the job's records from its
+// summary.json only where it does (internal/app), so a site's
+// display.run.gather never has a script's --format jsonl read it.
+func (rr *RunRenderer) Gathers() bool { return rr.r != nil && rr.r.gathers() }
+
 // Gather has a run's text display gathered, read back at the end through
 // open (gatherFrom), stopped by ctx's end (the invocation's interrupt);
-// false when the format is not text. At a terminal (ShowsProgress) the
+// false where it cannot gather (Gathers). At a terminal (ShowsProgress) the
 // progress line over the job's devices is drawn on the renderer's
 // standard error, and is that standard error from here (Stderr); devices
-// is asked only then, so a display that does not gather, or shows no
-// line, never reads what it reads (a follow's summary.json), and its
-// error is Gather's.
+// is asked only then, and its error is Gather's.
 func (rr *RunRenderer) Gather(ctx context.Context, open GatherFile, devices func() (int, error)) (bool, error) {
-	if rr.r == nil || !rr.r.gathers() {
+	if !rr.Gathers() {
 		return false, nil
 	}
 	var progress *ProgressLine

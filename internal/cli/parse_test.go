@@ -461,11 +461,12 @@ func TestParseOneOrTwoDashes(t *testing.T) {
 	}
 }
 
-// TestParseGatherAndPrefix: run, crun, and command take --gather and
-// --prefix (flags, the =false form turning one off), each by any unique
-// prefix, --g and --ga for --gather and --pre for --prefix; --pr stays
-// cisco_xr's shortcut, a whole word (TestParseFreeformBoundary); login and
-// the stream word take neither, the stream's lines taking run's.
+// TestParseGatherAndPrefix: run, crun, command, and job follow take
+// --gather and --prefix (flags, the =false form turning one off), each by
+// any unique prefix, --g and --ga for --gather and --pre for --prefix (on
+// job follow --p too); --pr stays cisco_xr's shortcut, a whole word
+// (TestParseFreeformBoundary); login, the stream word, job list, and job
+// cancel take neither, the stream's lines taking run's.
 func TestParseGatherAndPrefix(t *testing.T) {
 	named := func(path, name string) *option {
 		for _, o := range lookupCommand(path).options {
@@ -492,6 +493,12 @@ func TestParseGatherAndPrefix(t *testing.T) {
 		{[]string{"command", "--g", "--target", "r1", "--cmd", "x"}, "gather", true},
 		{[]string{"command", "--pre", "r1", "show", "clock"}, "prefix", true},
 		{[]string{"command", "r1", "--prefix=false", "show", "clock"}, "prefix", false},
+		{[]string{"job", "follow", "--g", fixtureJobID}, "gather", true},
+		{[]string{"job", "follow", "--gather=false", fixtureJobID}, "gather", false},
+		{[]string{"job", "follow", "--p", fixtureJobID}, "prefix", true},
+		{[]string{"job", "follow", fixtureJobID, "--prefix=false"}, "prefix", false},
+		{[]string{"j", "f", "--ga", "--pre", fixtureJobID}, "gather", true},
+		{[]string{"j", "f", "--ga", "--pre", fixtureJobID}, "prefix", true},
 	} {
 		inv, err := Parse(tc.args)
 		if err != nil {
@@ -507,7 +514,7 @@ func TestParseGatherAndPrefix(t *testing.T) {
 	if o := named("run", "prefix"); inv.String(optPlatform) != "cisco_xr" || (o != nil && inv.Set(o)) {
 		t.Errorf("--pr: platform %q", inv.String(optPlatform))
 	}
-	for _, args := range [][]string{{"login", "--gather", "r1"}, {"login", "--prefix", "r1"}, {"login", "--g", "r1"}, {"stream", "--gather"}, {"stream", "--prefix"}} {
+	for _, args := range [][]string{{"login", "--gather", "r1"}, {"login", "--prefix", "r1"}, {"login", "--g", "r1"}, {"stream", "--gather"}, {"stream", "--prefix"}, {"job", "list", "--gather"}, {"job", "cancel", "--prefix", fixtureJobID}} {
 		if code, msg := parseCode(t, args...); code != "cli_option_unknown" {
 			t.Errorf("%q: %s (%s), want cli_option_unknown", args, code, msg)
 		}

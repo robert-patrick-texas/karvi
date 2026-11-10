@@ -167,7 +167,7 @@ var (
 	optFormat        = enumOpt("format", "text", "jsonl", "json")
 	optFormatTJ      = enumOpt("format", "text", "json")
 	optEcho          = flagOpt("echo")
-	optGather        = flagOpt("gather") // sets display.run.gather, on command display.command.gather, through the lock-aware flag layer (displayOptions)
+	optGather        = flagOpt("gather") // sets display.run.gather (on job follow too, for every job), on command display.command.gather, through the lock-aware flag layer (displayOptions)
 	optPrefix        = flagOpt("prefix") // sets display.run.prefix, on command display.command.prefix, likewise
 	optLive          = flagOpt("live")   // the session's bytes as they arrive, in place of the text display
 	optBorder        = flagOpt("border")
@@ -371,7 +371,7 @@ var commandTable = []*command{
 		subs: []*command{
 			{path: "job list", word: "list", shape: shapePlain, options: []*option{optLast, optFailed, optTarget, optOperator, optFormatTJ, optHelp}, help: func() string { return jobHelp }},
 			{path: "job cancel", word: "cancel", shape: shapePlain, minPos: 1, maxPos: 1, options: []*option{optReason, optFollow, optFormatTJ, optHelp}, help: func() string { return jobHelp }},
-			{path: "job follow", word: "follow", shape: shapePlain, minPos: 1, maxPos: 1, options: []*option{optFormat, optEcho, optBorder, optNoBorder, optHelp}, help: func() string { return jobHelp }},
+			{path: "job follow", word: "follow", shape: shapePlain, minPos: 1, maxPos: 1, options: []*option{optFormat, optEcho, optBorder, optNoBorder, optGather, optPrefix, optHelp}, help: func() string { return jobHelp }},
 			{path: "job help", word: "help", shape: shapePlain, hidden: true, options: []*option{optHelp}, help: func() string { return jobHelp }},
 		}},
 	{path: "config", word: "config", shape: shapePlain, options: []*option{optHelp}, help: func() string { return configHelp },

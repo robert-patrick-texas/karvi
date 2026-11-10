@@ -192,12 +192,15 @@ func checkLive(inv *Invocation, w io.Writer) (int, bool) {
 // script groups by output_sha256), --echo (DECISIONS point 3), --detach
 // and --follow=false (nothing shown; the job's display gathered later by
 // job follow), and --nof (no commands.jsonl to read back, point 4), each
-// as far as the word has it (command has neither --detach nor --follow).
-// A configuration that keeps no commands.jsonl is refused after the read
-// (checkGatherRecords). The key set true is never refused: it shapes the
-// text display alone, so a site's true never breaks a script's --format
-// jsonl (point 1). --dry-run and --exercise are accepted, a rehearsal
-// taking the real line (point 1, settled at S6).
+// as far as the word has it (command has neither --detach nor --follow;
+// job follow has --format and --echo alone, jobFollow calling it before
+// the job ID's check). A configuration that keeps no commands.jsonl is
+// refused after the read (checkGatherRecords), on run and command; on job
+// follow a job that kept none is refused when the follow learns it (app,
+// DECISIONS point 4, settled at S6). The key set true is never refused:
+// it shapes the text display alone, so a site's true never breaks a
+// script's --format jsonl (point 1). --dry-run and --exercise are
+// accepted, a rehearsal taking the real line (point 1, settled at S6).
 func checkGather(inv *Invocation, w io.Writer) (int, bool) {
 	if !inv.Flag(optGather) {
 		return 0, true
@@ -212,9 +215,10 @@ func checkGather(inv *Invocation, w io.Writer) (int, bool) {
 // refused) beside what line mode cannot take, prefix_option_conflict, in
 // this order: --format jsonl or json, --border and --noborder (line mode
 // draws no border), --detach and --follow=false (nothing shown), as far as
-// the word has each (DECISIONS point 6). Line mode needs no file, so --nof
-// and a configuration keeping no commands.jsonl are accepted; the key set
-// true is never refused.
+// the word has each (DECISIONS point 6; job follow has --format, --border,
+// and --noborder). Line mode needs no file, so --nof and a configuration
+// keeping no commands.jsonl are accepted; the key set true is never
+// refused.
 func checkPrefix(inv *Invocation, w io.Writer) (int, bool) {
 	if !inv.Flag(optPrefix) {
 		return 0, true
@@ -366,7 +370,8 @@ func outputOptions(inv *Invocation, flags map[string]configload.FlagValue) {
 // keys are the word's family, as its header and footer are:
 // display.run.gather and display.run.prefix on run, crun, and a stream's
 // lines (run's handler), display.command.gather and display.command.prefix
-// on command (settled at S3c). A site's lock on the key refuses either
+// on command (settled at S3c); on job follow (word "follow") run's, which
+// show every job, a command's too. A site's lock on the key refuses either
 // form at the read (config_lock_violation, the source the option), and
 // --set, applied after this layer, beats it.
 func displayOptions(inv *Invocation, word string, flags map[string]configload.FlagValue) {
