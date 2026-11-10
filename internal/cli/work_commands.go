@@ -258,29 +258,57 @@ func shownBeside(inv *Invocation, others ...*option) string {
 // and where it was set (a file's line, a KARVI__ variable, a --set), as
 // liveDispatch names dispatch.default. output.SkippedFiles, the one rule
 // for a job's files, decides; output.persist-command first, as the rule
-// reads it, else output.files.commands-jsonl. The message ends "; --of"
-// where --of would take effect (it makes persistence true): the key set
-// by a file or a KARVI__ variable and not locked; after a --set, which
-// beats --of, or under a site's lock, which refuses it, none (settled at
-// S6, gather-2026-11). After the read, so on every word and under
-// --dry-run and --exercise alike (a rehearsed line is refused as the real
-// one), before a credential is asked for or a daemon reached; --nof was
-// refused before the read (checkGather). The key set true keeps today's
-// display there instead, unrefused (point 1).
+// reads it, else output.files.commands-jsonl. The first ends with
+// ofRemedy's hint; the second takes none (--of does not set it). After
+// the read, so on every word and under --dry-run and --exercise alike (a
+// rehearsed line is refused as the real one), before a credential is
+// asked for or a daemon reached; --nof was refused before the read
+// (checkGather). The key set true keeps today's display there instead,
+// unrefused (point 1).
 func checkGatherRecords(inv *Invocation, cfg configload.Snapshot, crun bool, w io.Writer) (int, bool) {
 	if !inv.Flag(optGather) || !output.SkippedFiles(cfg, crun).CommandsJSONL {
 		return 0, true
 	}
 	key := "output.files.commands-jsonl"
+	remedy := ""
 	if !cfg.Bool("output.persist-command") {
-		key = "output.persist-command"
+		key, remedy = "output.persist-command", ofRemedy(cfg)
 	}
 	v, _ := cfg.Provenance(key)
-	remedy := ""
-	if key == "output.persist-command" && v.Source.Layer != "set" && !cfg.Locked(key) {
-		remedy = "; --of"
-	}
 	return inv.Global.usageError(w, "gather_option_conflict", "--gather and %s = false at %s are mutually exclusive%s", key, v.Source, remedy), false
+}
+
+// checkExerciseFolder refuses --exercise where the read configuration
+// keeps no job folder (planner.OutputFilesOn: output.persist-command
+// false), the exercise report being a file in it: run_mode_conflict, as
+// --nof beside --exercise is before the read, the key named with its
+// value and where it was set, as checkGatherRecords names it, and
+// ofRemedy's hint. After the read and before checkGatherRecords, so
+// --gather --exercise under the key false is this refusal; before a
+// credential is asked for or a daemon reached. The daemon's own check
+// (jobexec) names the values alone: it sees no source and no option.
+func checkExerciseFolder(inv *Invocation, cfg configload.Snapshot, w io.Writer) (int, bool) {
+	if !inv.Flag(optExercise) || planner.OutputFilesOn(cfg) {
+		return 0, true
+	}
+	v, _ := cfg.Provenance("output.persist-command")
+	return inv.Global.usageError(w, "run_mode_conflict", "--exercise with output.persist-command = false at %s: the exercise report is a file in the job folder%s", v.Source, ofRemedy(cfg)), false
+}
+
+// ofRemedy is the end of a refusal under output.persist-command = false
+// (checkGatherRecords, checkExerciseFolder): "; --of" where --of would
+// take effect (it makes persistence true), the key set by a file or a
+// KARVI__ variable and not locked; after a --set of the key, which beats
+// --of (the same line again), or under a site's lock, which refuses it
+// (exit 3), empty, the message naming the key and its source alone
+// (settled at S6 for --gather, gather-2026-11, DECISIONS point 4; at S7
+// for --exercise).
+func ofRemedy(cfg configload.Snapshot) string {
+	v, _ := cfg.Provenance("output.persist-command")
+	if v.Source.Layer == "set" || cfg.Locked("output.persist-command") {
+		return ""
+	}
+	return "; --of"
 }
 
 // collectionOptionsError is the check of the collection options' values,
@@ -890,10 +918,9 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 		return code
 	}
 	// --nof's conflict with --exercise from the configuration, which the
-	// read decides: refused before a credential is asked for or a daemon
-	// reached.
-	if inv.Flag(optExercise) && !planner.OutputFilesOn(common.Config) {
-		return inv.Global.usageError(streams.Stderr, "run_mode_conflict", "--exercise with output.persist-command = false: the exercise report is a file in the job folder; --of")
+	// read decides.
+	if code, ok := checkExerciseFolder(inv, common.Config, streams.Stderr); !ok {
+		return code
 	}
 	if code, ok := checkGatherRecords(inv, common.Config, crun, streams.Stderr); !ok {
 		return code

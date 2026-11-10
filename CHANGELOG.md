@@ -178,6 +178,16 @@ they were published in.
   warning and no audit event, on either path, as through the daemon. A
   Ctrl-C while the hook runs still ends it (`was interrupted after Ns`), and
   a hook that cannot start still warns.
+- **`run --exercise` under `output.persist-command = false` names where the
+  key was set, and offers `--of` only where it works.** The refusal always
+  read `run_mode_conflict: --exercise with output.persist-command = false:
+  the exercise report is a file in the job folder; --of`, so after a `--set`
+  of the key, which beats `--of`, `--of` gave the same line again, and under
+  a site's lock on the key `--of` was refused itself (exit 3). It now names
+  the key's source as `--gather`'s refusal does, `... = false at SOURCE: the
+  exercise report is a file in the job folder` (a file's line, a `KARVI__`
+  variable, `--set[N]`), and ends `; --of` only for a file or a `KARVI__`
+  variable with the key not locked.
 
 ### Breaking changes
 

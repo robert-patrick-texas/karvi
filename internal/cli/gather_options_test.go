@@ -358,7 +358,7 @@ func TestGatherRefusedWithoutTheJobsRecords(t *testing.T) {
 		{"", jsonlOff, "command", []string{"--gather"}, jsonl(setAt)},
 		{"", persistOff, "run", []string{"--gather", "--dry-run", "--no-daemon"}, persist(setAt, false)},
 		{"", jsonlOff, "run", []string{"--gather", "--exercise"}, jsonl(setAt)},
-		{"", persistOff, "run", []string{"--gather", "--exercise"}, "run_mode_conflict: --exercise with output.persist-command = false: the exercise report is a file in the job folder; --of"},
+		{"", persistOff, "run", []string{"--gather", "--exercise"}, "run_mode_conflict: --exercise with output.persist-command = false at " + setAt + ": the exercise report is a file in the job folder"},
 		{"", []string{"--set", "output.persist-command=true"}, "run", []string{"--gather", "--nof"}, "gather_option_conflict: --gather and --nof are mutually exclusive"},
 	} {
 		t.Run(tc.word+"_"+strings.Join(append(append([]string{}, tc.pre...), tc.opts...), "_")+tc.env, func(t *testing.T) {
@@ -501,41 +501,58 @@ func TestGatherAndPrefixCodesRegistered(t *testing.T) {
 	}
 }
 
-// TestGatherRecordsOfHintOnlyWhereItWorks: the refusal of --gather where
-// output.persist-command is false ends "; --of" only where --of would
-// take effect: the key set by a file or a KARVI__ variable and not
-// locked; after a --set of the key, which beats --of, or under a site's
-// lock, which refuses it, the message names the key and its source alone
-// (settled at S6, gather-2026-11).
-func TestGatherRecordsOfHintOnlyWhereItWorks(t *testing.T) {
-	inv, err := Parse([]string{"run", "--all", "--gather", "show", "clock"})
-	if err != nil {
-		t.Fatal(err)
+// TestOfRemedyOnlyWhereItWorks: both refusals under
+// output.persist-command = false, --gather's (checkGatherRecords) and
+// --exercise's (checkExerciseFolder), name the key's source and end
+// "; --of" only where --of would take effect (ofRemedy): the key set by a
+// file or a KARVI__ variable and not locked; after a --set of the key,
+// which beats --of, or under a site's lock, which refuses it, the message
+// names the key and its source alone (settled at S6 for --gather,
+// gather-2026-11; at S7 for --exercise).
+func TestOfRemedyOnlyWhereItWorks(t *testing.T) {
+	parse := func(opt string) *Invocation {
+		inv, err := Parse([]string{"run", "--all", opt, "show", "clock"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return inv
 	}
+	gather, exercise := parse("--gather"), parse("--exercise")
 	file := configload.SourceRef{Layer: "global", Path: "/etc/karvi/config.toml", Line: 12}
 	env := configload.SourceRef{Layer: "environment", Path: "KARVI__OUTPUT__PERSIST_COMMAND"}
 	set := configload.SourceRef{Layer: "set", Path: "--set[1]"}
 	lock := []configload.LockDecl{{Pattern: "output.persist-command", Source: file}}
 	for _, tc := range []struct {
-		name  string
-		src   configload.SourceRef
-		locks []configload.LockDecl
-		want  string
+		name   string
+		src    configload.SourceRef
+		locks  []configload.LockDecl
+		at     string
+		remedy string
 	}{
-		{"file", file, nil, "/etc/karvi/config.toml:12 are mutually exclusive; --of"},
-		{"environment", env, nil, "KARVI__OUTPUT__PERSIST_COMMAND are mutually exclusive; --of"},
-		{"set", set, nil, "--set[1] are mutually exclusive"},
-		{"file locked", file, lock, "/etc/karvi/config.toml:12 are mutually exclusive"},
-		{"environment locked", env, lock, "KARVI__OUTPUT__PERSIST_COMMAND are mutually exclusive"},
+		{"file", file, nil, "/etc/karvi/config.toml:12", "; --of"},
+		{"environment", env, nil, "KARVI__OUTPUT__PERSIST_COMMAND", "; --of"},
+		{"set", set, nil, "--set[1]", ""},
+		{"file locked", file, lock, "/etc/karvi/config.toml:12", ""},
+		{"environment locked", env, lock, "KARVI__OUTPUT__PERSIST_COMMAND", ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			cfg := configload.Snapshot{Values: map[string]configload.Value{"output.persist-command": {Data: false, Source: tc.src}}, Locks: tc.locks}
-			var stderr bytes.Buffer
-			if code, ok := checkGatherRecords(inv, cfg, false, &stderr); ok || code != exitcode.ExitUsageError {
-				t.Fatalf("ok=%v code=%d", ok, code)
-			}
-			if want := "gather_option_conflict: --gather and output.persist-command = false at " + tc.want + "\n"; stderr.String() != want {
-				t.Fatalf("stderr=%q\nwant  %q", stderr.String(), want)
+			for _, c := range []struct {
+				check func(io.Writer) (int, bool)
+				want  string
+			}{
+				{func(w io.Writer) (int, bool) { return checkGatherRecords(gather, cfg, false, w) },
+					"gather_option_conflict: --gather and output.persist-command = false at " + tc.at + " are mutually exclusive" + tc.remedy + "\n"},
+				{func(w io.Writer) (int, bool) { return checkExerciseFolder(exercise, cfg, w) },
+					"run_mode_conflict: --exercise with output.persist-command = false at " + tc.at + ": the exercise report is a file in the job folder" + tc.remedy + "\n"},
+			} {
+				var stderr bytes.Buffer
+				if code, ok := c.check(&stderr); ok || code != exitcode.ExitUsageError {
+					t.Fatalf("ok=%v code=%d", ok, code)
+				}
+				if stderr.String() != c.want {
+					t.Errorf("stderr=%q\nwant  %q", stderr.String(), c.want)
+				}
 			}
 		})
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -233,22 +234,34 @@ func daemonTestRuntime2(t *testing.T, base string) (string, globalOptions, strin
 // report is a file in the job folder, so output.persist-command = false
 // from the configuration is refused run_mode_conflict as --nof is: on the
 // client, before a daemon is launched or a credential asked for, and with
-// nothing written in the working directory.
+// nothing written in the working directory. The line names the key's
+// source, a file's line, a KARVI__ variable, a --set, and ends "; --of"
+// for the first two alone: a --set beats --of, the same line again
+// (TestOfRemedyOnlyWhereItWorks for a lock).
 func TestRunExerciseRefusesAConfigurationWithoutAJobFolder(t *testing.T) {
 	base, _, socket := daemonTestRuntime(t)
 	sets := dryRunSets(t, base)
+	persistFile := filepath.Join(base, "persist-off.toml")
+	if err := os.WriteFile(persistFile, []byte("[output]\npersist-command = false\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	cwd := t.TempDir()
 	t.Chdir(cwd)
 	t.Setenv("NETUSER", "jsmith")
 	t.Setenv("NETPASS", "p")
 	defer stopTestDaemon(t, socket, 1<<20)
+	line := func(at, remedy string) string {
+		return "run_mode_conflict: --exercise with output.persist-command = false at " + at + ": the exercise report is a file in the job folder" + remedy + "\n"
+	}
 	for _, via := range []struct {
 		name string
 		sets []string
 		env  string
+		want string
 	}{
-		{"--set", []string{"--set", "output.persist-command=false"}, ""},
-		{"KARVI__", nil, "false"},
+		{"file", []string{"--config", persistFile}, "", line(persistFile+":2", "; --of")},
+		{"KARVI__", nil, "false", line("KARVI__OUTPUT__PERSIST_COMMAND", "; --of")},
+		{"--set", []string{"--set", "output.persist-command=false"}, "", line(fmt.Sprintf("--set[%d]", len(sets)/2+1), "")},
 	} {
 		t.Run(via.name, func(t *testing.T) {
 			if via.env != "" {
@@ -256,8 +269,8 @@ func TestRunExerciseRefusesAConfigurationWithoutAJobFolder(t *testing.T) {
 			}
 			var stdout, stderr bytes.Buffer
 			got := Main(exerciseArgs(append(append([]string{}, sets...), via.sets...)), strings.NewReader(""), &stdout, &stderr)
-			if got != exitcode.ExitUsageError || !strings.HasPrefix(stderr.String(), "run_mode_conflict: --exercise ") {
-				t.Errorf("exit=%d stderr=%q", got, stderr.String())
+			if got != exitcode.ExitUsageError || stderr.String() != via.want || stdout.String() != "" {
+				t.Errorf("exit=%d stdout=%q\nstderr=%q\nwant  %q", got, stdout.String(), stderr.String(), via.want)
 			}
 			if _, err := os.Stat(socket); err == nil {
 				t.Errorf("a daemon was launched for a refused exercise")
