@@ -41,8 +41,8 @@ they were published in.
   gathers under its own key, `display.command.gather`, as
   `display.command.echo` mirrors `display.run.echo`; `job follow` shows any
   job, a command's too, by the `display.run` keys. Under `--format jsonl` or
-  `json`, under `--live`, under `--nof`, and where
-  `output.files.commands-jsonl` is false the display is the ordinary one;
+  `json`, under `--live`, under `--nof`, and where `output.persist-command`
+  or `output.files.commands-jsonl` is false the display is the ordinary one;
   under `--follow=false` nothing is shown and nothing is read back.
   `--gather` sets the key for the invocation, and `--gather=false` turns a
   site's true off, as `--order` sets `dispatch.order` (a site's lock on the

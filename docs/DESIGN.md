@@ -3090,7 +3090,8 @@ alike, but a run's key ruling `command`); `gather_option_conflict` beside
 refused beside `--dry-run` and `--exercise` as `--live` is (its reasons are its
 own: a serial run displayed in the client's process), or as beside
 `--follow=false` (a real run's display discarded, where a rehearsal promises
-the same line run for real).
+the same line run for real) ([`docs/EXAMPLES.md`, chapter
+106](EXAMPLES.md#106-gathered-output-folded-names-and-line-mode-2026-11-08)).
 
 **A gathered block is one requested command, and a group the devices whose
 records answered it alike.** A block per requested command, identified across

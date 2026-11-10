@@ -23345,3 +23345,938 @@ no suite, karvi, or library a suite sources changed. The evidence is kept
 beside the tree (`release-design-evidence/release-numbers-2026-11/`:
 `DECISIONS.md`, `PLAN.md`, the session's mock-ups in `point1/` to `point4/`,
 and a folder per section with its README and runs).
+
+## 106. Gathered output, folded names, and line mode (2026-11-08)
+
+The operator asked what ClusterShell does that karvi could add, easily, with
+more effort, or not at all. The answer: the gathered display (`clush -b`) and
+folded names (`nodeset -f`) easy and in the client alone, line mode (`NAME:
+line`) and `--pick N` small, a diff view and four more with more effort; and
+the operator's word: "Design 1 and 2 (gather and fold), consider 3
+(targetname: output); no diff view for now, leave that for post-processing
+or a wrapper." On the released 0.41.0 a run's text display is a header and an
+answer per device, in the order the records come: `run --all --dp 'show
+version'` over the lab's eight devices printed the same two lines seven times
+under seven headers, a host-key line before each and router09's failure among
+them, and a `--cf DIR` whose lists put `show version` first on edge1 and
+second on router01 and router02 printed seven blocks for three requested
+commands. A device that answers otherwise is found by reading every block.
+The design session agreed six points, and each section of the build settled
+its own; on the operator's word, as recommended each time, karvi gathers a
+run's text display at the job's end, a block per command and in it a group
+per answer under the group's folded names (`--gather`), and writes every line
+under its device's name (`--prefix`).
+
+**What it gains.** A fleet's answer read once: the devices that answered alike
+under one header, their names folded into one `--tl` value a later run takes
+back as it stands, the odd ones out apart and the failures last, the same
+blocks at every run whatever order the devices end in. The client holds no
+output while the job runs and reads each group's answer back from the job's
+`commands.jsonl` at its end: with 32 devices answering 5,256,000 bytes each the
+gathered client peaked at 48,868 to 58,896 kB over six runs against 52,832 to
+63,004 kB for the ordinary text display, and one answer of 52,560,000 bytes,
+which the ordinary display's follow leaves out as larger than the daemon's IPC
+frame, is shown whole for the same 16 MB. In line mode every line names its
+device, for `grep`, `sort`, and the wrapper the operator left the diff view to.
+The cost: a gathered display shows nothing until the job ends, a line on a
+terminal's standard error counting the devices meanwhile, and it needs the
+job's `commands.jsonl`.
+
+**The rule, as agreed.**
+
+- **The option and its keys** (point 1; the S2, S3c, S6, and S7 points).
+  `--gather` and `display.run.gather` (false) on `run`, its stream lines,
+  `crun`, and `job follow`; `command` gathers under its own key,
+  `display.command.gather`, as `display.command.echo` mirrors
+  `display.run.echo`, and `job follow` shows every job, a command's too, by
+  the `display.run` keys (S3c). The option sets the key for the invocation as
+  `--order` sets `dispatch.order`, `--gather=false` turning a site's true off;
+  the plan gains no field and stays 17, and the job manifest 5, the plan's
+  configuration block holding the value the run used (S2). Each display reads
+  its keys from the configuration of the invocation showing it, so `job
+  follow --gather` gathers a job run without it. The option is refused,
+  `gather_option_conflict` (exit 4), beside `--format jsonl|json`, `--echo`,
+  `--detach`, `--follow=false`, and what keeps no `commands.jsonl` (point 4);
+  beside `--live` it is `live_option_conflict`, one code for every option
+  `--live` refuses (S6); `--dry-run` and `--exercise` take it, a rehearsal of
+  the real line (S6). The key set true is never refused: it shapes the text
+  display alone, so a site's true never breaks a script's `--format jsonl`. On
+  a stream line a word alone that begins a directive is no option's
+  abbreviation, so `--g`, perhaps a mistyped `--go`, is dropped as ambiguous
+  (S7).
+- **The unit and the same answer** (point 2; the S3b point). A block per
+  requested command, told apart across devices by its text, its privilege
+  (`--sudo`), and its occurrence in the device's list, in the order the
+  commands first appear in the plan; the session-init records are hidden as the
+  ordinary display hides them, but a failed one, which it shows, is gathered in
+  a block of its own ahead of the others, `! session_init=PROFILE: COMMAND`
+  (S3b). Two answers are the same when the records' status, error code, and
+  `output_sha256` are, and on the exec channel `exit_status`, `exit_signal`,
+  and `stderr_sha256`; the header's values, the prompt, timings, notices, and
+  the error message are left out. The bytes as recorded, no drop list and no
+  white-space rule: the device's `| include` is the filter, and the client
+  hashes no answer to group it (the read-back hashes each answer only to check
+  it, point 4).
+- **The layout** (point 3; the S3b point). A block opens with the collection
+  file's marker, `! COMMAND` (`! --sudo COMMAND`); the run's border stands
+  between blocks and between groups, the footer after the last group, a
+  `crun`'s collection line after the footer. Each group has a header,
+  `display.gather.header`, by default `! <targets> (<count>)`, styled by role
+  as `display.run.header` is, empty disabling it. The succeeded groups come
+  first, the largest first, then the failures, the largest first, a tie by the
+  first name in the fold's natural order. A succeeded group shows its first
+  device's output; a failed one its output first when it has some (S3b), then
+  one line in the error colour, the ordinary failure line without `target=`,
+  `karvi: status=S error=CODE`, with `: MESSAGE` for a group of one device; a
+  not-attempted group `karvi: status=S`. No per-device header and no ICMP
+  gate's line; the host-key lines and other warnings stay on standard error.
+  `--echo` is refused beside it, and `display.run.echo` set true is not
+  applied.
+- **When it prints and what the client holds** (point 4; the S3, S3c, S4, and
+  S6 points). Every block at the job's end, at once. While it waits the client
+  holds per group its key, the line of its first record in `commands.jsonl`,
+  and for a failure that record's error message, and per device its name; at
+  the end it reads back the record of each group that has output, the answer
+  streamed as the ordinary display streams a spooled one and checked against
+  the record's digest (as built, a long one as its pass ends, its bytes already
+  written; changed after this chapter, below). In process it reads through the
+  file the store holds open, never the name, and writes the blocks once every
+  record is in, before the store's close; the follow paths open the file by
+  name with the folder follow's checks (S3c). A file that cannot be read, or a
+  line that is no longer the group's record, is
+  `run_output_records_unreadable`, exit 111: through the daemon the job is
+  unaffected and `job ID ended exit=N; artifacts DIR` comes before the error,
+  in process (`run --no-daemon`, `command`) the job's summary and scoreboard
+  carry the exit (S3). A display that fails once the job has ended through the
+  daemon keeps the job's summary, so `crun.after` runs (S3c). Whether a job
+  kept its `commands.jsonl` is judged on every follow path by its
+  `summary.json`, once (S6), in process by the store's own file; a
+  configuration that keeps none refuses `--gather`, the key and its source
+  named, `; --of` only where `--of` would take effect, and `job follow
+  --gather` of a job that kept none is refused before anything is shown, the
+  job untouched (S6). The progress line, `gather: done=N/M fail=F` on standard
+  error, is drawn as the display starts when standard error is itself a
+  terminal, whatever standard output is, never to a pipe or a file nor under
+  `--quiet`, and only while karvi is the terminal's foreground job and the
+  terminal is wider than the line (S4); `N` and `F` are counted from the
+  records, `M` is the plan's targets or the job's `summary.json` devices, and
+  `command` draws it too. The invocation's Ctrl-C stops the display at once on
+  every path (S4): while the job runs nothing gathered is shown, in process the
+  job cancelled and its footer written, through the daemon the job going on and
+  the interrupted line naming `karvi job follow --gather ID` where the option
+  would take effect (S6); during the read-back the blocks stop between pieces.
+- **The fold** (point 5; the S1 and S3 points). One function,
+  `matching.Condense` (S1), beside the range expansion, its test the round
+  trip. Names alike but for their digits fold on the digit run that gives the
+  fewest items, the last on a tie; consecutive numbers written at the run's
+  start width make a range, a number at another width its own item; the items
+  comma-separated without a space, in natural order, character by character, a
+  run of digits by value and any other character lowercase as `--order sorted`
+  compares it (S1); every name the same way, an address too. At S8 `--order
+  sorted` was found to take digits as characters (`router10` before `router2`,
+  where the fold puts `router2` first), and the operator chose to give it the
+  fold's order, in its own commit after this chapter. A backslash goes before
+  each of the grammar's characters a name holds where it would be read as
+  grammar (`!` at an item's start, `-` as a whole item), so a header reads back
+  exactly its devices (S1). A header is never cut: it is rendered once by
+  `RenderStyledLine`, with no layout at the terminal's width, and the line
+  limit counts what the template adds, never the first `<targets>` value (S3).
+- **Line mode** (point 6; the S5 point). `--prefix` and `display.run.prefix`
+  (false), `display.command.prefix` for `command` (S3c), with `--gather`'s
+  reach. Without gather the records stream as written, every line `NAME: line`,
+  an empty one `NAME: `: the output, stdout then stderr, the `--echo` line, and
+  the failure and not-attempted lines without the `target=` the name repeats, a
+  not-attempted line keeping `command=i/n`; no header, no border, and no ICMP
+  gate's line nor its `--debug` lines (S5). With gather each line of a group
+  stands under the group's folded names, the marker unprefixed, no group header
+  or border. Every line beginning `! ` is karvi's, the footer the last but for
+  a `crun`'s collection line after it. The name in the target colour, `: ` in
+  the label colour, a failure line in the error colour, the device's output
+  uncoloured. Refused, `prefix_option_conflict` (exit 4), beside `--format
+  jsonl|json`, `--border`, `--noborder`, `--detach`, and `--follow=false`;
+  beside `--live`, `live_option_conflict`; taken beside `--nof`, as it needs no
+  file. A reader splits a line at the first `: `, not the first colon, for IPv6
+  names.
+
+**The executed examples.** The lab build of the tree at `24991c6` (`ex106.sh`,
+run twice), in the shape of 0.41.0's runs: two native fakes, core on
+`cisco_ios`'s port and edge on an `edgeios` platform's, under the seven
+inventory names, router09 at 127.0.0.9 refused, every answer of the two alike
+but `show running-config`'s hostname. For answers that differ per device, the
+address fleet: a system-transport fake answering by the address it is given, as
+the display suite's fleet does, reached by direct targets in 192.0.2.0/24 and
+2001:db8::/32 under a lab file of its own, which sets the system transport
+(`ssh.run.transport`) and `platform-resolution.default` to `fleet`, a platform
+of the lab file (`driver = "cisco_ios"`); its `show clock` is the host's clock
+to the millisecond, each address set off by its own offset, its `show version`
+names an uptime per address, and it applies `| include` as a device does. The
+script adds the lab's `--config` files (the places `scripts/lib/lab.sh`'s
+`lab_places` writes, the lab file, and the address fleet's), `HOME` in the lab,
+`TMPDIR`, and the credentials in `NETUSER`, `NETPASS`, and `NETENABLE`; every
+run goes through the lab's daemon (`command` runs in process, as it always
+does) but case 10's folder follows, and `display.color` is `never` but where a
+line sets it. A `| FILTER` line runs karvi into a file and the filter over it,
+the exit karvi's; a line at a terminal runs under script(1), 100 columns wide,
+its bytes made readable: `<CR>` a carriage return, `<ESC>` the escape
+character, and each draw of the progress line on a line of its own, where the
+terminal draws each over the last. A line `[...]` stands for lines left out
+here. The second run differs only in the job IDs, the times, the fakes' ports,
+the clocks of case 7, and the order of case 1's plain display, which under
+`--dp` (parallel dispatch) follows the order the devices end in, with case 10's
+follows of that job; every gathered display is the same.
+
+The ordinary display and the gathered display of the same run, the first at the
+lab's first contact (case 1):
+
+```text
+$ karvi run --all --dp -c 'show version'
+! ssh accepted new host-key router01 (ED25519)
+! router01 [127.0.0.1] platform=cisco_ios user=netops backend=builtin-env-fallback transport=native
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+! ssh accepted new host-key router04 (ED25519)
+
+! router04 [127.0.0.1] platform=cisco_ios user=netops backend=builtin-env-fallback transport=native
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+[...]
+! router09 [127.0.0.9] platform=cisco_ios user=netops backend=builtin-env-fallback transport=native
+karvi: target=router09 status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused
+[...]
+! exit=101 elapsed=1.34s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173108-00
+(exit 101)
+$ karvi run --all --dp --gather -c 'show version'
+! show version
+! edge[1-2],router[01-04,10] (7)
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+
+! router09 (1)
+karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused
+! exit=101 elapsed=1.35s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173110-00
+(exit 101)
+```
+
+The unit is one requested command (case 2): `show version`, first in edge1's
+list and second in the routers', is one block of three, and the two `show
+clock`s, the first and the third of the routers' lists, stay apart:
+
+```text
+$ grep '' cf/*
+cf/edge1:show version
+cf/router01:show clock
+cf/router01:show version
+cf/router01:show clock
+cf/router02:show clock
+cf/router02:show version
+cf/router02:show clock
+$ karvi run --tl 'router0[1-2],edge1' --gather --cf cf
+! show clock
+! router[01-02] (2)
+*10:00:00.000 UTC Tue Sep 15 2026
+
+! show version
+! edge1,router[01-02] (3)
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+
+! show clock
+! router[01-02] (2)
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=2.41s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173111-00
+(exit 0)
+```
+
+The failure groups (case 3): a command the device refuses shows its output,
+then its failure line, without the message for a group of seven; router09
+alone keeps its message; the devices' second command is a not-attempted group
+of eight, router09 among them, `09-10` one range. Three refused addresses of
+the address fleet are one group, their messages left out, each naming its own
+address; they stay in the job's `errors.jsonl`:
+
+```text
+$ karvi run --all --gather -c 'show bogus' -c 'show clock'
+! show bogus
+! edge[1-2],router[01-04,10] (7)
+     ^
+% Invalid input detected at '^' marker.
+karvi: status=device_error error=device_command_error
+
+! router09 (1)
+karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused
+
+! show clock
+! edge[1-2],router[01-04,09-10] (8)
+karvi: status=not_attempted_prior_command_failure
+! exit=101 elapsed=4.62s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173113-00
+(exit 101)
+$ karvi run --tl '192.0.2.[11-12,21-23]' --gather -c 'show version | include Version'
+! show version | include Version
+! 192.0.2.[11-12] (2)
+Cisco IOS XE Software, Version 17.09.04a
+
+! 192.0.2.[21-23] (3)
+karvi: status=connection_error error=connection_refused
+! exit=101 elapsed=961ms artifacts=/var/tmp/kl8/base/jobs/261110/261110-173118-00
+(exit 101)
+$ (the messages in the job's errors.jsonl: each record's device.name and error.message)
+192.0.2.21  ssh: connect to host 192.0.2.21 port 22: Connection refused
+192.0.2.22  ssh: connect to host 192.0.2.22 port 22: Connection refused
+192.0.2.23  ssh: connect to host 192.0.2.23 port 22: Connection refused
+```
+
+The fold, and the header read back (case 4): the five core routers' answer
+differs from the edges' by its hostname, and the header's value, taken from
+the display by the script, is one `--tl` value that selects exactly those five
+devices:
+
+```text
+$ karvi run --all --gather -c 'show running-config'
+! show running-config
+! router[01-04,10] (5)
+Building configuration...
+[...]
+hostname core
+[...]
+end
+
+! edge[1-2] (2)
+Building configuration...
+[...]
+hostname edge
+[...]
+end
+
+! router09 (1)
+karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused
+! exit=101 elapsed=4.52s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173119-00
+(exit 101)
+$ karvi run --tl 'router[01-04,10]' --dry-run -c 'show running-config' | grep -e '^targets:' -e '^- name:'
+targets: 5 (client 5, daemon 0)
+- name:router01: planned
+- name:router02: planned
+- name:router03: planned
+- name:router04: planned
+- name:router10: planned
+(exit 0)
+```
+
+The group header is a template (case 5): another form, then empty, which
+leaves the border between the groups, then a placeholder karvi does not
+define, refused as any template's is; at a terminal the header is styled by
+role, `!` and the parentheses in the label colour (34), the folded names in the
+target colour (1;33), the count as a value (37), and the progress line as the
+footer is:
+
+```text
+$ karvi --set 'display.gather.header="[<count>] <targets>"' run --all --gather -c 'show version'
+! show version
+[7] edge[1-2],router[01-04,10]
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+
+[1] router09
+karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused
+! exit=101 elapsed=4.52s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173124-01
+(exit 101)
+$ karvi --set 'display.gather.header=""' run --all --gather -c 'show version'
+! show version
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+
+karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused
+! exit=101 elapsed=4.46s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173128-00
+(exit 101)
+$ karvi --set 'display.gather.header="! <devices> (<count>)"' run --all --gather -c 'show version'
+display_placeholder_unsupported: unsupported display placeholder <devices> for display.gather.header at --set[1]
+(exit 2)
+$ karvi --set display.color=auto run --tl 'router0[1-2],router09' --gather -c 'show clock'
+<CR><ESC>[34mgather: done=<ESC>[0m<ESC>[37m0/3<ESC>[0m<ESC>[34m fail=<ESC>[0m<ESC>[37m0<ESC>[0m<ESC>[K
+[...]
+<CR><ESC>[34mgather: done=<ESC>[0m<ESC>[37m3/3<ESC>[0m<ESC>[34m fail=<ESC>[0m<ESC>[37m1<ESC>[0m<ESC>[K
+<CR><ESC>[K
+<ESC>[34m! <ESC>[0m<ESC>[37mshow clock<ESC>[0m
+<ESC>[34m! <ESC>[0m<ESC>[1;33mrouter[01-02]<ESC>[0m<ESC>[34m (<ESC>[0m<ESC>[37m2<ESC>[0m<ESC>[34m)<ESC>[0m
+*10:00:00.000 UTC Tue Sep 15 2026
+
+<ESC>[34m! <ESC>[0m<ESC>[1;33mrouter09<ESC>[0m<ESC>[34m (<ESC>[0m<ESC>[37m1<ESC>[0m<ESC>[34m)<ESC>[0m
+<ESC>[1;31mkarvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused<ESC>[0m
+[...]
+(exit 101)
+```
+
+Line mode (case 6), streamed, then gathered, each with a grep; the IPv6 names
+split at the first `: ` and, wrongly, at the first colon, karvi's own `! `
+lines left out first; at a terminal the name in the target colour, `: ` in
+the label colour, the failure line in the error colour (1;31):
+
+```text
+$ karvi run --all --prefix -c 'show version'
+router01: Cisco IOS XE Software, Version 17.09.04a
+router01: fake-iosxe uptime is 1 day
+router02: Cisco IOS XE Software, Version 17.09.04a
+router02: fake-iosxe uptime is 1 day
+[...]
+edge2: Cisco IOS XE Software, Version 17.09.04a
+edge2: fake-iosxe uptime is 1 day
+router09: karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused
+! exit=101 elapsed=4.52s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173134-00
+(exit 101)
+$ karvi run --all --prefix -c 'show version' | grep uptime
+router01: fake-iosxe uptime is 1 day
+router02: fake-iosxe uptime is 1 day
+[...]
+edge2: fake-iosxe uptime is 1 day
+(exit 101)
+$ karvi run --all --gather --prefix -c 'show version' -c 'show clock'
+! show version
+edge[1-2],router[01-04,10]: Cisco IOS XE Software, Version 17.09.04a
+edge[1-2],router[01-04,10]: fake-iosxe uptime is 1 day
+router09: karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused
+! show clock
+edge[1-2],router[01-04,10]: *10:00:00.000 UTC Tue Sep 15 2026
+router09: karvi: status=not_attempted_prior_command_failure
+! exit=101 elapsed=5.27s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173144-00
+(exit 101)
+$ karvi run --all --gather --prefix -c 'show version' | grep uptime
+edge[1-2],router[01-04,10]: fake-iosxe uptime is 1 day
+(exit 101)
+$ karvi run --tl '2001:db8::[1-2]' --prefix -c 'show version'
+2001:db8::1: Cisco IOS XE Software, Version 17.09.04a
+2001:db8::1: fleet uptime is 3 weeks, 5 hours, 12 minutes
+2001:db8::1: System image file is "bootflash:packages.conf"
+2001:db8::2: Cisco IOS XE Software, Version 17.09.04a
+2001:db8::2: fleet uptime is 3 weeks, 5 hours, 40 minutes
+2001:db8::2: System image file is "bootflash:packages.conf"
+! exit=0 elapsed=882ms artifacts=/var/tmp/kl8/base/jobs/261110/261110-173154-00
+(exit 0)
+$ karvi run --tl '2001:db8::[1-2]' --prefix -c 'show version' | grep -v '^! ' | sed 's/: .*//' | sort | uniq -c
+      3 2001:db8::1
+      3 2001:db8::2
+(exit 0)
+$ karvi run --tl '2001:db8::[1-2]' --prefix -c 'show version' | grep -v '^! ' | cut -d: -f1 | sort | uniq -c
+      6 2001
+(exit 0)
+$ karvi --set display.color=auto run --tl 'router0[1-2],router09' --prefix -c 'show clock'
+<ESC>[1;33mrouter01<ESC>[0m<ESC>[34m: <ESC>[0m*10:00:00.000 UTC Tue Sep 15 2026
+<ESC>[1;33mrouter02<ESC>[0m<ESC>[34m: <ESC>[0m*10:00:00.000 UTC Tue Sep 15 2026
+<ESC>[1;33mrouter09<ESC>[0m<ESC>[34m: <ESC>[0m<ESC>[1;31mkarvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused<ESC>[0m
+[...]
+(exit 101)
+```
+
+The device's own answers (case 7, the address fleet): a real `show clock` is
+one group per device, a raw `show version` too, its uptime the device's own,
+and `show version | include Version` one group, the device applying the
+filter. The native fake applies none and answers that line as an unknown
+command:
+
+```text
+$ karvi run --tl '192.0.2.[11-14]' --gather -c 'show clock' -c 'show version' -c 'show version | include Version'
+! show clock
+! 192.0.2.11 (1)
+*22:31:58.636 UTC Tue Nov 10 2026
+
+! 192.0.2.12 (1)
+*22:31:59.511 UTC Tue Nov 10 2026
+
+! 192.0.2.13 (1)
+*22:32:00.385 UTC Tue Nov 10 2026
+
+! 192.0.2.14 (1)
+*22:32:01.277 UTC Tue Nov 10 2026
+
+! show version
+! 192.0.2.11 (1)
+Cisco IOS XE Software, Version 17.09.04a
+fleet uptime is 12 weeks, 3 days, 4 hours, 2 minutes
+System image file is "bootflash:packages.conf"
+
+! 192.0.2.12 (1)
+Cisco IOS XE Software, Version 17.09.04a
+fleet uptime is 12 weeks, 3 days, 4 hours, 9 minutes
+System image file is "bootflash:packages.conf"
+[...]
+
+! show version | include Version
+! 192.0.2.[11-14] (4)
+Cisco IOS XE Software, Version 17.09.04a
+! exit=0 elapsed=2.7s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173158-00
+(exit 0)
+$ karvi run --tl 'router0[1-2]' --gather -c 'show version | include Version'
+! show version | include Version
+! router[01-02] (2)
+     ^
+% Invalid input detected at '^' marker.
+karvi: status=device_error error=device_command_error
+! exit=101 elapsed=1.31s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173201-00
+(exit 101)
+```
+
+The refusals, each karvi's whole error (case 8). `nof.toml` is a lab file
+setting `output.persist-command = false`, passed after the lab's; its
+refusal names it and ends `; --of`, which takes effect over a file; a
+`--set` of the key beats `--of`, so after one there is no hint, and
+`output.files.commands-jsonl` takes none, `--of` not setting it:
+
+```text
+$ karvi run --gather --echo --tl router01 -c 'show clock'
+gather_option_conflict: --gather and --echo are mutually exclusive
+(exit 4)
+$ karvi run --gather --format jsonl --tl router01 -c 'show clock'
+gather_option_conflict: --gather and --format jsonl are mutually exclusive
+(exit 4)
+$ karvi run --gather --nof --tl router01 -c 'show clock'
+gather_option_conflict: --gather and --nof are mutually exclusive
+(exit 4)
+$ karvi run --gather --detach --tl router01 -c 'show clock'
+gather_option_conflict: --gather and --detach are mutually exclusive
+(exit 4)
+$ karvi run --gather --follow=false --tl router01 -c 'show clock'
+gather_option_conflict: --gather and --follow=false are mutually exclusive
+(exit 4)
+$ karvi run --no-daemon --live --gather --tl router01 -c 'show clock'
+live_option_conflict: --live and --gather are mutually exclusive
+(exit 4)
+$ karvi run --prefix --border --tl router01 -c 'show clock'
+prefix_option_conflict: --prefix and --border are mutually exclusive
+(exit 4)
+$ cat nof.toml
+[output]
+persist-command = false
+$ karvi --config nof.toml run --gather --tl router01 -c 'show clock'
+gather_option_conflict: --gather and output.persist-command = false at /var/tmp/kl8/cwd/nof.toml:2 are mutually exclusive; --of
+(exit 4)
+$ karvi --set output.persist-command=false run --gather --tl router01 -c 'show clock'
+gather_option_conflict: --gather and output.persist-command = false at --set[1] are mutually exclusive
+(exit 4)
+$ karvi --set output.files.commands-jsonl=false run --gather --tl router01 -c 'show clock'
+gather_option_conflict: --gather and output.files.commands-jsonl = false at --set[1] are mutually exclusive
+(exit 4)
+$ karvi --set output.files.commands-jsonl=false run --tl router01 -c 'show clock'
+! router01 [127.0.0.1] platform=cisco_ios user=netops backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=652ms artifacts=/var/tmp/kl8/base/jobs/261110/261110-173202-00
+(exit 0)
+$ karvi job follow --gather 261110-173202-00
+gather_option_conflict: --gather needs the job's commands.jsonl; job 261110-173202-00 kept none (output.files.commands-jsonl was false)
+(exit 4)
+```
+
+The key set true is never refused (case 9): beside `--format jsonl` the
+records and the summary, the two records' `output_sha256` alike, what a script
+groups by, and beside `--nof` the ordinary display:
+
+```text
+$ karvi --set display.run.gather=true run --format jsonl --tl 'router0[1-2]' -c 'show clock'
+(3 lines, each shown by json_get: a record's sequence, device.name, command, status, output_sha256; the summary's kind and final_status)
+record 1: router01 show clock status=success output_sha256=553823364af1bedb3a3c50964c718c724522e4e58dc21a90bee4fa592a4bb981
+record 2: router02 show clock status=success output_sha256=553823364af1bedb3a3c50964c718c724522e4e58dc21a90bee4fa592a4bb981
+summary: kind=run final_status=complete
+(exit 0)
+$ karvi --set display.run.gather=true run --nof --tl 'router0[1-2]' -c 'show clock'
+! router01 [127.0.0.1] platform=cisco_ios user=netops backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+
+! router02 [127.0.0.1] platform=cisco_ios user=netops backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=1.27s artifacts=none
+(exit 0)
+```
+
+`job follow --gather` and `--prefix` of case 1's job, run with neither (case
+10), through the daemon: the job's host-key lines, each a record's notice,
+come first, as the records are read, then the blocks; in line mode each
+before its device's lines. Then the daemon stopped: the two follows from the
+job's folder print the same 38 lines byte for byte, and no daemon is launched,
+no socket appearing:
+
+```text
+$ karvi job follow --gather 261110-173108-00
+! ssh accepted new host-key router01 (ED25519)
+! ssh accepted new host-key router04 (ED25519)
+[...]
+! ssh accepted new host-key edge2 (ED25519)
+! show version
+! edge[1-2],router[01-04,10] (7)
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+
+! router09 (1)
+karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused
+! exit=101 elapsed=1.34s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173108-00
+(exit 101)
+$ karvi job follow --prefix 261110-173108-00
+! ssh accepted new host-key router01 (ED25519)
+router01: Cisco IOS XE Software, Version 17.09.04a
+router01: fake-iosxe uptime is 1 day
+! ssh accepted new host-key router04 (ED25519)
+router04: Cisco IOS XE Software, Version 17.09.04a
+router04: fake-iosxe uptime is 1 day
+[...]
+! exit=101 elapsed=1.34s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173108-00
+(exit 101)
+$ karvi daemon stop --force
+daemon stopped
+(exit 0)
+[...]
+$ find /var/tmp/kl8/base -type s   # no daemon launched: no socket
+```
+
+`command` gathered by its option and by its key, and `crun` gathered, the
+collection line after the footer (case 11):
+
+```text
+$ karvi command router01 --gather -c 'show version' -c 'show clock'
+! show version
+! router01 (1)
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+
+! show clock
+! router01 (1)
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=798ms artifacts=/var/tmp/kl8/base/jobs/261110/261110-173206-00
+(exit 0)
+$ karvi --set display.command.gather=true command router01 -c 'show clock'
+! show clock
+! router01 (1)
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=695ms artifacts=/var/tmp/kl8/base/jobs/261110/261110-173207-00
+(exit 0)
+$ karvi crun --tl 'router0[1-3],edge1' --gather -c 'show version'
+! show version
+! edge1,router[01-03] (4)
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+! exit=0 elapsed=2.58s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173208-00
+! collection=/var/tmp/kl8/base/crun replace=4 keep=0
+(exit 0)
+```
+
+The progress line at a terminal (case 12), a run long enough to see it (the
+fakes' `show slow` answers after 3 s, the devices one after another): drawn
+`done=0/4` as the display starts, again as each device ends, router09's
+refusal counted in `fail`, and erased before the blocks. With standard output
+to a file the line is drawn at the terminal and the blocks go to the file;
+with standard error to a file no line is drawn anywhere:
+
+```text
+$ karvi run --tl 'router0[1-3],router09' --gather -c 'show slow'
+<CR>gather: done=0/4 fail=0<ESC>[K
+<CR>gather: done=1/4 fail=0<ESC>[K
+<CR>gather: done=2/4 fail=0<ESC>[K
+<CR>gather: done=3/4 fail=0<ESC>[K
+<CR>gather: done=4/4 fail=1<ESC>[K
+<CR><ESC>[K
+! show slow
+! router[01-03] (3)
+slow output
+
+! router09 (1)
+karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused
+! exit=101 elapsed=10.96s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173210-00
+(exit 101)
+$ karvi run --tl 'router0[1-2],router09' --gather -c 'show slow' > out.txt
+<CR>gather: done=0/3 fail=0<ESC>[K
+<CR>gather: done=1/3 fail=0<ESC>[K
+<CR>gather: done=2/3 fail=0<ESC>[K
+<CR>gather: done=3/3 fail=1<ESC>[K
+<CR><ESC>[K
+(exit 101)
+$ cat out.txt
+! show slow
+! router[01-02] (2)
+slow output
+
+! router09 (1)
+karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused
+! exit=101 elapsed=7.32s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173221-00
+$ karvi run --tl 'router0[1-2],router09' --gather -c 'show slow' 2> err.log
+! show slow
+! router[01-02] (2)
+slow output
+[...]
+! exit=101 elapsed=7.33s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173229-00
+(exit 101)
+$ wc -c err.log
+0 err.log
+```
+
+A Ctrl-C typed at the terminal 2.5 s into the run, through the daemon (case
+13): the terminal echoes `^C`, the line is erased, and nothing gathered is
+shown; the job goes on in the daemon, and the line that says so names the
+gathered follow, which shows the job whole when it ends:
+
+```text
+$ karvi run --tl 'router0[1-3]' --gather -c 'show slow'     # Ctrl-C typed 2.5 s in
+<CR>gather: done=0/3 fail=0<ESC>[K
+^C<CR><ESC>[K
+interrupted: job 261110-173236-00 continues in the daemon; artifacts /var/tmp/kl8/base/jobs/261110/261110-173236-00; run "karvi job follow --gather 261110-173236-00" again or read /var/tmp/kl8/base/jobs/261110/261110-173236-00/summary.json when it ends
+cancelled: the follow of job 261110-173236-00 was interrupted; the job continues
+(exit 113)
+$ karvi job follow --gather 261110-173236-00
+! show slow
+! router[01-03] (3)
+slow output
+! exit=0 elapsed=10.92s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173236-00
+(exit 0)
+```
+
+A stream line `--g`, one word that begins a directive, is dropped as
+ambiguous, and the stream goes on; `--ga`, which no directive begins, is
+`--gather` (case 14):
+
+```text
+$ printf '%s\n' '--tl router0[1-2]' '--cmd show clock' --g --ga --go | karvi stream
+stream line 3 dropped: cli_option_ambiguous: --g is ambiguous in stream: --gather, --go
+! show clock
+! router[01-02] (2)
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=1.28s artifacts=/var/tmp/kl8/base/jobs/261110/261110-173247-00
+(exit 0)
+```
+
+**The keys' `since`, removed.** Found at S2, whose three new keys said
+`"since": "0.2.0"`: `configschema.Entry.Since`, meant as the release a key
+first shipped in, was read by nothing, and `Entries()` wrote 0.2.0 for a row
+that set none, so the registry artifact said 0.2.0 for 104 of 182 keys, 101
+of 0.41.0's 179, every key added since 0.33.0 among them. A value nothing
+reads is removed when found, as the sensitive mark was at registry 32
+([chapter 84](#84-config-show-refuses---format-beside-keys-2026-10-27)); on
+the operator's word ("Agreed on removing since field"), `6179369` removed
+the field and its default, every row's `Since` (78), and a stale comment
+naming it, the registry counter's history line naming it under 35, which this
+body of work moves already; `schema/config-schema.json` regenerated, 182
+`since` lines gone; the CHANGELOG's Breaking changes entry. The counts it
+gives, checked (case 15, in the clone; `json_get` is `scripts/lib/json.sh`'s
+reader), and `targets.inventory-only`, a key of 0.41.0, before and after, its
+documentation elided by the script:
+
+```text
+$ git show karvi-v0.41.0:schema/config-schema.json >schema-0410.json
+$ json_get schema-0410.json 'keys.*.path' | wc -l
+179
+$ json_get schema-0410.json 'keys.*.since' | grep -c '^0\.2\.0$'
+101
+$ grep -o "101 of 0.41.0's 179" CHANGELOG.md
+101 of 0.41.0's 179
+$ for c in karvi-v0.41.0 98e00fc 6179369 24991c6; do echo $c $(git show $c:schema/config-schema.json | grep -c '"since"'); done
+karvi-v0.41.0 179
+98e00fc 182
+6179369 0
+24991c6 0
+$ json_get schema/config-schema.json 'keys.*.path' | wc -l
+184
+$ (targets.inventory-only, a key of 0.41.0, before and after; its documentation elided)
+--- schema-0410.json
+      "path": "targets.inventory-only",
+[...]
+      "cli_flags": null,
+      "documentation": "...",
+      "since": "0.2.0"
+    },
+--- config-schema.json
+      "path": "targets.inventory-only",
+[...]
+      "cli_flags": null,
+      "documentation": "..."
+    },
+```
+
+**What changed.** Seven sections, each committed on dev; five commits
+between them, each found on the way and agreed with the operator; and S8's:
+
+- `30b24a1` (S1): `matching.Condense` (`internal/matching/condense.go`), its
+  tests the exact folds of the prototype's 14 sets and the round trip through
+  `--tl`'s own split, 3,000 generated sets among them. Nothing called it until
+  S3.
+- `98e00fc` (S2): registry 35, `display.run.gather`, `display.run.prefix`,
+  and `display.gather.header`; `<targets>` and `<count>` in the one
+  placeholder set, `<targets>` in the target role; the header checked at load
+  as the other templates are. No plan field; the planner's golden draft
+  re-pinned for the configuration block's three keys.
+- `6179369`, after S2: the keys' `since` removed (above).
+- `1181526` (S3a): a record's line read back from `commands.jsonl`
+  (`internal/output/readback.go`: `FindLines`, `ReadRecordAt`), its output
+  and an exec record's stderr streamed from the file, unescaped and base64
+  decoded as they stream, none held whole (an answer whose escaped text is
+  under 64 KiB read with its line), the digest checked.
+- `c45e3f5`, after S3a: `Source.bytes`, a spool source's byte count read by
+  nothing but a test, removed.
+- `6fb8e9f` (S3b): the gatherer (`internal/jobexec/gather.go`): blocks,
+  groups, keys, each group's first line and each device's name, the layout
+  written at the end through S3a; renderer tests over the lab's records
+  (`internal/jobexec/testdata/gather/`).
+- `a035e55` (S3c): the paths wired, in process, the daemon's follow, and `job
+  follow` through the daemon and from the folder; `display.command.gather`; the
+  read-back's failure and the ended line; `openChecked`'s path named once; the
+  CHANGELOG's New features entry and three Bugs fixed entries (a followed job's
+  display failing at its end says it ended, `crun.after` runs after such a
+  failure, a gone `commands.jsonl` named once).
+- `b65f21d`, found at S3c: the store's close closes every file when
+  `failed-devices.txt` cannot be written (Bugs fixed).
+- `cc25de8` (S4): the progress line (`internal/jobexec/progress.go`), the
+  foreground and width checks (`osutil.ForegroundGroup`), and Ctrl-C on every
+  path; `internal/testpty`, the pseudo-terminal pair the tests share; a
+  `summary.json` the folder follow cannot open named once (Bugs fixed).
+- `9f5c376`, found at S4: a failed command's record names its error code
+  once (Bugs fixed).
+- `acc0742` (S5): line mode (`internal/jobexec/prefix.go`),
+  `display.run.prefix` and `display.command.prefix`.
+- `6623a8d` (S6a): `--gather` and `--prefix` on `run`, `crun`, stream lines,
+  and `command`: the parser table, the help and man pages, completion,
+  `gather_option_conflict` and `prefix_option_conflict`, `live_option_conflict`
+  gaining both options, the `; --of` hint where it works.
+- `d93b741` (S6b): the two options on `job follow`; a job's `commands.jsonl`
+  judged by its `summary.json` on every path; the interrupted line naming
+  `--gather`.
+- `8be1167`, found at S6: `job follow` refuses `--border` with `--noborder`,
+  as `run` does (Bugs fixed).
+- S7, each its own commit: `0de2b3d`, a followed job without a folder names
+  `output.persist-command` in its not-kept warning (Bugs fixed); `71b26e8`,
+  an interrupt before `crun.after` starts runs no hook (Bugs fixed);
+  `777be27`, the in-process read-back takes the store's file when it reads,
+  and two writers' comments; `cf53f03`, the `--exercise` refusal names the
+  key's source and gives `; --of` only where it works (Bugs fixed);
+  `630e8cc`, the stream's one-word rule; `24991c6`, the display suite's six
+  rows over a fleet answering by address.
+- S8, the documents, each drafted by an agent from the decisions and the
+  CHANGELOG and checked against the code by another before it was applied:
+  `3f58db7`, found at S8's start, `karvi-command(1)` naming
+  `display.command.footer` for `command`'s footer where it named
+  `display.run.footer` (Bugs fixed); `ef16015`, `docs/DESIGN.md` section 12's
+  nine entries, the `--live` lists of DESIGN and `docs/COMMAND-SESSION.md`, and
+  six sentences the feature had made wrong; `06c2451`, the operations guide's
+  "Gathered output and line mode", `docs/DISPLAY-CONFIGURATION.md`'s group
+  header and line mode, `docs/SCALE.md`'s figures measured again on the tree,
+  the two ROADMAP items, README's display defaults, and the OUTPUT sections of
+  `karvi-run(1)` and `karvi-command(1)`; and this chapter, with the CHANGELOG's
+  Unreleased section read whole (its gathered display's fallback now naming
+  `output.persist-command`).
+
+The range `1e4bf50..24991c6` also holds `d2e9d43`, the ROADMAP's
+"Competitive features to consider for later", committed before the session;
+S1 was built on it. No plan, record, manifest, or IPC schema changed; the
+configuration registry moves 34 to 35.
+
+**Found at S8.** The documents' drafts and their reviews against the code
+found, outside the feature's decisions: `karvi-command(1)` naming the run's
+footer key for `command`'s (fixed, `3f58db7`);
+`platform.NAME.default-transport`, accepted, validated, and read by no
+transport choice (a platform set to `system` ran native), which the operator
+chose to remove; the one placeholder set every template takes, a placeholder
+its line has no value for rendering empty or `0` (`"! <target> (<count>)"` as
+the group header draws `!  (2)`, the name empty), documented, and a
+placeholder set per template put on the ROADMAP's Later; `--order sorted`'s
+order (the fold, above), which the operator chose to make the fold's; and the
+read-back's digest check, where point 4's S3c decision had said only the bytes
+the job recorded are shown: as built, a short answer is checked before it is
+shown, a long one, streamed from the file, as its pass ends, its bytes already
+written before `run_output_records_unreadable` (exit 111); the ordinary `job
+follow` reads no digest, showing a changed answer as the device's with the
+job's exit. The digest was a record field for other programs, and the gathered
+display is karvi's first reader of it: it groups devices by their records'
+digests and shows one device's bytes, read back, for the whole group, so its
+header is true only if those bytes match. On the operator's word ("if the
+gather function is to operate as a reader and the reader needs the digest to
+group content then the output must be checked, especially if the digest value
+is where a bit flipped"), every answer is checked before any of it is shown,
+a long one read once for its digest and again to show it, and a mismatch is
+reported as the digest not matching. The removal, the order, and the check
+are each their own commit after this chapter.
+
+**Not taken.**
+
+- Point 1: a valued option (`--display gather|lines`); gathering by default,
+  the live display being what an operator watching a change wants; a plan
+  field copying the key, or holding the decided value, and the job manifest
+  to 6, a second number saying what the plan's says (S2); one key for `run`
+  and `command`, a run's key ruling `command` (S3c); the options refused
+  beside a rehearsal as `--live` is, or on `--follow=false`'s "nothing shown"
+  (S6); `gather_option_conflict` beside `--live`, two codes for one conflict
+  (S6); on a stream line, the prefix rule unchanged, the rule on every line,
+  or a minimum prefix length per option (S7).
+- Point 2: blocks by position, which splits per-device lists; by text alone,
+  which merges a before-and-after `show clock`; groups after `crun-filters`
+  or ignoring white space, the client reading and hashing every output;
+  notices in the key; the cause in a not-attempted group's line, and every
+  session-init record shown (S3b).
+- Point 3: `! command: TEXT`, a second form for the marker; the command in
+  each group header; groups in the plan order of their first device; the
+  first device's message on a group of several; a failed group's output in
+  its line's message, or shown for `device_error` alone (S3b).
+- Point 4: each distinct answer in memory (2,500 configurations of 100 KB are
+  250 MB); a client spool of the first answers; blocks printed as each
+  completes; a partial view on Ctrl-C, the in-process blocks kept after it, a
+  second Ctrl-C to stop the display, and the read-back finished without the
+  footer (S4); a new code for the unreadable file, the job's exit with a
+  warning, and the footer after the error (S3); the progress line judged by
+  standard output, or by both streams (S4); its total from the scoreboard, or
+  from a total in the follow's start, a daemon change for one number, or no
+  total (S4); no line for `command` (S4); the line drawn whatever the job's
+  place, or cut to the width, and the clear before the text (S4); the ordinary
+  display with a warning for `job follow --gather` of a job without records
+  (S6); the `; --of` hint every time, or none (S6); the file's presence at its
+  name as the daemon's judgement (S6); every display option repeated in the
+  interrupted line, or the line unchanged (S6).
+- Point 5: the last digit run alone; two runs at once (`pod[1-2]-sw[1-2]`);
+  a space after the comma; addresses unfolded; a header cut at the terminal's
+  width with `+N`, a higher line limit, the display refused, or the split at
+  the width (S3); `Fold`, `Collapse`, `Compact`, or `Pack` as the function's
+  name, names holding the grammar's characters written as they are or left
+  out of the fold, the case as written, and the prototype's order comparing
+  the text between digits whole (S1).
+- Point 6: `--lines`, `--label`, or `-L`; a template; the device header kept;
+  the marker prefixed; a mark on standard error's lines; the ICMP gate's line
+  kept and its `--debug` lines prefixed (S5).
+
+**Left open.** The
+[ROADMAP](../ROADMAP.md#competitive-features-to-consider-for-later)'s
+"Competitive features to consider for later" gains ClusterShell's
+capabilities not taken here: a diff view, by post-processing or a wrapper
+reading line mode; selectors combined with AND; group names in headers;
+folding two runs at once; `--pick N`; and the fold in `job list`'s TARGET
+column and the watch screen. At S2 the operator noted the many schema numbers
+and the digests, to be revisited later.
+
+**Checks.** Each section's tests failed first on the tree before it, then
+passed, with gofmt, `go vet ./...`, and `go test ./...` on the whole tree (75
+packages); `make generate` with `make generated-clean` is recorded for every
+section that moved a generated file (the registry, the help, the error codes)
+but S5, whose files the S7 battery's `make generated-clean` checked on the tree
+after it; `777be27` added no test, the existing guards shown by mutants to
+catch its change (`S7/m07/`). S1's independent review ran 30,000 round-trip
+sets, 40,000 bracket sets against a brute-force minimum, and 12,000 near-miss
+names through the matcher without a failure over printable ASCII names, and
+found one defect outside them, a byte that is not UTF-8 beside an escape, fixed
+before the commit. S3a streamed a 22,574,394-byte line back with 418,048 bytes
+allocated. S3b's review found the ordinary display byte-identical over 10
+record shapes under 16 settings. S3c had two reviews, every finding fixed but
+one (M07, the read-back's file taken when it reads, made at S7 as `777be27`),
+its gathered tests run 100 times in `internal/app` and `internal/jobexec` and 5
+times in `internal/cli`, and the client's memory measured at width
+(`output-scale-run.sh`), measured again at S8 on the tree (the figures above).
+The reviews' mutants, run against the tree's tests: S3a's 19, every one caught
+after the fixes but one removed with the check it mutated; S3b's 26, 25 caught
+and the last not observable; S4's 67, 63 killed and the 4 survivors judged;
+S5's 46, 34 killed, 5 equivalent, and the 7 gaps closed by tests; S6a's 59, 46
+killed, 3 equivalent, and the 10 gaps' tests made; S6b's 50, 42 killed, 4
+equivalent, 1 caught only by `make generated-clean`, and 3 gaps, then 43 more
+after its fixes, 9 gaps, tests adopted for 6 and the other 3 closed by the lock
+rule's move into the interrupted line's function; every remade mutant killed.
+S7's rows failed on a 0.41.0 lab (28 failures over 6 rows) and with both
+options turned false (14), then passed twice on the lab build; the full battery
+passed (`S7/battery/`: the build, vet, `make generated-clean`, `go test` 75
+packages, and the suites in 261 s). S8 is documents, each drafted by an agent
+and checked against the code by another before it was applied (S8a's review 18
+findings, S8b's 10, this chapter's 19, every one fixed, the streamed answer's
+digest check written as built and changed after, above): the runs above, twice
+on the lab build of `24991c6`, the lab removed after each with no process or
+socket left; the client's memory measured again (`S8/scale/`); grep checks of
+every key, code, and option named against the tree; `make generated-clean`; and
+the documents' links through `tools/md-to-html`. The evidence is kept beside
+the tree (`release-design-evidence/gather-2026-11/`: `DECISIONS.md`, `PLAN.md`,
+the session's 0.41.0 runs in `today/`, the prototypes in `point3/`, `point5/`,
+and `point6/`, `since/`, `bytes/`, and a folder per section with its README and
+runs).
