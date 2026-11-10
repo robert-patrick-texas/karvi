@@ -704,6 +704,8 @@ type ansiStripper struct {
 // bytes, an OSC title at most a line.
 const ansiCarryMax = 4096
 
+// Write returns 0 with the error though part of p may have gone out, as
+// every writer in the chain does; no caller reads the count.
 func (a *ansiStripper) Write(p []byte) (int, error) {
 	buf := p
 	if len(a.carry) > 0 {

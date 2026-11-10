@@ -68,6 +68,8 @@ type linePrefixer struct {
 	buf    []byte
 }
 
+// Write returns 0 with the error though earlier pieces went out, as every
+// writer in the chain does; no caller reads the count.
 func (p *linePrefixer) Write(b []byte) (int, error) {
 	for rest := b; len(rest) > 0; {
 		if !p.mid {

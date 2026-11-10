@@ -349,16 +349,24 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	// the job keeps no such file (--nof, output.files.commands-jsonl false),
 	// which shows today's display, nor where the display goes nowhere
 	// (Unshown); gatherFrom refuses another format, the daemon, and --live.
-	// The read-back closes the file; the close here is for a display that
-	// never read it. The invocation's interrupt (ctx, its signals alone in
+	// The read-back takes the file from the store when it reads
+	// (endGathered, before the store's close below) and closes it; a
+	// display that never reads it back (gatherFrom refusing, no answer to
+	// show, an error or an interrupt first) leaves it with the store, whose
+	// Close closes it before Run returns. The error below, the file handed
+	// over before the read-back, cannot be reached: in process nothing else
+	// takes it, and the daemon, which takes it first (OnAccepted), never
+	// reads back. The invocation's interrupt (ctx, its signals alone in
 	// process) stops the display at once: a Ctrl-C while the job runs
 	// cancels the job and shows nothing gathered, one during the read-back
 	// stops it; the job's end, exit 113, and the footer follow.
 	if store.Paths().CommandsJSONL != "" && !req.Unshown && cfg.Bool(gatherKey(req.ActivityType)) {
-		if commands := store.CommandsReader(); commands != nil {
-			defer commands.Close()
-			renderer.gatherFrom(func() (*os.File, error) { return commands, nil }, ctx.Done(), progress)
-		}
+		renderer.gatherFrom(func() (*os.File, error) {
+			if commands := store.CommandsReader(); commands != nil {
+				return commands, nil
+			}
+			return nil, errorcodes.Errorf("run_output_records_unreadable", "%s was handed over before the read-back", store.Paths().CommandsJSONL)
+		}, ctx.Done(), progress)
 	}
 	var live func(records.CommandRecord) executor.LiveView
 	if req.Live {
