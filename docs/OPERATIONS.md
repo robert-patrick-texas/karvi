@@ -2335,9 +2335,14 @@ or a heredoc it drives several jobs through one karvi. The rules:
   line is the job's alone; a job's commands go in the order typed.
   `--expect`, `--blind`, `--blind-return`, `--timeout`, and `--maxbytes`
   lines attach to the command before them and stay or clear with it; one
-  after a `--cf` line is dropped. The
-  option words mean what they mean on a `run` command line,
-  abbreviations and the `=` spelling included. An option whose value
+  after a `--cf` line is dropped. The option words mean what they mean
+  on a `run` command line, abbreviations and the `=` spelling included,
+  but for a line of one word that begins a directive, which is never an
+  option's abbreviation: a line `--g`, perhaps a mistyped `--go`, is
+  dropped with its number as `cli_option_ambiguous: --g is ambiguous in
+  stream: --gather, --go`, and a bare `--se` as ambiguous between
+  `--select-platform` and `--sendit`; `--ga`, `--gather`, `--g=true`,
+  and `--se cisco_ios` are the options as before. An option whose value
   attaches with `=` alone takes it that way here too: a line `--of
   /tmp/x` is dropped with its number as `cli_option_value_detached`, and
   `--of=/tmp/x` is the line. A line that would leave text no option

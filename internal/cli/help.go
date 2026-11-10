@@ -103,12 +103,14 @@ Directives, each a whole line, one dash or two:
 
 Typed at a terminal, a line is edited with Ctrl-A, Ctrl-E, Ctrl-K, Ctrl-U,
 Ctrl-W, and the arrows, and the up arrow recalls earlier lines. A line the
-parser refuses is reported with its number and dropped. The exit is the
-last executed job's, 0 when none ran; a read failure or a line over 1 MiB
-ends the stream with stream_input_read_failed, and a --restart whose
-reading fails ends it with the reading's code. A restart keeps the line
-count, the last exit, and the recalled lines. Global options go before
-the word: karvi --quiet --config FILE stream.
+parser refuses is reported with its number and dropped. A line of one word
+that begins a directive is never an option's abbreviation: it is dropped as
+ambiguous, naming the words it begins, so a mistyped --go never becomes
+--gather. The exit is the last executed job's, 0 when none ran; a read
+failure or a line over 1 MiB ends the stream with stream_input_read_failed,
+and a --restart whose reading fails ends it with the reading's code. A
+restart keeps the line count, the last exit, and the recalled lines. Global
+options go before the word: karvi --quiet --config FILE stream.
 
 Options:
   --no-credh                     Run no credential helper for any job; as a

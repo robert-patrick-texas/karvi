@@ -193,9 +193,9 @@ func TestSudoInAFolderList(t *testing.T) {
 // command material in the order typed, a declaration after it attaching to
 // it, and it stays from one job to the next as --cmd's option form does.
 func TestStreamKeepsASudoLine(t *testing.T) {
-	args, role, stdinOption, detached := streamOptionArgs("--sudo systemctl restart nginx")
-	if !reflect.DeepEqual(args, []string{"--sudo", "systemctl restart nginx"}) || role != roleSudo || stdinOption != "" || detached != nil || !streamCommandRole(role) {
-		t.Fatalf("args %q role %v stdin %q detached %v", args, role, stdinOption, detached)
+	args, role, stdinOption, refused := streamOptionArgs("--sudo systemctl restart nginx")
+	if !reflect.DeepEqual(args, []string{"--sudo", "systemctl restart nginx"}) || role != roleSudo || stdinOption != "" || refused != nil || !streamCommandRole(role) {
+		t.Fatalf("args %q role %v stdin %q refused %v", args, role, stdinOption, refused)
 	}
 	var runs [][]string
 	execute := func(_ int, argv []string) int {

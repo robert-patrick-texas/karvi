@@ -232,9 +232,19 @@ dropped, as `run` refuses the declaration there. An option line's word is
 resolved through run's own table, so `--cmd` and its aliases, `--cf`, and the
 `--expect`/`--blind`/`--blind-return` declarations belong to the commands, each
 declaration with the command before it, an abbreviation or an `=` spelling means
-what it means on a command line, and an `=` value runs to the end of the line. A
-value wholly wrapped in one pair of quotes, double or single, with no other of
-that quote inside, loses them as a shell would remove them; every other quote is
+what it means on a command line, and an `=` value runs to the end of the line.
+The one exception is a line of one word that begins a directive, never an
+option's abbreviation: a directive is always one word, so `--g` may be a
+mistyped `--go`, and taken as `--gather` it would stay in the draft unsaid; the
+line is dropped as `cli_option_ambiguous: --g is ambiguous in stream: --gather,
+--go`, the options and the directives the word begins in one sorted list, as
+`--purge`'s refusal names both purges, and a bare `--se` names
+`--select-platform` and `--sendit`. Full names and aliases match as before
+(`--gather`, `--c`, `--pr`), as do a word no directive begins (`--ga`), a word
+with `=` (`--g=true`), and a line of two words (`--se cisco_ios`); `run` and
+`command` keep the prefix rule, having no directive. A value wholly wrapped in
+one pair of quotes, double or single, with no other of that quote inside, loses
+them as a shell would remove them; every other quote is
 sent as written. A line leaving text no option takes (`- foo`, `-- foo`,
 `--no-daemon yes`), which `run` would read as freeform command text taking every
 command after it, is dropped as `cli_positional_unexpected`. The directives are
@@ -275,15 +285,20 @@ table parser and the run path so no rule lives twice; a typo must not cost the
 draft; a command the operator gives in option form is a standing part of the
 draft, sent by every job until purged, and a bare line is the job's alone; one
 dash and quotes mean on a line what they mean to `run` and the shell, so an
-operator's command-line habits carry over; and a line `run` would read as
-freeform text must never take the commands after it. *Not taken:* directives as
-table options; shell-style splitting of an option line (`--tl r1 r2` gives the
+operator's command-line habits carry over; a line `run` would read as
+freeform text must never take the commands after it; and a one-word line that
+begins a directive may be a mistyped one, so it never quietly becomes an option
+for the rest of the stream. *Not taken:* directives as table options; shell-style splitting of an option line (`--tl r1 r2` gives the
 case, and a command's own quotes would be lost); a `- foo` or `-- foo` line sent
 as a command; `--purge` as both purges; every command cleared by `--go`; a
 prompt; raw mode held across a job (the job's Ctrl-C would become a byte to
 read), which a reader reading ahead had done until the credential prompts showed
 it; GNU readline (not reachable without cgo; `rlwrap` remains an operator's
-choice); a generic error for the read failure (every path carries its own code).
+choice); a generic error for the read failure (every path carries its own
+code); the prefix rule for a one-word line that begins a directive (`--g` taken
+as `--gather`, unsaid); the exception on every line (`--se VALUE`, two words, can
+be no directive); a minimum prefix length per option (it changes `run` and
+`command`, which have no directive).
 
 **A stream's restart.** `--restart`, a directive of its own (the word whole),
 empties the draft, its commands and its targets, as `--reset` does, and reads

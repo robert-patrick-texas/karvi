@@ -48,8 +48,12 @@ they were published in.
   site's true off, as `--order` sets `dispatch.order` (a site's lock on the
   key refuses either form, and `--set` beats it): on `run`, `crun`, a
   stream's lines, and `job follow` (any job, a command's too), and on
-  `command` its own key. The option is refused, `gather_option_conflict`
-  (exit 4), beside what leaves the gathered display nowhere to show it or
+  `command` its own key. On a stream line a word alone that begins a
+  directive is never an option's abbreviation: `--ga`, `--gather`, and
+  `--g=true` are the option, and a `--g` line, perhaps a mistyped `--go`, is
+  dropped as `cli_option_ambiguous: --g is ambiguous in stream: --gather,
+  --go` (a bare `--se` names `--select-platform, --sendit`). The option is
+  refused, `gather_option_conflict` (exit 4), beside what leaves the gathered display nowhere to show it or
   nothing to read back: `--format jsonl` or `json`, `--echo`, `--detach`,
   `--follow=false`, and `--nof`, and a configuration that keeps no
   `commands.jsonl`, the key named with where it was set (`--gather and

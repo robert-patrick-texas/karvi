@@ -144,8 +144,8 @@ func TestSleepInAFolderList(t *testing.T) {
 // TestStreamKeepsASleepLine: in stream mode a --sleep line is command
 // material in the order typed, kept as --cmd's option form is.
 func TestStreamKeepsASleepLine(t *testing.T) {
-	args, role, stdinOption, detached := streamOptionArgs("--sleep 30s")
-	if !reflect.DeepEqual(args, []string{"--sleep", "30s"}) || role != roleSleep || stdinOption != "" || detached != nil || !streamCommandRole(role) {
-		t.Fatalf("args %q role %v stdin %q detached %v", args, role, stdinOption, detached)
+	args, role, stdinOption, refused := streamOptionArgs("--sleep 30s")
+	if !reflect.DeepEqual(args, []string{"--sleep", "30s"}) || role != roleSleep || stdinOption != "" || refused != nil || !streamCommandRole(role) {
+		t.Fatalf("args %q role %v stdin %q refused %v", args, role, stdinOption, refused)
 	}
 }

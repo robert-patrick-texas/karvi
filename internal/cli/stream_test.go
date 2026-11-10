@@ -21,7 +21,12 @@ import (
 // with its declarations after it; a line the parser refuses reported by
 // its number and dropped (--typo, a declaration before any command);
 // --cf - refused; --of with its path after a space refused and dropped, a
-// bare --cd dropped when read, --cd=PATH an option that stays;
+// bare --cd dropped when read, --cd=PATH an option that stays; a word
+// alone that begins a directive dropped as ambiguous, never an option's
+// abbreviation (--g, -g, a bare --se), the draft as it was, while a word
+// no directive begins (--ga), a full name (--gather), an alias (--pr, --c),
+// a word with = (--g=true), and a line of two words (--se cisco_ios) mean
+// what they mean to run (a bare --c lacks its value);
 // --go executing the draft and clearing the commands
 // alone; --sendit the same; --reset clearing everything; --end leaving
 // without executing what follows or what is drafted; the exit the last
@@ -49,11 +54,23 @@ func TestStreamLoopDraftsAndDirectives(t *testing.T) {
 		"--of /tmp/x",
 		"--cd",
 		"--cd=/tmp/c",
+		"--g",
+		"-g",
+		"--se",
 		"--go",
 		"show ip route",
 		"--sendit",
 		"--reset",
 		"--target r9",
+		"--ga",
+		"--g=true",
+		"--gather",
+		"--se cisco_ios",
+		"--pr",
+		"--c",
+		"show clock",
+		"--go",
+		"show unsent",
 		"--end",
 		"--target never",
 		"show never",
@@ -67,17 +84,22 @@ func TestStreamLoopDraftsAndDirectives(t *testing.T) {
 	want := [][]string{
 		{"run", "--target", "router1", "--tl", "r2,r3", "--dispatch", "parallel", "--cd=/tmp/c", "--cmd", "show clock", "--expect", "confirm=y", "--cmd", `  show version\r`, "--cmd", `\r`},
 		{"run", "--target", "router1", "--tl", "r2,r3", "--dispatch", "parallel", "--cd=/tmp/c", "--cmd", "show ip route"},
+		{"run", "--target", "r9", "--ga", "--g=true", "--gather", "--se", "cisco_ios", "--pr", "--cmd", "show clock"},
 	}
 	if !reflect.DeepEqual(runs, want) {
 		t.Errorf("runs:\n%q\nwant:\n%q", runs, want)
 	}
-	for _, m := range []string{"stream line 7 dropped: ", "stream line 8 dropped: ", "stream line 13: standard input is the stream; --cf - is not accepted", "stream line 14 dropped: cli_option_value_detached: --of takes its PATH with =: --of=/tmp/x", "stream line 15 dropped: cli_option_value_missing: --cd takes its PATH with =: --cd=PATH"} {
+	for _, m := range []string{"stream line 7 dropped: ", "stream line 8 dropped: ", "stream line 13: standard input is the stream; --cf - is not accepted", "stream line 14 dropped: cli_option_value_detached: --of takes its PATH with =: --of=/tmp/x", "stream line 15 dropped: cli_option_value_missing: --cd takes its PATH with =: --cd=PATH",
+		"stream line 17 dropped: cli_option_ambiguous: --g is ambiguous in stream: --gather, --go\n",
+		"stream line 18 dropped: cli_option_ambiguous: --g is ambiguous in stream: --gather, --go\n",
+		"stream line 19 dropped: cli_option_ambiguous: --se is ambiguous in stream: --select-platform, --sendit\n",
+		"stream line 30 dropped: cli_option_value_missing: --cmd requires a value TEXT\n"} {
 		if !strings.Contains(stderr.String(), m) {
 			t.Errorf("stderr lacks %q:\n%s", m, stderr.String())
 		}
 	}
-	if strings.Count(stderr.String(), "\n") != 5 {
-		t.Errorf("stderr has lines beyond the five reports:\n%s", stderr.String())
+	if strings.Count(stderr.String(), "\n") != 9 {
+		t.Errorf("stderr has lines beyond the nine reports:\n%s", stderr.String())
 	}
 }
 
@@ -365,7 +387,13 @@ func TestStreamLoopReadFailure(t *testing.T) {
 // table (the declarations, --cmd and its aliases, --cf, by prefix too); the
 // standard-input value named for --cf, --tf, and --tfr in either spelling;
 // a word the table does not resolve is an option line for the probe; an
-// option whose value attaches with = alone refuses text after a space; one
+// option whose value attaches with = alone refuses text after a space; a
+// word alone that begins a directive and would name an option by
+// abbreviation alone is refused as ambiguous, in either spelling (--g,
+// -g, --se, --e), the options and directives it begins named in one sorted
+// list, while a full name or alias (--c, --pr), a word no directive begins
+// (--ga), a word with = (--g=true), a line of two words (--se cisco_ios),
+// and a word naming no option (--qu, for the probe) are as before; one
 // dash as two; a value wholly wrapped in one pair of quotes loses them, in
 // either spelling and before the standard-input and detached checks, and a
 // value with other quotes, or an unmatched or empty pair, keeps them as
@@ -376,7 +404,7 @@ func TestStreamOptionArgs(t *testing.T) {
 		args        []string
 		commandPart bool
 		stdinOption string
-		detached    string
+		refused     string
 	}{
 		{"--dp", []string{"--dp"}, false, "", ""},
 		{"--target=router1", []string{"--target=router1"}, false, "", ""},
@@ -427,18 +455,29 @@ func TestStreamOptionArgs(t *testing.T) {
 		{`--tf='-'`, []string{"--tf=-"}, false, "--tf", ""},
 		{`--of "/tmp/x"`, []string{"--of", "/tmp/x"}, false, "", "cli_option_value_detached: --of takes its PATH with =: --of=/tmp/x"},
 		{`--of="/tmp/a b"`, []string{"--of=/tmp/a b"}, false, "", ""},
+		{"--g", []string{"--g"}, false, "", "cli_option_ambiguous: --g is ambiguous in stream: --gather, --go"},
+		{"-g", []string{"-g"}, false, "", "cli_option_ambiguous: --g is ambiguous in stream: --gather, --go"},
+		{"--se", []string{"--se"}, false, "", "cli_option_ambiguous: --se is ambiguous in stream: --select-platform, --sendit"},
+		{"--e", []string{"--e"}, false, "", "cli_option_ambiguous: --e is ambiguous in stream: --echo, --end, --exclude, --exercise, --exit, --expect"},
+		{"--ga", []string{"--ga"}, false, "", ""},
+		{"--gather", []string{"--gather"}, false, "", ""},
+		{"--g=true", []string{"--g=true"}, false, "", ""},
+		{"--se cisco_ios", []string{"--se", "cisco_ios"}, false, "", ""},
+		{"--c", []string{"--c"}, true, "", ""},
+		{"--pr", []string{"--pr"}, false, "", ""},
+		{"--qu", []string{"--qu"}, false, "", ""},
 	} {
-		args, role, stdinOption, detached := streamOptionArgs(tc.line)
+		args, role, stdinOption, refused := streamOptionArgs(tc.line)
 		commandPart := streamCommandRole(role)
 		if !reflect.DeepEqual(args, tc.args) || commandPart != tc.commandPart || stdinOption != tc.stdinOption {
 			t.Errorf("%q: %q %v %q, want %q %v %q", tc.line, args, commandPart, stdinOption, tc.args, tc.commandPart, tc.stdinOption)
 		}
 		got := ""
-		if detached != nil {
-			got = errorcodes.Message(detached)
+		if refused != nil {
+			got = errorcodes.Message(refused)
 		}
-		if got != tc.detached {
-			t.Errorf("%q: detached %q, want %q", tc.line, got, tc.detached)
+		if got != tc.refused {
+			t.Errorf("%q: refused %q, want %q", tc.line, got, tc.refused)
 		}
 	}
 }

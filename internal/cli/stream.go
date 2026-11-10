@@ -51,7 +51,12 @@ import (
 // argument list) and hands it to run's handler, so the job, its records,
 // its display, and its exit are a run's, and no rule lives twice; the
 // option words are resolved through run's own table, so an abbreviation or
-// an = spelling means what it means on a command line.
+// an = spelling means what it means on a command line. The one exception is
+// a line of one word that begins a directive, never an option's
+// abbreviation: a directive is one word, so --g may be a mistyped --go, and
+// the line is dropped as ambiguous, the options and the directives the word
+// begins named as --purge's refusal names both purges
+// (streamDirectivePrefix).
 
 // streamDirectives maps a directive word, without its dashes, to its act.
 var streamDirectives = map[string]string{"go": "go", "sendit": "go", "clear": "clear", "reset": "reset", "restart": "restart", "end": "end", "quit": "end", "exit": "end"}
@@ -68,7 +73,7 @@ var streamPurges = []struct{ word, least, act string }{
 // refusal of a word naming both.
 func streamPurge(word string) (string, error) {
 	if word == "purge" || word == "purge-" {
-		return "", errorcodes.Errorf("cli_option_ambiguous", "--%s is ambiguous in stream: --purge-commands, --purge-targets", word)
+		return "", streamAmbiguous(word, []string{"--purge-commands", "--purge-targets"})
 	}
 	for _, p := range streamPurges {
 		if strings.HasPrefix(word, p.least) && strings.HasPrefix(p.word, word) {
@@ -76,6 +81,39 @@ func streamPurge(word string) (string, error) {
 		}
 	}
 	return "", nil
+}
+
+// streamAmbiguous is the refusal of a stream line's word, without its
+// dashes, that names several words: the word after two dashes, as the
+// directives are written, then the words it names.
+func streamAmbiguous(word string, names []string) error {
+	return errorcodes.Errorf("cli_option_ambiguous", "--%s is ambiguous in stream: %s", word, strings.Join(names, ", "))
+}
+
+// streamDirectivePrefix is the refusal of a line of one word, without its
+// dashes, that begins a directive (--g of --go) and would name an option
+// only by abbreviation (--gather): a directive is always one word, so the
+// line may be a mistyped directive, and an option taken in its place would
+// stay in the draft unsaid. The refusal names the options and the
+// directives the word begins in one list, sorted as the parser sorts an
+// ambiguous word's. An option's full name or alias matches as before (--c
+// is --cmd's alias, --pr cisco_xr's shortcut), and a word naming no option
+// is left to the probe, unknown as before (--qu).
+func streamDirectivePrefix(word string) error {
+	var begun []wordEntry
+	for w := range streamDirectives {
+		if word != "" && word != w && strings.HasPrefix(w, word) {
+			begun = append(begun, wordEntry{w, w})
+		}
+	}
+	options := optionWords(runOptions)
+	if len(begun) == 0 ||
+		slices.ContainsFunc(options, func(e wordEntry) bool { return e.word == word }) ||
+		!slices.ContainsFunc(options, func(e wordEntry) bool { return strings.HasPrefix(e.word, word) }) {
+		return nil
+	}
+	_, names := resolveWord(word, "--", append(options, begun...))
+	return streamAmbiguous(word, names)
 }
 
 // streamLineLimit is the longest line the reader accepts.
@@ -362,13 +400,13 @@ func streamLoop(ctx context.Context, next func() (string, error), g globalOption
 				}
 				continue
 			}
-			args, role, stdinOption, detached := streamOptionArgs(text)
+			args, role, stdinOption, refused := streamOptionArgs(text)
 			if stdinOption != "" {
 				g.dropped(stderr, "stream line %d: standard input is the stream; %s - is not accepted", n, stdinOption)
 				continue
 			}
-			if detached != nil {
-				g.dropped(stderr, "stream line %d dropped: %s", n, errorcodes.Message(detached))
+			if refused != nil {
+				g.dropped(stderr, "stream line %d dropped: %s", n, errorcodes.Message(refused))
 				continue
 			}
 			// A declaration joins the command before it; with none, it
@@ -427,10 +465,12 @@ func streamLoop(ctx context.Context, next func() (string, error), g globalOption
 // stdinOption names the option when a --cf, --tf, --tfr, or --target line
 // gives - as its value, or a --tl line names - among its names, which the
 // stream cannot serve;
-// detached is the refusal of an option whose value attaches with = alone
-// (--of) given text after a space. A word the table does not resolve is an
+// refused is the refusal of an option whose value attaches with = alone
+// (--of) given text after a space, or of a word alone that begins a
+// directive and would name an option only by abbreviation
+// (streamDirectivePrefix). A word the table does not resolve is an
 // option line for the probe to refuse.
-func streamOptionArgs(text string) (args []string, role optRole, stdinOption string, detached error) {
+func streamOptionArgs(text string) (args []string, role optRole, stdinOption string, refused error) {
 	word, rest, spaced := strings.Cut(text, " ")
 	if spaced && strings.IndexByte(word, '=') >= 0 {
 		// An = value runs to the end of the line, spaces included.
@@ -466,14 +506,17 @@ func streamOptionArgs(text string) (args []string, role optRole, stdinOption str
 			// A stream line is one option, so the text after the space
 			// can only have been meant as the value, which attaches
 			// with = alone.
-			detached = detachedValue(o, rest)
+			refused = detachedValue(o, rest)
 		}
 		break
 	}
 	if valued {
-		return []string{word, rest}, role, stdinOption, detached
+		return []string{word, rest}, role, stdinOption, refused
 	}
-	return []string{word}, role, stdinOption, detached
+	if !hasInline {
+		refused = streamDirectivePrefix(name)
+	}
+	return []string{word}, role, stdinOption, refused
 }
 
 // streamUnquote removes the quotes a shell would have removed from a value
