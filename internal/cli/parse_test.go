@@ -461,6 +461,59 @@ func TestParseOneOrTwoDashes(t *testing.T) {
 	}
 }
 
+// TestParseGatherAndPrefix: run, crun, and command take --gather and
+// --prefix (flags, the =false form turning one off), each by any unique
+// prefix, --g and --ga for --gather and --pre for --prefix; --pr stays
+// cisco_xr's shortcut, a whole word (TestParseFreeformBoundary); login and
+// the stream word take neither, the stream's lines taking run's.
+func TestParseGatherAndPrefix(t *testing.T) {
+	named := func(path, name string) *option {
+		for _, o := range lookupCommand(path).options {
+			if o.name == name {
+				return o
+			}
+		}
+		return nil
+	}
+	for _, tc := range []struct {
+		args []string
+		name string
+		on   bool
+	}{
+		{[]string{"run", "--g", "--target", "r1", "--cmd", "x"}, "gather", true},
+		{[]string{"run", "--ga", "--target", "r1", "--cmd", "x"}, "gather", true},
+		{[]string{"run", "--gather", "--target", "r1", "--cmd", "x"}, "gather", true},
+		{[]string{"run", "--gather=false", "--target", "r1", "--cmd", "x"}, "gather", false},
+		{[]string{"run", "-gather=true", "--target", "r1", "--cmd", "x"}, "gather", true},
+		{[]string{"run", "--pre", "--target", "r1", "--cmd", "x"}, "prefix", true},
+		{[]string{"run", "--prefix=false", "--target", "r1", "--cmd", "x"}, "prefix", false},
+		{[]string{"crun", "--ga", "--pre", "--all"}, "gather", true},
+		{[]string{"crun", "--ga", "--pre", "--all"}, "prefix", true},
+		{[]string{"command", "--g", "--target", "r1", "--cmd", "x"}, "gather", true},
+		{[]string{"command", "--pre", "r1", "show", "clock"}, "prefix", true},
+		{[]string{"command", "r1", "--prefix=false", "show", "clock"}, "prefix", false},
+	} {
+		inv, err := Parse(tc.args)
+		if err != nil {
+			t.Errorf("%q: %v", tc.args, err)
+			continue
+		}
+		o := named(inv.Path, tc.name)
+		if o == nil || !inv.Set(o) || inv.Flag(o) != tc.on {
+			t.Errorf("%q: --%s set=%v on=%v, want on=%v", tc.args, tc.name, o != nil && inv.Set(o), o != nil && inv.Flag(o), tc.on)
+		}
+	}
+	inv := mustParse(t, "run", "--pr", "--target", "r1", "--cmd", "x")
+	if o := named("run", "prefix"); inv.String(optPlatform) != "cisco_xr" || (o != nil && inv.Set(o)) {
+		t.Errorf("--pr: platform %q", inv.String(optPlatform))
+	}
+	for _, args := range [][]string{{"login", "--gather", "r1"}, {"login", "--prefix", "r1"}, {"login", "--g", "r1"}, {"stream", "--gather"}, {"stream", "--prefix"}} {
+		if code, msg := parseCode(t, args...); code != "cli_option_unknown" {
+			t.Errorf("%q: %s (%s), want cli_option_unknown", args, code, msg)
+		}
+	}
+}
+
 func TestParseRemovedSpellingsAreUnknown(t *testing.T) {
 	for _, tc := range []struct {
 		mode []string
@@ -538,6 +591,9 @@ func TestParseDeviceShortcut(t *testing.T) {
 		{[]string{"r1", "--"}, "login", []string{"r1*"}, nil, ""},
 		{[]string{"r1", "--", "-x", "y"}, "command", []string{"r1*"}, []string{"-x y"}, ""},
 		{[]string{"r1", "--echo", "show", "clock"}, "command", []string{"r1*"}, []string{"show clock"}, ""},
+		{[]string{"r1", "--gather", "show", "clock"}, "command", []string{"r1*"}, []string{"show clock"}, ""},
+		{[]string{"r1", "--prefix=false", "show", "clock"}, "command", []string{"r1*"}, []string{"show clock"}, ""},
+		{[]string{"r1", "--gather"}, "command", nil, nil, "cli_command_text_missing"},
 		{[]string{"r1", "--cmd", "show clock", "--cmd", "show version"}, "command", []string{"r1*"}, []string{"show clock", "show version"}, ""},
 		{[]string{"r1", "-c", "show clock"}, "command", []string{"r1*"}, []string{"show clock"}, ""},
 		{[]string{"r1", "--cf", "cmds"}, "command", []string{"r1*"}, nil, ""},
@@ -767,6 +823,11 @@ func TestParseFreeformBoundary(t *testing.T) {
 		if inv = mustParse(t, "run", "--all", short, "show", "clock"); inv.String(optPlatform) != want {
 			t.Fatalf("%s is --platform %q, want %q", short, inv.String(optPlatform), want)
 		}
+	}
+	// --pr stays cisco_xr's shortcut beside --prefix, whose least unique
+	// prefix is --pre (TestParseGatherAndPrefix).
+	if inv = mustParse(t, "run", "--all", "--pr", "show", "clock"); inv.String(optPlatform) != "cisco_xr" {
+		t.Fatalf("--pr is --platform %q", inv.String(optPlatform))
 	}
 	inv = mustParse(t, "command", "--platform", "cisco_ios", "r1", "show", "clock")
 	if !reflect.DeepEqual(targetValues(inv), []string{"target=r1"}) || inv.String(optPlatform) != "cisco_ios" {

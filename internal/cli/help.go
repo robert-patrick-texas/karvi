@@ -316,9 +316,23 @@ Options:
   --live                         Print the device's bytes as they arrive, the
                                  session's setup included, in place of the text
                                  display; not with --format jsonl|json, --echo,
-                                 --border, or --noborder
+                                 --border, --noborder, --gather, or --prefix
   --border                       Replace the configured border with dashes
   --noborder                     Disable configured and dynamic borders
+  --gather, --gather=false       Gather the text display at the job's end: a
+                                 block per command, the answer under a group
+                                 header (sets display.command.gather for the
+                                 invocation, false turning a site's true off);
+                                 not with --format jsonl|json, --echo, --nof,
+                                 or --live, nor where the job keeps no
+                                 commands.jsonl (output.persist-command or
+                                 output.files.commands-jsonl false)
+  --prefix, --prefix=false       Line mode: each line NAME: line, the device's
+                                 name first, no header or border (sets
+                                 display.command.prefix for the invocation,
+                                 false turning a site's true off); not with
+                                 --format jsonl|json, --border, --noborder, or
+                                 --live
   --continue-device-on-error     Do not stop later commands after a device error
   --nof                          No output files: run and display, create no job
                                  folder (output.persist-command=false)
@@ -531,7 +545,7 @@ Dispatch:
   --no-daemon                    Execute in the client process
   --nof                          No output files: run and display, create no job
                                  folder (output.persist-command=false); not with
-                                 --detach or --exercise
+                                 --detach, --exercise, or --gather
   --of[=PATH]                    Output files on (output.persist-command=true),
                                  to the configured folder or to PATH
                                  (output.root), on every path; PATH only with =
@@ -566,9 +580,25 @@ Options:
                                  they arrive, one device after another (serial
                                  dispatch), in place of the text display; not
                                  with --format jsonl|json, --echo, --border,
-                                 --noborder, --dry-run, or another dispatch
+                                 --noborder, --gather, --prefix, --dry-run, or
+                                 another dispatch
   --border                       Replace the configured run border with dashes
   --noborder                     Disable configured and dynamic run borders
+  --gather, --gather=false       Gather the text display at the job's end: a
+                                 block per command, in it the devices that
+                                 answered alike under one header (sets
+                                 display.run.gather for the invocation, false
+                                 turning a site's true off); not with --format
+                                 jsonl|json, --echo, --detach, --follow=false,
+                                 --nof, or --live, nor where the job keeps no
+                                 commands.jsonl (output.persist-command or
+                                 output.files.commands-jsonl false)
+  --prefix, --prefix=false       Line mode: each line NAME: line, its device's
+                                 name first, no header or border (sets
+                                 display.run.prefix for the invocation, false
+                                 turning a site's true off); not with --format
+                                 jsonl|json, --border, --noborder, --detach,
+                                 --follow=false, or --live
   --ipv4, --4                    Prefer IPv4 when both families are available
   --ipv6, --6                    Prefer IPv6 when both families are available
   --detach                       Submit and print the job ID and artifact directory;

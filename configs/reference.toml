@@ -543,20 +543,22 @@ last-border = false
 echo = false
 # Gather the command's text display as display.run.gather gathers a run's, shown at the job's
 # end: a block per requested command, the device's answer under the group header
-# (display.gather.header). Under --format jsonl or json it has no effect. It reads the job's
+# (display.gather.header); command's --gather sets it for the invocation, --gather=false to
+# false. Under --format jsonl or json, and under --live, it has no effect. It reads the job's
 # commands.jsonl: under --nof or output.files.commands-jsonl = false the display is the
-# ordinary one. display.command.echo is not applied when gathering. While the device answers,
-# a line on standard error, gather: done=0/1 fail=0, says the display is held back, when
-# standard error is a terminal (none to a pipe or a file, none under --quiet), cleared before
-# the blocks; a Ctrl-C stops the display, nothing gathered shown while the job runs, the
-# blocks cut short during the read-back. job follow shows a command's job by
-# display.run.gather, as by the other display.run keys.
+# ordinary one (--gather is refused there). display.command.echo is not applied when
+# gathering. While the device answers, a line on standard error, gather: done=0/1 fail=0, says
+# the display is held back, when standard error is a terminal (none to a pipe or a file, none
+# under --quiet), cleared before the blocks; a Ctrl-C stops the display, nothing gathered
+# shown while the job runs, the blocks cut short during the read-back. job follow shows a
+# command's job by display.run.gather, as by the other display.run keys.
 gather = false
 # Line mode for the command's text display as display.run.prefix for a run's: each line NAME:
 # line, the device's name first (gathered, display.command.gather, the group's), with no
-# device or group header, no ICMP gate's line, and no border. Under --format jsonl or json,
-# and under --live, it has no effect. job follow shows a command's job by display.run.prefix,
-# as by the other display.run keys.
+# device or group header, no ICMP gate's line, and no border; command's --prefix sets it for
+# the invocation, --prefix=false to false. Under --format jsonl or json, and under --live, it
+# has no effect. job follow shows a command's job by display.run.prefix, as by the other
+# display.run keys.
 prefix = false
 
 [display.run]
@@ -581,19 +583,21 @@ last-border = false
 echo = false
 # Gather a run's text display, shown at the job's end: a block per requested command, in it a
 # group per answer, the devices that answered alike under one header (display.gather.header),
-# the succeeded groups first. Under --format jsonl or json it has no effect. It reads the
-# job's commands.jsonl: under --nof or output.files.commands-jsonl = false the display is the
-# ordinary one. display.run.echo is not applied when gathering. While the job runs, a line on
-# standard error, gather: done=N/M fail=F, counts its devices when standard error is a
-# terminal (none to a pipe or a file, none under --quiet), cleared before the blocks; a Ctrl-C
-# stops the display, nothing gathered shown while the job runs, the blocks cut short during
-# the read-back.
+# the succeeded groups first; --gather sets it for the invocation, --gather=false to false.
+# Under --format jsonl or json, and under --live, it has no effect. It reads the job's
+# commands.jsonl: under --nof or output.files.commands-jsonl = false the display is the
+# ordinary one (--gather is refused there). display.run.echo is not applied when gathering.
+# While the job runs, a line on standard error, gather: done=N/M fail=F, counts its devices
+# when standard error is a terminal (none to a pipe or a file, none under --quiet), cleared
+# before the blocks; a Ctrl-C stops the display, nothing gathered shown while the job runs,
+# the blocks cut short during the read-back.
 gather = false
 # Line mode: a run's text display writes each line as NAME: line, its device's name first
 # (gathered, display.run.gather, the group's folded names), as pdsh and clush write it, with
 # no device or group header, no ICMP gate's line, and no border; karvi's own lines (a
 # command's marker, and by the default templates the footer and a collection's line after it)
-# begin with !. Under --format jsonl or json, and under --live, it has no effect.
+# begin with !. --prefix sets it for the invocation, --prefix=false to false. Under --format
+# jsonl or json, and under --live, it has no effect.
 prefix = false
 
 [display.collection]

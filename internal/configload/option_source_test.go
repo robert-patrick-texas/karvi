@@ -1,12 +1,14 @@
 package configload
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 )
 
 // TestOptionSource: a value an option sets is sourced to the option, in
@@ -90,5 +92,53 @@ func TestNoColorLock(t *testing.T) {
 	}
 	if _, err = load(); errorcodes.Of(err) != "config_lock_violation" || !strings.HasSuffix(err.Error(), "at --nocolor") {
 		t.Errorf("lock: %v", err)
+	}
+}
+
+// TestGatherAndPrefixOptionsLock: --gather and --prefix write their key in
+// the flags layer, sourced to the option, true or (by the =false form)
+// false; on run, crun, and a stream's lines the display.run key, on
+// command the display.command key (internal/cli,
+// TestGatherAndPrefixSetTheirKeys). A site that locks the key refuses either form, as it
+// refuses --order default (config_lock_violation, exit 3, at the option);
+// --set, applied after the layer, beats the option where nothing locks.
+func TestGatherAndPrefixOptionsLock(t *testing.T) {
+	saved := globalRoots
+	t.Cleanup(func() { globalRoots = saved })
+	load := func(flags map[string]FlagValue, sets ...string) (Snapshot, error) {
+		return Load(Options{HomeDir: t.TempDir(), Environment: []string{}, FlagValues: flags, Sets: sets})
+	}
+	for _, tc := range []struct{ key, option string }{
+		{"display.run.gather", "--gather"},
+		{"display.run.prefix", "--prefix"},
+		{"display.command.gather", "--gather"},
+		{"display.command.prefix", "--prefix"},
+	} {
+		globalRoots = []string{filepath.Join(t.TempDir(), "absent.toml")}
+		for _, value := range []bool{true, false} {
+			flags := map[string]FlagValue{tc.key: {Value: value, Option: tc.option}}
+			snap, err := load(flags)
+			if err != nil || snap.Bool(tc.key) != value || snap.Values[tc.key].Source != (SourceRef{Layer: "cli", Path: tc.option}) {
+				t.Fatalf("%s %v: %v %+v %v", tc.key, value, snap.Bool(tc.key), snap.Values[tc.key].Source, err)
+			}
+			snap, err = load(flags, fmt.Sprintf("%s=%t", tc.key, !value))
+			if err != nil || snap.Bool(tc.key) == value || snap.Values[tc.key].Source != (SourceRef{Layer: "set", Path: "--set[1]"}) {
+				t.Fatalf("%s %v under --set: %v %+v %v", tc.key, value, snap.Bool(tc.key), snap.Values[tc.key].Source, err)
+			}
+		}
+		global := filepath.Join(t.TempDir(), "global.toml")
+		globalRoots = []string{global}
+		if err := os.WriteFile(global, []byte(fmt.Sprintf("[config-lock]\n%q = true\n", tc.key)), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		for _, value := range []bool{true, false} {
+			_, err := load(map[string]FlagValue{tc.key: {Value: value, Option: tc.option}})
+			if errorcodes.Of(err) != "config_lock_violation" || !strings.HasSuffix(err.Error(), "for "+tc.key+" at "+tc.option) || errorcodes.ExitAt(err, "config_load_failed") != exitcode.ExitConfigLockViolation {
+				t.Errorf("%s %v locked: %v", tc.key, value, err)
+			}
+		}
+		if _, err := load(nil); err != nil {
+			t.Errorf("%s locked, no option: %v", tc.key, err)
+		}
 	}
 }

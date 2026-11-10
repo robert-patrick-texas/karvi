@@ -226,13 +226,31 @@ including device\-reported command errors
 Print the device's bytes as they arrive, the
 session's setup included, in place of the text
 display; not with \-\-format jsonl|json, \-\-echo,
-\-\-border, or \-\-noborder
+\-\-border, \-\-noborder, \-\-gather, or \-\-prefix
 .TP
 \fB\-\-border\fR
 Replace the configured border with dashes
 .TP
 \fB\-\-noborder\fR
 Disable configured and dynamic borders
+.TP
+\fB\-\-gather\fR, \fB\-\-gather=false\fR
+Gather the text display at the job's end: a
+block per command, the answer under a group
+header (sets display.command.gather for the
+invocation, false turning a site's true off);
+not with \-\-format jsonl|json, \-\-echo, \-\-nof,
+or \-\-live, nor where the job keeps no
+commands.jsonl (output.persist\-command or
+output.files.commands\-jsonl false)
+.TP
+\fB\-\-prefix\fR, \fB\-\-prefix=false\fR
+Line mode: each line NAME: line, the device's
+name first, no header or border (sets
+display.command.prefix for the invocation,
+false turning a site's true off); not with
+\-\-format jsonl|json, \-\-border, \-\-noborder, or
+\-\-live
 .TP
 \fB\-\-continue\-device\-on\-error\fR
 Do not stop later commands after a device error

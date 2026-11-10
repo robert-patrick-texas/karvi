@@ -384,6 +384,7 @@ Active failure causes.
 | `follow_stream_lost` | output | 111 | no | The follow stream failed repeatedly without progress; the job continues in the daemon and its artifacts hold the records. |
 | `formula_source_invalid` | credential | 6 | no | A formula backend's password source returned no usable credential. |
 | `formula_template_missing` | credential | 6 | no | A formula backend's username template is empty. |
+| `gather_option_conflict` | usage | 4 | no | `--gather` is given with what leaves the gathered display nowhere to show it or nothing to read back at the job's end: `--format jsonl` or `json`, `--echo`, `--detach`, `--follow=false`, `--nof`, or a configuration that keeps no `commands.jsonl` (`output.persist-command` or `output.files.commands-jsonl` false), the message naming which and, for a key, where it was set. `--gather=false` and the key set true are never refused beside these. |
 | `host_key_changed` | connection | 109 | no | The presented host key differs from the enrolled key. |
 | `host_key_changed_during_enrollment` | connection | 109 | no | Another process enrolled a different key for the host while karvi was accepting a new key. |
 | `host_key_directory_invalid` | permission | 109 | no | The trust-store directory cannot be created or inspected. |
@@ -449,7 +450,7 @@ Active failure causes.
 | `job_unknown` | usage | 112 | no | follow_job or cancel_job names a job the daemon does not hold, or one evicted from its bounded job table. |
 | `jsonl_short_write` | output | 111 | no | A JSON line is only partly appended to its file. |
 | `karvi_executable_unlocatable` | dependency | 8 | no | The path of the running karvi executable cannot be determined. |
-| `live_option_conflict` | usage | 4 | no | `--live` is given with an option that shapes the text display it replaces (`--format jsonl` or `json`, `--echo`, `--border`, `--noborder`), or a run's with what leaves it no display in the client's process (no `--no-daemon`; `--dry-run`, `--exercise`, `--follow=false`) or runs its devices side by side (`--dispatch` `parallel` or `wave`, or `dispatch.default` set so by `--set`): the live view follows one device's session at a time. |
+| `live_option_conflict` | usage | 4 | no | `--live` is given with an option that shapes the text display it replaces (`--format jsonl` or `json`, `--echo`, `--border`, `--noborder`, `--gather`, `--prefix`), or a run's with what leaves it no display in the client's process (no `--no-daemon`; `--dry-run`, `--exercise`, `--follow=false`) or runs its devices side by side (`--dispatch` `parallel` or `wave`, or `dispatch.default` set so by `--set`): the live view follows one device's session at a time. |
 | `login_driver_not_interactive` | dependency | 8 | no | The opened login transport does not provide an interactive session. |
 | `login_transport_not_interactive` | dependency | 8 | no | `login` selected a transport that is not system-compatible OpenSSH. |
 | `management_address_invalid` | usage | 4 | no | `--management-address` is not a valid IP address. |
@@ -501,6 +502,7 @@ Active failure causes.
 | `platform_selector_unknown` | usage | 4 | no | A `--select-platform` selector reaches no known platform: a literal value is not a built-in or a configured `[platform.NAME]` table, or a glob matches none of them; a `!` value is held to the same rule. Checked in the target-set assembly before the inventory is read. |
 | `platform_unknown` | inventory | 5 | no | An inventory row of a device in the target set names a platform that is not known (a built-in or a configured `[platform.NAME]` table) and `platform-resolution.on-unknown` is `fail`; refused at planning, before any connection, naming every unknown value with its source and first line and the devices. Also the backstop behind that resolution: a name the executor, `login`, or an exercise reaches that their own configuration does not know is refused before any connection, as a failure-set record, a `login` failure, or an error finding at stage `platform` with the target not ready. |
 | `port_out_of_range` | usage | 4 | no | `--port` is outside 1..65535. |
+| `prefix_option_conflict` | usage | 4 | no | `--prefix` is given with what line mode cannot take: `--format jsonl` or `json`, `--border`, `--noborder`, `--detach`, or `--follow=false`. `--prefix=false` and the key set true are never refused beside these. |
 | `preparation_expired` | dependency | 112 | no | A preparation is older than its lifetime when credentials or commit arrive. |
 | `preparation_unknown` | dependency | 112 | no | A credential frame or commit names a preparation the daemon does not hold. |
 | `private_directory_mode_exposed` | permission | 9 | no | The socket or state subtree, or the control-path root, grants group or other permissions; mode 0700 is required. |

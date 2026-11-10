@@ -21,6 +21,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/jobexec"
+	"github.com/robert-patrick-texas/karvi/internal/output"
 	"github.com/robert-patrick-texas/karvi/internal/planner"
 	"github.com/robert-patrick-texas/karvi/internal/targetsource"
 )
@@ -164,7 +165,11 @@ func checkBorders(inv *Invocation, w io.Writer) (int, bool) {
 }
 
 // checkLive refuses, beside --live, the options that shape the text display
-// it replaces: --format jsonl or json, --echo, --border, and --noborder.
+// it replaces: --format jsonl or json, --echo, --border, --noborder,
+// --gather, and --prefix. It comes before the other display checks but
+// the --border and --noborder pair (checkBorders), so a line such as
+// --live --gather --nof names --live, the mode chosen (DECISIONS point 1,
+// settled at S6, gather-2026-11).
 func checkLive(inv *Invocation, w io.Writer) (int, bool) {
 	if !inv.Flag(optLive) {
 		return 0, true
@@ -172,12 +177,106 @@ func checkLive(inv *Invocation, w io.Writer) (int, bool) {
 	if format := inv.String(optFormat); format != "" && format != "text" {
 		return inv.Global.usageError(w, "live_option_conflict", "--live and --format %s are mutually exclusive", format), false
 	}
-	for _, o := range []*option{optEcho, optBorder, optNoBorder} {
+	for _, o := range []*option{optEcho, optBorder, optNoBorder, optGather, optPrefix} {
 		if code, ok := checkExclusive(inv, w, "live_option_conflict", optLive, o); !ok {
 			return code, false
 		}
 	}
 	return 0, true
+}
+
+// checkGather refuses --gather (the flag; --gather=false asks for today's
+// display and is never refused) beside what leaves the gathered display
+// nowhere to show it or nothing to read back, gather_option_conflict, in
+// this order: --format jsonl or json (a gathered JSON has no reader; a
+// script groups by output_sha256), --echo (DECISIONS point 3), --detach
+// and --follow=false (nothing shown; the job's display gathered later by
+// job follow), and --nof (no commands.jsonl to read back, point 4), each
+// as far as the word has it (command has neither --detach nor --follow).
+// A configuration that keeps no commands.jsonl is refused after the read
+// (checkGatherRecords). The key set true is never refused: it shapes the
+// text display alone, so a site's true never breaks a script's --format
+// jsonl (point 1). --dry-run and --exercise are accepted, a rehearsal
+// taking the real line (point 1, settled at S6).
+func checkGather(inv *Invocation, w io.Writer) (int, bool) {
+	if !inv.Flag(optGather) {
+		return 0, true
+	}
+	if beside := shownBeside(inv, optEcho, optDetach, optFollow, optNof); beside != "" {
+		return inv.Global.usageError(w, "gather_option_conflict", "--gather and %s are mutually exclusive", beside), false
+	}
+	return 0, true
+}
+
+// checkPrefix refuses --prefix (the flag; --prefix=false is never
+// refused) beside what line mode cannot take, prefix_option_conflict, in
+// this order: --format jsonl or json, --border and --noborder (line mode
+// draws no border), --detach and --follow=false (nothing shown), as far as
+// the word has each (DECISIONS point 6). Line mode needs no file, so --nof
+// and a configuration keeping no commands.jsonl are accepted; the key set
+// true is never refused.
+func checkPrefix(inv *Invocation, w io.Writer) (int, bool) {
+	if !inv.Flag(optPrefix) {
+		return 0, true
+	}
+	if beside := shownBeside(inv, optBorder, optNoBorder, optDetach, optFollow); beside != "" {
+		return inv.Global.usageError(w, "prefix_option_conflict", "--prefix and %s are mutually exclusive", beside), false
+	}
+	return 0, true
+}
+
+// shownBeside is the first option on the line that a display option is
+// refused beside, as the refusal names it: --format jsonl or json first,
+// then each of others in order, a flag given true (--echo), --follow
+// given false (--follow=false, as checkLiveRun judges it); empty when the
+// line gives none. An option the word does not have is never given.
+func shownBeside(inv *Invocation, others ...*option) string {
+	if format := inv.String(optFormat); format != "" && format != "text" {
+		return "--format " + format
+	}
+	for _, o := range others {
+		switch {
+		case o == optFollow:
+			if inv.Set(optFollow) && !inv.Flag(optFollow) {
+				return "--follow=false"
+			}
+		case inv.Flag(o):
+			return longName(o)
+		}
+	}
+	return ""
+}
+
+// checkGatherRecords refuses --gather where the read configuration keeps
+// no commands.jsonl, the file the gathered display reads each group's
+// answer back from at the job's end (DECISIONS point 4):
+// gather_option_conflict, the key that decided it named with its value
+// and where it was set (a file's line, a KARVI__ variable, a --set), as
+// liveDispatch names dispatch.default. output.SkippedFiles, the one rule
+// for a job's files, decides; output.persist-command first, as the rule
+// reads it, else output.files.commands-jsonl. The message ends "; --of"
+// where --of would take effect (it makes persistence true): the key set
+// by a file or a KARVI__ variable and not locked; after a --set, which
+// beats --of, or under a site's lock, which refuses it, none (settled at
+// S6, gather-2026-11). After the read, so on every word and under
+// --dry-run and --exercise alike (a rehearsed line is refused as the real
+// one), before a credential is asked for or a daemon reached; --nof was
+// refused before the read (checkGather). The key set true keeps today's
+// display there instead, unrefused (point 1).
+func checkGatherRecords(inv *Invocation, cfg configload.Snapshot, crun bool, w io.Writer) (int, bool) {
+	if !inv.Flag(optGather) || !output.SkippedFiles(cfg, crun).CommandsJSONL {
+		return 0, true
+	}
+	key := "output.files.commands-jsonl"
+	if !cfg.Bool("output.persist-command") {
+		key = "output.persist-command"
+	}
+	v, _ := cfg.Provenance(key)
+	remedy := ""
+	if key == "output.persist-command" && v.Source.Layer != "set" && !cfg.Locked(key) {
+		remedy = "; --of"
+	}
+	return inv.Global.usageError(w, "gather_option_conflict", "--gather and %s = false at %s are mutually exclusive%s", key, v.Source, remedy), false
 }
 
 // collectionOptionsError is the check of the collection options' values,
@@ -257,6 +356,32 @@ func outputOptions(inv *Invocation, flags map[string]configload.FlagValue) {
 	}
 }
 
+// displayOptions writes the display keys --gather and --prefix set for
+// the invocation, whenever given, as --order writes dispatch.order: true,
+// or false from --gather=false and --prefix=false, which turn a site's
+// true off (DECISIONS point 1, its precedent corrected at S6; not --echo's
+// field ORed with its key). The plan holds no field copying a key (settled
+// at S2): the run's renderer, in process or the daemon follow's, and the
+// dry run's plan read the value from the invocation's configuration. The
+// keys are the word's family, as its header and footer are:
+// display.run.gather and display.run.prefix on run, crun, and a stream's
+// lines (run's handler), display.command.gather and display.command.prefix
+// on command (settled at S3c). A site's lock on the key refuses either
+// form at the read (config_lock_violation, the source the option), and
+// --set, applied after this layer, beats it.
+func displayOptions(inv *Invocation, word string, flags map[string]configload.FlagValue) {
+	gather, prefix := "display.run.gather", "display.run.prefix"
+	if word == "command" {
+		gather, prefix = "display.command.gather", "display.command.prefix"
+	}
+	if inv.Set(optGather) {
+		setKey(flags, longName(optGather), gather, inv.Flag(optGather))
+	}
+	if inv.Set(optPrefix) {
+		setKey(flags, longName(optPrefix), prefix, inv.Flag(optPrefix))
+	}
+}
+
 // continueOptions writes execution.halt-device-on-command-error false
 // when the device's later commands run past an error: for
 // --continue-device-on-error, or for the crun word, which always does,
@@ -280,6 +405,12 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if code, ok := checkLive(inv, streams.Stderr); !ok {
 		return code
 	}
+	if code, ok := checkGather(inv, streams.Stderr); !ok {
+		return code
+	}
+	if code, ok := checkPrefix(inv, streams.Stderr); !ok {
+		return code
+	}
 	if code, ok := checkExclusive(inv, streams.Stderr, "output_options_conflict", optOf, optNof); !ok {
 		return code
 	}
@@ -295,6 +426,9 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 	}
 	common, collection, code, ok := workRead(inv, "command", streams.Stderr)
 	if !ok {
+		return code
+	}
+	if code, ok := checkGatherRecords(inv, common.Config, false, streams.Stderr); !ok {
 		return code
 	}
 	inputs, code, ok := targetInputs(inv, common.Config, streams)
@@ -314,7 +448,8 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 // workRead is command's and run's read, after every refusal their command
 // line can be given without it: the keys their options set (the
 // invocation's, --blind-wait, --nof and --of, the continue option or the
-// crun word, and the collection directory) gathered, then the one read.
+// crun word, the collection directory, and --gather and --prefix)
+// gathered, then the one read.
 func workRead(inv *Invocation, word string, stderr io.Writer) (app.CommonOptions, collection, int, bool) {
 	flags := inv.flags()
 	if inv.Set(optBlindWait) {
@@ -322,6 +457,7 @@ func workRead(inv *Invocation, word string, stderr io.Writer) (app.CommonOptions
 	}
 	outputOptions(inv, flags)
 	continueOptions(inv, word, flags)
+	displayOptions(inv, word, flags)
 	c := collectionOptions(inv, word, flags)
 	if code, ok := liveOptions(inv, word, flags, stderr); !ok {
 		return app.CommonOptions{}, c, code, false
@@ -682,6 +818,12 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if code, ok := checkLiveRun(inv, streams.Stderr); !ok {
 		return code
 	}
+	if code, ok := checkGather(inv, streams.Stderr); !ok {
+		return code
+	}
+	if code, ok := checkPrefix(inv, streams.Stderr); !ok {
+		return code
+	}
 	if err := collectionOptionsError(inv); err != nil {
 		return inv.Global.reportError(streams.Stderr, errorcodes.Of(err), err)
 	}
@@ -747,6 +889,9 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	// reached.
 	if inv.Flag(optExercise) && !planner.OutputFilesOn(common.Config) {
 		return inv.Global.usageError(streams.Stderr, "run_mode_conflict", "--exercise with output.persist-command = false: the exercise report is a file in the job folder; --of")
+	}
+	if code, ok := checkGatherRecords(inv, common.Config, crun, streams.Stderr); !ok {
+		return code
 	}
 	read := app.ReadTiming{Start: started, Duration: time.Since(started)}
 	inputs, code, ok := targetInputs(inv, common.Config, streams)

@@ -275,7 +275,7 @@ Execute in the client process
 \fB\-\-nof\fR
 No output files: run and display, create no job
 folder (output.persist\-command=false); not with
-\-\-detach or \-\-exercise
+\-\-detach, \-\-exercise, or \-\-gather
 .TP
 \fB\-\-of[=PATH]\fR
 Output files on (output.persist\-command=true),
@@ -331,13 +331,33 @@ With \-\-no\-daemon: print each device's bytes as
 they arrive, one device after another (serial
 dispatch), in place of the text display; not
 with \-\-format jsonl|json, \-\-echo, \-\-border,
-\-\-noborder, \-\-dry\-run, or another dispatch
+\-\-noborder, \-\-gather, \-\-prefix, \-\-dry\-run, or
+another dispatch
 .TP
 \fB\-\-border\fR
 Replace the configured run border with dashes
 .TP
 \fB\-\-noborder\fR
 Disable configured and dynamic run borders
+.TP
+\fB\-\-gather\fR, \fB\-\-gather=false\fR
+Gather the text display at the job's end: a
+block per command, in it the devices that
+answered alike under one header (sets
+display.run.gather for the invocation, false
+turning a site's true off); not with \-\-format
+jsonl|json, \-\-echo, \-\-detach, \-\-follow=false,
+\-\-nof, or \-\-live, nor where the job keeps no
+commands.jsonl (output.persist\-command or
+output.files.commands\-jsonl false)
+.TP
+\fB\-\-prefix\fR, \fB\-\-prefix=false\fR
+Line mode: each line NAME: line, its device's
+name first, no header or border (sets
+display.run.prefix for the invocation, false
+turning a site's true off); not with \-\-format
+jsonl|json, \-\-border, \-\-noborder, \-\-detach,
+\-\-follow=false, or \-\-live
 .TP
 \fB\-\-ipv4\fR, \fB\-\-4\fR
 Prefer IPv4 when both families are available
