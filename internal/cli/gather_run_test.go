@@ -95,7 +95,8 @@ func jobSummary(t *testing.T, base string) (records.Summary, string) {
 
 // TestRunNoDaemonGathered: in process the two devices' alike answers are
 // one group; under --nof the key true shows today's display (a header per
-// device). The answers are read back through the file the store holds
+// device); an echo asked for beside the key alone, by --echo or by
+// display.run.echo, is accepted and not applied (no echo line). The answers are read back through the file the store holds
 // open, never its name: the file removed or a link put at the name during
 // the run changes nothing. The store's own file changed in place (`show
 // empty` on the second device, serial, after the first's record) is
@@ -111,6 +112,18 @@ func TestRunNoDaemonGathered(t *testing.T) {
 	code, stdout, stderr = gatherRun(sets, "show version", "--no-daemon", "--nof")
 	if code != 0 || strings.Count(stdout, "! 127.0.0.") != 2 || strings.Contains(stdout, "! show version") {
 		t.Fatalf("--nof: exit=%d stderr=%q\nstdout:\n%s", code, stderr, stdout)
+	}
+	for _, tc := range []struct {
+		name        string
+		sets, extra []string
+	}{
+		{"--echo", sets, []string{"--no-daemon", "--echo"}},
+		{"display.run.echo", append(append([]string{}, sets...), "--set", "display.run.echo=true"), []string{"--no-daemon"}},
+	} {
+		code, stdout, stderr = gatherRun(tc.sets, "show version", tc.extra...)
+		if code != 0 || stdout != gatheredOK("show version") {
+			t.Fatalf("%s: exit=%d stderr=%q\nstdout:\n%s", tc.name, code, stderr, stdout)
+		}
 	}
 	for _, command := range []string{"show gone", "show swap"} {
 		if err := os.RemoveAll(filepath.Join(base, "jobs")); err != nil {
