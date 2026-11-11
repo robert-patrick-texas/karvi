@@ -622,7 +622,8 @@ Qualification and release:
 ## Repository map
 
 Reusable public packages are `inventory`, `credentials`, `transform`,
-`tabular`, `dispatch`, `platform`, `records`, and `configschema`.
+`tabular`, `dispatch`, `platform`, `records`, `configschema`,
+`credentialpackage`, and `executionplan`.
 Concrete runtime, operating-system, secret, and third-party adapters remain
 under `internal/`.
 

@@ -274,9 +274,12 @@ known-hosts-file = "auto"
 ```
 
 Under `known-hosts-file = "auto"` the trust store is `known_hosts` in the
-operator's private root: `/opt/karvi/users/<user>/known_hosts` where the site
-made the operators' roots, `~/.local/share/karvi/known_hosts` otherwise; `karvi
-config show --explain ssh.known-hosts-file` names it on its `resolved:` line.
+operator's private root: `<that path>/known_hosts` under a `basedir` set to a
+path; otherwise `/opt/karvi/users/<user>/known_hosts` where the site made
+`/opt/karvi/users`, `/var/lib/karvi/users/<user>/known_hosts` where it made
+`/var/lib/karvi/users` alone, and `~/.local/share/karvi/known_hosts` where it
+made neither. `karvi config show --explain ssh.known-hosts-file` names it on
+its `resolved:` line.
 
 For authenticated pre-enrollment, select `secure` and populate the store before
 using `login`, `command`, or `run`, by
