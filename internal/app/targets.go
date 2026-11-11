@@ -22,9 +22,6 @@ import (
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
-// TargetInput is records.TargetInput, kept under its old name for callers.
-type TargetInput = records.TargetInput
-
 // TargetSet is the assembled, deduplicated, excluded, and ordered device list
 // the planner drafts from.
 type TargetSet = planner.TargetSet
@@ -49,13 +46,13 @@ func resolveOrder(cfg configload.Snapshot, now func() time.Time) (order string, 
 // AssembleTargets loads the inventory under the invocation's read, then
 // assembles the target set for inputs. The login recorder wrapper uses it to
 // learn the device a session will connect to.
-func AssembleTargets(ctx context.Context, common CommonOptions, inputs []TargetInput, excludes []string, stderr io.Writer) (TargetSet, error) {
+func AssembleTargets(ctx context.Context, common CommonOptions, inputs []records.TargetInput, excludes []string, stderr io.Writer) (TargetSet, error) {
 	return assembleTargets(ctx, common, inputs, excludes, stderr)
 }
 
 // assembleTargets loads the inventory, the --inventory files in place of
 // the configured sources when given, and assembles the target set.
-func assembleTargets(ctx context.Context, common CommonOptions, inputs []TargetInput, excludes []string, stderr io.Writer) (TargetSet, error) {
+func assembleTargets(ctx context.Context, common CommonOptions, inputs []records.TargetInput, excludes []string, stderr io.Writer) (TargetSet, error) {
 	cfg := common.Config
 	if !hasPositiveInput(inputs) {
 		return TargetSet{}, errorcodes.Errorf("inventory_positive_selector_missing", "a target input that selects is required: DEVICE, --target, --tf, --site, --device-group, --select-platform, or --all (a value beginning with \"!\" only removes devices)")
@@ -131,7 +128,7 @@ func rulesOf(cfg configload.Snapshot) targetRules {
 // (planner.SetPlatformFunc): blank for a
 // device whose platform is not set or falls back, which no --select-platform value
 // matches.
-func assemble(configured []inventory.Device, inputs []TargetInput, excludes []string, setPlatform func(inventory.Device) string, rules targetRules) ([]inventory.Device, error) {
+func assemble(configured []inventory.Device, inputs []records.TargetInput, excludes []string, setPlatform func(inventory.Device) string, rules targetRules) ([]inventory.Device, error) {
 	out := []inventory.Device{}
 	seen := map[string]bool{}
 	add := func(d inventory.Device) {
@@ -354,7 +351,7 @@ func notInInventoryError(absent []string) error {
 // hasPositiveInput reports whether any input can select a device: every
 // input but a "not" selector (a --target, --site, --device-group, or
 // --select-platform value beginning with "!").
-func hasPositiveInput(inputs []TargetInput) bool {
+func hasPositiveInput(inputs []records.TargetInput) bool {
 	for _, in := range inputs {
 		switch in.Kind {
 		case "target", "site", "device-group", "platform":

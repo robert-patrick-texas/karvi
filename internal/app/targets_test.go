@@ -14,6 +14,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/planner"
 	"github.com/robert-patrick-texas/karvi/inventory"
+	"github.com/robert-patrick-texas/karvi/records"
 )
 
 func invDevice(name, site, platform string, groups ...string) inventory.Device {
@@ -53,25 +54,25 @@ var testInventory = []inventory.Device{
 func TestAssembleKeepsCommandLineOrder(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
-		inputs []TargetInput
+		inputs []records.TargetInput
 		want   []string
 	}{
 		// An inventory device keeps its inventory spelling (Core-1); its
 		// identity is the lowercase form.
 		{"direct before selector (defect fixed)",
-			[]TargetInput{{Kind: "target", Value: "r9"}, {Kind: "site", Value: "hq"}, {Kind: "target", Value: "r8"}},
+			[]records.TargetInput{{Kind: "target", Value: "r9"}, {Kind: "site", Value: "hq"}, {Kind: "target", Value: "r8"}},
 			[]string{"r9", "Core-1", "core-2", "r8"}},
 		{"glob at its position, inventory order",
-			[]TargetInput{{Kind: "target", Value: "edge-1"}, {Kind: "target", Value: "CORE-*"}},
+			[]records.TargetInput{{Kind: "target", Value: "edge-1"}, {Kind: "target", Value: "CORE-*"}},
 			[]string{"edge-1", "Core-1", "core-2"}},
 		{"file names at the file's position",
-			[]TargetInput{{Kind: "names", Names: []string{"B", "a"}, Source: "list.txt"}, {Kind: "target", Value: "c"}},
+			[]records.TargetInput{{Kind: "names", Names: []string{"B", "a"}, Source: "list.txt"}, {Kind: "target", Value: "c"}},
 			[]string{"b", "a", "c"}},
 		{"device-group then platform then all",
-			[]TargetInput{{Kind: "device-group", Value: "edge"}, {Kind: "platform", Value: "gen*"}, {Kind: "all"}},
+			[]records.TargetInput{{Kind: "device-group", Value: "edge"}, {Kind: "platform", Value: "gen*"}, {Kind: "all"}},
 			[]string{"edge-1", "lab-1", "Core-1", "core-2"}},
 		{"a later spelling of an inventory device is the same device",
-			[]TargetInput{{Kind: "target", Value: "CORE-1"}, {Kind: "site", Value: "hq"}, {Kind: "target", Value: "core-1"}},
+			[]records.TargetInput{{Kind: "target", Value: "CORE-1"}, {Kind: "site", Value: "hq"}, {Kind: "target", Value: "core-1"}},
 			[]string{"Core-1", "core-2"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -90,7 +91,7 @@ func TestAssembleKeepsCommandLineOrder(t *testing.T) {
 // names are lowercase, the first occurrence keeps its position, and the token
 // as supplied survives for input_target.
 func TestAssembleIdentityIsLowercase(t *testing.T) {
-	got, err := assemble(testInventory, []TargetInput{
+	got, err := assemble(testInventory, []records.TargetInput{
 		{Kind: "target", Value: "R9"}, {Kind: "names", Names: []string{"r9", "Edge-1"}}, {Kind: "target", Value: "EDGE-1"}, {Kind: "target", Value: " r9 "},
 	}, nil, setPlatformAsIs, testRules)
 	if err != nil {
@@ -113,7 +114,7 @@ func TestAssembleIdentityIsLowercase(t *testing.T) {
 // TestAssembleExcludeAppliesToWholeList: --exclude removes
 // direct targets too, after duplicate removal, without regard to letter case.
 func TestAssembleExcludeAppliesToWholeList(t *testing.T) {
-	got, err := assemble(testInventory, []TargetInput{
+	got, err := assemble(testInventory, []records.TargetInput{
 		{Kind: "target", Value: "r9"}, {Kind: "target", Value: "r8"}, {Kind: "site", Value: "hq"},
 	}, []string{"R8", "core-1"}, setPlatformAsIs, testRules)
 	if err != nil {
@@ -122,7 +123,7 @@ func TestAssembleExcludeAppliesToWholeList(t *testing.T) {
 	if !reflect.DeepEqual(names(got), []string{"r9", "core-2"}) {
 		t.Fatalf("names=%q", names(got))
 	}
-	got, err = assemble(testInventory, []TargetInput{{Kind: "all"}}, []string{"core-*", "edge-?"}, setPlatformAsIs, testRules)
+	got, err = assemble(testInventory, []records.TargetInput{{Kind: "all"}}, []string{"core-*", "edge-?"}, setPlatformAsIs, testRules)
 	if err != nil || !reflect.DeepEqual(names(got), []string{"lab-1"}) {
 		t.Fatalf("glob exclude: %q %v", names(got), err)
 	}
@@ -139,24 +140,24 @@ func TestAssembleSelectorGrammar(t *testing.T) {
 	)
 	for _, tc := range []struct {
 		name     string
-		inputs   []TargetInput
+		inputs   []records.TargetInput
 		excludes []string
 		want     []string
 	}{
-		{"site folds case", []TargetInput{{Kind: "site", Value: "nyc"}}, nil, []string{"NYC-1"}},
-		{"group folds case", []TargetInput{{Kind: "device-group", Value: "EDGE"}}, nil, []string{"edge-1", "NYC-1", "nyc-2"}},
-		{"* spans /", []TargetInput{{Kind: "site", Value: "nyc*"}}, nil, []string{"NYC-1", "nyc-2"}},
-		{"class negation", []TargetInput{{Kind: "site", Value: "[!bh]*"}}, nil, []string{"lab-1", "NYC-1", "nyc-2"}},
-		{"group less a site", []TargetInput{{Kind: "device-group", Value: "edge"}, {Kind: "site", Value: "!nyc*"}}, nil, []string{"edge-1"}},
-		{"a not selector before the selector", []TargetInput{{Kind: "site", Value: "!NYC"}, {Kind: "device-group", Value: "edge"}}, nil, []string{"edge-1", "nyc-2"}},
-		{"a not group removes on any group", []TargetInput{{Kind: "all"}, {Kind: "device-group", Value: "!lab"}}, nil, []string{"Core-1", "core-2", "edge-1", "NYC-1"}},
-		{"a not platform", []TargetInput{{Kind: "site", Value: "nyc*"}, {Kind: "platform", Value: "!cisco_*"}}, nil, nil},
-		{"a platform by spelling", []TargetInput{{Kind: "platform", Value: "cisco_iosxe"}, {Kind: "site", Value: "!nyc*"}}, nil, []string{"Core-1", "core-2", "edge-1"}},
-		{"a not platform by spelling", []TargetInput{{Kind: "site", Value: "nyc*"}, {Kind: "platform", Value: "!Cisco_XE"}}, nil, nil},
-		{"a not target removes by name", []TargetInput{{Kind: "target", Value: "r9"}, {Kind: "site", Value: "hq"}, {Kind: "target", Value: "!CORE-1"}}, nil, []string{"r9", "core-2"}},
-		{"a direct target has no site to remove", []TargetInput{{Kind: "target", Value: "r9"}, {Kind: "site", Value: "hq"}, {Kind: "site", Value: "!*"}}, nil, []string{"r9"}},
-		{"file names skip ! comments", []TargetInput{{Kind: "names", Names: []string{"r8", "!core-2"}, Source: "list.txt"}, {Kind: "site", Value: "hq"}}, nil, []string{"r8", "Core-1", "core-2"}},
-		{"escaped ! is literal", []TargetInput{{Kind: "all"}}, []string{`\!x`, "nyc-?"}, []string{"Core-1", "core-2", "edge-1", "lab-1"}},
+		{"site folds case", []records.TargetInput{{Kind: "site", Value: "nyc"}}, nil, []string{"NYC-1"}},
+		{"group folds case", []records.TargetInput{{Kind: "device-group", Value: "EDGE"}}, nil, []string{"edge-1", "NYC-1", "nyc-2"}},
+		{"* spans /", []records.TargetInput{{Kind: "site", Value: "nyc*"}}, nil, []string{"NYC-1", "nyc-2"}},
+		{"class negation", []records.TargetInput{{Kind: "site", Value: "[!bh]*"}}, nil, []string{"lab-1", "NYC-1", "nyc-2"}},
+		{"group less a site", []records.TargetInput{{Kind: "device-group", Value: "edge"}, {Kind: "site", Value: "!nyc*"}}, nil, []string{"edge-1"}},
+		{"a not selector before the selector", []records.TargetInput{{Kind: "site", Value: "!NYC"}, {Kind: "device-group", Value: "edge"}}, nil, []string{"edge-1", "nyc-2"}},
+		{"a not group removes on any group", []records.TargetInput{{Kind: "all"}, {Kind: "device-group", Value: "!lab"}}, nil, []string{"Core-1", "core-2", "edge-1", "NYC-1"}},
+		{"a not platform", []records.TargetInput{{Kind: "site", Value: "nyc*"}, {Kind: "platform", Value: "!cisco_*"}}, nil, nil},
+		{"a platform by spelling", []records.TargetInput{{Kind: "platform", Value: "cisco_iosxe"}, {Kind: "site", Value: "!nyc*"}}, nil, []string{"Core-1", "core-2", "edge-1"}},
+		{"a not platform by spelling", []records.TargetInput{{Kind: "site", Value: "nyc*"}, {Kind: "platform", Value: "!Cisco_XE"}}, nil, nil},
+		{"a not target removes by name", []records.TargetInput{{Kind: "target", Value: "r9"}, {Kind: "site", Value: "hq"}, {Kind: "target", Value: "!CORE-1"}}, nil, []string{"r9", "core-2"}},
+		{"a direct target has no site to remove", []records.TargetInput{{Kind: "target", Value: "r9"}, {Kind: "site", Value: "hq"}, {Kind: "site", Value: "!*"}}, nil, []string{"r9"}},
+		{"file names skip ! comments", []records.TargetInput{{Kind: "names", Names: []string{"r8", "!core-2"}, Source: "list.txt"}, {Kind: "site", Value: "hq"}}, nil, []string{"r8", "Core-1", "core-2"}},
+		{"escaped ! is literal", []records.TargetInput{{Kind: "all"}}, []string{`\!x`, "nyc-?"}, []string{"Core-1", "core-2", "edge-1", "lab-1"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := assemble(inv, tc.inputs, tc.excludes, setPlatformAsIs, testRules)
@@ -172,19 +173,19 @@ func TestAssembleSelectorGrammar(t *testing.T) {
 		})
 	}
 	for _, tc := range []struct {
-		inputs   []TargetInput
+		inputs   []records.TargetInput
 		excludes []string
 	}{
-		{[]TargetInput{{Kind: "site", Value: "ny[c"}}, nil},
-		{[]TargetInput{{Kind: "target", Value: "^core"}}, nil},
-		{[]TargetInput{{Kind: "names", Names: []string{"core$"}, Source: "list.txt"}}, nil},
-		{[]TargetInput{{Kind: "all"}}, []string{"!core-1"}},
+		{[]records.TargetInput{{Kind: "site", Value: "ny[c"}}, nil},
+		{[]records.TargetInput{{Kind: "target", Value: "^core"}}, nil},
+		{[]records.TargetInput{{Kind: "names", Names: []string{"core$"}, Source: "list.txt"}}, nil},
+		{[]records.TargetInput{{Kind: "all"}}, []string{"!core-1"}},
 	} {
 		if _, err := assemble(inv, tc.inputs, tc.excludes, setPlatformAsIs, testRules); errorcodes.Of(err) != "target_selector_pattern_invalid" {
 			t.Errorf("%+v %q: %v", tc.inputs, tc.excludes, err)
 		}
 	}
-	_, err := assembleTargets(context.Background(), CommonOptions{}, []TargetInput{{Kind: "site", Value: "!nyc"}, {Kind: "target", Value: " !r1"}}, nil, io.Discard)
+	_, err := assembleTargets(context.Background(), CommonOptions{}, []records.TargetInput{{Kind: "site", Value: "!nyc"}, {Kind: "target", Value: " !r1"}}, nil, io.Discard)
 	if errorcodes.Of(err) != "inventory_positive_selector_missing" {
 		t.Fatalf("only not selectors: %v", err)
 	}
@@ -203,15 +204,15 @@ func TestAssembleNumericRange(t *testing.T) {
 	inv = append(inv, invDevice("router01", "pod01", "cisco_ios", "ring01"))
 	for _, tc := range []struct {
 		name   string
-		inputs []TargetInput
+		inputs []records.TargetInput
 		want   []string
 	}{
-		{"site pod[1-12]", []TargetInput{{Kind: "site", Value: "pod[1-12]"}}, []string{"router1", "router2", "router3", "router9", "router10", "router11", "router12"}},
-		{"site pod[01-03]", []TargetInput{{Kind: "site", Value: "pod[01-03]"}}, []string{"router01"}},
-		{"group ring[10,13]", []TargetInput{{Kind: "device-group", Value: "ring[10,13]"}}, []string{"router10", "router13"}},
-		{"target router[10-12]", []TargetInput{{Kind: "target", Value: "router[10-12]"}}, []string{"router10", "router11", "router12"}},
-		{"a not target range", []TargetInput{{Kind: "all"}, {Kind: "target", Value: "!router[2-12]"}}, []string{"router1", "router13", "router01"}},
-		{"a not site range", []TargetInput{{Kind: "site", Value: "pod*"}, {Kind: "site", Value: "!pod[1-11]"}}, []string{"router12", "router13", "router01"}},
+		{"site pod[1-12]", []records.TargetInput{{Kind: "site", Value: "pod[1-12]"}}, []string{"router1", "router2", "router3", "router9", "router10", "router11", "router12"}},
+		{"site pod[01-03]", []records.TargetInput{{Kind: "site", Value: "pod[01-03]"}}, []string{"router01"}},
+		{"group ring[10,13]", []records.TargetInput{{Kind: "device-group", Value: "ring[10,13]"}}, []string{"router10", "router13"}},
+		{"target router[10-12]", []records.TargetInput{{Kind: "target", Value: "router[10-12]"}}, []string{"router10", "router11", "router12"}},
+		{"a not target range", []records.TargetInput{{Kind: "all"}, {Kind: "target", Value: "!router[2-12]"}}, []string{"router1", "router13", "router01"}},
+		{"a not site range", []records.TargetInput{{Kind: "site", Value: "pod*"}, {Kind: "site", Value: "!pod[1-11]"}}, []string{"router12", "router13", "router01"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := assemble(inv, tc.inputs, nil, setPlatformAsIs, testRules)
@@ -220,11 +221,11 @@ func TestAssembleNumericRange(t *testing.T) {
 			}
 		})
 	}
-	if got, err := assemble(inv, []TargetInput{{Kind: "all"}}, []string{"router[1-11]"}, setPlatformAsIs, testRules); err != nil || !reflect.DeepEqual(names(got), []string{"router12", "router13", "router01"}) {
+	if got, err := assemble(inv, []records.TargetInput{{Kind: "all"}}, []string{"router[1-11]"}, setPlatformAsIs, testRules); err != nil || !reflect.DeepEqual(names(got), []string{"router12", "router13", "router01"}) {
 		t.Errorf("--exclude router[1-11]: %q %v", names(got), err)
 	}
 	for _, v := range []string{"pod[1-]", "pod[12-1]"} {
-		if _, err := assemble(inv, []TargetInput{{Kind: "site", Value: v}}, nil, setPlatformAsIs, testRules); errorcodes.Of(err) != "target_selector_pattern_invalid" {
+		if _, err := assemble(inv, []records.TargetInput{{Kind: "site", Value: v}}, nil, setPlatformAsIs, testRules); errorcodes.Of(err) != "target_selector_pattern_invalid" {
 			t.Errorf("--site %s: %v", v, err)
 		}
 	}
@@ -235,15 +236,15 @@ func TestAssembleNumericRange(t *testing.T) {
 func TestAssembleEmptyCodes(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
-		inputs   []TargetInput
+		inputs   []records.TargetInput
 		excludes []string
 		code     string
 	}{
 		{"no inputs", nil, nil, "inventory_positive_selector_missing"},
-		{"selectors match nothing", []TargetInput{{Kind: "site", Value: "nowhere"}, {Kind: "target", Value: "zz-*"}}, nil, "inventory_empty_selection"},
-		{"everything excluded", []TargetInput{{Kind: "target", Value: "r9"}}, []string{"r9"}, "target_set_empty"},
-		{"selector matched then excluded", []TargetInput{{Kind: "site", Value: "lab"}}, []string{"lab-*"}, "target_set_empty"},
-		{"blank name", []TargetInput{{Kind: "names", Names: []string{"  "}}}, nil, "device_name_blank"},
+		{"selectors match nothing", []records.TargetInput{{Kind: "site", Value: "nowhere"}, {Kind: "target", Value: "zz-*"}}, nil, "inventory_empty_selection"},
+		{"everything excluded", []records.TargetInput{{Kind: "target", Value: "r9"}}, []string{"r9"}, "target_set_empty"},
+		{"selector matched then excluded", []records.TargetInput{{Kind: "site", Value: "lab"}}, []string{"lab-*"}, "target_set_empty"},
+		{"blank name", []records.TargetInput{{Kind: "names", Names: []string{"  "}}}, nil, "device_name_blank"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var err error
@@ -425,7 +426,7 @@ func TestAssemblePlatformSelectorKnown(t *testing.T) {
 		{`\!c9300`, true}, // an escaped "!" is a literal rune of a glob matching no name
 	} {
 		t.Run(tc.value, func(t *testing.T) {
-			inputs := []TargetInput{{Kind: "all"}, {Kind: "platform", Value: tc.value}}
+			inputs := []records.TargetInput{{Kind: "all"}, {Kind: "platform", Value: tc.value}}
 			err := checkPlatformSelectors(cfg, inputs)
 			_, assembled := assembleTargets(context.Background(), CommonOptions{Config: cfg}, inputs, nil, io.Discard)
 			if !tc.refused {
@@ -445,10 +446,10 @@ func TestAssemblePlatformSelectorKnown(t *testing.T) {
 	}
 	// A malformed pattern keeps its own code, and a selector on another
 	// field is not checked against the platforms.
-	if err := checkPlatformSelectors(cfg, []TargetInput{{Kind: "platform", Value: "cis[co"}}); errorcodes.Of(err) != "target_selector_pattern_invalid" {
+	if err := checkPlatformSelectors(cfg, []records.TargetInput{{Kind: "platform", Value: "cis[co"}}); errorcodes.Of(err) != "target_selector_pattern_invalid" {
 		t.Fatalf("malformed: %v", err)
 	}
-	if err := checkPlatformSelectors(cfg, []TargetInput{{Kind: "site", Value: "nexus*"}, {Kind: "target", Value: "cisco_iosx"}}); err != nil {
+	if err := checkPlatformSelectors(cfg, []records.TargetInput{{Kind: "site", Value: "nexus*"}, {Kind: "target", Value: "cisco_iosx"}}); err != nil {
 		t.Fatalf("other kinds: %v", err)
 	}
 }
@@ -461,18 +462,18 @@ func TestAssemblePlatformNotSet(t *testing.T) {
 	blank := invDevice("blank-1", "lab", "")
 	generic := invDevice("gen-1", "lab", "generic")
 	inv := []inventory.Device{blank, generic}
-	got, err := assemble(inv, []TargetInput{{Kind: "target", Value: "r9"}, {Kind: "platform", Value: "generic"}, {Kind: "platform", Value: "*"}}, nil, setPlatformAsIs, testRules)
+	got, err := assemble(inv, []records.TargetInput{{Kind: "target", Value: "r9"}, {Kind: "platform", Value: "generic"}, {Kind: "platform", Value: "*"}}, nil, setPlatformAsIs, testRules)
 	if err != nil || !reflect.DeepEqual(names(got), []string{"r9", "gen-1"}) {
 		t.Fatalf("names=%q err=%v", names(got), err)
 	}
 	if got[0].Platform != "" {
 		t.Fatalf("direct target platform %q, want blank", got[0].Platform)
 	}
-	got, err = assemble(inv, []TargetInput{{Kind: "all"}, {Kind: "platform", Value: "!*"}}, nil, setPlatformAsIs, testRules)
+	got, err = assemble(inv, []records.TargetInput{{Kind: "all"}, {Kind: "platform", Value: "!*"}}, nil, setPlatformAsIs, testRules)
 	if err != nil || !reflect.DeepEqual(names(got), []string{"blank-1"}) {
 		t.Fatalf("a not selector removes only set platforms: names=%q err=%v", names(got), err)
 	}
-	got, err = assemble(inv, []TargetInput{{Kind: "target", Value: "blank-1"}}, nil, setPlatformAsIs, testRules)
+	got, err = assemble(inv, []records.TargetInput{{Kind: "target", Value: "blank-1"}}, nil, setPlatformAsIs, testRules)
 	if err != nil || len(got) != 1 || got[0].Platform != "" {
 		t.Fatalf("by name: %+v %v", got, err)
 	}
@@ -496,14 +497,14 @@ func TestAssemblePlatformFallbackNotMatched(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
 		cfg    configload.Snapshot
-		inputs []TargetInput
+		inputs []records.TargetInput
 		want   []string
 	}{
-		{"cisco* under fail", fail, []TargetInput{{Kind: "platform", Value: "cisco*"}}, []string{"sw-ios", "sw-typo"}},
-		{"cisco* under warn", warn, []TargetInput{{Kind: "platform", Value: "cisco*"}}, []string{"sw-ios"}},
-		{"* under warn", warn, []TargetInput{{Kind: "platform", Value: "*"}}, []string{"sw-ios", "sw-c9300"}},
-		{"not cisco* under warn", warn, []TargetInput{{Kind: "all"}, {Kind: "platform", Value: "!cisco*"}}, []string{"sw-typo", "sw-c9300"}},
-		{"by name under warn", warn, []TargetInput{{Kind: "target", Value: "sw-typo"}}, []string{"sw-typo"}},
+		{"cisco* under fail", fail, []records.TargetInput{{Kind: "platform", Value: "cisco*"}}, []string{"sw-ios", "sw-typo"}},
+		{"cisco* under warn", warn, []records.TargetInput{{Kind: "platform", Value: "cisco*"}}, []string{"sw-ios"}},
+		{"* under warn", warn, []records.TargetInput{{Kind: "platform", Value: "*"}}, []string{"sw-ios", "sw-c9300"}},
+		{"not cisco* under warn", warn, []records.TargetInput{{Kind: "all"}, {Kind: "platform", Value: "!cisco*"}}, []string{"sw-typo", "sw-c9300"}},
+		{"by name under warn", warn, []records.TargetInput{{Kind: "target", Value: "sw-typo"}}, []string{"sw-typo"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := assemble(inv, tc.inputs, nil, planner.SetPlatformFunc(tc.cfg), testRules)
@@ -538,31 +539,31 @@ func TestAssembleCreatesRangeNames(t *testing.T) {
 	}
 	for _, tc := range []struct {
 		name     string
-		inputs   []TargetInput
+		inputs   []records.TargetInput
 		excludes []string
 		want     []string
 		supplied []string // SuppliedName, the records' input_target
 		direct   map[string]bool
 	}{
-		{"switch0[1-3]", []TargetInput{{Kind: "target", Value: "switch0[1-3]"}}, nil,
+		{"switch0[1-3]", []records.TargetInput{{Kind: "target", Value: "switch0[1-3]"}}, nil,
 			[]string{"switch01", "switch02", "switch03"}, []string{"switch01", "switch02", "switch03"}, direct("switch01", "switch02", "switch03")},
-		{"the typed case kept", []TargetInput{{Kind: "target", Value: " Switch0[1-2] "}}, nil,
+		{"the typed case kept", []records.TargetInput{{Kind: "target", Value: " Switch0[1-2] "}}, nil,
 			[]string{"switch01", "switch02"}, []string{"Switch01", "Switch02"}, direct("switch01", "switch02")},
-		{"router[1-12]", []TargetInput{{Kind: "target", Value: "router[1-12]"}}, nil,
+		{"router[1-12]", []records.TargetInput{{Kind: "target", Value: "router[1-12]"}}, nil,
 			[]string{"router1", "router2", "router3", "router4", "router5", "router6", "router7", "router8", "router9", "router10", "router11", "router12"},
 			[]string{"router1", "router2", "router3", "router4", "router5", "router6", "router7", "router8", "router9", "router10", "router11", "router12"},
 			direct("router1", "router2", "router3", "router4", "router5", "router6", "router7", "router8", "router9")},
-		{"inventory names among them", []TargetInput{{Kind: "target", Value: "ROUTER0[1-5]"}}, nil,
+		{"inventory names among them", []records.TargetInput{{Kind: "target", Value: "ROUTER0[1-5]"}}, nil,
 			[]string{"router01", "router02", "router03", "router04", "router05"}, []string{"router01", "router02", "router03", "ROUTER04", "router05"}, direct("router04")},
-		{"a list, written order", []TargetInput{{Kind: "target", Value: "router[4,1]"}}, nil,
+		{"a list, written order", []records.TargetInput{{Kind: "target", Value: "router[4,1]"}}, nil,
 			[]string{"router4", "router1"}, []string{"router4", "router1"}, direct("router4", "router1")},
-		{"a word holding a glob selects", []TargetInput{{Kind: "target", Value: "router[1,0]?"}}, nil,
+		{"a word holding a glob selects", []records.TargetInput{{Kind: "target", Value: "router[1,0]?"}}, nil,
 			[]string{"router10", "router11", "router12", "router01", "router02", "router03", "router05"}, nil, direct()},
-		{"duplicates removed", []TargetInput{{Kind: "target", Value: "r[1-2,2]"}, {Kind: "target", Value: "r1"}}, nil,
+		{"duplicates removed", []records.TargetInput{{Kind: "target", Value: "r[1-2,2]"}, {Kind: "target", Value: "r1"}}, nil,
 			[]string{"r1", "r2"}, nil, direct("r1", "r2")},
-		{"a target file entry", []TargetInput{{Kind: "names", Names: []string{"edge[1-2]", "router10"}, Source: "f.txt"}}, nil,
+		{"a target file entry", []records.TargetInput{{Kind: "names", Names: []string{"edge[1-2]", "router10"}, Source: "f.txt"}}, nil,
 			[]string{"edge1", "edge2", "router10"}, nil, direct("edge1", "edge2")},
-		{"! and --exclude match", []TargetInput{{Kind: "target", Value: "router[1-12]"}, {Kind: "target", Value: "!router[2-9]"}}, []string{"router[10-11]"},
+		{"! and --exclude match", []records.TargetInput{{Kind: "target", Value: "router[1-12]"}, {Kind: "target", Value: "!router[2-9]"}}, []string{"router[10-11]"},
 			[]string{"router1", "router12"}, nil, direct("router1")},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -613,16 +614,16 @@ func TestCreatedNamesLimit(t *testing.T) {
 			t.Errorf("CheckCreatedNames(%q, %d) = %v, want ok %v", tc.value, tc.limit, err, tc.ok)
 		}
 	}
-	if _, err := assemble(testInventory, []TargetInput{{Kind: "target", Value: "box[1-6]"}}, nil, setPlatformAsIs, targetRules{maxCreated: 5}); errorcodes.Of(err) != "target_created_names_exceeded" || !strings.Contains(err.Error(), "--target box[1-6] creates too many names") {
+	if _, err := assemble(testInventory, []records.TargetInput{{Kind: "target", Value: "box[1-6]"}}, nil, setPlatformAsIs, targetRules{maxCreated: 5}); errorcodes.Of(err) != "target_created_names_exceeded" || !strings.Contains(err.Error(), "--target box[1-6] creates too many names") {
 		t.Errorf("assemble over the limit: %v", err)
 	}
-	if got, err := assemble(testInventory, []TargetInput{{Kind: "target", Value: "box[1-5]"}}, nil, setPlatformAsIs, targetRules{maxCreated: 5}); err != nil || len(got) != 5 {
+	if got, err := assemble(testInventory, []records.TargetInput{{Kind: "target", Value: "box[1-5]"}}, nil, setPlatformAsIs, targetRules{maxCreated: 5}); err != nil || len(got) != 5 {
 		t.Errorf("assemble at the limit: %q %v", names(got), err)
 	}
-	if _, err := assemble(testInventory, []TargetInput{{Kind: "names", Names: []string{"box[1-6]"}, Source: "f.txt"}}, nil, setPlatformAsIs, targetRules{maxCreated: 5}); !strings.Contains(fmt.Sprint(err), "target file f.txt entry box[1-6] creates too many names") {
+	if _, err := assemble(testInventory, []records.TargetInput{{Kind: "names", Names: []string{"box[1-6]"}, Source: "f.txt"}}, nil, setPlatformAsIs, targetRules{maxCreated: 5}); !strings.Contains(fmt.Sprint(err), "target file f.txt entry box[1-6] creates too many names") {
 		t.Errorf("a target file entry over the limit: %v", err)
 	}
-	if got, err := assemble(testInventory, []TargetInput{{Kind: "all"}, {Kind: "target", Value: "!core-[1-99]"}, {Kind: "site", Value: "pod[1-99]"}}, []string{"x[1-99]"}, setPlatformAsIs, targetRules{maxCreated: 5}); err != nil || len(got) != 2 {
+	if got, err := assemble(testInventory, []records.TargetInput{{Kind: "all"}, {Kind: "target", Value: "!core-[1-99]"}, {Kind: "site", Value: "pod[1-99]"}}, []string{"x[1-99]"}, setPlatformAsIs, targetRules{maxCreated: 5}); err != nil || len(got) != 2 {
 		t.Errorf("matchers under a limit of 5: %q %v", names(got), err)
 	}
 }
@@ -644,17 +645,17 @@ func TestAssembleInventoryOnly(t *testing.T) {
 	only := targetRules{maxCreated: 5, inventoryOnly: true}
 	for _, tc := range []struct {
 		name     string
-		inputs   []TargetInput
+		inputs   []records.TargetInput
 		excludes []string
 		want     []string
 	}{
-		{"a range selects among its names", []TargetInput{{Kind: "target", Value: "router0[1-5]"}}, nil, []string{"router01", "router02", "router03", "router05"}},
-		{"by number and width", []TargetInput{{Kind: "target", Value: "ROUTER[1-12]"}}, nil, []string{"router10", "router11", "router12"}},
-		{"at any size", []TargetInput{{Kind: "target", Value: "router[1-99999999]"}}, nil, []string{"router10", "router11", "router12"}},
-		{"in inventory order, as a glob", []TargetInput{{Kind: "target", Value: "router[11,5,01,10]"}}, nil, []string{"router01", "router10", "router11"}},
-		{"a range and a glob", []TargetInput{{Kind: "target", Value: "router[1,0]?"}}, nil, []string{"router01", "router02", "router03", "router05", "router10", "router11", "router12"}},
-		{"a plain inventory name", []TargetInput{{Kind: "names", Names: []string{"Router05", "router01"}, Source: "f.txt"}}, nil, []string{"router05", "router01"}},
-		{"! and --exclude are not checked", []TargetInput{{Kind: "target", Value: "router0[1-3]"}, {Kind: "target", Value: "!router04"}, {Kind: "target", Value: "!router02"}}, []string{"router09", "router03"}, []string{"router01"}},
+		{"a range selects among its names", []records.TargetInput{{Kind: "target", Value: "router0[1-5]"}}, nil, []string{"router01", "router02", "router03", "router05"}},
+		{"by number and width", []records.TargetInput{{Kind: "target", Value: "ROUTER[1-12]"}}, nil, []string{"router10", "router11", "router12"}},
+		{"at any size", []records.TargetInput{{Kind: "target", Value: "router[1-99999999]"}}, nil, []string{"router10", "router11", "router12"}},
+		{"in inventory order, as a glob", []records.TargetInput{{Kind: "target", Value: "router[11,5,01,10]"}}, nil, []string{"router01", "router10", "router11"}},
+		{"a range and a glob", []records.TargetInput{{Kind: "target", Value: "router[1,0]?"}}, nil, []string{"router01", "router02", "router03", "router05", "router10", "router11", "router12"}},
+		{"a plain inventory name", []records.TargetInput{{Kind: "names", Names: []string{"Router05", "router01"}, Source: "f.txt"}}, nil, []string{"router05", "router01"}},
+		{"! and --exclude are not checked", []records.TargetInput{{Kind: "target", Value: "router0[1-3]"}, {Kind: "target", Value: "!router04"}, {Kind: "target", Value: "!router02"}}, []string{"router09", "router03"}, []string{"router01"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := assemble(inv, tc.inputs, tc.excludes, setPlatformAsIs, only)
@@ -674,19 +675,19 @@ func TestAssembleInventoryOnly(t *testing.T) {
 	}
 	for _, tc := range []struct {
 		name   string
-		inputs []TargetInput
+		inputs []records.TargetInput
 		code   string
 		want   string
 	}{
-		{"absent names, every input", []TargetInput{{Kind: "target", Value: "router04"}, {Kind: "target", Value: "router01"}, {Kind: "names", Names: []string{"Router07", "router04"}, Source: "f.txt"}}, "target_not_in_inventory",
+		{"absent names, every input", []records.TargetInput{{Kind: "target", Value: "router04"}, {Kind: "target", Value: "router01"}, {Kind: "names", Names: []string{"Router07", "router04"}, Source: "f.txt"}}, "target_not_in_inventory",
 			"2 target names are not in the inventory (targets.inventory-only)\n  router04\n  Router07"},
-		{"one name, as first typed", []TargetInput{{Kind: "target", Value: "Router04"}, {Kind: "target", Value: "ROUTER04"}}, "target_not_in_inventory",
+		{"one name, as first typed", []records.TargetInput{{Kind: "target", Value: "Router04"}, {Kind: "target", Value: "ROUTER04"}}, "target_not_in_inventory",
 			"1 target name is not in the inventory (targets.inventory-only)\n  Router04"},
-		{"after ten, the count left", []TargetInput{{Kind: "names", Names: twelve, Source: "f.txt"}}, "target_not_in_inventory",
+		{"after ten, the count left", []records.TargetInput{{Kind: "names", Names: twelve, Source: "f.txt"}}, "target_not_in_inventory",
 			"12 target names are not in the inventory (targets.inventory-only)\n  b1\n  b2\n  b3\n  b4\n  b5\n  b6\n  b7\n  b8\n  b9\n  b10\n  and 2 more"},
-		{"before an empty selection", []TargetInput{{Kind: "target", Value: "router04"}, {Kind: "site", Value: "nowhere"}}, "target_not_in_inventory",
+		{"before an empty selection", []records.TargetInput{{Kind: "target", Value: "router04"}, {Kind: "site", Value: "nowhere"}}, "target_not_in_inventory",
 			"1 target name is not in the inventory (targets.inventory-only)\n  router04"},
-		{"a range matching none", []TargetInput{{Kind: "target", Value: "switch0[1-3]"}}, "inventory_empty_selection", "the target selectors matched no devices"},
+		{"a range matching none", []records.TargetInput{{Kind: "target", Value: "switch0[1-3]"}}, "inventory_empty_selection", "the target selectors matched no devices"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := assemble(inv, tc.inputs, nil, setPlatformAsIs, only)

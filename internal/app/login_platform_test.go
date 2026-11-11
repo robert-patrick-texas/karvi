@@ -11,6 +11,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/records"
 )
 
 // TestLoginPlatformResolvesAliases: login uses the one resolver, so an
@@ -68,7 +69,7 @@ func TestLoginResolvesNoEnableSecret(t *testing.T) {
 	common := CommonOptions{Config: cfg, Operator: credentials.Operator{Username: "jsmith", UID: os.Getuid(), Home: dir}}
 	var stderr bytes.Buffer
 	streams := IO{Stdin: strings.NewReader(""), Stdout: &bytes.Buffer{}, Stderr: &stderr}
-	result := ExecuteLogin(context.Background(), LoginOptions{CommonOptions: common, Targets: []TargetInput{{Kind: "target", Value: "127.0.0.1"}}, Platform: "cisco_ios"}, streams)
+	result := ExecuteLogin(context.Background(), LoginOptions{CommonOptions: common, Targets: []records.TargetInput{{Kind: "target", Value: "127.0.0.1"}}, Platform: "cisco_ios"}, streams)
 	if !strings.HasPrefix(result.Error, "dependency_askpass_unavailable: ") {
 		t.Errorf("exit=%d error=%q, want dependency_askpass_unavailable; stderr %q", result.ExitCode, result.Error, stderr.String())
 	}

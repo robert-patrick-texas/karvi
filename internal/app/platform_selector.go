@@ -7,6 +7,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/matching"
 	"github.com/robert-patrick-texas/karvi/platform"
+	"github.com/robert-patrick-texas/karvi/records"
 )
 
 // selectorOption is the option word of a selector input's kind, for
@@ -32,7 +33,7 @@ func selectorOption(kind string) string {
 // read. Matching itself is unchanged: a device whose platform is set and
 // matches the pattern; a known value matching no device stays
 // inventory_empty_selection.
-func checkPlatformSelectors(cfg configload.Snapshot, inputs []TargetInput) error {
+func checkPlatformSelectors(cfg configload.Snapshot, inputs []records.TargetInput) error {
 	tables := cfg.NamedTables("platform")
 	var names []string // the known names, listed once a check needs them
 	for _, in := range inputs {

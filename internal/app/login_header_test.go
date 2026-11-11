@@ -58,7 +58,7 @@ func fakeLogin(t *testing.T, stdout io.Writer, auditFile string, required bool) 
 	common := CommonOptions{Config: cfg, Operator: credentials.Operator{Username: "jsmith", UID: os.Getuid(), Home: dir}}
 	var stderr bytes.Buffer
 	streams := IO{Stdin: strings.NewReader(""), Stdout: stdout, Stderr: &stderr}
-	result := ExecuteLogin(context.Background(), LoginOptions{CommonOptions: common, Targets: []TargetInput{{Kind: "target", Value: "127.0.0.1"}}, Platform: "cisco_ios", Transport: "system"}, streams)
+	result := ExecuteLogin(context.Background(), LoginOptions{CommonOptions: common, Targets: []records.TargetInput{{Kind: "target", Value: "127.0.0.1"}}, Platform: "cisco_ios", Transport: "system"}, streams)
 	return result, boards, stderr.String()
 }
 

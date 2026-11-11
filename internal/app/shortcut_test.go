@@ -14,6 +14,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/inventory"
+	"github.com/robert-patrick-texas/karvi/records"
 )
 
 // TestShortcutModes: the device shortcut's rules 4 and 5 in login and
@@ -90,7 +91,7 @@ func TestShortcutModes(t *testing.T) {
 					}
 					return []netip.Addr{netip.MustParseAddr("127.0.0.1")}, nil
 				}
-				targets := []TargetInput{{Kind: "target", Value: tc.word}}
+				targets := []records.TargetInput{{Kind: "target", Value: tc.word}}
 				var stderr bytes.Buffer
 				streams := IO{Stdin: strings.NewReader(""), Stdout: &bytes.Buffer{}, Stderr: &stderr}
 				claims, _ := os.ReadDir(scoreboards)

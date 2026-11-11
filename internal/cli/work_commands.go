@@ -24,6 +24,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/output"
 	"github.com/robert-patrick-texas/karvi/internal/planner"
 	"github.com/robert-patrick-texas/karvi/internal/targetsource"
+	"github.com/robert-patrick-texas/karvi/records"
 )
 
 // checkTargetSources refuses, before the read, what the target inputs'
@@ -64,7 +65,7 @@ func checkTargetSources(inv *Invocation, w io.Writer) (int, bool) {
 // value is counted first, before any target file is read, and a file's or
 // standard input's lines as they are read. Under targets.inventory-only a
 // range creates nothing and is not counted.
-func targetInputs(inv *Invocation, cfg configload.Snapshot, streams app.IO) ([]app.TargetInput, int, bool) {
+func targetInputs(inv *Invocation, cfg configload.Snapshot, streams app.IO) ([]records.TargetInput, int, bool) {
 	emptyRule, maxDepth := cfg.String("targets.empty-source"), cfg.Int("targets.recursion-max-depth")
 	maxCreated, counted := cfg.Int("targets.max-created-names"), !cfg.Bool("targets.inventory-only")
 	for _, t := range inv.Targets {
@@ -75,7 +76,7 @@ func targetInputs(inv *Invocation, cfg configload.Snapshot, streams app.IO) ([]a
 			return nil, inv.Global.reportError(streams.Stderr, "target_created_names_exceeded", err), false
 		}
 	}
-	inputs := make([]app.TargetInput, 0, len(inv.Targets))
+	inputs := make([]records.TargetInput, 0, len(inv.Targets))
 	for _, t := range inv.Targets {
 		switch t.Kind {
 		case "tf", "tfr":
@@ -121,11 +122,11 @@ func targetInputs(inv *Invocation, cfg configload.Snapshot, streams app.IO) ([]a
 				}
 				jobexec.WriteWarning(streams.Stderr, cfg, fmt.Sprintf("%s %s yields no targets; continuing with the other inputs", what, t.Value))
 			}
-			inputs = append(inputs, app.TargetInput{Kind: "names", Names: names, Source: t.Value})
+			inputs = append(inputs, records.TargetInput{Kind: "names", Names: names, Source: t.Value})
 		case "all":
-			inputs = append(inputs, app.TargetInput{Kind: "all"})
+			inputs = append(inputs, records.TargetInput{Kind: "all"})
 		default: // target, site, device-group, platform
-			inputs = append(inputs, app.TargetInput{Kind: t.Kind, Value: t.Value})
+			inputs = append(inputs, records.TargetInput{Kind: t.Kind, Value: t.Value})
 		}
 	}
 	return inputs, 0, true
