@@ -14,7 +14,7 @@ command -v go >/dev/null 2>&1 || { echo 'go is required' >&2; exit 1; }
 grep -q 'HostKeyCallback' internal/transport/native/dial.go
 grep -q 'hostkey.Verify' internal/transport/native/dial.go
 grep -q 'devsession.Open' internal/transport/native/native.go
-if grep -Eq 'InspectRemote|ssh-keyscan|os/exec' internal/transport/native/*.go; then
+if grep -Eq 'CompareInsecure|InspectRemote|ssh-keyscan|os/exec' internal/transport/native/*.go; then
   echo 'the native transport runs a subprocess or ssh-keyscan' >&2
   exit 1
 fi

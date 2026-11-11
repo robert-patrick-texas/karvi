@@ -220,7 +220,7 @@ make deps            # optional on a connected host: download and verify
   `HostKeyCallback` and `hostkey.Verify` in `internal/transport/native/dial.go`
   and `devsession.Open` in its `native.go`, and fails if the package
   references `ssh-keyscan`, `os/exec`, or the system transport's ssh-keyscan
-  inspector `InspectRemote`.
+  comparison (`CompareInsecure`, and `InspectRemote` behind it).
 - The tests, `go vet`, and the race run MUST pass under `-mod=vendor`.
 - `karvi version --format json` MUST report both transport IDs, the text
   form's transport line checked verbatim, and the shipped executable the
