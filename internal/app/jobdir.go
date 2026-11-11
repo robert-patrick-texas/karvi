@@ -193,7 +193,8 @@ func readSummary(dir string) (records.Summary, error) {
 // shared jobs tree, standing in its group (group, -1 outside that tree),
 // as a member's job files stand (FILES section 4.3): the directory path's
 // checks before a job is rendered from its folder. A job the caller's
-// daemon holds comes over the socket, and the client opens no file for it.
+// daemon holds comes over the socket; the client opens its commands.jsonl
+// only for a gathered display's read-back at the end (follow.go, group -1).
 func openChecked(path string, group int) (*os.File, error) {
 	f, fi, err := osutil.OpenRegularFile(path)
 	switch {

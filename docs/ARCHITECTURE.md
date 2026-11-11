@@ -686,11 +686,13 @@ that writes no `commands.jsonl` (`job.open` keeps no path) has no catch-up: the
 start's `first_sequence` is the edge plus one, the follower that started with
 the job had every record live, and a later or resumed follower prints one line
 naming the records that were before it and are not kept (`app.NotKeptLine`). The
-client (`internal/app/follow.go`) opens no file: it checks each frame's
-continuity and renders its record through `jobexec.RunRenderer`. `--detach`
-returns at acceptance with the receipt; `--follow=false` follows for the
-terminal only. `karvi job follow JOB-ID` runs the same follow loop from the zero
-cursor for a job named by its ID, so the daemon catches it up from the file and
+client (`internal/app/follow.go`) opens no file while it follows: it checks each
+frame's continuity and renders its record through `jobexec.RunRenderer`; a
+gathered display reads its groups' answers back at the job's end from
+`commands.jsonl`, opened with the folder follow's checks. `--detach` returns at
+acceptance with the receipt; `--follow=false` follows for the terminal only.
+`karvi job follow JOB-ID` runs the same follow loop from the zero cursor for a
+job named by its ID, so the daemon catches it up from the file and
 feeds it live. A job no daemon of the caller's holds is followed from its
 directory, located by the unique ID under the output root
 (`internal/app/jobdir.go`, `FollowJobDirectory`), through the same renderer:
