@@ -13,43 +13,8 @@ import (
 	"github.com/robert-patrick-texas/karvi/inventory"
 )
 
-// SchemaVersion is the execution-plan counter; PublicJobHeader
-// shares it because the two contracts live in one schema file. Version 2
-// adds the session-init table and each target's profile; version 3 the
-// blind sends, blind_returns and blind_wait_ns, and, without another
-// bump (3 was unreleased at the time), the interactive-prompt declarations blind and
-// expectations and each target's planning notices; version 4 the
-// invocation's output files, output.persist, output.files, and
-// output.root, and, at the same
-// bump, sources.inventory_digest and selector_provenance.digest removed
-// (recorded and never read); version 5 the job ID
-// in the job form `YYMMDD-HHMMSS-xx`, which
-// the header's validator requires and a schema 4 daemon refuses.
-// Version 6 output.crop_to_dot, 7 the platform command lists and the
-// collection sub-block, 8 sources.inputs and commands_file for
-// the scoreboard, 10 the collection's word, since run and command
-// collect too, and its suffix (--fs), and, without another bump (10 was
-// unreleased), output.files' failures_jsonl renamed errors_jsonl; 11 each
-// target's channel, and, without another bump (11 was unreleased), the
-// execution block, the invocation's timeouts, and each command's own
-// timeouts_ns and max_bytes; 12 the configuration block, the client's
-// resolved configuration the daemon runs the job under, and, without
-// another bump (12 was unreleased), every field that copied a key removed:
-// the execution and ping blocks, blind_wait_ns, output's byte limits,
-// persist, files, and crop_to_dot, the collection's file_mode, and
-// dispatch's halt and gate values with continue_device_on_error, which the
-// job reads from that configuration; 13 the header's client its pid and host
-// alone, its app name, version, and commit, which nothing read, removed
-// (EXAMPLES chapter 57, issue 3); 14 platform_masks, each target
-// platform's mask list (EXAMPLES chapter 63, issue 8); 15 command_plan_digest
-// removed from the plan and the header, read only by checks against the same
-// message, and, without another bump (15 was unreleased), commands_file
-// become commands_files, every --cf's base name, and target_commands, each
-// target's list under a --cf folder (EXAMPLES chapter 79); 16 sleeps_ns,
-// each command's --sleep before it, on the plan and on each command list
-// (EXAMPLES chapter 95); 17 sudo, each command's --sudo, on the plan and on
-// each command list, and the platform lists as command lists (EXAMPLES
-// chapter 96).
+// SchemaVersion is the execution-plan counter; PublicJobHeader shares it
+// because the two contracts live in one schema file.
 const SchemaVersion = 17
 
 // Mode is the requested execution mode of a job.

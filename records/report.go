@@ -11,9 +11,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
 
-// PlanReportSchemaVersion is the plan-inspection/exercise report counter:
-// 2 removes the daemon row's execution_policy_digest; 3 the outcomes plan
-// and exercise; 4 removes command_plan_digest.
+// PlanReportSchemaVersion is the plan-inspection/exercise report counter.
 const PlanReportSchemaVersion = 4
 
 // SensitivePropertyPattern is executionplan.SensitivePropertyPattern, the

@@ -15,18 +15,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
 
-// SchemaVersion is the daemon IPC schema this executable serves and speaks:
-// 5 carries prepare_job and
-// commit_job and no submit_job; 6 adds follow_job;
-// 7 adds cancel_job; 8 carries each record in
-// follow_job's stream in place of the notice that located it in
-// commands.jsonl; 9 names jobs by the job
-// ID `YYMMDD-HHMMSS-xx` in commit_job, follow_job, and cancel_job,
-// which each side's validator requires of the other; 11 carries the
-// execution plan at 12, its configuration block the job's configuration; 12
-// drops the request's client_version and client_pid, which nothing read, and
-// carries the execution plan at 13, whose header names the client's pid and
-// host alone (EXAMPLES chapter 57, issue 3).
+// SchemaVersion is the daemon IPC schema this executable serves and speaks.
 const SchemaVersion = 12
 
 // SchemaMismatchError reports the protocol versions observed on each side of
