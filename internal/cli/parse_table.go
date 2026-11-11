@@ -394,7 +394,9 @@ var commandTable = []*command{
 	{path: "watch", word: "watch", shape: shapePlain, help: func() string { return watchHelp },
 		options: []*option{optTheme, optColor, optRefresh, optStaleAfter, optFormatWatch, optWatchFilter, optWatchSort, optOnce, optHelp}},
 	{path: "version", word: "version", shape: shapePlain, options: []*option{optFormatTJ, optHelp}, help: func() string { return versionHelp }},
-	// v0.9.1 accepted "karvi help"; kept as a hidden word.
+	// help: a hidden word, so karvi help prints the help; a first word that
+	// is no command names a device, and karvi help would be a login at a
+	// device named help.
 	{path: "help", word: "help", shape: shapePlain, maxPos: -1, hidden: true, options: []*option{optHelp}, help: func() string { return topHelp }},
 }
 
