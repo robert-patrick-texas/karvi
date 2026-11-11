@@ -59,8 +59,8 @@ it gains, the rule, the executed example, what was not taken.
 Every distinct error cause has its own registered code in
 `internal/errorcodes`; a test fails the build when a code is emitted but not
 registered or registered but not emitted. A configuration key is a row of
-the registry in `configschema`, with its range on the row; a removed key is
-a row of the removed-keys table and is refused from every layer.
+the registry in `configschema`, with its range on the row; a key that leaves
+the registry is refused as any unknown key.
 
 A script reads JSON through `scripts/lib/json.sh` (`json_get`, `json_has`,
 `json_is` for one document; `jsonl_records` for a `.jsonl` stream's command

@@ -137,15 +137,6 @@ the daemon's boundary tests), so the portable-name rule the loader, the `env:`
 references, and the credential helper's parser share is `internal/envname`
 (`Portable`).
 
-A key the registry once held and has since dropped is refused at load from
-every layer: `configload/removed.go` is the one table of removed keys
-(path, environment name, release, code, hint), consulted by the file and
-`--set` path through `removedKeyByPath` and by the environment path through
-`removedKeyByEnvironment`, before the registry index would call the name
-unknown. The removed content itself, with diff blocks and the commit that
-still holds it, is logged in the archived `REMOVED-LOG.md`; nothing else in the
-tree names a removed key.
-
 A registry row's range is data on the row: `Min` and `Max` literals in
 the row's syntax (a leading `>` or `<` for an exclusive bound) and
 `ZeroDisables` where 0 means off. `configload.validateRanges`

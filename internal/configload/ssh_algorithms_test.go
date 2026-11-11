@@ -15,18 +15,17 @@ import (
 // the global lists, the profiles, and the map refused at load with its code
 // and key, and the valid forms accepted.
 func TestSSHAlgorithmsValidation(t *testing.T) {
-	load := func(t *testing.T, body string, env ...string) (Snapshot, error) {
+	load := func(t *testing.T, body string) (Snapshot, error) {
 		t.Helper()
 		path := filepath.Join(t.TempDir(), "karvi.toml")
 		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		return Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: append([]string{}, env...), ExplicitRoots: []string{path}})
+		return Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, ExplicitRoots: []string{path}})
 	}
 	const profile = "[ssh-algorithms-profile.old]\nciphers-append = [\"aes128-ctr\"]\n"
 	for _, tc := range []struct {
 		name, body, code, key string
-		env                   []string
 	}{
 		{name: "unknown cipher", body: "[ssh-algorithms]\nciphers = [\"aes256-gcm\"]\n", code: "config_ssh_algorithm_unknown", key: "ssh-algorithms.ciphers"},
 		{name: "a cipher in kex", body: "[ssh-algorithms]\nkex = [\"aes256-ctr\"]\n", code: "config_ssh_algorithm_unknown", key: "ssh-algorithms.kex"},
@@ -44,17 +43,14 @@ func TestSSHAlgorithmsValidation(t *testing.T) {
 		{name: "map catch-all", body: profile + "[[ssh-algorithms-map]]\nprofile = \"old\"\nname = \"*\"\n", code: "config_ssh_algorithms_map_catch_all", key: "ssh-algorithms-map.0.name"},
 		{name: "map no match key", body: profile + "[[ssh-algorithms-map]]\nprofile = \"old\"\n", code: "config_match_rule_empty", key: "ssh-algorithms-map.0"},
 		{name: "map bad cidr", body: profile + "[[ssh-algorithms-map]]\nprofile = \"old\"\naddress-cidr = \"10.0.0.0/33\"\n", code: "config_match_rule_cidr_invalid", key: "ssh-algorithms-map.0"},
-		{name: "legacy-hosts", body: "[ssh]\nlegacy-hosts = [\"old-ios-*\"]\n", code: "config_ssh_legacy_hosts_removed", key: "ssh.legacy-hosts"},
-		{name: "ancient-hosts", body: "[ssh]\nancient-hosts = []\n", code: "config_ssh_legacy_hosts_removed", key: "ssh.ancient-hosts"},
 		{name: "global source unknown", body: "[ssh-algorithms]\nsource = \"none\"\n", code: "config_enum_value_invalid", key: "ssh-algorithms.source"},
 		{name: "profile source unknown", body: "[ssh-algorithms-profile.old]\nsource = \"system\"\n", code: "config_enum_value_invalid", key: "ssh-algorithms-profile.old.source"},
 		{name: "profile source not a string", body: "[ssh-algorithms-profile.old]\nsource = 1\n", code: "config_type_error", key: "ssh-algorithms-profile.old.source"},
 		{name: "lists under the profile's transport source", body: "[ssh-algorithms-profile.old]\nsource = \"transport\"\nkex-append = [\"diffie-hellman-group1-sha1\"]\n", code: "config_ssh_algorithms_profile_lists_unread", key: "ssh-algorithms-profile.old.kex-append"},
 		{name: "lists under the global transport source", body: "[ssh-algorithms]\nsource = \"transport\"\n" + profile, code: "config_ssh_algorithms_profile_lists_unread", key: "ssh-algorithms-profile.old.ciphers-append"},
-		{name: "legacy-hosts environment", body: "", env: []string{`KARVI__SSH__LEGACY_HOSTS=["x"]`}, code: "config_ssh_legacy_hosts_removed", key: "ssh.legacy-hosts"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := load(t, tc.body, tc.env...)
+			_, err := load(t, tc.body)
 			var ce *Error
 			if !errors.As(err, &ce) || ce.Code != tc.code || ce.Key != tc.key {
 				t.Fatalf("err=%v, want %s at %q", err, tc.code, tc.key)

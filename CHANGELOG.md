@@ -225,6 +225,16 @@ they were published in.
   documentation (`karvi config show --explain dispatch.order`,
   `configs/reference.toml`) says what each value does in place of the
   removed values' names, and `--order`'s help says it too.
+- **A key karvi removed is refused as any key it does not have.** A
+  key of the removed-key table (34 keys removed from v0.12.0 to v0.30.0,
+  `ssh.legacy-hosts` and `metrics.enabled` among them, the
+  `sessions.platform-caps.` table, and a credential backend's sqlite and
+  `env-indirection` fields) was refused by a message naming the release
+  that removed it and what replaces it, as `config_key_removed` or
+  `config_ssh_legacy_hosts_removed`. The table is gone: from a file or
+  `--set` such a key is `config_unknown_key`, and its `KARVI__` variable
+  `config_unknown_environment`, or under `config.reject-unknown-env =
+  false` the warning any unknown variable gives. Both codes are retired.
 - **`--order sorted` orders names as a gathered header's fold does: a run
   of digits by value.** `sorted` (`dispatch.order`, alias `name`) compared
   lowercase names in byte order, which takes digits as characters

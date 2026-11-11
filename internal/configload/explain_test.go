@@ -78,8 +78,8 @@ func TestExplainSeveralKeys(t *testing.T) {
 }
 
 // A name Explain cannot show refuses the whole view before any block: one
-// that is no key as the load refuses it (a table, a removed key, an unknown
-// name, a blank), and a key a table could hold but the configuration does
+// that is no key as the load refuses it (a table, an unknown name, a
+// blank), and a key a table could hold but the configuration does
 // not set as config_key_unset; the first such name in the order given.
 func TestExplainRefusesANameItCannotShow(t *testing.T) {
 	snap, err := Load(Options{InternalOnly: true, Environment: []string{}, Sets: []string{`ssh.transports.alt="exec:/usr/bin/ssh"`}})
@@ -95,7 +95,6 @@ func TestExplainRefusesANameItCannotShow(t *testing.T) {
 	}{
 		{[]string{"no.such.key"}, "config_unknown_key", "config_unknown_key: unknown configuration key for no.such.key"},
 		{[]string{"ssh"}, "config_unknown_key", "config_unknown_key: unknown configuration key for ssh"},
-		{[]string{"sessions.idle-timeout"}, "config_key_removed", "config_key_removed: removed in v0.14.0; the key was read by nothing and has no replacement; remove it from the configuration for sessions.idle-timeout"},
 		{[]string{""}, "config_key_blank", "config_key_blank: blank configuration key"},
 		{[]string{"ssh.transports.other"}, "config_key_unset", "config_key_unset: ssh.transports.other is not set"},
 		{[]string{"ssh.transports.native"}, "config_key_unset", "config_key_unset: ssh.transports.native is not set"},

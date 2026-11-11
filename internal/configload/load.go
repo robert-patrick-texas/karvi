@@ -316,16 +316,12 @@ func positionLine(pos map[string]tomlmini.Position, path string) int {
 	return 0
 }
 
-// checkName refuses a name that is no configuration key: blank, removed (the
-// removed key's own refusal), or not in the registry. The load and config
-// show's keys share it, so a name is refused the same way wherever it is
-// given.
+// checkName refuses a name that is no configuration key: blank, or not in
+// the registry. The load and config show's keys share it, so a name is
+// refused the same way wherever it is given.
 func checkName(key string, src SourceRef) error {
 	if key == "" {
 		return newError("config_key_blank", "blank configuration key", key, src, nil)
-	}
-	if r, ok := removedKeyByPath(key); ok {
-		return r.refuse(key, src)
 	}
 	if !configschema.IsKnownLeaf(key) {
 		return newError("config_unknown_key", "unknown configuration key", key, src, nil)
@@ -372,9 +368,6 @@ func (l *loader) mergeEnvironment(env []string) error {
 		name, value := item[:eq], item[eq+1:]
 		if !strings.HasPrefix(name, "KARVI__") {
 			continue
-		}
-		if r, ok := removedKeyByEnvironment(name); ok {
-			return r.refuse(r.path, SourceRef{Layer: "environment", Path: name})
 		}
 		key, ok := index[name]
 		if !ok {

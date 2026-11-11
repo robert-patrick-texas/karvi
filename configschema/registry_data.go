@@ -107,8 +107,7 @@ var fixedEntries = []Entry{
 	// after registry 11 was released (v0.12.0) and took the bump to 12 together
 	// at the v0.13.0 number. Registry 13 was taken
 	// at the v0.14.0 number for the twenty-two keys and the one
-	// table the configuration review removed after 12 was released
-	// (internal/configload/removed.go); no key
+	// table the configuration review removed after 12 was released; no key
 	// was added between the two numbers.
 	{Path: "output.files.output-txt", Kind: Kind("boolean"), DefaultLiteral: "true", LockEligible: true, Environment: "KARVI__OUTPUT__FILES__OUTPUT_TXT", Documentation: "Write every device's `output.TARGET.txt`, the session as text; false does not create them. Written from the record in memory, so it does not need `commands.jsonl`."},
 	{Path: "output.files.commands-jsonl", Kind: Kind("boolean"), DefaultLiteral: "true", LockEligible: true, Environment: "KARVI__OUTPUT__FILES__COMMANDS_JSONL", Documentation: "Write `commands.jsonl`, the records; false does not create it, on every path (records travel over the socket). Without it `job follow` cannot replay the job and a device's text cannot be derived again."},

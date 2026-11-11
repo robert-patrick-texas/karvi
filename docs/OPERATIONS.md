@@ -1089,9 +1089,7 @@ enable-var-template = "KARVI_%operator%_ENABLE_PASSWORD"
   backend left empty is that field's missing code (`credential_password_missing`
   for a password), and no later backend, variable, or prompt is asked.
 - **A variable's value is the value.** `env:X` in a variable is the text
-  `env:X`; a template names the variable to read. `env-indirection.username`,
-  `.password`, and `.enable-password` are refused as removed,
-  `config_key_removed` (exit 2).
+  `env:X`; a template names the variable to read.
 - **Asked once.** The backend asks the same of every device, so it is asked
   once per invocation, or per job of a stream, and its answer held for every
   device the policies send to it.

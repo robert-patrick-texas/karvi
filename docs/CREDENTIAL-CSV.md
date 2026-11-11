@@ -91,8 +91,7 @@ at the first resolution that reaches the backend.
 | `config_credential_backend_shared_optional` | is `scope = "shared"` with `required = false` |
 | `config_enum_value_invalid` | has a `mode` other than `header` or `numeric`, or a `mandatory-fields` entry that is not one of the nine fields |
 | `config_type_error` | has a mapping of the wrong type for its mode (a column number under `header`, a header name under `numeric`), or another key of the wrong type |
-| `config_key_removed` | sets `env-indirection.username`, `.password`, or `.enable-password`, removed from every backend type: a cell names a variable as `env:NAME` ([section 6](#6-secrets-in-the-environment-instead-of-the-file)) |
-| `config_unknown_key` | has a `mappings.<name>` key for something that is not one of the nine fields (`mappings.name`: the key is `mappings.device_name`) |
+| `config_unknown_key` | has a key no backend type takes, or a `mappings.<name>` key for something that is not one of the nine fields (`mappings.name`: the key is `mappings.device_name`) |
 
 ## 3. The file
 

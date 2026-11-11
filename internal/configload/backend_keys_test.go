@@ -11,8 +11,7 @@ import (
 // TestBackendKeysByType is EXAMPLES chapter 55, issues 6 and 7: each
 // credential backend type loads with every key it reads; a key its type does
 // not read is refused, naming the types that read it; the sqlite type is
-// refused as unsupported. The env-indirection keys are removed on every type
-// (chapter 56, issue 2; TestRemovedKeysRefused).
+// refused as unsupported.
 func TestBackendKeysByType(t *testing.T) {
 	load := func(sets ...string) error {
 		_, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: sets})

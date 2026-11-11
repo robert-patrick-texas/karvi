@@ -25,14 +25,14 @@ able to trust that `fail` means the device said no and `complete` means every
 command was answered. *Not taken:* letting the driver's error stand for
 a command the cancel interrupted; counting an unfinished device as failed.
 
-**No silent policy bypass.** A configuration value the reader cannot honour
-is refused at load, never ignored. A removed key is refused from every layer
-with a code naming the key, the release that removed it, and the replacement.
-A malformed selector pattern is refused, never an empty selection. A
+**No silent policy bypass.** A configuration value the reader cannot honour is
+refused at load, never ignored. A key karvi does not have is refused, and a
+`KARVI__` variable naming none unless `config.reject-unknown-env` is false (then
+a warning). A malformed selector pattern is refused, never an empty selection. A
 credential file that fails its permission check fails the run even when the
 backend is optional. *Why:* dropping a site's intent silently is worse than
-stopping; the fault is found where it was made. *Not taken:* warnings for
-removed keys; documented no-op keys; an empty match for a bad pattern.
+stopping; the fault is found where it was made. *Not taken:* documented no-op
+keys; an empty match for a bad pattern.
 
 **One mechanism per concern.** One host-key policy for every mode and
 transport; one selector grammar for the command line and every map; one
@@ -807,21 +807,19 @@ through the one lookup by the credential CSV's own functions
 variable; a rest that is no variable name is the store's code for a malformed
 record (`redis_malformed`, `vault_response_malformed`), naming the field and
 never the value. Any other value is a literal. An env backend's variable's value
-is the value, its template naming the variable. `env-indirection.username`,
-`.password`, and `.enable-password` are removed from every type,
-`config_key_removed`. *Why:* under a flag a field was a name or a value as the
-environment happened to say: a name whose variable was unset was sent as the
-password (exit 108), and a real password that named a variable was replaced by
-its value; without one a store could not name `NETENABLE`. *Not taken:* the
-flags kept; the flags kept with an unset name failing (every field of the
-column a name); no reference in a store; `env:` in the env backend's values (a
-variable naming a variable, which its template does); a new code for a bad
-reference.
+is the value, its template naming the variable. *Why:* under a flag a field was
+a name or a value as the environment happened to say: a name whose variable was
+unset was sent as the password (exit 108), and a real password that named a
+variable was replaced by its value; without one a store could not name
+`NETENABLE`. *Not taken:* the flags kept; the flags kept with an unset name
+failing (every field of the column a name); no reference in a store; `env:` in
+the env backend's values (a variable naming a variable, which its template
+does); a new code for a bad reference.
 
 **A credential backend takes its type's keys alone.** The registry holds one key
 list per backend type, and any other key on a table of that type is
 `config_credential_backend_key_unsupported`, naming the types that read it. The
-`sqlite` type, which had no driver, is refused, and its keys as removed. *Why:*
+`sqlite` type, which had no driver, is refused, and its keys as unknown. *Why:*
 a key its type ignores is a setting the operator takes to be in force that is
 not (a Redis backend's `mount`, a CSV's `token-env`); a type no build can read
 validates and never answers. *Not taken:* a warning (the setting left in the
@@ -4072,12 +4070,6 @@ they did; `--set` and the files already named themselves. *Not taken:* a second
 map of option names beside the values; each message in the option's own words
 (the range and the lock are the key's); both sides of a cross-key check; `--dp`
 naming itself.
-
-**A removed key is refused from every layer.** One table of removed keys, one
-code (`config_key_removed`), the message naming the key, the release, and the
-replacement; the environment form is refused even when unknown variables are
-tolerated. *Why:* ignoring a removed key would drop a site's intent silently.
-*Not taken:* a code per removal; documented no-op keys.
 
 **Every invocation says its load's warnings, once.** A load's warnings (an
 `@include?` file missing, a `KARVI__` variable ignored under
