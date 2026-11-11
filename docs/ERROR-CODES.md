@@ -536,6 +536,7 @@ Active failure causes.
 | `redis_tls_config_invalid` | credential | 6 | no | The Redis CA or client certificate files cannot be loaded. |
 | `redis_unavailable` | credential | 6 | yes | The Redis server cannot be reached, the TLS handshake fails, or the connection fails during the credential read. |
 | `run_mode_conflict` | usage | 4 | no | `run` combines `--dry-run`, `--exercise`, or `--detach` with one another, `--exercise` or `--detach` with `--no-daemon`, `--detach` with `--follow`, or `--nof` with `--detach` or `--exercise`; or `--exercise` runs under `output.persist-command = false`, which keeps no job folder for its report. |
+| `run_output_digest_mismatch` | output | 111 | no | An answer the gathered display reads back from a job's `commands.jsonl`, its output or an exec record's standard error, does not match the record's digest: the file changed, or a bit flipped, since the job wrote it. It is checked before any of its group is shown, the groups written before it standing; a file changed after that check is the same code at the answer's end, its bytes written. |
 | `run_output_format_unsupported` | usage | 4 | no | Run output is requested in a format other than text, jsonl, or json. |
 | `run_output_record_decode_failed` | output | 111 | no | A stored run command record is not valid JSON. |
 | `run_output_records_unreadable` | output | 111 | no | A completed run's commands.jsonl cannot be opened or read. |

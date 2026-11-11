@@ -142,9 +142,10 @@ func (s stopWriter) Write(p []byte) (int, error) {
 
 // stopReaderAt is the read-back's file stopped at the invocation's
 // interrupt, checked before each read, so the one pass that finds the
-// groups' lines (output.FindLines) and each group's scan of its line
-// (output.ReadRecordAt), which wrap the error with %w, stop at once
-// however large the file or the answer.
+// groups' lines (output.FindLines), each group's scan of its line
+// (output.ReadRecordAt), which wrap the error with %w, and its check of a
+// long answer's digest, which gives it as it is, stop at once however
+// large the file or the answer.
 type stopReaderAt struct {
 	r io.ReaderAt
 	g *gatherer
@@ -491,10 +492,12 @@ func (r *recordRenderer) markerLine(key blockKey) string {
 // and between blocks, a block's border and marker written with its first
 // group; under --quiet no marker, header, or border. In line mode each of a
 // group's lines begins with its folded names, and no header or border is
-// written. A commands.jsonl that
-// cannot be read, or a line that is not the record the job's stream
-// carried, is run_output_records_unreadable: the groups written stand, and
-// the footer is not written. The invocation's interrupt is
+// written. A commands.jsonl that cannot be read, or a line that is not the
+// record the job's stream carried, is run_output_records_unreadable, an
+// answer that does not match its record's digest
+// run_output_digest_mismatch, found before any of its group is written
+// (output.ReadRecordAt): the groups written stand, and the footer is not
+// written. The invocation's interrupt is
 // errGatherInterrupted: before the first group nothing is written, after
 // it the display stops before the next group or the answer's next piece.
 func (r *recordRenderer) writeGatheredLocked(g *gatherer) error {

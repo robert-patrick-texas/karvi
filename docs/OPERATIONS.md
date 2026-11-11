@@ -1821,14 +1821,17 @@ the job's `commands.jsonl`, and for a failure that record's error message,
 and per device its name ([`docs/SCALE.md`, "The memory
 budget"](SCALE.md#the-memory-budget)). At the end it reads back the record
 of each group that has output, checks it against the record the job's
-stream carried, and streams the answer as the ordinary display streams a
-spooled one, so an answer the follow stream left out (`follow_output_omitted`)
-is shown whole. A file that cannot be read then, or a line that is no longer
-that record, is `run_output_records_unreadable` (exit 111), the blocks
-written standing and no footer: through the daemon the job is unaffected,
-`job ID ended exit=N; artifacts DIR` says so first, and `karvi job follow
---gather JOB-ID` shows it again once the file reads; in process (`run
---no-daemon`, `command`) the job's summary and scoreboard carry the exit.
+stream carried and the answer against the record's digest, and streams the
+answer as the ordinary display streams a spooled one, so an answer the
+follow stream left out (`follow_output_omitted`) is shown whole. A file that
+cannot be read then, or a line that is no longer that record, is
+`run_output_records_unreadable` (exit 111), and an answer that does not
+match its digest `run_output_digest_mismatch` (exit 111), found before any
+of its group is shown; the blocks written stand and no footer follows:
+through the daemon the job is unaffected, `job ID ended exit=N; artifacts
+DIR` says so first, and `karvi job follow --gather JOB-ID` shows it again
+once the file reads; in process (`run --no-daemon`, `command`) the job's
+summary and scoreboard carry the exit.
 
 **`--gather` needs a display followed to the job's end, and the job's
 `commands.jsonl`.** It is refused, `gather_option_conflict` (exit 4), before

@@ -24,12 +24,13 @@ import (
 // reads each group's first record at the job's end: the lines found by
 // their numbers in one pass (FindLines), then each record decoded with its
 // output and an exec record's stderr left in the file when large
-// (ReadRecordAt). Such a stream's source is a region of the line: its
+// (ReadRecordAt), each answer checked against the record's digest before
+// its source is given. Such a stream's source is a region of the line: its
 // passes read the JSON string's content from the file, the escapes undone
 // and, under base64, decoded as they stream, so the device's bytes come out
-// (WriteRaw), checked against the record's digest at the pass's end, and
-// the line written again from the record and its source is the line's own
-// bytes (WriteRecordLine). No response is read whole into memory, as the
+// (WriteRaw), checked against the record's digest again at each pass's end,
+// and the line written again from the record and its source is the line's
+// own bytes (WriteRecordLine). No response is read whole into memory, as the
 // store never holds one to write it.
 
 // readbackBuffer is the read-back's buffer: FindLines's chunk and each
@@ -106,11 +107,13 @@ func FindLines(r io.ReaderAt, name string, lines []int64) (map[int64]LineSpan, e
 // streamedLineThreshold (the store's bound for a line in pieces, measured
 // there on the string before its escapes) stays in r: the record carries
 // it empty and the source streams it from there, its digest the record's;
-// a shorter one is in the record, its source FromRecord's, its bytes
-// checked against the record's digest here. A field's name
+// a shorter one is in the record, its source FromRecord's. Either is
+// checked against the record's digest here, before its source is given, a
+// streamed one read through once for it (checkRecordDigest). A field's name
 // matches as encoding/json matches it, case folded. A line that ends early
 // or cannot be read is run_output_records_unreadable; one that is not a
-// record's JSON object is run_output_record_decode_failed.
+// record's JSON object is run_output_record_decode_failed; an answer that
+// does not match its digest is run_output_digest_mismatch.
 func ReadRecordAt(r io.ReaderAt, name string, line int64, span LineSpan) (records.CommandRecord, Source, error) {
 	var rec records.CommandRecord
 	sc := &lineScanner{br: bufio.NewReaderSize(io.NewSectionReader(r, span.Offset, span.Length), readbackBuffer), pos: span.Offset, name: name, line: line}
@@ -125,7 +128,8 @@ func ReadRecordAt(r io.ReaderAt, name string, line int64, span LineSpan) (record
 	if at, ok := regions["output"]; ok {
 		stderr := src.stderr
 		src = Source{path: name, region: &lineRegion{r: r, off: at.off, n: at.n, line: line, field: "output"}, encoding: rec.OutputEncoding, digest: rec.OutputSHA256, stderr: stderr}
-	} else if err := checkRecordDigest(src, rec.OutputSHA256, name, line, "output"); err != nil {
+	}
+	if err := checkRecordDigest(src, rec.OutputSHA256, name, line, "output"); err != nil {
 		return records.CommandRecord{}, Source{}, err
 	}
 	if at, ok := regions["stderr"]; ok {
@@ -137,7 +141,8 @@ func ReadRecordAt(r io.ReaderAt, name string, line int64, span LineSpan) (record
 			stderr.digest = *rec.StderrSHA256
 		}
 		src = src.WithStderr(stderr)
-	} else if stderr, ok := src.Stderr(); ok && rec.StderrSHA256 != nil {
+	}
+	if stderr, ok := src.Stderr(); ok && rec.StderrSHA256 != nil {
 		if err := checkRecordDigest(stderr, *rec.StderrSHA256, name, line, "stderr"); err != nil {
 			return records.CommandRecord{}, Source{}, err
 		}
@@ -145,28 +150,36 @@ func ReadRecordAt(r io.ReaderAt, name string, line int64, span LineSpan) (record
 	return rec, src, nil
 }
 
-// checkRecordDigest compares the digest of a string the record carries,
-// field (output or stderr) of line, with the record's, digest, as a
-// region's pass does at its end: a line whose string is not the bytes its
-// digest names is run_output_records_unreadable, the two stacked; "" is a
-// record without one.
+// checkRecordDigest compares the digest of field (output or stderr) of
+// line with the record's, digest, before any of it is shown: a string the
+// record carries hashed here, a streamed one read through once by its
+// region's pass, its bytes given to no one, which compares the two at its
+// end. A string that is not the bytes its digest names is
+// run_output_digest_mismatch, the two stacked; a read that fails on the pass
+// gives its error as it is (the file cut short, the gathered display's
+// interrupt); "" is a record without one.
 func checkRecordDigest(src Source, digest, name string, line int64, field string) error {
 	if digest == "" {
 		return nil
+	}
+	if src.region != nil {
+		return src.WriteRaw(io.Discard)
 	}
 	h := sha256.New()
 	if err := src.WriteRaw(h); err != nil {
 		return decodeFailed(name, line, "the %s's base64: %v", field, err)
 	}
 	if got := hex.EncodeToString(h.Sum(nil)); got != digest {
-		return notTheRecords(name, line, field, digest, got)
+		return digestMismatch(name, line, field, digest, got)
 	}
 	return nil
 }
 
-// notTheRecords is a string read back whose digest is not the record's.
-func notTheRecords(name string, line int64, field, want, got string) error {
-	return errorcodes.Errorf("run_output_records_unreadable", "%s line %d's %s is not the record's\n  record  %s\n  read    %s", name, line, field, want, got)
+// digestMismatch is a string read back whose bytes do not match the
+// record's digest: the file changed, or a bit flipped, since the job wrote
+// the line.
+func digestMismatch(name string, line int64, field, want, got string) error {
+	return errorcodes.Errorf("run_output_digest_mismatch", "%s line %d's %s does not match the record's digest\n  record  %s\n  read    %s", name, line, field, want, got)
 }
 
 // stringAt is a JSON string's content in the file: the offset of its first
@@ -488,13 +501,14 @@ type lineRegion struct {
 // escapes undone and, under base64, the text decoded, from exactly the
 // region's bytes (a file cut short since its line was read is
 // run_output_records_unreadable), and at the pass's end their digest
-// compared with the record's, digest (the bytes then given are not the
-// record's output: the file changed since the job wrote it).
+// compared with the record's, digest (run_output_digest_mismatch: the
+// bytes given are not the record's output, the file changed since the job
+// wrote it or since ReadRecordAt checked it).
 func (g *lineRegion) open(name, encoding, digest string) *bufio.Reader {
 	exact := &exactReader{r: io.NewSectionReader(g.r, g.off, g.n), left: g.n, name: name, line: g.line}
 	var r io.Reader = &unescaper{br: bufio.NewReaderSize(exact, readbackBuffer), name: name, line: g.line}
 	if encoding == "base64" {
-		r = base64Reader{r: base64.NewDecoder(base64.StdEncoding, r), name: name, line: g.line}
+		r = base64Reader{r: base64.NewDecoder(base64.StdEncoding, r), name: name, line: g.line, field: g.field}
 	}
 	if digest != "" {
 		r = &digestReader{r: r, h: sha256.New(), want: digest, name: name, line: g.line, field: g.field}
@@ -536,23 +550,25 @@ func (d *digestReader) Read(p []byte) (int, error) {
 	d.h.Write(p[:n])
 	if errors.Is(err, io.EOF) {
 		if got := hex.EncodeToString(d.h.Sum(nil)); got != d.want {
-			err = notTheRecords(d.name, d.line, d.field, d.want, got)
+			err = digestMismatch(d.name, d.line, d.field, d.want, got)
 		}
 	}
 	return n, err
 }
 
-// base64Reader codes the decoder's refusal of its text.
+// base64Reader codes the decoder's refusal of its text, field's (output
+// or stderr).
 type base64Reader struct {
-	r    io.Reader
-	name string
-	line int64
+	r     io.Reader
+	name  string
+	line  int64
+	field string
 }
 
 func (b base64Reader) Read(p []byte) (int, error) {
 	n, err := b.r.Read(p)
 	if err != nil && !errors.Is(err, io.EOF) && errorcodes.Of(err) == "" {
-		err = decodeFailed(b.name, b.line, "the output's base64: %v", err)
+		err = decodeFailed(b.name, b.line, "the %s's base64: %v", b.field, err)
 	}
 	return n, err
 }

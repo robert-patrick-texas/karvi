@@ -70,28 +70,31 @@ they were published in.
   `(output.persist-command was false)` for a job without a folder; the key
   set true shows such a job as before. A `commands.jsonl` that cannot be
   read at the end, or whose line is no longer the answer the job recorded
-  (its device, command, status, error, output, or an exec command's exit and
-  stderr differ), is `run_output_records_unreadable`, exit 111: through the
-  daemon the job is unaffected, and the line before the error says so, `job
-  ID ended exit=N; artifacts DIR`; under `--no-daemon` the job's summary and
-  scoreboard carry the exit, as a footer that cannot be written does. While
-  it waits, when standard error is a terminal (judged by itself, as colour
-  is), one line there, `gather: done=N/M fail=F`, job list's DONE and FAIL
-  over the job's devices, is drawn as the display starts, rewritten as each
-  device ends, other lines on standard error written above it, and cleared
-  before the blocks; none is written to a pipe or a file, or under
-  `--quiet`, and it is drawn only while karvi is the terminal's foreground
-  job and the terminal is wider than the line (a job sent to the background
-  writes none over the shell). A Ctrl-C stops the display at once: while the
-  job runs nothing gathered is shown (in process the job is cancelled and
-  its footer follows; through the daemon the job continues, as before, and
-  the line that says so names `karvi job follow --gather JOB-ID`, on `job
-  follow`'s own interrupt too, plain under a site's lock on the key), and
-  during the read-back at the end the blocks stop between pieces, in process
-  (`--no-daemon`, `command`) the footer after with exit 113, through the
-  daemon the line `job ID ended exit=N; artifacts DIR` and then `cancelled:
-  the display of job ID was interrupted`, exit 113; `karvi job follow
-  --gather JOB-ID` shows the job whole later.
+  (its device, command, status, error, output digest, or an exec command's
+  exit and stderr digest differ), is `run_output_records_unreadable`, exit
+  111, and an answer whose bytes do not match the record's digest, short or
+  long (a long one read through once for the check before it is streamed),
+  `run_output_digest_mismatch`, exit 111, the two digests stacked, found
+  before any of its group is shown: through the daemon the job is unaffected,
+  and the line before the error says so, `job ID ended exit=N; artifacts DIR`;
+  under `--no-daemon` the job's summary and scoreboard carry the exit, as a
+  footer that cannot be written does. While it waits, when standard error is a
+  terminal (judged by itself, as colour is), one line there, `gather: done=N/M
+  fail=F`, job list's DONE and FAIL over the job's devices, is drawn as the
+  display starts, rewritten as each device ends, other lines on standard error
+  written above it, and cleared before the blocks; none is written to a pipe
+  or a file, or under `--quiet`, and it is drawn only while karvi is the
+  terminal's foreground job and the terminal is wider than the line (a job
+  sent to the background writes none over the shell). A Ctrl-C stops the
+  display at once: while the job runs nothing gathered is shown (in process
+  the job is cancelled and its footer follows; through the daemon the job
+  continues, as before, and the line that says so names `karvi job follow
+  --gather JOB-ID`, on `job follow`'s own interrupt too, plain under a site's
+  lock on the key), and during the read-back at the end the blocks stop
+  between pieces, in process (`--no-daemon`, `command`) the footer after with
+  exit 113, through the daemon the line `job ID ended exit=N; artifacts DIR`
+  and then `cancelled: the display of job ID was interrupted`, exit 113;
+  `karvi job follow --gather JOB-ID` shows the job whole later.
 - **Line mode: `--prefix`, `display.run.prefix`.** Set true (false by
   default), a run's text display writes every line as `NAME: line`, the
   device's name first, as pdsh and clush write it, an empty line `NAME: `

@@ -3197,16 +3197,18 @@ written. The follow paths open it by name with the folder follow's checks
 or stricter, the operator's own or, from the shared tree, standing in its
 group). Each line read back must be the record the job's stream carried (its
 sequence, device, command, and answer), and each answer must match its
-record's digest: a short one is checked before it is shown, a long one,
-streamed from the file in pieces (from about 64 KiB), as its pass ends, so a
-changed answer ends the display with the error, a streamed one's bytes already
-written. A file that cannot be read, or a line that is not that record, is
-`run_output_records_unreadable` (exit 111, the two records stacked), a line
-that does not decode `run_output_record_decode_failed` (exit 111): the blocks
-written stand, no footer follows, and the error is on standard error in the
-error colour. On the follow paths (`run` and `crun` through the daemon,
-`job follow` through the daemon or from the folder) the job is unaffected and
-its summary keeps its exit: the line before the error is
+record's digest before any of its group is written: a short one is checked as
+its line is read, a long one, streamed from the file in pieces (from about
+64 KiB), is read through once for the check and then streamed, that pass
+checked again at its end. A file that cannot be read, or a line that is not that
+record, is `run_output_records_unreadable` (exit 111, the two records
+stacked), an answer that does not match its digest
+`run_output_digest_mismatch` (exit 111, the record's digest and the one read
+stacked), a line that does not decode `run_output_record_decode_failed` (exit
+111): the blocks written stand, no footer follows, and the error is on
+standard error in the error colour. On the follow paths (`run` and `crun`
+through the daemon, `job follow` through the daemon or from the folder) the
+job is unaffected and its summary keeps its exit: the line before the error is
 `job ID ended exit=N; artifacts DIR`, `karvi job follow --gather ID` shows the
 job again once the file reads, and a `crun`'s `crun.after` runs, told the
 invocation's exit (`KARVI_EXIT=111`), as under `--no-daemon`. In process (`run`
@@ -3217,11 +3219,14 @@ client neither holds them (2,500 configurations of 100 KB are 250 MB, and no
 input may size memory) nor copies them; in process the file is the store's own,
 and a name in a group's folder any member's; at the footer, a job whose own
 failure came after its records would show nothing and then its error; a failure
-is a hard stop, and a followed job has ended by then, so the line says so. *Not
-taken:* each distinct answer in memory; a client spool of the first answers (a
-second copy on disk, a new free-space term); blocks printed as each completes;
-a new code for the same file; the job's exit with a warning; the footer after
-the error.
+is a hard stop, and a followed job has ended by then, so the line says so; the
+display groups devices by the digest and shows one device's bytes for the
+group, so it shows no answer before checking it against the digest, a long
+one read twice. *Not taken:* each distinct answer in memory; a client spool of the
+first answers (a second copy on disk, a new free-space term); blocks printed
+as each completes; a new code for a file that cannot be read; a long answer
+checked only as its one pass ends, its bytes already written; the job's exit
+with a warning; the footer after the error.
 
 **`--gather` needs the job's `commands.jsonl`; whether a job kept one is judged
 by its `summary.json`.** `--gather` is refused, `gather_option_conflict`,

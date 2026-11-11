@@ -488,8 +488,8 @@ func bigLine(t *testing.T, raw []byte) []byte {
 // its line was read, the file changed since, is refused, and what was
 // given before the refusal is the device's: the file cut short in the
 // region, utf-8 and base64, is run_output_records_unreadable; a byte
-// changed to another valid one is the digest's refusal, the record's and
-// the read digest stacked, in an exec record's stderr by its own digest; and a read failing inside the region, once or
+// changed to another valid one is run_output_digest_mismatch, the record's
+// and the read digest stacked, in an exec record's stderr by its own digest; and a read failing inside the region, once or
 // every time, at a character, an escape, or a \u escape cut by the
 // buffer, is run_output_records_unreadable, never other bytes.
 func TestRegionRefusesAFileChangedSinceItsRead(t *testing.T) {
@@ -528,7 +528,7 @@ func TestRegionRefusesAFileChangedSinceItsRead(t *testing.T) {
 	}
 	line[src.region.off+100] = 'b'
 	err = src.WriteRaw(io.Discard)
-	if errorcodes.Of(err) != "run_output_records_unreadable" || !strings.Contains(err.Error(), "commands.jsonl line 4's output is not the record's\n  record  "+src.digest+"\n  read    ") {
+	if errorcodes.Of(err) != "run_output_digest_mismatch" || !strings.Contains(err.Error(), "commands.jsonl line 4's output does not match the record's digest\n  record  "+src.digest+"\n  read    ") {
 		t.Errorf("a byte changed: %v", err)
 	}
 
@@ -548,7 +548,7 @@ func TestRegionRefusesAFileChangedSinceItsRead(t *testing.T) {
 		t.Fatalf("the stderr was not streamed")
 	}
 	data[stderr.region.off+100] = 'b'
-	if err := stderr.WriteRaw(io.Discard); errorcodes.Of(err) != "run_output_records_unreadable" || !strings.Contains(err.Error(), "line 5's stderr is not the record's") {
+	if err := stderr.WriteRaw(io.Discard); errorcodes.Of(err) != "run_output_digest_mismatch" || !strings.Contains(err.Error(), "line 5's stderr does not match the record's digest") {
 		t.Errorf("a stderr byte changed: %v", err)
 	}
 
@@ -583,7 +583,7 @@ func TestRegionRefusesAFileChangedSinceItsRead(t *testing.T) {
 			want = *whole.StderrSHA256
 		}
 		_, _, err := ReadRecordAt(bytes.NewReader(bad), "commands.jsonl", 6, LineSpan{Offset: 0, Length: int64(len(bad))})
-		if errorcodes.Of(err) != "run_output_records_unreadable" || !strings.Contains(err.Error(), "commands.jsonl line 6's "+c.field+" is not the record's\n  record  "+want+"\n  read    ") {
+		if errorcodes.Of(err) != "run_output_digest_mismatch" || !strings.Contains(err.Error(), "commands.jsonl line 6's "+c.field+" does not match the record's digest\n  record  "+want+"\n  read    ") {
 			t.Errorf("%s, a byte changed: %v", c.name, err)
 		}
 	}
@@ -615,6 +615,102 @@ func TestRegionRefusesAFileChangedSinceItsRead(t *testing.T) {
 	}
 }
 
+// TestReadRecordAtChecksALongAnswerFirst: a streamed output and a streamed
+// stderr are read through once and checked against the record's digest
+// before ReadRecordAt gives their source, as a short one is: a byte
+// changed, the digest kept, is run_output_digest_mismatch, the two
+// stacked, and no source is given to show; so is the record's digest
+// changed, the bytes kept. A streamed stderr's base64 refused names the
+// stderr. A read that fails on that pass with a coded error (the gathered
+// display's interrupt) gives that error as it is.
+func TestReadRecordAtChecksALongAnswerFirst(t *testing.T) {
+	big := strings.Repeat("a", streamedLineThreshold+1000)
+	good := bigLine(t, []byte(big))
+	_, src, err := ReadRecordAt(bytes.NewReader(good), "commands.jsonl", 4, LineSpan{Offset: 0, Length: int64(len(good))})
+	if err != nil || src.region == nil {
+		t.Fatalf("the line as written: %v, streamed %v", err, src.region != nil)
+	}
+	off := src.region.off
+	changed := bytes.Clone(good)
+	changed[off+100] = 'b'
+	flipped := bytes.Replace(good, []byte(src.digest), []byte(strings.Repeat("0", len(src.digest))), 1)
+	for _, c := range []struct {
+		name string
+		line []byte
+		want string
+	}{
+		{"a byte changed", changed, src.digest},
+		{"the digest changed", flipped, strings.Repeat("0", len(src.digest))},
+	} {
+		_, got, err := ReadRecordAt(bytes.NewReader(c.line), "commands.jsonl", 4, LineSpan{Offset: 0, Length: int64(len(c.line))})
+		if errorcodes.Of(err) != "run_output_digest_mismatch" || !strings.Contains(err.Error(), "commands.jsonl line 4's output does not match the record's digest\n  record  "+c.want+"\n  read    ") || got.region != nil {
+			t.Errorf("%s: %v, a source given %v", c.name, err, got.region != nil)
+		}
+	}
+
+	whole, _, execSrc := execRecord(t, []byte("x\n"), []byte(big), false, false)
+	var execLine bytes.Buffer
+	if _, err := WriteRecordLine(&execLine, &whole, execSrc); err != nil {
+		t.Fatal(err)
+	}
+	data := execLine.Bytes()
+	_, src, err = ReadRecordAt(bytes.NewReader(data), "commands.jsonl", 5, LineSpan{Offset: 0, Length: int64(len(data))})
+	stderr, ok := src.Stderr()
+	if err != nil || !ok || stderr.region == nil {
+		t.Fatalf("the exec line as written: %v, the stderr streamed %v", err, ok && stderr.region != nil)
+	}
+	data[stderr.region.off+100] = 'b'
+	if _, _, err := ReadRecordAt(bytes.NewReader(data), "commands.jsonl", 5, LineSpan{Offset: 0, Length: int64(len(data))}); errorcodes.Of(err) != "run_output_digest_mismatch" || !strings.Contains(err.Error(), "line 5's stderr does not match the record's digest\n  record  "+*whole.StderrSHA256+"\n  read    ") {
+		t.Errorf("a stderr byte changed: %v", err)
+	}
+
+	// A streamed stderr under base64 whose text the decoder refuses names
+	// the stderr, not the output.
+	whole, _, execSrc = execRecord(t, []byte("x\n"), append([]byte{0xff}, big...), false, false)
+	execLine.Reset()
+	if _, err := WriteRecordLine(&execLine, &whole, execSrc); err != nil {
+		t.Fatal(err)
+	}
+	data = execLine.Bytes()
+	_, src, err = ReadRecordAt(bytes.NewReader(data), "commands.jsonl", 7, LineSpan{Offset: 0, Length: int64(len(data))})
+	stderr, ok = src.Stderr()
+	if err != nil || !ok || stderr.region == nil || stderr.encoding != "base64" {
+		t.Fatalf("the base64 stderr as written: %v, streamed %v", err, ok && stderr.region != nil)
+	}
+	data[stderr.region.off+100] = '!'
+	if _, _, err := ReadRecordAt(bytes.NewReader(data), "commands.jsonl", 7, LineSpan{Offset: 0, Length: int64(len(data))}); errorcodes.Of(err) != "run_output_record_decode_failed" || !strings.Contains(err.Error(), "line 7: the stderr's base64") {
+		t.Errorf("a base64 stderr refused: %v", err)
+	}
+
+	// The line's scan reads the byte at once; the check's pass is the
+	// second read of it.
+	stop := errorcodes.Errorf("cancelled", "the gathered display was interrupted")
+	f := &stopAt{data: good, at: off + 100, nth: 2, err: stop}
+	if _, _, err := ReadRecordAt(f, "commands.jsonl", 4, LineSpan{Offset: 0, Length: int64(len(good))}); !errors.Is(err, stop) || errorcodes.Of(err) != "cancelled" {
+		t.Errorf("stopped on the check's pass: %v (%s), the byte read %d times", err, errorcodes.Of(err), f.reads)
+	}
+}
+
+// stopAt is a file whose nth read of the byte at, and every read after,
+// fails with err, as the gathered display's file does once the interrupt
+// has come.
+type stopAt struct {
+	data       []byte
+	at         int64
+	nth, reads int
+	err        error
+}
+
+func (s *stopAt) ReadAt(p []byte, off int64) (int, error) {
+	if off <= s.at && s.at < off+int64(len(p)) {
+		s.reads++
+	}
+	if s.reads >= s.nth {
+		return 0, s.err
+	}
+	return bytes.NewReader(s.data).ReadAt(p, off)
+}
+
 // TestRegionThroughTheStoresPass: a streamed region's source passes the
 // store's measuring pass, which verifies a spool against its digest, the
 // length the line's; and the same pass refuses it once a byte has changed.
@@ -632,7 +728,7 @@ func TestRegionThroughTheStoresPass(t *testing.T) {
 		t.Fatalf("measure: %d bytes, %v; the line is %d", n, err, len(line))
 	}
 	line[src.region.off+10] = 'x'
-	if _, err := l.measure(); errorcodes.Of(err) != "run_output_records_unreadable" {
+	if _, err := l.measure(); errorcodes.Of(err) != "run_output_digest_mismatch" {
 		t.Fatalf("measure of a changed region: %v", err)
 	}
 }

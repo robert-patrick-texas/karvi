@@ -565,6 +565,34 @@ func TestGatheredReadBackChecked(t *testing.T) {
 	}
 }
 
+// TestGatheredLongAnswerCheckedFirst: an answer streamed from the file
+// (from about 64 KiB) is checked against its record's digest before any of
+// it is written, as a short one is: one line changed, the digest kept,
+// ends the display with run_output_digest_mismatch, nothing of the group shown,
+// neither its header nor a byte of its answer; a block before it stands.
+func TestGatheredLongAnswerCheckedFirst(t *testing.T) {
+	long := strings.Repeat("line xxxxxxx\n", 12000)
+	path, recs := writeJob(t, []records.CommandRecord{shellAnswer("r1", 1, 1, 2, "show a", "success", "A\n"), shellAnswer("r1", 1, 2, 2, "show big", "success", long)})
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	at := bytes.LastIndex(data, []byte("line xxxxxxx"))
+	copy(data[at:], "line CHANGED")
+	if err := os.WriteFile(path, data, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	r := gatheringRenderer(t, &out, path, false, "display.run.footer=! exit=<exit-code>")
+	for _, rec := range recs {
+		r.OnRecord(rec)
+	}
+	err = r.WriteFooter(time.Now(), 0, 0, nil)
+	if errorcodes.Of(err) != "run_output_digest_mismatch" || !strings.Contains(err.Error(), "line 2's output does not match the record's digest\n  record  "+recs[1].OutputSHA256+"\n  read    ") || out.String() != "! show a\n! r1 (1)\nA\n" {
+		t.Errorf("a long answer changed: %v\nshown %d bytes, %q", err, out.Len(), out.String()[:min(out.Len(), 60)])
+	}
+}
+
 // TestTextDisplayEndsAnAnswersLastLine: today's display (not gathered)
 // ends an output without its last newline before the failure line that
 // follows it, and before the next record's border and header (found
