@@ -62,6 +62,18 @@ func TestSortOrders(t *testing.T) {
 	}
 }
 
+// TestSortSortedNaturalOrder: "sorted" compares names as a gathered
+// header's fold orders them, a run of digits by value and then the fewer
+// digits first, so router2 comes before router10 and edge1 before edge01.
+func TestSortSortedNaturalOrder(t *testing.T) {
+	devices := named("router2", "router10", "router1", "edge01", "edge1", "edge3")
+	Sort(devices, "sorted", "")
+	want := []string{"edge1", "edge01", "edge3", "router1", "router2", "router10"}
+	if got := orderOf(devices); !reflect.DeepEqual(got, want) {
+		t.Fatalf("sorted: %q, want %q", got, want)
+	}
+}
+
 func TestSortShuffleTiesByName(t *testing.T) {
 	// Two spellings of one name rank equally; the tie goes to the lower name.
 	devices := named("b", "a")

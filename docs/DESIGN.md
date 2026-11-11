@@ -516,13 +516,17 @@ removed, and a zero-byte file is an error. *Why:* karvi does not alter device
 text.
 
 **Dispatch order is reproducible from the record.** `dispatch.order` is
-`default` (as encountered), `sorted`, `shuffle` (each device ranked by
-SHA-256 of `dispatch.shuffle-key`, a NUL, and the lowercase name, a permanent
-contract), or `random` (`shuffle` with epoch seconds as the key). The order and
-the key are recorded in the manifest, the command record, and the login
-metadata, so `shuffle` with the recorded key reproduces a `random` run.
-*Why:* the previous manifest recorded neither order nor seed. *Not taken:* a
-date in the shuffle.
+`default` (as encountered), `sorted` (by name in natural order, as a gathered
+header's fold lists names: `router2` before `router10`, `edge1` before
+`edge01`), `shuffle` (each device ranked by SHA-256 of `dispatch.shuffle-key`,
+a NUL, and the lowercase name, a permanent contract), or `random` (`shuffle`
+with epoch seconds as the key). The order and the key are recorded in the
+manifest, the command record, and the login metadata, so `shuffle` with the
+recorded key reproduces a `random` run. *Why:* the previous manifest recorded
+neither order nor seed; `sorted` orders a name's numbers as an operator reads
+them, by the one comparison the fold uses. *Not taken:* a date in the shuffle;
+lowercase byte order for `sorted`, which takes digits as characters
+(`router10` before `router2`).
 
 **Alternates are recorded, never retried.** karvi probes only the selected
 address; inventory alternates exist for audit, exercise, and a future explicit
@@ -3384,13 +3388,13 @@ width make one item (`[01-04]`, `[9-10]`, `[099-100]`), and a number written at
 another width is an item of its own (`[08,9]`, `[1,01,001]`), as karvi's
 expansion pads a range to its lower bound's width and takes a list item as
 written; a run of one number is written bare. Items are joined by `,` with no
-space, in natural order of the first name each covers: character by
-character, a run of digits by value (`router2` before `router10`, then the
-fewer digits first), any other character lowercase as `--order sorted`
-compares it (which takes digits as characters, `router10` before `router2`),
-a name that is the start of another first, names alike but for case as
-written (`austin1,Boston[1-2],dallas1`; `core1,EDGE-CORE1,edge[1-2]`, `-`
-before `1`); names alike but for case are never folded together
+space, in natural order of the first name each covers, the order
+`--order sorted` dispatches in (`natural.Compare`): character by character,
+a run of digits by value (`router2` before `router10`, then the fewer digits
+first, `edge1` before `edge01`), any other character lowercase, a name that
+is the start of another first, names alike but for case as written
+(`austin1,Boston[1-2],dallas1`; `core1,EDGE-CORE1,edge[1-2]`, `-` before
+`1`); names alike but for case are never folded together
 (`Austin-rtr1,austin-rtr2`). Every name folds the same way, an address too
 (`192.0.2.[1-3,10]`, `2001:db8::[1-2]`). A name may hold the grammar's
 characters, so a backslash goes before each of `\ * ? [ ] , ^ $`

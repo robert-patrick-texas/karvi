@@ -13,6 +13,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/matching"
+	"github.com/robert-patrick-texas/karvi/internal/natural"
 	"github.com/robert-patrick-texas/karvi/internal/output"
 	"github.com/robert-patrick-texas/karvi/records"
 )
@@ -287,8 +288,8 @@ func (g *gatherer) namesOf(group *gatherGroup) []string {
 
 // sortedGroups is a block's groups as the display shows them: the
 // succeeded first, then the failures, each the largest first, a tie by the
-// first name in the names' natural order (matching.CompareNames, the
-// order a header's fold lists them in).
+// first name in the names' natural order (natural.Compare, the order a
+// header's fold lists them in).
 func (g *gatherer) sortedGroups(b *gatherBlock) []*gatherGroup {
 	groups := make([]*gatherGroup, 0, len(b.groups))
 	first := make(map[*gatherGroup]string, len(b.groups))
@@ -296,7 +297,7 @@ func (g *gatherer) sortedGroups(b *gatherBlock) []*gatherGroup {
 		groups = append(groups, group)
 		least := g.names[group.devices[0]]
 		for _, d := range group.devices[1:] {
-			if matching.CompareNames(g.names[d], least) < 0 {
+			if natural.Compare(g.names[d], least) < 0 {
 				least = g.names[d]
 			}
 		}
@@ -310,7 +311,7 @@ func (g *gatherer) sortedGroups(b *gatherBlock) []*gatherGroup {
 			}
 			return 1
 		}
-		return cmp.Or(cmp.Compare(len(y.devices), len(x.devices)), matching.CompareNames(first[x], first[y]))
+		return cmp.Or(cmp.Compare(len(y.devices), len(x.devices)), natural.Compare(first[x], first[y]))
 	})
 	return groups
 }

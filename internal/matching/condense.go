@@ -7,6 +7,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/robert-patrick-texas/karvi/internal/natural"
 )
 
 // Condense writes names as one --tl value that selects exactly them: the
@@ -30,9 +32,10 @@ import (
 // unchanged, and every item reads back as its names alone.
 //
 // Items are joined by "," with no space, in natural order of the first name
-// each covers: runs of digits by value, then the fewer digits first; other
-// runes lowercase, by code point, as --order sorted compares names; a name
-// that is the start of another first; names alike but for case as written.
+// each covers (natural.Compare, the order --order sorted dispatches in):
+// runs of digits by value, then the fewer digits first; other runes
+// lowercase, by code point; a name that is the start of another first;
+// names alike but for case as written.
 // A repeated name is one; an empty name is no item. Two calls given the same
 // names in any order write the same text. The text is never cut.
 func Condense(names []string) string {
@@ -58,7 +61,7 @@ func Condense(names []string) string {
 	for _, group := range shapes {
 		items = append(items, condenseShape(group)...)
 	}
-	slices.SortFunc(items, func(a, b condensed) int { return CompareNames(a.first, b.first) })
+	slices.SortFunc(items, func(a, b condensed) int { return natural.Compare(a.first, b.first) })
 	texts := make([]string, len(items))
 	for i, it := range items {
 		texts[i] = it.text
@@ -82,7 +85,7 @@ func splitDigits(name string) digitSplit {
 	s := digitSplit{name: name}
 	start, inRun := 0, false
 	for i, r := range name {
-		if isDigit(r) == inRun {
+		if natural.IsDigit(r) == inRun {
 			continue
 		}
 		if inRun {
@@ -169,7 +172,7 @@ func foldOn(group []digitSplit, axis int) []condensed {
 		}
 		first := s.name
 		for _, m := range b.members[1:] {
-			if CompareNames(m.name, first) < 0 {
+			if natural.Compare(m.name, first) < 0 {
 				first = m.name
 			}
 		}
@@ -196,7 +199,7 @@ func writeRange(numbers []string) string {
 	byWidth := map[int][]string{} // padded numbers by width; 0 the unpadded
 	for _, n := range numbers {
 		w := 0
-		if len(number([]rune(n))) < len(n) {
+		if len(natural.Number([]rune(n))) < len(n) {
 			w = len(n)
 		}
 		byWidth[w] = append(byWidth[w], n)
@@ -206,7 +209,7 @@ func writeRange(numbers []string) string {
 		slices.SortFunc(list, compareValue)
 		var out []block
 		for _, n := range list {
-			if k := len(out) - 1; k >= 0 && compareValue(string(increment([]rune(number([]rune(out[k].hi))))), n) == 0 {
+			if k := len(out) - 1; k >= 0 && compareValue(string(increment([]rune(natural.Number([]rune(out[k].hi))))), n) == 0 {
 				out[k].hi = n
 				continue
 			}
@@ -226,7 +229,7 @@ func writeRange(numbers []string) string {
 		}
 		padded := blocks(list)
 		last := &padded[len(padded)-1]
-		next := string(increment([]rune(number([]rune(last.hi)))))
+		next := string(increment([]rune(natural.Number([]rune(last.hi)))))
 		if i, ok := startsAt[next]; ok && len(next) == w {
 			last.hi = unpadded[i].hi
 			delete(startsAt, next)
@@ -251,7 +254,7 @@ func writeRange(numbers []string) string {
 
 // compareValue orders two runs of digits by the numbers they write.
 func compareValue(a, b string) int {
-	return compareNumbers(number([]rune(a)), number([]rune(b)))
+	return natural.CompareNumbers(natural.Number([]rune(a)), natural.Number([]rune(b)))
 }
 
 // escapeText writes text with a backslash before each rune the grammar or
@@ -283,34 +286,4 @@ func escapeItem(item string) string {
 		return `\` + item
 	}
 	return item
-}
-
-// CompareNames orders names as Condense lists its items: rune by rune, a
-// run of digits against a run of digits by value and then the fewer digits
-// first, any other rune lowercase by code point; a name that is the start of
-// the other first; names alike so far by their text as written.
-func CompareNames(a, b string) int {
-	x, y := []rune(a), []rune(b)
-	i, j := 0, 0
-	for i < len(x) && j < len(y) {
-		if isDigit(x[i]) && isDigit(y[j]) {
-			ei, ej := i, j
-			for ei < len(x) && isDigit(x[ei]) {
-				ei++
-			}
-			for ej < len(y) && isDigit(y[ej]) {
-				ej++
-			}
-			if c := cmp.Or(compareNumbers(number(x[i:ei]), number(y[j:ej])), (ei-i)-(ej-j)); c != 0 {
-				return c
-			}
-			i, j = ei, ej
-			continue
-		}
-		if c := cmp.Compare(unicode.ToLower(x[i]), unicode.ToLower(y[j])); c != 0 {
-			return c
-		}
-		i, j = i+1, j+1
-	}
-	return cmp.Or(cmp.Compare(len(x)-i, len(y)-j), strings.Compare(a, b))
 }

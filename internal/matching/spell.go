@@ -3,6 +3,8 @@ package matching
 import (
 	"math/big"
 	"strings"
+
+	"github.com/robert-patrick-texas/karvi/internal/natural"
 )
 
 // Spells reports whether the pattern holds a numeric range, so that it
@@ -68,7 +70,7 @@ func (s rangeSpan) numbers() []string {
 		n := append([]rune(nil), it.lo...)
 		for {
 			out = append(out, strings.Repeat("0", max(0, it.width-len(n)))+string(n))
-			if compareNumbers(n, it.hi) >= 0 {
+			if natural.CompareNumbers(n, it.hi) >= 0 {
 				break
 			}
 			n = increment(n)

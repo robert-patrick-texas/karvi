@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"sort"
 	"strings"
+
+	"github.com/robert-patrick-texas/karvi/internal/natural"
 )
 
 // Dispatch order names. The configuration's read stores its alias "name"
@@ -27,16 +29,18 @@ func Rank(key, name string) []byte {
 	return h.Sum(nil)
 }
 
-// Sort orders devices in place by the order name:
-// "default" keeps the assembled sequence, "sorted" sorts by lowercase name in
-// byte order, and "shuffle" and "random" rank by Rank(key, name) ascending
+// Sort orders devices in place by the order name: "default" keeps the
+// assembled sequence, "sorted" sorts by name in natural order
+// (natural.Compare, the order a gathered header's fold lists names in:
+// router2 before router10, edge1 before edge01, names alike but for case as
+// written), and "shuffle" and "random" rank by Rank(key, name) ascending
 // with ties broken by name. For "random" the caller supplies the epoch
 // seconds as key.
 func Sort(devices []Device, order, key string) {
 	switch order {
 	case OrderSorted:
 		sort.SliceStable(devices, func(i, j int) bool {
-			return strings.ToLower(devices[i].CanonicalName) < strings.ToLower(devices[j].CanonicalName)
+			return natural.Compare(devices[i].CanonicalName, devices[j].CanonicalName) < 0
 		})
 	case OrderShuffle, OrderRandom:
 		ranks := make([][]byte, len(devices))

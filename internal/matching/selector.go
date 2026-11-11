@@ -27,6 +27,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
+
+	"github.com/robert-patrick-texas/karvi/internal/natural"
 )
 
 // PatternError is a malformed selector. It carries no code: the caller names
@@ -193,7 +195,7 @@ func numericBracket(runes []rune, start int) (end int, ok, spaced bool) {
 	digit, space := false, false
 	for ; i < len(runes); i++ {
 		r := runes[i]
-		if isDigit(r) {
+		if natural.IsDigit(r) {
 			digit = true
 		} else if unicode.IsSpace(r) {
 			space = true
@@ -234,8 +236,8 @@ func compileNumeric(body string, bad func(string, ...any) *PatternError) (token,
 		if lo == "" || hi == "" || strings.Contains(hi, "-") {
 			return token{}, nil, malformedRange(body, bad)
 		}
-		n := numberRange{lo: number([]rune(lo)), hi: number([]rune(hi)), width: len(lo)}
-		if compareNumbers(n.lo, n.hi) > 0 {
+		n := numberRange{lo: natural.Number([]rune(lo)), hi: natural.Number([]rune(hi)), width: len(lo)}
+		if natural.CompareNumbers(n.lo, n.hi) > 0 {
 			e := bad("the range %q-%q is reversed", lo, hi)
 			e.Unquoted = "a numeric range is reversed"
 			return token{}, nil, e
@@ -418,7 +420,7 @@ func (t token) step(v []rune, i int, next []bool) bool {
 		}
 	case numeric:
 		marked := false
-		for j := i; j < len(v) && isDigit(v[j]); j++ {
+		for j := i; j < len(v) && natural.IsDigit(v[j]); j++ {
 			if t.spells(v[i : j+1]) {
 				next[j+1] = true
 				marked = true
@@ -434,43 +436,17 @@ func (t token) step(v []rune, i int, next []bool) bool {
 // number within an item's bounds, zero-padded to the item's width and no
 // further.
 func (t token) spells(digits []rune) bool {
-	n := number(digits)
+	n := natural.Number(digits)
 	for _, it := range t.items {
 		if len(digits) < it.width || len(digits) > it.width && digits[0] == '0' {
 			continue
 		}
-		if compareNumbers(n, it.lo) >= 0 && compareNumbers(n, it.hi) <= 0 {
+		if natural.CompareNumbers(n, it.lo) >= 0 && natural.CompareNumbers(n, it.hi) <= 0 {
 			return true
 		}
 	}
 	return false
 }
-
-// number is a run of decimal digits without its leading zeros, "0" for
-// zero, so two numbers of any size compare by compareNumbers.
-func number(digits []rune) []rune {
-	z := 0
-	for z < len(digits)-1 && digits[z] == '0' {
-		z++
-	}
-	return digits[z:]
-}
-
-// compareNumbers orders two numbers as number writes them: the longer is
-// larger, and two of one length compare digit by digit.
-func compareNumbers(a, b []rune) int {
-	if len(a) != len(b) {
-		return len(a) - len(b)
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return int(a[i]) - int(b[i])
-		}
-	}
-	return 0
-}
-
-func isDigit(r rune) bool { return r >= '0' && r <= '9' }
 
 // Match reports whether s matches value, a negated selector matching when its
 // pattern matches (the caller decides what a negation does).

@@ -357,8 +357,9 @@ row p8b 2 -- "$PRUNE" --basedir "$R" --sharedroot none --dry-run --format yaml
 grep -q -- '--format takes text or jsonl' "$row_err" || fail "p8b: --format yaml: $(head -1 "$row_err")"
 
 echo "== dispatch order"
-# Byte order: "127.0.0.1" < "localhost"; shuffle with key "k" is a fixed
-# order; the manifest, summary, and command record carry the order.
+# Natural order: "127.0.0.1" < "localhost" ("1" before "l"); shuffle with
+# key "k" is a fixed order; the manifest, summary, and command record carry
+# the order.
 row o1 0 -- k run --no-daemon --target localhost --target 127.0.0.1 --order sorted show clock
 order o1 127.0.0.1 localhost
 row o2 0 -- k --set 'dispatch.order="name"' run --no-daemon --target localhost --target 127.0.0.1 show clock

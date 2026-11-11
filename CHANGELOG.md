@@ -216,6 +216,18 @@ they were published in.
   native. A table that names it is now refused as an unknown key,
   `config_unknown_key`, and `platform_default_transport_invalid`, its
   validation's code, is retired.
+- **`--order sorted` orders names as a gathered header's fold does: a run
+  of digits by value.** `sorted` (`dispatch.order`, alias `name`) compared
+  lowercase names in byte order, which takes digits as characters
+  (`router10` before `router2`, `edge01` before `edge1`), where the fold
+  lists `router2` and `edge1` first. It compares them by the fold's
+  comparison, one for both: a run of digits by value and then the fewer
+  digits first, any other character lowercase, a name that is the start of
+  another first. A sorted run's device order changes where names hold
+  numbers of different widths: `router1 router10 router2` becomes
+  `router1 router2 router10`, and `edge01 edge1 edge3` becomes
+  `edge1 edge01 edge3`. The shuffle's rank and its tie by name are
+  unchanged.
 
 ### Other notes
 
