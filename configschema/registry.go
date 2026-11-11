@@ -30,7 +30,8 @@ import (
 // enforced nothing; 35 takes display.run.gather, display.command.gather,
 // display.run.prefix, display.command.prefix, and display.gather.header,
 // the gathered display and line mode, and removes a key's since, read by
-// nothing (a row that set none said 0.2.0).
+// nothing (a row that set none said 0.2.0), and a platform table's
+// default-transport, read by no transport choice.
 const (
 	RegistrySchemaVersion = 35
 	ConfigSchemaVersion   = 6
@@ -167,7 +168,7 @@ var dynamicTables = []DynamicTable{
 	// platform's collection list, sent by a crun that names no command;
 	// registry 25: channel in place of control-master, and fallback;
 	// registry 31: masks.
-	{Pattern: "platform.<name>", Fields: map[string]Kind{"driver": String, "default-transport": Enum, "ssh-port": Integer, "telnet-port": Integer, "privileged-level": String, "requires-enable": Boolean, "session-cap": Integer, "channel": Enum, "fallback": StringArray, "paging-commands": StringArray, "crun-commands": StringArray, "crun-filters": StringArray, "masks": StringArray}, LockEligible: true},
+	{Pattern: "platform.<name>", Fields: map[string]Kind{"driver": String, "ssh-port": Integer, "telnet-port": Integer, "privileged-level": String, "requires-enable": Boolean, "session-cap": Integer, "channel": Enum, "fallback": StringArray, "paging-commands": StringArray, "crun-commands": StringArray, "crun-filters": StringArray, "masks": StringArray}, LockEligible: true},
 	{Pattern: "inventory-source.<index>", Fields: map[string]Kind{}, LockEligible: true, Places: []string{"path"}},
 	{Pattern: "credential-policy-map.<index>", Fields: map[string]Kind{}, LockEligible: true},
 	{Pattern: "session-init-map.<index>", Fields: map[string]Kind{}, LockEligible: true},
@@ -271,7 +272,7 @@ func IsKnownLeaf(path string) bool {
 	case "session-init":
 		return len(parts) == 3 && parts[1] != "" && oneOf(parts[2], "commands", "on-error", "command-timeout")
 	case "platform":
-		return len(parts) == 3 && parts[1] != "" && oneOf(parts[2], "driver", "default-transport", "ssh-port", "telnet-port", "privileged-level", "requires-enable", "session-cap", "channel", "fallback", "paging-commands", "crun-commands", "crun-filters", "masks")
+		return len(parts) == 3 && parts[1] != "" && oneOf(parts[2], "driver", "ssh-port", "telnet-port", "privileged-level", "requires-enable", "session-cap", "channel", "fallback", "paging-commands", "crun-commands", "crun-filters", "masks")
 	case "inventory-source":
 		return len(parts) >= 3 && isIndex(parts[1]) && inventoryField(strings.Join(parts[2:], "."))
 	case "credential-policy-map":

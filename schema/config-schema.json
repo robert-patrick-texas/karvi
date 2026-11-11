@@ -2526,7 +2526,6 @@
         "channel": "enum",
         "crun-commands": "string_array",
         "crun-filters": "string_array",
-        "default-transport": "enum",
         "driver": "string",
         "fallback": "string_array",
         "masks": "string_array",

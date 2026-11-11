@@ -493,7 +493,6 @@ Active failure causes.
 | `plan_digest_mismatch` | internal | 112 | no | The committed plan digest differs from the prepared plan, or a plan no longer hashes to its recorded digest. |
 | `plan_not_enumerated` | inventory | 112 | no | A job plan does not enumerate its targets. |
 | `plan_report_invalid` | internal | 1 | no | A dry-run or exercise report fails the plan-report contract; the message names the field first. |
-| `platform_default_transport_invalid` | config | 2 | no | A platform's default transport is not `default`, `native`, `telnet`, or a valid slot name. |
 | `platform_definition_invalid` | config | 2 | no | Unclassified. A platform definition fails validation without a specific code. |
 | `platform_name_blank` | config | 2 | no | A platform definition has a blank name. |
 | `platform_option_unknown` | usage | 4 | no | `--platform NAME` (or a shortcut: `--pi`, `--pn`, `--pr`, `--pj`, `--pa`, `--pl`, `--ps`, `--pg`) in `login`, `command`, or `run` is not a known platform (a built-in or a configured `[platform.NAME]` table), or holds a glob character or a leading `!`; a name is required, never a pattern. Checked once after configuration and before the inventory is read. |
@@ -799,6 +798,7 @@ No longer emitted. A retired code is never reused for another cause.
 | `native_session_closed` | v0.11.0 to v0.17.0 | `command_session_lost` | A command was sent on a closed native session; the device session refuses it. |
 | `native_transport_unavailable` | v0.37.0 | `transport_mapping_invalid` | The selected native implementation was not compiled into this executable; the native transport is in every executable, and a slot no longer names an implementation. |
 | `output_no_space` | v0.10.0 (catalog name) | `output_preflight_space` | Output file system full. |
+| `platform_default_transport_invalid` | v0.42.0 | `config_unknown_key` | `platform.<name>.default-transport` was not `default`, `native`, `telnet`, or a valid slot name; the field, read by no transport choice, is removed, and a table that sets it is refused as an unknown key. |
 | `redis_address_missing` | v0.30.0 | `config_credential_backend_address_invalid` | A Redis credential backend had no address, found when a device reached it; the address is required and checked when the configuration loads. |
 | `redis_auth_missing` | v0.30.0 | `credential_env_missing` | The variable a Redis backend's `auth-password-env` names was not set, found after the connection; that variable, and `auth-username-env`'s beside it, unset or empty, are one code with every variable a credential source names, read before any connection. |
 | `redis_client_cert_key_unpaired` | v0.30.0 | `config_credential_backend_key_unsupported` | Only one of a Redis backend's client certificate and key was configured, found when a device reached it; the configuration's load refuses the key left unread. |

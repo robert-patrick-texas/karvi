@@ -710,10 +710,11 @@ max-physical-line-bytes = 1048576
 # the whole built-in definition. Names compare without regard to case and are
 # recorded lowercase, cisco_xe and cisco_iosxe read as cisco_ios and cisco_iosxr
 # as cisco_xr; a name holds no glob character and does not begin with "!".
-# Fields: driver, default-transport, ssh-port, telnet-port, privileged-level (a
-# level of the base), requires-enable, session-cap, channel (shell or exec), paging-commands,
-# crun-commands (the collection list a crun sends when its command line names no
-# command), crun-filters (regular expressions whose matching output lines are
+# Fields: driver, ssh-port, telnet-port, privileged-level (a level of the
+# base), requires-enable, session-cap, channel (shell or exec), fallback (netvars,
+# keys, and prompt, tried in the list's order), paging-commands, crun-commands
+# (the collection list a crun sends when its command line names no command),
+# crun-filters (regular expressions whose matching output lines are
 # dropped from the collection file; an empty array turns the built-in list off),
 # masks (regular expressions, each with a capturing group whose text becomes
 # <removed> in every statement the audit records, and in the collection file

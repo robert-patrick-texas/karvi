@@ -207,6 +207,15 @@ they were published in.
   shipped in; nothing in karvi read it, and a key whose row set none said
   `0.2.0`: 101 of 0.41.0's 179, every key added since 0.33.0 among them. The
   field and its default are removed.
+- **A `[platform.NAME]` table takes no `default-transport`.** The field was
+  accepted, validated, and shown by `karvi config show`, and no transport
+  choice read it: `--transport`, the inventory's `transport` (a row's, or a
+  source's `defaults.transport`; `login` reads neither), and the activity's
+  key (`ssh.command.transport`, `ssh.run.transport`, `ssh.login.transport`)
+  choose a device's transport, so a platform set to `system` ran `command`
+  native. A table that names it is now refused as an unknown key,
+  `config_unknown_key`, and `platform_default_transport_invalid`, its
+  validation's code, is retired.
 
 ### Other notes
 

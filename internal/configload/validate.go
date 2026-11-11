@@ -699,10 +699,10 @@ func (l *loader) validatePlatformResolution(sources []map[string]any) error {
 // validatePlatformTables checks every [platform.NAME] table, at karvi
 // config validate and at load, in this order: the name (and two spellings
 // of one name), each field's kind (the registry's), the driver, the fields'
-// ranges and words, then the resolved definition's own check (the default
-// transport, the session cap, and the privileged level, a level of the base
-// definition). The tables and their fields are visited in sorted order so
-// the first fault reported is the same on every run.
+// ranges and words, then the resolved definition's own check (the
+// privileged level, a level of the base definition). The tables and their
+// fields are visited in sorted order so the first fault reported is the
+// same on every run.
 func (l *loader) validatePlatformTables() error {
 	tables := l.snap.NamedTables("platform")
 	names := make([]string, 0, len(tables))
@@ -818,15 +818,15 @@ func (l *loader) validatePlatformTables() error {
 		}
 		def := platform.Resolve(norm, tables)
 		if err := def.Validate(); err != nil {
-			field := "default-transport"
+			at := first
 			if errorcodes.Of(err) == "platform_privilege_level_unknown" {
-				field = "privileged-level"
+				at = key + ".privileged-level"
 			}
 			src := SourceRef{}
-			if v, ok := l.snap.Values[key+"."+field]; ok {
+			if v, ok := l.snap.Values[at]; ok {
 				src = v.Source
 			}
-			return newError(errorcodes.Of(err), err.Error(), key+"."+field, src, err)
+			return newError(errorcodes.Of(err), err.Error(), at, src, err)
 		}
 	}
 	return nil

@@ -131,9 +131,6 @@ func Resolve(name string, tables map[string]map[string]any) Definition {
 	if s, ok := table["driver"].(string); ok && s != "" && !alias {
 		def.Driver = s
 	}
-	if s, ok := table["default-transport"].(string); ok && s != "" {
-		def.DefaultTransport = s
-	}
 	if v, ok := asInt(table["ssh-port"]); ok && v >= 1 && v <= 65535 {
 		def.SSHPort = uint16(v)
 	}

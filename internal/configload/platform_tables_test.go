@@ -47,12 +47,12 @@ func TestPlatformTableValidation(t *testing.T) {
 		{"fallback not an array", "[platform.linux]\nfallback = \"keys\"\n", "config_type_error", "platform.linux.fallback", "array"},
 		{"control-master is removed", "[platform.c9300]\ndriver = \"cisco_ios\"\ncontrol-master = true\n", "config_unknown_key", "platform.c9300.control-master", "unknown configuration key"},
 		{"legacy-class is removed", "[platform.c9300]\ndriver = \"cisco_ios\"\nlegacy-class = \"none\"\n", "config_unknown_key", "platform.c9300.legacy-class", "unknown configuration key"},
+		{"default-transport is removed", "[platform.cisco_ios]\ndefault-transport = \"system\"\n", "config_unknown_key", "platform.cisco_ios.default-transport", "unknown configuration key"},
 		{"paging-commands not an array", "[platform.c9300]\ndriver = \"cisco_ios\"\npaging-commands = \"terminal length 0\"\n", "config_type_error", "platform.c9300.paging-commands", "array"},
 		{"crun-commands not an array of strings", "[platform.c9300]\ndriver = \"cisco_ios\"\ncrun-commands = [\"show running-config\", 1]\n", "config_type_error", "platform.c9300.crun-commands", "array"},
 		{"a privileged level the base lacks", "[platform.c9300]\ndriver = \"cisco_ios\"\nprivileged-level = \"admin\"\n", "platform_privilege_level_unknown", "platform.c9300.privileged-level", "exec, privilege-exec, configuration, tclsh"},
 		{"a privileged level on a base without levels", "[platform.lab]\ndriver = \"generic\"\nprivileged-level = \"exec\"\n", "platform_privilege_level_unknown", "platform.lab.privileged-level", "no prompt levels"},
 		{"a privileged level on a built-in without levels", "[platform.linux]\nprivileged-level = \"shell\"\n", "platform_privilege_level_unknown", "platform.linux.privileged-level", "no prompt levels"},
-		{"default-transport invalid", "[platform.c9300]\ndriver = \"cisco_ios\"\ndefault-transport = \"Fast SSH\"\n", "platform_default_transport_invalid", "platform.c9300.default-transport", "selector"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := load(t, tc.body)
@@ -125,7 +125,6 @@ func TestPlatformTableFieldsTakeTheRegistryKinds(t *testing.T) {
 		{"session-cap a string", alias + "session-cap = \"4\"\n", "config_type_error", "platform.c9300.session-cap", "must be an integer"},
 		{"requires-enable a quoted boolean", alias + "requires-enable = \"true\"\n", "config_type_error", "platform.c9300.requires-enable", "must be a boolean"},
 		{"privileged-level a number", alias + "privileged-level = 15\n", "config_type_error", "platform.c9300.privileged-level", "must be a string"},
-		{"default-transport a number", alias + "default-transport = 1\n", "config_type_error", "platform.c9300.default-transport", "must be a string"},
 		{"driver a number", "[platform.c9300]\ndriver = 5\n", "config_type_error", "platform.c9300.driver", "must be a string"},
 		{"a built-in's driver a boolean", "[platform.cisco_ios]\ndriver = true\n", "config_type_error", "platform.cisco_ios.driver", "must be a string"},
 		{"masks an array of numbers", alias + "masks = [1]\n", "config_type_error", "platform.c9300.masks", "must be an array of strings"},
@@ -144,7 +143,7 @@ func TestPlatformTableFieldsTakeTheRegistryKinds(t *testing.T) {
 			}
 		})
 	}
-	snap, err := load(t, alias+"telnet-port = 65535\nssh-port = 1\nrequires-enable = true\ndefault-transport = \"telnet\"\n")
+	snap, err := load(t, alias+"telnet-port = 65535\nssh-port = 1\nrequires-enable = true\n")
 	if err != nil {
 		t.Fatal(err)
 	}
