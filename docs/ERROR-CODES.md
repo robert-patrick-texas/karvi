@@ -534,7 +534,7 @@ Active failure causes.
 | `run_output_digest_mismatch` | output | 111 | no | An answer the gathered display reads back from a job's `commands.jsonl`, its output or an exec record's standard error, does not match the record's digest: the file changed, or a bit flipped, since the job wrote it. It is checked before any of its group is shown, the groups written before it standing; a file changed after that check is the same code at the answer's end, its bytes written. |
 | `run_output_format_unsupported` | usage | 4 | no | Run output is requested in a format other than text, jsonl, or json. |
 | `run_output_record_decode_failed` | output | 111 | no | A stored run command record is not valid JSON. |
-| `run_output_records_unreadable` | output | 111 | no | A completed run's commands.jsonl cannot be opened or read. |
+| `run_output_records_unreadable` | output | 111 | no | A job's records cannot be read back: its folder, a day folder `karvi job list` reads, its `summary.json`, or its `commands.jsonl` cannot be opened or read or is not a regular file; or `commands.jsonl` is not the job's own (another owner outside the shared tree's group, a mode wider than 0640), ends before a record's line, or holds a line that is not the record the job's stream carried. |
 | `scoreboard_counts_inconsistent` | internal | 1 | no | A scoreboard snapshot's completed, in-flight, not-started, and incomplete counts do not sum to the total. |
 | `scoreboard_directory_unavailable` | permission | 9 | no | Unclassified. Neither the shared nor the private scoreboard directory can be created. |
 | `scoreboard_file_limit_exceeded` | output | 111 | no | The scoreboard directory holds more scoreboard files than `watch.max-files`. |
