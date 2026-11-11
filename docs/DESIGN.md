@@ -1117,10 +1117,12 @@ the system transport's managed configuration sets `PubkeyAuthentication yes`,
 `IdentitiesOnly yes`, `IdentityAgent none`, and one `IdentityFile` per key, with
 password and keyboard-interactive off when the credential has no password; the
 native transport offers the keys as signers, the password methods only beside a
-password. Both transports try the methods in one order, `publickey`,
-`keyboard-interactive`, then `password`, the last two answered with the
-password, since some servers allow keyboard-interactive and refuse password
-(`PreferredAuthentications` in the managed configuration). The record's
+password. On both, `ssh.keyboard-interactive-authentication` and
+`ssh.password-authentication` each, set false, leaves its method out. Both
+transports try the methods in one order, `publickey`, `keyboard-interactive`,
+then `password`, the last two answered with the password, since some servers
+allow keyboard-interactive and refuse password (`PreferredAuthentications` in
+the managed configuration). The record's
 credential projection names the method that authenticated, `auth` (`publickey`,
 `keyboard-interactive`, or `password`, absent where the session never
 authenticated), and every `<kind>.command` audit event names it beside the

@@ -991,9 +991,12 @@ transport may offer such a key once karvi's are refused.
 Both transports try the methods in one order: `publickey`, then
 `keyboard-interactive`, then `password`, the last two answered with the
 password, since some servers allow keyboard-interactive and refuse password.
-Each record's `credential.auth` names the method that authenticated the session
-(`publickey`, `keyboard-interactive`, or `password`; absent where the session
-never authenticated), and every `<kind>.command` audit event names it in
+`ssh.keyboard-interactive-authentication` and `ssh.password-authentication`
+(true by default) each, set false, leaves its method out on both transports;
+with both false the keys alone are offered. Each record's `credential.auth`
+names the method that authenticated the session (`publickey`,
+`keyboard-interactive`, or `password`; absent where the session never
+authenticated), and every `<kind>.command` audit event names it in
 `device_identity` beside `device_username` and `backend`:
 
 ```text

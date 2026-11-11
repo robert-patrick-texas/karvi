@@ -199,6 +199,17 @@ they were published in.
   said the display ends with `display.run.footer`; it ends with
   `display.command.footer` (a `job follow` of a command job ends with
   `display.run.footer`).
+- **The native transport reads `ssh.keyboard-interactive-authentication`
+  and `ssh.password-authentication`.** Set false, either left its method out
+  on the system transport alone: the native transport, the default for
+  `command` and `run`, offered both beside a password, so a site with both
+  off still sent the password. Each now leaves its method out on both SSH
+  transports: with keyboard-interactive off the session logs in by
+  `password`, and with both off the keys alone are offered, so a credential
+  with a password and no key fails with `authentication_failed` (exit 108).
+  Their documentation (`config show --explain`) says what each does in place
+  of "At least one auth mechanism must remain." and "Supports network-device
+  challenge prompts."
 
 ### Breaking changes
 

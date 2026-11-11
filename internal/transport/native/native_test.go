@@ -217,17 +217,42 @@ func TestProviderOffersKeys(t *testing.T) {
 
 // TestProviderPasswordMethods: keyboard-interactive is tried before the
 // password method, both answered with the password; a server that refuses
-// keyboard-interactive takes the password method.
+// keyboard-interactive takes the password method. Each method is offered
+// only where its setting leaves it on: with keyboard-interactive off the
+// password method logs in, and with no method left the device opens no
+// session and the failure is authentication_failed.
 func TestProviderPasswordMethods(t *testing.T) {
 	for _, tc := range []struct {
 		noKbd bool
+		sets  []string
 		want  string
-	}{{false, "keyboard-interactive"}, {true, "password"}} {
+	}{
+		{false, nil, "keyboard-interactive"},
+		{true, nil, "password"},
+		{false, []string{"ssh.keyboard-interactive-authentication=false"}, "password"},
+		{false, []string{"ssh.password-authentication=false"}, "keyboard-interactive"},
+		{true, []string{"ssh.password-authentication=false"}, ""},
+		{false, []string{"ssh.keyboard-interactive-authentication=false", "ssh.password-authentication=false"}, ""},
+	} {
 		srv := startFake(t, fakedevice.Options{Enable: "en", NoKeyboardInteractive: tc.noKbd})
-		f, _ := factory(t, "accept-new")
+		f, _ := factory(t, "accept-new", tc.sets...)
+		if tc.want == "" {
+			d, err := f.Open(context.Background(), request(srv, "cisco_ios", "en"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := d.Prepare(context.Background()); errorcodes.Of(err) != "authentication_failed" {
+				t.Errorf("no keyboard-interactive %t, %v: %v, want authentication_failed", tc.noKbd, tc.sets, err)
+			}
+			d.Close()
+			if srv.Sessions() != 0 {
+				t.Errorf("no keyboard-interactive %t, %v: sessions=%d", tc.noKbd, tc.sets, srv.Sessions())
+			}
+			continue
+		}
 		d := prepared(t, f, request(srv, "cisco_ios", "en"))
 		if m := d.(platform.AuthReporter).AuthMethod(); m != tc.want {
-			t.Errorf("no keyboard-interactive %t: method %q, want %q", tc.noKbd, m, tc.want)
+			t.Errorf("no keyboard-interactive %t, %v: method %q, want %q", tc.noKbd, tc.sets, m, tc.want)
 		}
 		d.Close()
 	}

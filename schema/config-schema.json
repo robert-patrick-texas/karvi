@@ -407,7 +407,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__PASSWORD_AUTHENTICATION",
       "cli_flags": null,
-      "documentation": "At least one auth mechanism must remain."
+      "documentation": "Offer SSH `password` authentication, answered with the credential's password, after the keys and keyboard-interactive, on both SSH transports. A credential with keys and no password offers neither password method; with both password methods off, the keys alone are offered."
     },
     {
       "path": "ssh.keyboard-interactive-authentication",
@@ -418,7 +418,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__KEYBOARD_INTERACTIVE_AUTHENTICATION",
       "cli_flags": null,
-      "documentation": "Supports network-device challenge prompts."
+      "documentation": "Offer SSH `keyboard-interactive` authentication, answered with the credential's password, before the `password` method, on both SSH transports. A device may allow it and refuse `password`."
     },
     {
       "path": "ssh.connect-timeout",

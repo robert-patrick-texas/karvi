@@ -40,6 +40,11 @@ type DialRequest struct {
 	// method is offered.
 	Keys   []string
 	Policy hostkey.Policy
+	// NoKeyboardInteractive and NoPassword leave that password method out
+	// (ssh.keyboard-interactive-authentication and
+	// ssh.password-authentication false), as the system transport's
+	// KbdInteractiveAuthentication and PasswordAuthentication do.
+	NoKeyboardInteractive, NoPassword bool
 	// ConnectTimeout bounds the TCP dial; HandshakeTimeout the SSH
 	// handshake, authentication, and the PTY and shell requests.
 	ConnectTimeout, HandshakeTimeout time.Duration
@@ -216,13 +221,18 @@ func (c *connection) open() error {
 	// keyboard-interactive and refuse password), as the system transport's
 	// PreferredAuthentications; the password methods beside a password, or
 	// alone for a credential without keys (whose missing password the
-	// callbacks report).
+	// callbacks report), each where its setting leaves it on.
 	var auth []ssh.AuthMethod
 	if len(req.Keys) > 0 {
 		auth = append(auth, ssh.PublicKeysCallback(c.signers))
 	}
 	if req.Password != nil || len(req.Keys) == 0 {
-		auth = append(auth, ssh.KeyboardInteractive(c.keyboardInteractive), ssh.PasswordCallback(c.passwordMethod))
+		if !req.NoKeyboardInteractive {
+			auth = append(auth, ssh.KeyboardInteractive(c.keyboardInteractive))
+		}
+		if !req.NoPassword {
+			auth = append(auth, ssh.PasswordCallback(c.passwordMethod))
+		}
 	}
 	config := &ssh.ClientConfig{
 		User:              req.Username,

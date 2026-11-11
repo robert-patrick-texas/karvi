@@ -101,6 +101,9 @@ func (d *driver) Prepare(ctx context.Context) error {
 		Policy:           d.policy,
 		ConnectTimeout:   durationOr(d.f.Config.Duration("native-ssh.connect-timeout"), 10*time.Second),
 		HandshakeTimeout: durationOr(d.f.Config.Duration("native-ssh.handshake-timeout"), 10*time.Second),
+		// As the system transport's managed configuration.
+		NoKeyboardInteractive: !d.f.Config.Bool("ssh.keyboard-interactive-authentication"),
+		NoPassword:            !d.f.Config.Bool("ssh.password-authentication"),
 		// As ssh.server-alive-* on the system transport: zero sends none.
 		KeepaliveInterval: d.f.Config.Duration("native-ssh.keepalive-interval"),
 		KeepaliveCountMax: d.f.Config.Int("native-ssh.keepalive-count-max"),

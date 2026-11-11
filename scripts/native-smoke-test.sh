@@ -264,7 +264,20 @@ AUTH=password
 parity_case 'S13d a server without keyboard-interactive takes the password method' accept-new cisco_ios "$BUILTIN" en '-no-keyboard-interactive' \
   'success' 0 "$OPEN"'"show clock"|"exit"|' \
   -- --cmd 'show clock'
+# S13e-S13f: each password method only where its setting leaves it on:
+# with keyboard-interactive off the password method logs in, and with both
+# off a password credential has no method left, the device receiving no line.
+SSH='keyboard-interactive-authentication = false'
+parity_case 'S13e keyboard-interactive off takes the password method' accept-new cisco_ios "$BUILTIN" en '' \
+  'success' 0 "$OPEN"'"show clock"|"exit"|' \
+  -- --cmd 'show clock'
 unset AUTH
+SSH='keyboard-interactive-authentication = false
+password-authentication = false'
+parity_case 'S13f both password methods off leave a password credential no method' accept-new cisco_ios "$BUILTIN" en '' \
+  'authentication_error:authentication_failed' 108 '' \
+  -- --cmd 'show clock'
+unset SSH
 
 # S35: the exec channel over the Linux persona, logged in by the operator's
 # key (S13b's), one connection carrying a channel per command. Two
