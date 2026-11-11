@@ -40,8 +40,7 @@ executor -> platform.Driver
 Telnet's driver renders its output and prompts with the session's renderer
 (`internal/termtext`), so every shell's text is what the terminal showed. The
 executor, both SSH transports, telnet, and the session work on
-`platform`'s types; the earlier library-neutral contracts of a public
-`transport` package were imported by nothing and were removed.
+`platform`'s types.
 
 ## Named selection layer
 

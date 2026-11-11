@@ -142,11 +142,10 @@ None chosen: the operator names the next item, from "Later" or anew.
   declare one as required for its consumption. The review lists each digest
   the program computes or records with who computes it, who reads it, and
   what breaks without it, and removes those nothing consumes in production;
-  the development use, comparing two outputs, stays. The audit's are gone
-  (chapter 63, its statements in their place), and so is the plan's
-  `command_plan_digest`, read only by checks against the same message that
-  `plan_digest` already binds (chapter 79); `plan_digest`, which the daemon's
-  commit, the idempotency key, and the credential package read, stays.
+  the development use, comparing two outputs, stays. The audit records no
+  digest (chapter 63), and the plan's command lists have none of their own
+  (chapter 79); `plan_digest`, over the whole plan, which the daemon's commit,
+  the idempotency key, and the credential package read, stays.
 - **`Sealed` credential packages.** The envelope schema accepts the
   protection and the `Sealer` interface is fixed, but no channel carries it
   and no reviewed provider exists; it waits for the stage that brings a
@@ -170,8 +169,8 @@ None chosen: the operator names the next item, from "Later" or anew.
   session, the channel, and the SSH (libssh2) and Telnet transports. It loads
   the library from `LIBSCRAPLI_PATH`, else from `~/.cache/scrapli`, downloading
   it there from GitHub at first use without checking the published `.sha256`.
-  karvi carries no scrapligo since its native transport became its own
-  ([`docs/EXAMPLES.md`, chapter
+  karvi's native transport is its own `x/crypto/ssh` connection, with no
+  scrapligo ([`docs/EXAMPLES.md`, chapter
   82](docs/EXAMPLES.md#82-the-native-transport-without-scrapligo-2026-10-27)),
   and taking v2 waits on four questions: whether a release can ship the library
   beside the static executables and always names it, so no session reaches the
@@ -358,8 +357,8 @@ None chosen: the operator names the next item, from "Later" or anew.
   to journald whatever the configuration, so the Go tests and the suites
   write their events into the host's journal: `internal/audit`'s `test`
   events, a collection hook's test's `crun.after` events, and every suite's
-  jobs, the 170,844 `command_completed` events of thirty days among them
-  ([`docs/EXAMPLES.md`, chapter
+  jobs (in thirty days the suites and the labs left 170,844 per-command
+  events there: [`docs/EXAMPLES.md`, chapter
   63](docs/EXAMPLES.md#63-the-audit-trails-names-and-fields-2026-10-17)). An
   audit review would show them as work done. The item: no test or suite
   writes to the host's journal. The questions: how a test's sink is kept

@@ -145,9 +145,9 @@ the row's syntax (a leading `>` or `<` for an exclusive bound) and
 hand-written after it. The artifact and the reference carry the bounds,
 so a document that states a range copies the row.
 
-Configuration schema 6 retains `name.address-family-preference` as the one
-resolver mechanism. CLI family flags are represented as high-precedence
-configuration writes, so locks and provenance apply identically:
+`name.address-family-preference` is the resolver's one address-family
+setting. CLI family flags are represented as high-precedence configuration
+writes, so locks and provenance apply identically:
 
 ```text
 --ipv4 / --4 -> name.address-family-preference=ipv4
@@ -262,33 +262,26 @@ constitute platform qualification.
 
 ### One shape of the source
 
-Every build carries the native transport: `internal/transport/native` is
-karvi's own `x/crypto/ssh` connection, `internal/buildinfo` lists it, and
-`command` and `run` resolve their default to it. Earlier a build tag,
-`scrapligo_v1`, selected between this shape and a dependency-free one
-(`build/go.preview.mod`) whose executable reported only `system`; releases
-through v0.11.0 shipped that preview, v0.12.0 shipped the native executable
-with the tag still in place, and the tag and the preview module were then
-removed. Through v0.36.0 the connection passed through scrapligo's transport
-wrapper, behind an import boundary `scripts/verify-release.sh` checked; the
-wrapper, the module, the boundary, and the registry keyed by implementation
-ID then went ([`docs/EXAMPLES.md`, chapter
-82](EXAMPLES.md#82-the-native-transport-without-scrapligo-2026-10-27)). A
+Every build carries the native transport: `internal/transport/native` is karvi's
+own `x/crypto/ssh` connection ([`docs/EXAMPLES.md`, chapter
+82](EXAMPLES.md#82-the-native-transport-without-scrapligo-2026-10-27)),
+`internal/buildinfo` lists it, and `command` and `run` resolve their default to
+it. No build tag selects a transport, so every build has this one shape. A
 device that selects `native` never falls back to OpenSSH.
 
 ## Daemon and storage
 
 The daemon is per effective UID, uses two owner-only Unix sockets in the
-`socket` subtree, and checks peer credentials on both. IPC schema 12 carries
+`socket` subtree, and checks peer credentials on both. The IPC carries
 `prepare_job`, `commit_job`, `follow_job`, and `cancel_job` on `d.sock` beside
 the lifecycle operations `ping`, `status`, `drain`, and `stop`, and the
 credential package crosses `c.sock` as one length-prefixed frame per connection
-under a one-use token; `submit_job` is gone. The daemon holds at most 128
-preparations for ten minutes each, retains 1,024 commit receipts for idempotent
-replay, logs one `slog` line per request outcome to `logs/daemon.log` with the
-token redacted, and runs every job under its own configuration and operator, but
-for what the plan carries from the invocation (the job's files, the ICMP gate,
-the timeouts and the command byte limit, each command's own among them, and the
+under a one-use token. The daemon holds at most 128 preparations for ten
+minutes each, retains 1,024 commit receipts for idempotent replay, logs one
+`slog` line per request outcome to `logs/daemon.log` with the token redacted,
+and runs every job under its own configuration and operator, but for what
+the plan carries from the invocation (the job's files, the ICMP gate, the
+timeouts and the command byte limit, each command's own among them, and the
 halt rule). It stops itself after `daemon.shutdown-idle-timer` (default ten
 minutes; `Server.IdleTimeout`) with no active job, no live preparation, and no
 request but `ping` and `status`: the check `stopIfIdle` runs on the minute
@@ -396,21 +389,18 @@ operator who opens the file; no reader may depend on it, which is why the
 scripts parse (`scripts/lib/json.sh`) and nothing digests a `.json`
 file's bytes.
 
-**Permissions are set only on what karvi creates.** karvi gives a mode to
-the files, directories, and
-sockets it makes and never changes the mode of anything that already
-exists; where an existing file's mode is unacceptable it refuses with a
-registered code and changes nothing. A survey of every `Chmod` on that
-date found two exceptions, both since removed: the trust store under
-`accept-new` with an explicit path (`internal/hostkey/policy.go`,
-`ensureTrustFile`, which now creates with `O_EXCL` and sets the mode
-through the new file's handle, and otherwise only validates), and the
-password helper's directory (`internal/askpass/askpass.go`), which is the
-scratch directory and so, with `tempdir` set, the operator's own. The
-pattern for a directory is `osutil.MakeDirectories`: `Mkdir`, then `Chmod`
-on what that `Mkdir` made, existing components untouched. A new `Chmod`
-on a path, as opposed to a handle karvi has just created, is a review
-question.
+**Permissions are set only on what karvi creates.** karvi gives a mode to the
+files, directories, and sockets it makes and never changes the mode of anything
+that already exists; where an existing file's mode is unacceptable it refuses
+with a registered code and changes nothing. The trust store under `accept-new`
+(`internal/hostkey/policy.go`, `ensureTrustFile`) is created with `O_EXCL` and
+its mode set through the new file's handle; a store that exists is only
+validated. The password helper's directory (`internal/askpass/askpass.go`) is
+the scratch directory, with `tempdir` naming a path one of the operator's
+choosing: a missing one is made 0700 and an existing one is left as it is. The
+pattern for a directory is `osutil.MakeDirectories`: `Mkdir`, then `Chmod` on
+what that `Mkdir` made, existing components untouched. A new `Chmod` on a path,
+as opposed to a handle karvi has just created, is a review question.
 
 Retention is outside the daemon: `karvi-prune` (`cmd/karvi-prune`,
 `internal/prune`) is one executable behind the per-operator timer, the site's
@@ -599,9 +589,7 @@ places: the target's `source_digest`, which is the source file's own,
 and the plan's `DeviceProjection` (`excludedDeviceFields` in
 `executionplan/projection_test.go`), because credentials are resolved on
 the client and the daemon has no use for the pin; the key a pinned device
-took is the grant's `matched_on.credkey`. (An inventory digest over every
-loaded device was recorded and never read until plan schema 4 removed it;
-the archived `REMOVED-LOG.md`.) The planner's device view
+took is the grant's `matched_on.credkey`. The planner's device view
 (`CredentialPlanner.deviceView`) starts from the inventory device, so the
 pin reaches the resolver without passing through the plan.
 
@@ -661,8 +649,8 @@ commit answers with the receipt the moment the job is accepted (`jobexec.Run`'s
 written), and the job runs on its own goroutine. The daemon keeps a bounded job
 table (`internal/daemon/jobs.go`): the receipt, the path of the canonical
 `commands.jsonl`, the durable edge, the outcome when done, and the live
-subscribers. It holds no record history. **Since daemon IPC schema 8 the records
-themselves travel in the follow stream**: `follow_job` validates the cursor, a
+subscribers. It holds no record history. **The records themselves travel in
+the follow stream**: `follow_job` validates the cursor, a
 sequence, sends `FollowStart` (the job's folder, the edge, and the first
 sequence the stream carries), subscribes the follower, catches it up from the
 daemon's own file to the edge at subscription by reading each line and sending
