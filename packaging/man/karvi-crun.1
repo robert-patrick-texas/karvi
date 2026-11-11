@@ -103,8 +103,11 @@ An unknown row platform in the set refuses the run under the default, fail.
 .TP
 \fB\-\-order\fR \fIdefault|sorted|shuffle|random\fR
 Dispatch order for this invocation (sets the
-lock\-aware dispatch.order; the shuffle key
-comes from dispatch.shuffle\-key)
+lock\-aware dispatch.order): default, as
+encountered; sorted, by name, a run of digits
+by value (router2 before router10); shuffle,
+each name ranked by dispatch.shuffle\-key;
+random, shuffle keyed by the epoch seconds
 .PP
 Folder reads skip names beginning with . readme or disabled, and editor
 backups (~ .bak .swp .orig .rej #name#); an empty source follows

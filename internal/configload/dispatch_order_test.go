@@ -6,10 +6,9 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
 
-// TestV0100DispatchOrderValues: the new values and the empty key are
-// accepted; the removed values
-// and the removed key are refused with their own codes.
-func TestV0100DispatchOrderValues(t *testing.T) {
+// TestDispatchOrderValues: the key's values and the empty shuffle key are
+// accepted; any other value is refused as a value the key does not take.
+func TestDispatchOrderValues(t *testing.T) {
 	load := func(sets ...string) (Snapshot, error) {
 		return Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: sets})
 	}
@@ -34,27 +33,7 @@ func TestV0100DispatchOrderValues(t *testing.T) {
 	if snap, err := load(`dispatch.shuffle-key="rollout-7"`); err != nil || snap.String("dispatch.shuffle-key") != "rollout-7" {
 		t.Fatalf("shuffle key: %v %q", err, snap.String("dispatch.shuffle-key"))
 	}
-	for _, tc := range []struct{ set, code, mention string }{
-		{`dispatch.order="inventory"`, "config_dispatch_order_inventory_removed", "default"},
-		{`dispatch.order="random-seeded"`, "config_dispatch_order_random_seeded_removed", "shuffle"},
-		{`dispatch.order="bogus"`, "config_enum_value_invalid", ""},
-		{`dispatch.random-seed="x"`, "config_unknown_key", ""},
-	} {
-		_, err := load(tc.set)
-		if errorcodes.Of(err) != tc.code {
-			t.Fatalf("%s: code=%q err=%v, want %s", tc.set, errorcodes.Of(err), err, tc.code)
-		}
-		if tc.mention != "" && !containsWord(err.Error(), tc.mention) {
-			t.Fatalf("%s: message %q does not name %s", tc.set, err.Error(), tc.mention)
-		}
+	if _, err := load(`dispatch.order="bogus"`); errorcodes.Of(err) != "config_enum_value_invalid" {
+		t.Fatalf("bogus: code=%q err=%v, want config_enum_value_invalid", errorcodes.Of(err), err)
 	}
-}
-
-func containsWord(s, word string) bool {
-	for i := 0; i+len(word) <= len(s); i++ {
-		if s[i:i+len(word)] == word {
-			return true
-		}
-	}
-	return false
 }

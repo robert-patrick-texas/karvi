@@ -243,7 +243,9 @@ server-max-inflight = 0
 admission-poll-min = "50ms"
 # 10ms–5s; ≥ min.
 admission-poll-max = "250ms"
-# default, sorted (alias name), shuffle, random; inventory and random-seeded are removed.
+# default (as encountered), sorted (alias name: by name, a run of digits by value, router2
+# before router10), shuffle (each name ranked by dispatch.shuffle-key), random (shuffle with
+# the epoch seconds as the key).
 order = "default"
 # Key for the shuffle rank; empty allowed; recorded with the order.
 shuffle-key = ""

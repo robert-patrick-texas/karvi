@@ -216,6 +216,15 @@ they were published in.
   native. A table that names it is now refused as an unknown key,
   `config_unknown_key`, and `platform_default_transport_invalid`, its
   validation's code, is retired.
+- **`dispatch.order`'s `inventory` and `random-seeded` are refused as any
+  value the key does not take.** Each had a code of its own,
+  `config_dispatch_order_inventory_removed` and
+  `config_dispatch_order_random_seeded_removed`, its message naming the
+  value to use (`default`, `shuffle`); both are now
+  `config_enum_value_invalid`, and the two codes are retired. The key's
+  documentation (`karvi config show --explain dispatch.order`,
+  `configs/reference.toml`) says what each value does in place of the
+  removed values' names, and `--order`'s help says it too.
 - **`--order sorted` orders names as a gathered header's fold does: a run
   of digits by value.** `sorted` (`dispatch.order`, alias `name`) compared
   lowercase names in byte order, which takes digits as characters

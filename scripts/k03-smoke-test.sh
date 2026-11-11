@@ -382,10 +382,7 @@ json_is "$job/manifest.json" plan.dispatch.dispatch_order random && json_get "$j
 row o5 0 -- k command --target localhost --target 127.0.0.1 --order sorted --cmd "show clock" --format jsonl
 [ "$(jsonl_records "$row_out" dispatch_order candidate_count)" = "sorted${TAB}2" ] || fail "o5: command record lacks order or candidate count"
 [ "$(jsonl_records "$row_out" device.canonical_name)" = 127.0.0.1 ] || fail "o5: sorted must select 127.0.0.1 first"
-row o6 2 -- k --set 'dispatch.order="inventory"' run --no-daemon --target 127.0.0.1 show clock;     code o6 config_dispatch_order_inventory_removed; mentions o6 default
-row o7 2 -- k --set 'dispatch.order="random-seeded"' run --no-daemon --target 127.0.0.1 show clock; code o7 config_dispatch_order_random_seeded_removed; mentions o7 shuffle
-row o8 2 -- k --set 'dispatch.random-seed="k"' run --no-daemon --target 127.0.0.1 show clock;       code o8 config_unknown_key
-row o9 4 -- k login 127.0.0.1 --order inventory;                                                    code o9 cli_option_value_invalid
+row o6 4 -- k login 127.0.0.1 --order bogus; code o6 cli_option_value_invalid
 
 echo "== command text in debug output"
 # Each command sent appears exactly once, as the operator provided it, in the

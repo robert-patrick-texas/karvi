@@ -153,8 +153,6 @@ Active failure causes.
 | `config_discovery_candidate_directory` | config | 2 | no | An auto-discovered configuration candidate is a directory. |
 | `config_discovery_error` | config | 2 | no | An auto-discovered configuration candidate cannot be inspected. |
 | `config_dispatch_admission_poll_min_exceeds_max` | config | 2 | no | `dispatch.admission-poll-min` exceeds `dispatch.admission-poll-max`. |
-| `config_dispatch_order_inventory_removed` | config | 2 | no | `dispatch.order` is the removed value `inventory`; the message names `default`. |
-| `config_dispatch_order_random_seeded_removed` | config | 2 | no | `dispatch.order` is the removed value `random-seeded`; the message names `shuffle`. |
 | `config_dispatch_wave_max_below_start` | config | 2 | no | `dispatch.wave-max-width` is smaller than `dispatch.wave-start-width`. |
 | `config_dispatch_wave_max_exceeds_absolute` | config | 2 | no | `dispatch.wave-max-width` exceeds `dispatch.absolute-max-width`. |
 | `config_display_border_invalid` | config | 2 | no | Unclassified. A `display.<mode>.border` value fails validation without a specific display code. |
@@ -745,7 +743,9 @@ No longer emitted. A retired code is never reused for another cause.
 | `config_dir_recursion_depth_out_of_range` | v0.11.0 to v0.17.0 | `config_value_out_of_range` | `config.dir-recursion-depth` is outside 0..32. Replaced at v0.14.0 by the one range rule over the registry rows. |
 | `config_dispatch_absolute_max_width_out_of_range` | v0.11.0 to v0.17.0 | `config_value_out_of_range` | `dispatch.absolute-max-width` is outside 1..4096. Replaced at v0.14.0 by the one range rule over the registry rows. |
 | `config_dispatch_halt_percent_out_of_range` | v0.11.0 to v0.17.0 | `config_value_out_of_range` | `dispatch.halt-on-error-percent` is outside 0..100. Replaced at v0.14.0 by the one range rule over the registry rows. |
-| `config_dispatch_random_seed_missing` | v0.10.0 | `config_dispatch_order_random_seeded_removed` | `dispatch.order` was `random-seeded` without `dispatch.random-seed`; both are removed: an empty `dispatch.shuffle-key` is allowed. |
+| `config_dispatch_order_inventory_removed` | v0.42.0 | `config_enum_value_invalid` | `dispatch.order` was the removed value `inventory`, refused by a message naming `default`; it is refused as any value the key does not take. |
+| `config_dispatch_order_random_seeded_removed` | v0.42.0 | `config_enum_value_invalid` | `dispatch.order` was the removed value `random-seeded`, refused by a message naming `shuffle`; it is refused as any value the key does not take. |
+| `config_dispatch_random_seed_missing` | v0.10.0 | `config_enum_value_invalid` | `dispatch.order` was `random-seeded` without `dispatch.random-seed`; both are removed: an empty `dispatch.shuffle-key` is allowed. |
 | `config_dispatch_wave_gate_percent_out_of_range` | v0.11.0 to v0.17.0 | `config_value_out_of_range` | `dispatch.wave-gate-error-percent` is outside 0..100. Replaced at v0.14.0 by the one range rule over the registry rows. |
 | `config_dispatch_wave_width_negative` | v0.11.0 to v0.17.0 | `config_value_out_of_range` | `dispatch.wave-start-width` or `dispatch.wave-max-width` is negative. Replaced at v0.14.0 by the one range rule over the registry rows. |
 | `config_display_dynamic_border_length_out_of_range` | v0.11.0 to v0.17.0 | `config_value_out_of_range` | A `display.<mode>.dynamic-border-length` value is outside 1..4096. Replaced at v0.14.0 by the one range rule over the registry rows. |

@@ -31,16 +31,6 @@ func (l *loader) validate() error {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	// Removed dispatch.order values get their own codes naming the replacement
-	// instead of the generic enum code.
-	if v, ok := l.snap.Values["dispatch.order"]; ok {
-		switch v.Data {
-		case "inventory":
-			return newError("config_dispatch_order_inventory_removed", "`inventory` is removed; use `default`, which keeps the assembled target order", "dispatch.order", v.Source, nil)
-		case "random-seeded":
-			return newError("config_dispatch_order_random_seeded_removed", "`random-seeded` is removed; use `shuffle` with `dispatch.shuffle-key`", "dispatch.order", v.Source, nil)
-		}
-	}
 	for _, k := range keys {
 		v := l.snap.Values[k]
 		if err := configschema.ValidateScalar(k, v.Data); err != nil {

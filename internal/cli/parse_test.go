@@ -857,8 +857,8 @@ func TestParseFreeformBoundary(t *testing.T) {
 			t.Fatalf("%v: dispatch.order flag=%q, want %q", tc.args, got, tc.want)
 		}
 	}
-	if code, _ := parseCode(t, "login", "r1", "--order", "inventory"); code != "cli_option_value_invalid" {
-		t.Fatalf("--order inventory: %s", code)
+	if code, _ := parseCode(t, "login", "r1", "--order", "bogus"); code != "cli_option_value_invalid" {
+		t.Fatalf("--order bogus: %s", code)
 	}
 	// --all=false contributes nothing and is not a target input.
 	if code, _ := parseCode(t, "login", "--all=false"); code != "cli_device_missing" {

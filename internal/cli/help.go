@@ -153,6 +153,17 @@ const selectPlatformHelp = `  A --select-platform value is a selector over the k
   group, and --all).
 `
 
+// orderHelp is the --order line, in each command's target inputs after the
+// selector paragraphs.
+const orderHelp = `  --order default|sorted|shuffle|random
+                                 Dispatch order for this invocation (sets the
+                                 lock-aware dispatch.order): default, as
+                                 encountered; sorted, by name, a run of digits
+                                 by value (router2 before router10); shuffle,
+                                 each name ranked by dispatch.shuffle-key;
+                                 random, shuffle keyed by the epoch seconds
+`
+
 const topHelp = `karvi - run the fleet, gather the output
 
 Usage:
@@ -242,11 +253,7 @@ device of the assembled set):
   --site GLOB, --device-group GLOB, --select-platform GLOB, --all
                                  Inventory selectors, matches at this position
   --exclude GLOB                 Remove name matches after duplicate removal
-` + inventoryHelp + globHelp + selectPlatformHelp + `  --order default|sorted|shuffle|random
-                                 Dispatch order for this invocation (sets the
-                                 lock-aware dispatch.order; the shuffle key
-                                 comes from dispatch.shuffle-key)
-  Folder reads skip names beginning with . readme or disabled, and editor
+` + inventoryHelp + globHelp + selectPlatformHelp + orderHelp + `  Folder reads skip names beginning with . readme or disabled, and editor
   backups (~ .bak .swp .orig .rej #name#); an empty source follows
   targets.empty-source (error or warn).
 
@@ -449,11 +456,7 @@ of a name keeps its position, names are lowercase):
                                  Inventory selectors, matches at this position
   --exclude GLOB                 Remove name matches after duplicate removal
 ` + inventoryHelp + globHelp + selectPlatformHelp + `  An unknown row platform in the set refuses the run under the default, fail.
-  --order default|sorted|shuffle|random
-                                 Dispatch order for this invocation (sets the
-                                 lock-aware dispatch.order; the shuffle key
-                                 comes from dispatch.shuffle-key)
-  Folder reads skip names beginning with . readme or disabled, and editor
+` + orderHelp + `  Folder reads skip names beginning with . readme or disabled, and editor
   backups (~ .bak .swp .orig .rej #name#); an empty source follows
   targets.empty-source (error or warn).
 
@@ -657,11 +660,7 @@ Target inputs (command-line order is kept):
   --site GLOB, --device-group GLOB, --select-platform GLOB, --all
                                  Inventory selectors, matches at this position
   --exclude GLOB                 Remove name matches after duplicate removal
-` + inventoryHelp + globHelp + selectPlatformHelp + `  --order default|sorted|shuffle|random
-                                 Dispatch order for this invocation (sets the
-                                 lock-aware dispatch.order; the shuffle key
-                                 comes from dispatch.shuffle-key)
-  Folder reads skip names beginning with . readme or disabled, and editor
+` + inventoryHelp + globHelp + selectPlatformHelp + orderHelp + `  Folder reads skip names beginning with . readme or disabled, and editor
   backups (~ .bak .swp .orig .rej #name#); an empty source follows
   targets.empty-source (error or warn).
 

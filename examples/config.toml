@@ -221,8 +221,9 @@ host-key-policy = "accept-new"
 [dispatch]
 default = "parallel"
 parallel-workers = 0
-# default keeps the inventory's order; sorted, shuffle, and random are the
-# others, and a shuffle is reproducible from its key.
+# default keeps the order the targets were given in (a selector's matches in
+# inventory order); sorted is by name, a run of digits by value; shuffle ranks
+# each name by shuffle-key, reproducible from it; random shuffles by the time.
 order = "default"
 
 # The display: the theme, and the header line above each device's output.
