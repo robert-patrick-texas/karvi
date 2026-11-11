@@ -1,8 +1,10 @@
 // Package natural is the natural order of names, the one comparison by
-// which --order sorted dispatches devices (inventory.Sort), a gathered
-// header's fold lists its items (matching.Condense), and the gathered
-// display breaks a tie between its groups, and the decimal numbers it
-// compares, which the selector grammar's numeric ranges share.
+// which karvi orders names for the operator: --order sorted dispatches
+// devices (inventory.Sort), a gathered header's fold lists its items
+// (matching.Condense), the gathered display breaks a tie between its
+// groups, failed-devices.txt lists its devices, and the watch screen's
+// target key orders its rows; and the decimal numbers it compares, which
+// the selector grammar's numeric ranges share.
 // The package imports nothing of karvi's, so the public inventory package
 // shares it with matching without carrying the selector grammar and the
 // platform definitions.

@@ -77,6 +77,31 @@ func TestFailedDevicesFollowRequestedRecords(t *testing.T) {
 	}
 }
 
+// TestFailedDevicesInNaturalOrder: failed-devices.txt lists its devices as
+// --order sorted dispatches them and a gathered header's fold lists them
+// (natural.Compare), so a rerun from it with --tf goes in that order:
+// router2 before router10, edge1 before edge01.
+func TestFailedDevicesInNaturalOrder(t *testing.T) {
+	s, err := Create(Options{Root: t.TempDir(), ID: "id", MaxJobBytes: 1 << 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, device := range []string{"router2", "router10", "Router3", "edge01", "edge1", "router1"} {
+		r := records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "a", JobID: "a", ActivityType: "run", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "name:" + device, Name: device, CanonicalName: device, Groups: []string{}}, InputTarget: device, TransformedName: device, DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "cisco_ios", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "x", Status: "device_error", OutputEncoding: "utf-8", OutputSHA256: "x", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()},
+			Error: &records.StructuredError{Code: "device_command_error", Category: "device", Message: "m", Operation: "execute_command"}}
+		if _, err := appendRecord(s, &r); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	failed, _ := os.ReadFile(s.Paths().FailedDevices)
+	if want := "edge1\nedge01\nrouter1\nrouter2\nRouter3\nrouter10\n"; string(failed) != want {
+		t.Errorf("failed-devices.txt %q, want %q", failed, want)
+	}
+}
+
 // TestTextFilePerDevice: each device's
 // records go to its own output.TARGET.txt, the header once, a block per
 // record in the device's order, whatever the order the devices' records

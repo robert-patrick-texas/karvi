@@ -13,6 +13,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/scoreboard"
+	"github.com/robert-patrick-texas/karvi/records"
 )
 
 // ids are the job IDs of rows in order (an unreadable file's base name).
@@ -98,6 +99,20 @@ func TestOrder(t *testing.T) {
 	}
 	if !ValidSortKey("fail") || ValidSortKey("failed") || ValidSortKey("") {
 		t.Errorf("ValidSortKey")
+	}
+}
+
+// TestTargetSortNaturalOrder: the target key orders rows by their first
+// target as --order sorted orders names (natural.Compare): router2 before
+// router10, edge1 before edge01.
+func TestTargetSortNaturalOrder(t *testing.T) {
+	row := func(name string) scoreboard.Row {
+		return scoreboard.Row{Snapshot: snap("run", "complete", records.Counts{Total: 1, Completed: 1}, []records.ScoreboardTarget{{Name: name, State: "success"}}, nil)}
+	}
+	for _, pair := range [][2]string{{"router2", "router10"}, {"edge1", "edge01"}, {"edge01", "edge3"}} {
+		if c := compare(row(pair[0]), row(pair[1]), "target", false); c >= 0 {
+			t.Errorf("target %s against %s: %d, want < 0", pair[0], pair[1], c)
+		}
 	}
 }
 

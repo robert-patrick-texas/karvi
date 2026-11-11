@@ -226,8 +226,11 @@ they were published in.
   another first. A sorted run's device order changes where names hold
   numbers of different widths: `router1 router10 router2` becomes
   `router1 router2 router10`, and `edge01 edge1 edge3` becomes
-  `edge1 edge01 edge3`. The shuffle's rank and its tie by name are
-  unchanged.
+  `edge1 edge01 edge3`. A job's `failed-devices.txt` lists its devices in
+  the same order (it sorted them by byte, capitals first), so a rerun from
+  it with `--tf` goes as a sorted run went, and `karvi watch`'s `target`
+  sort key orders the jobs' first targets by it. The shuffle's rank and its
+  tie by name are unchanged.
 
 ### Other notes
 

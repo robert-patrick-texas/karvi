@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/robert-patrick-texas/karvi/internal/natural"
 	"github.com/robert-patrick-texas/karvi/internal/scoreboard"
 )
 
@@ -135,8 +136,9 @@ func byTime(a, b scoreboard.Row, running bool) int {
 }
 
 // compare orders two readable rows of one section under key: negative
-// when a comes first. Text keys sort ascending, FAIL most first, each
-// falling back to time.
+// when a comes first. Text keys sort ascending, TARGET's first target as
+// --order sorted orders names (natural.Compare, router2 before router10),
+// FAIL most first, each falling back to time.
 func compare(a, b scoreboard.Row, key string, running bool) int {
 	c := 0
 	switch key {
@@ -149,7 +151,7 @@ func compare(a, b scoreboard.Row, key string, running bool) int {
 	case "fail":
 		c = b.Snapshot.Counts.Failed - a.Snapshot.Counts.Failed
 	case "target":
-		c = strings.Compare(firstTarget(a), firstTarget(b))
+		c = natural.Compare(firstTarget(a), firstTarget(b))
 	}
 	if c != 0 {
 		return c

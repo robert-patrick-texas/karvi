@@ -12,7 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
 	"syscall"
@@ -21,6 +21,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/commandfile"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/natural"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/platform"
 	"github.com/robert-patrick-texas/karvi/records"
@@ -713,7 +714,9 @@ func (s *Store) Close() error {
 	for n := range s.failed {
 		names = append(names, n)
 	}
-	sort.Strings(names)
+	// The order --order sorted dispatches in, so a rerun from the file
+	// with --tf goes as a sorted run went.
+	slices.SortFunc(names, natural.Compare)
 	content := ""
 	if len(names) > 0 {
 		content = strings.Join(names, "\n") + "\n"
