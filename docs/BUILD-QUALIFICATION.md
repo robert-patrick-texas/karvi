@@ -56,7 +56,6 @@ smoke suites use `absent PATTERN FILE` (`scripts/lib/lab.sh`) or
 
 ## Release gates
 
-- The expectations below are the suite-level form of the release gates.
 - Every unit test that creates a Unix socket, or whose scratch must fit the
   askpass socket's bound, MUST pass regardless of `TMPDIR` length; release
   evidence uses 25-byte and 145-byte values. Such a test takes its directory
@@ -65,25 +64,21 @@ smoke suites use `absent PATTERN FILE` (`scripts/lib/lab.sh`) or
   regardless of the working-directory name and MUST exclude `.git`.
 - The release tree MUST be clean at the tag, no untracked or modified entry
   and no empty directory (`release-tools/artifacts.sh` refuses otherwise): the
-  bundle is packaged from the tree as it stands. This gate replaced the
-  cumulative patch's equivalence check when the patch stream was retired.
+  bundle is packaged from the tree as it stands.
 - The published Debian package MUST be built from the bundle's extraction
   after its `verify-bundle.sh` passes, twice to the same bytes, and pass
   `scripts/check-deb.sh` against that extraction; `release-tools/artifacts.sh`
   stops otherwise and writes neither the package nor the aggregate checksums.
-- `scripts/daemon-lifecycle-replay.sh` passes against the newest release whose
-  daemon IPC schema differs from the new client's (it refuses a same-schema
-  executable; for v0.12.0, v0.12.1, and v0.13.0 that release was v0.10.0, for
-  v0.14.0, which moved the schema to 8, and v0.14.1 it was v0.13.0, for v0.15.0,
-  which moved the schema to 9, it was v0.14.1, and for v0.16.0 to v0.19.0, which
-  keep 9, it stayed v0.14.1, and for v0.20.0, which moved the schema to 10, and
-  v0.21.0 and v0.21.1, which keep it, it is v0.19.0; for v0.22.0, the karvi
-  line's first release, and v0.23.0 to v0.28.0, which keep 10, there was none;
-  for v0.29.0, which moved the schema to 11, it was v0.28.0; for v0.30.0, which
-  moved it to 12, and v0.30.1, v0.31.0, v0.31.1, v0.32.0, v0.32.1, v0.33.0,
-  v0.34.0, v0.34.1, v0.35.0, v0.36.0, v0.37.0, v0.38.0, v0.39.0, v0.40.0, and
-  v0.41.0, which keep it, there was none: v0.29.0's daemon predates the drain
-  that exits and listens on `daemon.sock`, which the new client never reaches).
+- `scripts/daemon-lifecycle-replay.sh OLD_KARVI` MUST pass against the
+  executable of the newest release whose daemon IPC schema differs from the
+  new client's and whose daemon the new client reaches; it refuses an
+  executable at the new client's schema. Against a daemon that executable
+  launched, it replays `daemon status` with its stacked pairs, a run's
+  exercise to 192.0.2.1 that drains the idle older daemon and starts its own,
+  `stop`, `restart`, and `stop` under `--force`, `--grace`, and `--after`, the
+  last two draining first. Release engineering keeps its output with the
+  release's evidence; while no such release exists the replay is skipped and
+  the evidence says why.
 - The Go tests and the suites MUST leave the host's shared places and
   karvi's places under the operator's home as they were: both verifiers list
   the shared scoreboard directory and the shared trees under `/opt/karvi` and
@@ -91,99 +86,6 @@ smoke suites use `absent PATTERN FILE` (`scripts/lib/lab.sh`) or
   and the passwd home's `.local/share/karvi` and `.config/karvi` exist,
   before the tests and fail after the suites when the list changed
   (`scripts/lib/host.sh`).
-
-## v0.10.0 planning-boundary expectations
-
-- `karvi version` reports daemon IPC schema 5, registry schema 9, and
-  configuration schema 6; `daemon status` reports `daemon_ipc_schema: 5`
-  and `client_ipc_schema: 5`; the upgrade suite's schema-2 fixture stays
-  visible as incompatible.
-- Every job directory holds a manifest of schema 2 that `schema-check`
-  validates against its own plan, header, and credential-package
-  projection; the k03 assertions on `dispatch_order` and `shuffle_key`
-  read them inside the plan's dispatch block.
-- A daemon-backed run passes through `prepare_job`, the credential frame
-  on `socket/c.sock`, and `commit_job`; the canary suite's
-  daemon-backed row finds the canary on no JSON socket, log, or artifact.
-- A resolution or credential failure on any target refuses the run before
-  a job directory exists; `--address-authority daemon` without
-  `name.allow-daemon-resolution` is `daemon_resolution_not_allowed`.
-- The two boundary tests pass: `internal/daemon` and `internal/jobexec`
-  reach no inventory loader, tabular reader, target source, credential
-  backend, planner, or application package.
-
-## v0.10.0 ICMP-gate expectations
-
-- The canary suite runs twelve rows (thirteen with shutdown accounting): p1 runs
-  `--ping` over `127.0.0.1` and `192.0.2.1` with the real pinger and asserts one
-  new session at the fake device, the TEST-NET record `icmp_unreachable` with
-  decision `skip`, the loopback record `success` with decision `proceed`, the
-  summary block, and the skipped gate within two timeouts plus one second; p2
-  runs `login --ping` against `192.0.2.1` and asserts exit 110 with no session;
-  p3 asserts `ping_flag_conflict`. The final scan covers 106 files.
-- The v0100 suite runs twenty-two rows (twenty-five with shutdown accounting):
-  g1–g7 assert the one-line text result for a proceeding and a skipped device,
-  an empty `display.ping.header`, `--quiet`, the `--debug` gate line, the
-  dry-run's and the exercise's capability lines with the fake device untouched,
-  and the conflict.
-- Both suites read `icmp_method` from `karvi version --format json` first
-  and skip their gate rows with the reason when the host grants this
-  process no ICMP method (no ping socket for its group and no `ping` on
-  `PATH`), so `verify-bundle.sh` passes on such a host; the gate is claimed
-  from a host with a method. On this host the method is the ping socket
-  (`net.ipv4.ping_group_range = 1000 9999`).
-- `karvi version --format json` reports `"config_registry_schema_version": 10`
-  and an `icmp_method`; both verifiers check the registry counter.
-
-## v0.10.0 shutdown-accounting expectations
-
-- The canary suite runs thirteen rows: s1 starts a daemon on its own state
-  tree from an environment holding only `HOME` and `PATH`, before the row's
-  two canaries exist, runs two sequential jobs through it with different
-  passwords, and asserts the device received each job's own password, the
-  daemon's pid unchanged, and no canary in the daemon process. The
-  final scan covers 133 files and six canaries.
-- The v0100 suite runs twenty-five rows (thirty-five with s4–s9): s1 forces a
-  stop with a job in flight, s2 sends SIGTERM under a one-second grace, and s3
-  sends SIGTERM under the default grace; s1 and s2 assert four
-  `incomplete_shutdown` records, the summary `incomplete` at exit 106 under
-  `shutdown_forced` or `shutdown_grace_expired`, and the audit reason; s3
-  asserts the job completed before the stop.
-- The v0100 suite runs forty-five rows: s4–s9 run the stop
-  and restart cases against the real daemon with a held device,
-  c1–c4 cancel a held job, an unknown job, and a finished job and follow a
-  cancelled job to its exit, and w1–w6 follow a
-  held job live under `jsonl` to byte equality with `commands.jsonl`, the
-  finished job again, an unknown ID, an interrupted follow, the finished
-  job from its directory after a forced restart, and a cancelled job.
-- `scripts/daemon-lifecycle-replay.sh OLD_KARVI` replays, against a daemon
-  launched by an older executable, `status` with its stacked pairs, a run's
-  exercise to 192.0.2.1 that drains the idle older daemon and starts its own,
-  `stop`, and `restart`, `--grace` and `--after` draining first; release
-  engineering runs it with the prior bundle's executable and keeps
-  the output with the release's evidence; the prior
-  is the newest karvi release whose daemon IPC schema differs from the new
-  client's, and until one exists the replay is skipped and the evidence
-  says so.
-- A forced stop takes up to `daemon.forced-grace-seconds` (floor two
-  seconds) longer than before while the jobs write their terminal records;
-  the stop client's socket wait already allows for it.
-
-## v0.10.0 credential-delivery expectations
-
-- The canary suite runs nine rows (d1 the dry-run and e1 the exercise, each
-  asserting the fake device's log unchanged): row r2 scans the auto-launched
-  daemon's command line and environment and reports one process and no hits
-  (gate 7); row r3 runs two parallel `run` clients with different canaries and
-  the fake device records that each session authenticated with its own job's
-  password; the final scan covers 79 files and four canaries.
-- A package fault is refused at the credential frame with its rule
-  (`credential_package_invalid: rule=...`) before commit; only a wrong plan
-  digest or a binding that differs from the final plan waits for commit.
-- A `daemon start --foreground` from a shell that exports `NETPASS` writes a
-  `daemon_environment_secret_variable` notice, name only, to its log.
-- `config validate` accepts `credential-backend.<name>.scope` and
-  `.required`; an absent optional user `.cloginrc` no longer fails a run.
 
 ## Daemon upgrade gates
 
@@ -202,9 +104,6 @@ which reaches no device.
   `daemon_draining` (exit 112), the builds stacked, with no daemon started
   beside it; `daemon stop --force` MUST reach it at its schema.
 - `daemon restart` MUST replace an idle daemon of another build.
-- The prior release's executable SHOULD be replayed with
-  `scripts/daemon-lifecycle-replay.sh` during release engineering when its
-  bundle is available and its daemon IPC schema differs.
 
 ## Official build and session gates
 
@@ -222,6 +121,9 @@ make deps            # optional on a connected host: download and verify
   references `ssh-keyscan`, `os/exec`, or the system transport's ssh-keyscan
   comparison (`CompareInsecure`, and `InspectRemote` behind it).
 - The tests, `go vet`, and the race run MUST pass under `-mod=vendor`.
+- The boundary tests of `internal/daemon` and `internal/jobexec` MUST pass:
+  neither reaches an inventory loader, tabular reader, target source,
+  credential backend, planner, or application package at any depth.
 - `karvi version --format json` MUST report both transport IDs, the text
   form's transport line checked verbatim, and the shipped executable the
   schema counters `release/release-manifest.json` lists (configuration,
@@ -258,6 +160,34 @@ make deps            # optional on a connected host: download and verify
   reader's own refusals alone and skips the journal's rows, j1–j9, with the
   reason, so `verify-bundle.sh` passes on such a host; the reader is claimed
   from a host with journald.
+- **The canary suite** (`scripts/canary-smoke-test.sh`) MUST pass: the password
+  and enable password it seeds flow through `login`, `command`, and `run`, the
+  fake device proving the password arrived, and `secret-scan` finds no seeded
+  canary, raw, hex, base64, or as Go prints a byte slice, in any artifact, log,
+  socket directory, scoreboard, capacity file, or captured stream, nor in the
+  command line or environment of a daemon a run launched. Two `run` clients at
+  once, and two jobs in turn through a daemon started from `HOME` and `PATH`
+  alone, each authenticate with their own job's password, that daemon one
+  process throughout, neither password in its command line or environment. A
+  dry-run and an exercise leave the fake device untouched. The ICMP gate skips
+  an unreachable target as `icmp_unreachable` within two timeouts plus a second
+  and proceeds on a reachable one; `login --ping` to an unreachable address
+  exits 110 with no session; `--ping` with `--noping` is `ping_flag_conflict`.
+- **The v0100 suite** (`scripts/v0100-smoke-test.sh`) MUST pass against the
+  fake device: the rehearsal flags, `--detach`, `--follow=false`, the
+  interrupted client, the ICMP gate's lines, the shutdown accounting,
+  `cancel_job`, and `job follow`. A stop by `--force`, or by SIGTERM past a
+  one-second grace, with a job in flight leaves every record
+  `incomplete_shutdown` and the summary `incomplete` at exit 106 under
+  `shutdown_forced` or `shutdown_grace_expired`, with the audit's reason;
+  under SIGTERM within the default grace the job completes. A follow under
+  `jsonl` writes the records of `commands.jsonl` byte for byte: live, once
+  finished, and from the job's directory after a forced restart.
+- Both suites read `icmp_method` from `karvi version --format json` before
+  their gate rows: `socket` or `system` runs them, `unavailable` skips them
+  with the reason, so `verify-bundle.sh` passes on a host without an ICMP
+  method, and any other answer, the key absent included, fails; the gate is
+  claimed from a host with a method.
 
 A passing verifier qualifies the executable, not native production use:
 [`docs/CISCO-IOSXE-QUALIFICATION.md`](CISCO-IOSXE-QUALIFICATION.md) holds the
