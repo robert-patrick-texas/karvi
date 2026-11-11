@@ -77,7 +77,8 @@ func (b *synchronizedBuffer) String() string {
 // prompt has arrived.
 func (d *Driver) startShell(ctx context.Context) (*processStream, *askpass.Broker, error) {
 	material := callbackMaterial{username: d.req.Username, password: d.req.Password}
-	broker, err := askpass.Start(d.f.ScratchDir, material, nil)
+	end := newProcessEnd()
+	broker, err := askpass.Start(d.f.ScratchDir, material, askpass.Hooks{Change: end.end})
 	if err != nil {
 		return nil, nil, fmt.Errorf("askpass_start_failed: %w", err)
 	}
@@ -145,6 +146,7 @@ func (d *Driver) startShell(ctx context.Context) (*processStream, *askpass.Broke
 		broker.Close()
 		return nil, nil, fmt.Errorf("command_session_start_failed: start OpenSSH: %w", err)
 	}
+	end.started(cmd.Process)
 
 	diagnostics := &synchronizedBuffer{maxBytes: 64 << 10}
 	auth := &authFilter{next: diagnostics, enrolled: enrolled}

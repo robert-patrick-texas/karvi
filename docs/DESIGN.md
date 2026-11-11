@@ -943,15 +943,67 @@ secret; a login's operator types `enable` at the device, so nothing of the
 login would send the secret; on exec nothing but `sudo` sends it, and a
 secret no command uses would only travel to the daemon.
 
-**The askpass broker answers the username and the password alone.** Over
-`system`, OpenSSH's questions reach karvi's askpass broker, which answers the
-login's username and password, judging a prompt by its own words with
-OpenSSH's `user@host` part cut, and refuses every other question, the host-key
-one included (`askpass_prompt_unrecognized`). The enable secret goes to the
-device in-band, the command session sending it at the escalate prompt, and a
-login resolves none (above). *Why:* OpenSSH's prompt carries the device's name
-and the username, so a device or user named with `enable` drew the enable
-secret where the password was asked.
+**A prompt gets the username or the password by what it asks for, on both
+transports, and a change of a secret ends the connection.** Over `system`,
+OpenSSH's questions reach karvi's askpass broker; over `native`, a device's
+keyboard-interactive prompts reach its callback. Both answer by one rule,
+`askpass.Field`: three lists of RE2 patterns, matched case-insensitively, in
+this order, the first list with a match deciding:
+
+- `change`: `new`, `next`, `re-?enter(ed)?`, `re-?typed?`,
+  `(re)?confirm(ed)?`, `verify`, `repeat(ed)?`, `again`, `once more`,
+  `chang(e|ed|es|ing)`, `renew(ed)?`, `generat(e|es|ed|ing)`, `creat(e|ed)`,
+  `\(y/n\)`, `\[y/n\]`, `yes/no`: the device asks to change a secret.
+  Nothing is answered: the connection ends with
+  `authentication_change_requested` (exit 108), naming the prompt;
+- `username`: `[\w-]*user[\w-]*`, `log ?[io]n`, `name\s*:`;
+- `password`: `passw\w*`, `passcode`, `passphrase`, `pass\s*:`, `pin`,
+  `token(code)?`, `code`, `otp`;
+- no list: an empty answer (native sends it; the broker refuses, and OpenSSH
+  sends it).
+
+Each pattern is a word of its own: where its match's own first or last
+character is an ASCII letter, digit, or underscore, the character beside it
+is none of those and no hyphen, so `pin` matches `PIN:`, `PIN?`, and `Enter
+your PIN.` but not `pin-gw1`, and `\(y/n\)` matches `Accept PIN(y/n)?`. The
+broker answers only a prompt that begins with
+OpenSSH's `user@host` (`user@host's password: ` before its password method's
+prompt, `(user@host) ` before a keyboard-interactive server's) and judges the
+words after it; every other prompt is OpenSSH's own question (a key's
+passphrase, a FIDO or PKCS#11 PIN, user presence, the host key, a password
+change), refused (`askpass_prompt_unrecognized`). The broker is one-use: it
+judges the first prompt OpenSSH asks, and OpenSSH answers every later one
+empty, a later round's included. At a change prompt the broker's hook kills
+OpenSSH before the refusal goes back, while OpenSSH waits on the helper; the
+native transport's callback returns the error, and its `AuthCallback` ends the
+handshake. With a `ProxyJump` the hook kills the device's OpenSSH, not the
+hop's own process, which still answers a change prompt at the jump host
+empty ([`ROADMAP.md`](../ROADMAP.md), "Jump hosts over the system
+transport"). The enable secret goes to the device in-band, the command
+session sending it at the escalate prompt, and a login resolves none
+(above). *Why:* the password goes only where a
+prompt asks for it: a device asking for the username in keyboard-interactive
+would otherwise have the password in a field it logs, and a prompt to set a
+new PIN or password would set the stored one. Any prompt naming `user` gets
+the username, so `Password for user jsmith:` gets it too (the login fails;
+nothing leaks). A word of its own, since a device named in a prompt
+(`Password for repeater1:`, `Username for pin-gw1:`) would otherwise end the
+connection or draw the password. A change prompt is not answered empty:
+OpenSSH would send the empty answer and go on to the password method, and
+x/crypto to the next method after a callback's error, two failed attempts a
+SecurID or RADIUS server counts. The yes/no questions are in `change`, since
+SecurID's `Do you want to enter your own pin (y/n)` names a PIN, and `again`,
+the confirm word (`Password again:`); an unrelated yes/no question is then
+`authentication_change_requested`, not `authentication_failed`. OpenSSH's
+`user@host` is cut and required, since it carries the device's name and the
+username, and a device or user named with `enable` drew the enable secret
+where the password was asked. *Not taken:* the password to every
+keyboard-interactive prompt; the prompt's runs of letters as its words, the
+first rule (`Login for pin-gw1:` drew the password, `pin` a word of its own);
+patterns bounded at their start alone (`Password for repeater1:` was a
+change); `confirmation` in `change` (`Enter confirmation code:` is a code);
+`.` as a joiner too (`Enter your PIN.` would match nothing); a change
+prompt answered empty; the yes/no questions only where they name a secret.
 
 **Prompting once per invocation, and a prompt left unanswered ends the
 run.** The client's input provider caches by field: the first target
@@ -1119,10 +1171,10 @@ password and keyboard-interactive off when the credential has no password; the
 native transport offers the keys as signers, the password methods only beside a
 password. On both, `ssh.keyboard-interactive-authentication` and
 `ssh.password-authentication` each, set false, leaves its method out. Both
-transports try the methods in one order, `publickey`, `keyboard-interactive`,
-then `password`, the last two answered with the password, since some servers
-allow keyboard-interactive and refuse password (`PreferredAuthentications` in
-the managed configuration). The record's
+transports try the methods in one order, `publickey`, `keyboard-interactive`
+(a prompt answered by what it asks for, above), then `password`, since some
+servers allow keyboard-interactive and refuse password
+(`PreferredAuthentications` in the managed configuration). The record's
 credential projection names the method that authenticated, `auth` (`publickey`,
 `keyboard-interactive`, or `password`, absent where the session never
 authenticated), and every `<kind>.command` audit event names it beside the

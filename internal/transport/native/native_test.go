@@ -215,8 +215,77 @@ func TestProviderOffersKeys(t *testing.T) {
 	bd.Close()
 }
 
-// TestProviderPasswordMethods: keyboard-interactive is tried before the
-// password method, both answered with the password; a server that refuses
+// TestProviderKeyboardInteractivePrompts: each keyboard-interactive prompt
+// is answered by what it asks for (askpass.Field), as the system
+// transport's askpass broker answers the first: the password, the
+// username, or an empty answer for a prompt no list matches; the password
+// never goes to a prompt that does not ask for it.
+func TestProviderKeyboardInteractivePrompts(t *testing.T) {
+	for _, prompts := range [][]fakedevice.KbdPrompt{
+		{{Prompt: "Username: ", Want: "username"}, {Prompt: "Password: ", Want: "password"}},
+		{{Prompt: "Enter PASSCODE: ", Want: "password"}},
+		{{Prompt: "Token: ", Want: "password"}},
+		{{Prompt: "PIN: ", Want: "password"}},
+		{{Prompt: "Response: ", Want: "empty"}},
+	} {
+		srv := startFake(t, fakedevice.Options{Enable: "en", KbdPrompts: prompts})
+		f, _ := factory(t, "accept-new")
+		d := prepared(t, f, request(srv, "cisco_ios", "en"))
+		var want []string
+		for _, p := range prompts {
+			want = append(want, fmt.Sprintf("%q %s", p.Prompt, p.Want))
+		}
+		if got := srv.KbdAnswers(); strings.Join(got, "|") != strings.Join(want, "|") {
+			t.Errorf("answers %q, want %q", got, want)
+		}
+		if m := d.(platform.AuthReporter).AuthMethod(); m != "keyboard-interactive" {
+			t.Errorf("%q: method %q", want, m)
+		}
+		d.Close()
+	}
+}
+
+// TestProviderChangePromptEndsTheHandshake: a change prompt, alone or after
+// one karvi would answer, ends the handshake with
+// authentication_change_requested: the device gets no answer in the round,
+// the password method is not tried after it (the password is never
+// resolved), and no session opens.
+func TestProviderChangePromptEndsTheHandshake(t *testing.T) {
+	for _, prompts := range [][]fakedevice.KbdPrompt{
+		{{Prompt: "Enter new PIN: ", Want: "empty"}},
+		{{Prompt: "Username: ", Want: "username"}, {Prompt: "Confirm PIN: ", Want: "empty"}},
+		{{Prompt: "Password: ", Want: "password"}, {Prompt: "New password: ", Want: "empty"}},
+	} {
+		srv := startFake(t, fakedevice.Options{Enable: "en", KbdPrompts: prompts})
+		f, _ := factory(t, "accept-new")
+		req := request(srv, "cisco_ios", "en")
+		resolved := 0
+		req.Password = func(f func([]byte) error) error { resolved++; return f([]byte("pw")) }
+		d, err := f.Open(context.Background(), req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		last := prompts[len(prompts)-1].Prompt
+		want := fmt.Sprintf("authentication_change_requested: the device asks to change a secret: %q", last)
+		if err := d.Prepare(context.Background()); errorcodes.Message(err) != want {
+			t.Errorf("%q: %v, want %s", last, err, want)
+		}
+		d.Close()
+		if got := srv.KbdAnswers(); len(got) != 0 {
+			t.Errorf("%q: the device received %q, want nothing", last, got)
+		}
+		if resolved != 0 {
+			t.Errorf("%q: the password was resolved %d times, want none", last, resolved)
+		}
+		if srv.Sessions() != 0 {
+			t.Errorf("%q: sessions=%d", last, srv.Sessions())
+		}
+	}
+}
+
+// TestProviderPasswordMethods: keyboard-interactive (the fake's "Password: "
+// prompt) is tried before the password method, both answered with the
+// password; a server that refuses
 // keyboard-interactive takes the password method. Each method is offered
 // only where its setting leaves it on: with keyboard-interactive off the
 // password method logs in, and with no method left the device opens no

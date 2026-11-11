@@ -98,7 +98,9 @@ run_karvi() {  # tag, activity (command|run|daemon), transport, enable, karvi ar
 # and EXECUTION (the [execution] table's command-timeout and further lines),
 # SSH (further [ssh] lines), KEYLOGIN (the fingerprint of the one key the
 # fake must have logged in by), AUTH (the method each stream's first
-# record names, credential.auth),
+# record names, credential.auth), KBDPROMPTS (the fake's -kbd-prompts) and
+# KBD (its kbd: lines, each answer and password-method attempt by what it
+# held, |-ended; none: no line),
 # SHELL_OPENED (a shell that opens and receives no line), CHANNELS (the exec
 # channels the one connection carried, and no shell), PIN (paritycheck's
 # -pin, one per line: a difference between the transports by design).
@@ -111,8 +113,13 @@ parity_case() {
   streams=; PORT=0
   for combo in ${COMBOS:-command:system command:native run:system run:native}; do
     act=${combo%%:*}; tr=${combo##*:}; tag=$act.$tr
-    # shellcheck disable=SC2086
-    fake_start "$TMP" "$TMP/fake.err" -port "$PORT" $fflags || exit 1
+    if [ -n "${KBDPROMPTS:-}" ]; then
+      # shellcheck disable=SC2086
+      fake_start "$TMP" "$TMP/fake.err" -port "$PORT" $fflags -kbd-prompts "$KBDPROMPTS" || exit 1
+    else
+      # shellcheck disable=SC2086
+      fake_start "$TMP" "$TMP/fake.err" -port "$PORT" $fflags || exit 1
+    fi
     : >"$KH"; chmod 600 "$KH"
     [ -z "${OTHERKEY:-}" ] || printf '[fake-iosxe]:%s %s\n' "$PORT" "$OTHERKEY" >"$KH"
     write_config "$policy" "$tables"
@@ -141,6 +148,10 @@ parity_case() {
       [ "$pc_auth" = "$AUTH" ] || fail "$label $tag: the record's credential.auth is ${pc_auth:-absent}, expected $AUTH"
     fi
     [ -z "${KEYLOGIN:-}" ] || [ "$(sed -n 's/^key: //p' "$TMP/fake.err")" = "$KEYLOGIN" ] || fail "$label $tag: the fake's key logins: $(sed -n 's/^key: //p' "$TMP/fake.err" | tr '\n' ' '), expected $KEYLOGIN"
+    if [ -n "${KBD:-}" ]; then
+      pc_kbd=$(sed -n 's/^kbd: //p' "$TMP/fake.err" | tr '\n' '|')
+      [ "${pc_kbd:-none}" = "$KBD" ] || fail "$label $tag: the fake's keyboard-interactive answers: ${pc_kbd:-none}, expected $KBD"
+    fi
     streams="$streams $TMP/out.$tag"
   done
   set --
@@ -257,9 +268,9 @@ parity_case 'S13c a key the device refuses, no password offered' accept-new cisc
   'authentication_error:authentication_failed' 108 '' \
   -- --cmd 'show clock'
 unset SSH KEYLOGIN AUTH
-# S13d: keyboard-interactive is tried before the password method, both
-# answered with the password; a server that refuses keyboard-interactive
-# takes the password method.
+# S13d: keyboard-interactive (the fake's "Password: " prompt) is tried
+# before the password method, both answered with the password; a server
+# that refuses keyboard-interactive takes the password method.
 AUTH=password
 parity_case 'S13d a server without keyboard-interactive takes the password method' accept-new cisco_ios "$BUILTIN" en '-no-keyboard-interactive' \
   'success' 0 "$OPEN"'"show clock"|"exit"|' \
@@ -278,6 +289,22 @@ parity_case 'S13f both password methods off leave a password credential no metho
   'authentication_error:authentication_failed' 108 '' \
   -- --cmd 'show clock'
 unset SSH
+# S13g-S13h: a keyboard-interactive prompt is answered by what it asks for
+# (askpass.Field): a token prompt the password; a new PIN's, a change of a
+# secret, ends the connection with authentication_change_requested before
+# any answer, and no password-method attempt follows (the fake would take
+# the empty answer, so the case sees what each transport sent).
+AUTH=keyboard-interactive
+KBDPROMPTS='Token: =password' KBD='"Token: " password|'
+parity_case 'S13g a token prompt takes the password' accept-new cisco_ios "$BUILTIN" en '' \
+  'success' 0 "$OPEN"'"show clock"|"exit"|' \
+  -- --cmd 'show clock'
+unset AUTH
+KBDPROMPTS='Enter new PIN: =empty' KBD=none
+parity_case 'S13h a new PIN prompt ends the connection unanswered' accept-new cisco_ios "$BUILTIN" en '' \
+  'authentication_error:authentication_change_requested' 108 '' \
+  -- --cmd 'show clock'
+unset KBDPROMPTS KBD
 
 # S35: the exec channel over the Linux persona, logged in by the operator's
 # key (S13b's), one connection carrying a channel per command. Two

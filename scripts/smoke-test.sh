@@ -31,7 +31,7 @@ case "$args" in
     # command and run open one fresh interactive shell per device. Validate
     # that askpass is available only for this initial authentication and keep
     # the shell alive for every command in the invocation.
-    answer=$("$SSH_ASKPASS" 'Password:') || exit 91
+    answer=$("$SSH_ASKPASS" "netops@fake-device's password: ") || exit 91
     actual=$(printf '%s' "$answer" | sha256sum | awk '{print $1}')
     expected=$(cat "$0.expected")
     unset answer

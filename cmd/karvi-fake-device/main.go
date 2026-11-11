@@ -47,6 +47,7 @@ func main() {
 	sudoAsks := flag.Bool("sudo-asks", false, "the Linux persona's sudo needs a password (-enable): 'sudo -n' is refused, 'sudo -S' prompts on stderr")
 	sudoRS := flag.Bool("sudo-rs", false, "the Linux persona's sudo writes sudo-rs's prompt and messages (Ubuntu 26.04's sudo), not classic sudo's")
 	decorations := flag.Bool("decorations", false, "the Linux persona's shell writes bash's decorations (bracketed paste, title, colours)")
+	kbdPrompts := flag.String("kbd-prompts", "", "the keyboard-interactive round's prompts, PROMPT=FIELD separated by |, FIELD password, username, or empty; each answer, and each password-method attempt, is reported by what it held")
 	flag.Parse()
 	opts := fakedevice.Options{Persona: *persona, SudoAsks: *sudoAsks, SudoRS: *sudoRS, Decorations: *decorations, Port: *port, Hostname: *hostname, Username: *user, Password: *password, Enable: *enable, Delay: map[string]time.Duration{"show slow": *slow, "slow": *slow, "enable": *enableDelay}, LoginDelay: *loginDelay, SecretDelay: *secretDelay, DripInterval: *drip, EchoSecret: *echoSecret, BigLines: *big, RSASHA1Only: *rsaSHA1Only, StartPrivileged: *startPrivileged, Unsaved: *unsaved, NoKeyboardInteractive: *noKbd}
 	split := func(v string) []string {
@@ -56,6 +57,16 @@ func main() {
 		return strings.Split(v, ",")
 	}
 	opts.KeyExchanges, opts.Ciphers, opts.MACs = split(*kex), split(*ciphers), split(*macs)
+	if *kbdPrompts != "" {
+		for _, pair := range strings.Split(*kbdPrompts, "|") {
+			i := strings.LastIndex(pair, "=")
+			if i < 0 {
+				fmt.Fprintf(os.Stderr, "-kbd-prompts: %q is not PROMPT=FIELD\n", pair)
+				os.Exit(1)
+			}
+			opts.KbdPrompts = append(opts.KbdPrompts, fakedevice.KbdPrompt{Prompt: pair[:i], Want: pair[i+1:]})
+		}
+	}
 	if *extra != "" {
 		opts.ExtraHostKeys = strings.Split(*extra, ",")
 	}
@@ -83,7 +94,7 @@ func main() {
 	fmt.Println(srv.Port())
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	seenLines, seenPTYs, seenKeys, seenSignals, seenLeft := 0, 0, 0, 0, 0
+	seenLines, seenPTYs, seenKeys, seenKbd, seenSignals, seenLeft := 0, 0, 0, 0, 0, 0
 	report := func() {
 		lines := srv.Lines()
 		for _, l := range lines[seenLines:] {
@@ -100,6 +111,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "key: %s\n", k)
 		}
 		seenKeys = len(keys)
+		kbd := srv.KbdAnswers()
+		for _, k := range kbd[seenKbd:] {
+			fmt.Fprintf(os.Stderr, "kbd: %s\n", k)
+		}
+		seenKbd = len(kbd)
 		signals := srv.Signals()
 		for _, name := range signals[seenSignals:] {
 			fmt.Fprintf(os.Stderr, "signal: %s\n", name)

@@ -68,7 +68,7 @@ func fakeSSHMain() int {
 	if len(args) == 0 {
 		return 2
 	}
-	out, err := exec.Command(os.Getenv("SSH_ASKPASS"), "Password:").Output()
+	out, err := exec.Command(os.Getenv("SSH_ASKPASS"), "netops@fake-device's password: ").Output()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "fake-ssh: askpass:", err)
 		return 91

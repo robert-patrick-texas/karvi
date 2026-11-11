@@ -418,7 +418,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__KEYBOARD_INTERACTIVE_AUTHENTICATION",
       "cli_flags": null,
-      "documentation": "Offer SSH `keyboard-interactive` authentication, answered with the credential's password, before the `password` method, on both SSH transports. A device may allow it and refuse `password`."
+      "documentation": "Offer SSH `keyboard-interactive` authentication, before the `password` method, on both SSH transports. A prompt asking to change a secret (a new, next, or confirmed PIN or password) ends the connection with `authentication_change_requested`; any other prompt naming a user, login, or name gets the credential's username, one naming a password, passcode, passphrase, `pass:`, PIN, token, code, or OTP its password, and the rest an empty answer. Over `system` OpenSSH asks karvi its first prompt alone and answers any later one empty. A device may allow it and refuse `password`."
     },
     {
       "path": "ssh.connect-timeout",

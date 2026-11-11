@@ -54,7 +54,7 @@ args=" $* "
 case "$args" in *" -O check "*) exit 1 ;; esac
 actual=""
 if [ -n "$SSH_ASKPASS" ]; then
-  answer=$("$SSH_ASKPASS" 'Password:') || exit 91
+  answer=$("$SSH_ASKPASS" "netops@fake-device's password: ") || exit 91
   actual=$(printf '%s' "$answer" | sha256sum | awk '{print $1}')
   unset answer
 fi

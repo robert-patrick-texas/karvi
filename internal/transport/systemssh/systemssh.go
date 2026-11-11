@@ -175,9 +175,13 @@ func (d *Driver) Prepare(ctx context.Context) error {
 		Debug: d.f.Debug, Live: d.req.Live,
 	})
 	// The one-use askpass broker serves the authentication, which is over
-	// once the first prompt has arrived (or the open has failed).
+	// once the first prompt has arrived (or the open has failed); a change
+	// prompt it refused is the failure's cause.
 	broker.Close()
 	if err != nil {
+		if change := broker.Change(); change != nil {
+			err = change
+		}
 		d.debugf("system SSH command session open failed code=%s diagnostic=%q", errorcodes.Of(err), compactDiagnostic(stream.Diagnostics()))
 		return err
 	}
@@ -198,6 +202,9 @@ func (d *Driver) prepareExec(ctx context.Context) error {
 	err = master.ready(ctx, connectTimeout+promptTimeout)
 	broker.Close()
 	if err != nil {
+		if change := broker.Change(); change != nil {
+			err = change
+		}
 		d.debugf("system SSH exec master failed code=%s diagnostic=%q", errorcodes.Of(err), compactDiagnostic(master.diagnostics.String()))
 		return err
 	}
@@ -353,7 +360,8 @@ func (d *Driver) Interactive(ctx context.Context, stdin io.Reader, stdout, stder
 	cmd := exec.CommandContext(ctx, d.binary, args...)
 	material := callbackMaterial{username: d.req.Username, password: d.req.Password}
 	firstContact := d.firstContact()
-	broker, err := askpass.Start(d.f.ScratchDir, material, firstContact)
+	end := newProcessEnd()
+	broker, err := askpass.Start(d.f.ScratchDir, material, askpass.Hooks{Requested: firstContact, Change: end.end})
 	if err != nil {
 		return errorcodes.Ensure(err, "askpass_start_failed")
 	}
@@ -370,12 +378,17 @@ func (d *Driver) Interactive(ctx context.Context, stdin io.Reader, stdout, stder
 	cmd.Stderr = io.MultiWriter(stderr, &diagnostic)
 	waited, err := osutil.StartTied(cmd, nil)
 	if err == nil {
+		end.started(cmd.Process)
 		err = <-waited
 	}
 	if firstContact != nil {
 		firstContact()
 	}
 	if err != nil {
+		if change := broker.Change(); change != nil {
+			d.debugf("system SSH interactive session ended code=%s", errorcodes.Of(change))
+			return change
+		}
 		code, _, _, _ := classify(diagnostic.String(), err)
 		d.debugf("system SSH interactive session failed code=%s diagnostic=%q", code, compactDiagnostic(diagnostic.String()))
 		return fmt.Errorf("%s: %s", code, safeDiagnostic(diagnostic.String(), err))
@@ -455,8 +468,10 @@ func (f Factory) renderConfig() (string, error) {
 		}
 	}
 	// The methods in karvi's order on both transports: the keys, then
-	// keyboard-interactive and password, both answered with the password
-	// (a server may allow keyboard-interactive and refuse password).
+	// keyboard-interactive, the first prompt answered by what it asks for
+	// (askpass.Field; the one-use broker leaves OpenSSH to answer any later
+	// one empty), and password (a server may allow keyboard-interactive and
+	// refuse password).
 	b.WriteString("  PreferredAuthentications publickey,keyboard-interactive,password\n")
 	fmt.Fprintf(&b, "  PasswordAuthentication %s\n", yesno(!f.passwordless && f.Config.Bool("ssh.password-authentication")))
 	fmt.Fprintf(&b, "  KbdInteractiveAuthentication %s\n", yesno(!f.passwordless && f.Config.Bool("ssh.keyboard-interactive-authentication")))
@@ -524,6 +539,29 @@ func (d *Driver) debugf(format string, args ...any) {
 	if d.f.Debug != nil {
 		d.f.Debug(fmt.Sprintf(format, args...))
 	}
+}
+
+// processEnd ends an OpenSSH process from the askpass broker's change hook
+// (askpass.Hooks.Change): at once, while OpenSSH waits on the helper's
+// answer, so it sends the device none and tries no other method. OpenSSH
+// asks only once started, which started records.
+type processEnd struct {
+	set  chan struct{}
+	proc *os.Process
+}
+
+func newProcessEnd() *processEnd { return &processEnd{set: make(chan struct{})} }
+
+// started records the started OpenSSH process.
+func (e *processEnd) started(p *os.Process) {
+	e.proc = p
+	close(e.set)
+}
+
+// end kills the process started records.
+func (e *processEnd) end() {
+	<-e.set
+	_ = e.proc.Kill()
 }
 
 // callbackMaterial is the askpass broker's material (askpass.Material): the

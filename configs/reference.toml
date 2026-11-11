@@ -146,9 +146,13 @@ identities = ["~/.ssh/id_ed25519", "~/.ssh/id_ecdsa", "~/.ssh/id_rsa"]
 # and keyboard-interactive, on both SSH transports. A credential with keys and no password
 # offers neither password method; with both password methods off, the keys alone are offered.
 password-authentication = true
-# Offer SSH keyboard-interactive authentication, answered with the credential's password,
-# before the password method, on both SSH transports. A device may allow it and refuse
-# password.
+# Offer SSH keyboard-interactive authentication, before the password method, on both SSH
+# transports. A prompt asking to change a secret (a new, next, or confirmed PIN or password)
+# ends the connection with authentication_change_requested; any other prompt naming a user,
+# login, or name gets the credential's username, one naming a password, passcode, passphrase,
+# pass:, PIN, token, code, or OTP its password, and the rest an empty answer. Over system
+# OpenSSH asks karvi its first prompt alone and answers any later one empty. A device may
+# allow it and refuse password.
 keyboard-interactive-authentication = true
 # 1s–5m.
 connect-timeout = "10s"

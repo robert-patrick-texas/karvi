@@ -33,13 +33,43 @@ and writes the one answer and a newline to standard output, which
 .B ssh
 reads.
 .PP
-The broker classifies the prompt by its own words, the
+The broker answers only a prompt that begins with the
 .I user@host
 that
 .B ssh
-puts before them aside, as a username or a password prompt, and answers
-with that field of the credential karvi resolved for the session.
-Any other prompt is refused, the host\-key question among them, which
+puts before a device's prompt,
+\fIuser@host\fP's before its password method's and
+(\fIuser@host\fP) before a keyboard\-interactive server's, and judges
+the prompt's own words after it by three lists of patterns, matched
+case\-insensitively in this order.
+Each pattern is a word of its own: an ASCII letter, digit, underscore,
+or hyphen beside it joins it to a longer word, so a device's name
+hyphenated or run together with letters or digits matches none; a dotted
+one can.
+A prompt asking to change a secret (new, next, re\-enter, re\-entered,
+re\-type, re\-typed, each with its hyphen or without, confirm,
+reconfirm, confirmed, verify, repeat, repeated, again, once more, change,
+changed, changes, changing, renew, renewed, generate, generates,
+generated, generating, create, created, (y/n), [y/n], yes/no) is refused,
+and karvi ends
+.B ssh
+at once, so the device gets no answer; the session fails with
+.BR authentication_change_requested .
+Otherwise a prompt naming user, found inside a word too, a login, or
+name: gets the username, and one naming a password, passcode,
+passphrase, pass:, PIN, token, code, or OTP the password, of the
+credential karvi resolved for the session.
+The broker answers the first prompt
+.B ssh
+asks, one per session;
+.B ssh
+answers every later one empty.
+karvi's native transport answers a device's keyboard\-interactive
+prompts by the same lists, each of them.
+Any other prompt is refused,
+.BR ssh 's
+own questions among them: a key's passphrase, a security key's PIN,
+user presence, a password change, and the host\-key question, which
 karvi's host\-key policy never lets
 .B ssh
 ask.
@@ -84,7 +114,9 @@ The broker refuses with
 .B askpass_request_invalid
 (a request it cannot decode),
 .B askpass_prompt_unrecognized
-(a prompt it does not classify), and
+(a prompt it does not answer),
+.B authentication_change_requested
+(a change prompt), and
 .B askpass_username_unset
 or
 .B askpass_password_unset

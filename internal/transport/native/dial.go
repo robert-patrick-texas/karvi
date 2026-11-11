@@ -16,6 +16,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"github.com/robert-patrick-texas/karvi/internal/askpass"
 	"github.com/robert-patrick-texas/karvi/internal/devsession"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/hostkey"
@@ -140,6 +141,9 @@ type connection struct {
 	// called: it tries the methods in order and stops at the first that
 	// succeeds, so once the handshake ends it names the method that did.
 	auth atomic.Value
+	// change is the change prompt keyboard-interactive met, once it has
+	// (askpass.FieldChange): the handshake ends with its error.
+	change atomic.Pointer[string]
 }
 
 var (
@@ -216,12 +220,12 @@ func (c *connection) open() error {
 		}
 	}()
 
-	// The keys first, in the credential's order, then keyboard-interactive
-	// and password, both answered with the password (a server may allow
-	// keyboard-interactive and refuse password), as the system transport's
-	// PreferredAuthentications; the password methods beside a password, or
-	// alone for a credential without keys (whose missing password the
-	// callbacks report), each where its setting leaves it on.
+	// The keys first, in the credential's order, then keyboard-interactive,
+	// each prompt answered by what it asks for, and password (a server
+	// may allow keyboard-interactive and refuse password), as the system
+	// transport's PreferredAuthentications; the password methods beside a
+	// password, or alone for a credential without keys (whose missing
+	// password the callbacks report), each where its setting leaves it on.
 	var auth []ssh.AuthMethod
 	if len(req.Keys) > 0 {
 		auth = append(auth, ssh.PublicKeysCallback(c.signers))
@@ -235,8 +239,16 @@ func (c *connection) open() error {
 		}
 	}
 	config := &ssh.ClientConfig{
-		User:              req.Username,
-		Auth:              auth,
+		User: req.Username,
+		Auth: auth,
+		// A change prompt ends the handshake: after a callback's error
+		// x/crypto would go on to the next method, the password.
+		AuthCallback: func(*ssh.ClientAuthContext) (ssh.AuthMethod, error) {
+			if prompt := c.change.Load(); prompt != nil {
+				return nil, askpass.ChangeRequested(*prompt)
+			}
+			return nil, nil
+		},
 		HostKeyAlgorithms: offered[sshalgorithms.HostKey],
 		HostKeyCallback: func(_ string, _ net.Addr, key ssh.PublicKey) error {
 			verdict, err := hostkey.Verify(req.Policy, req.Host, req.Port, key.Type(), key.Marshal())
@@ -415,18 +427,36 @@ func (c *connection) password() (string, error) {
 	return value, err
 }
 
+// keyboardInteractive answers each prompt by what it asks for
+// (askpass.Field), as the system transport's askpass broker answers the
+// first: the password, the username, or, for a prompt no list matches, an
+// empty answer, as OpenSSH sends for a prompt the broker refuses. A round
+// holding a change prompt is answered by none: the handshake ends with its
+// error (AuthCallback).
 func (c *connection) keyboardInteractive(_, _ string, questions []string, _ []bool) ([]string, error) {
 	if len(questions) == 0 {
 		return nil, nil
 	}
 	c.auth.Store(authKeyboardInteractive)
-	password, err := c.password()
-	if err != nil {
-		return nil, err
+	fields := make([]string, len(questions))
+	for i, question := range questions {
+		if fields[i] = askpass.Field(question); fields[i] == askpass.FieldChange {
+			c.change.Store(&question)
+			return nil, askpass.ChangeRequested(question)
+		}
 	}
 	answers := make([]string, len(questions))
-	for i := range answers {
-		answers[i] = password
+	for i, field := range fields {
+		switch field {
+		case askpass.FieldPassword:
+			password, err := c.password()
+			if err != nil {
+				return nil, err
+			}
+			answers[i] = password
+		case askpass.FieldUsername:
+			answers[i] = c.req.Username
+		}
 	}
 	return answers, nil
 }
@@ -527,6 +557,9 @@ func negotiated(a ssh.NegotiatedAlgorithms) string {
 func (c *connection) handshakeError(target string, port int, err error) error {
 	if c.ctx.Err() != nil {
 		return c.ctx.Err()
+	}
+	if prompt := c.change.Load(); prompt != nil {
+		return askpass.ChangeRequested(*prompt)
 	}
 	if errorcodes.Of(err) != "" {
 		return err // the host-key policy's own code

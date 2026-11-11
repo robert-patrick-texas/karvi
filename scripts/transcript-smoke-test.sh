@@ -232,7 +232,7 @@ while [ "\$#" -gt 0 ]; do
   shift
 done
 grep -q "^\$alias " "\$store" 2>/dev/null || printf '%s ssh-ed25519 %s\n' "\$alias" '$HOSTKEY' >>"\$store"
-[ $prompt = no ] || "\$SSH_ASKPASS" 'Password:' >/dev/null
+[ $prompt = no ] || "\$SSH_ASKPASS" "netops@\$alias's password: " >/dev/null
 printf '%s\r\n' '$MARKER'
 exit 0
 EOF_INNER

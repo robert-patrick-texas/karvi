@@ -62,7 +62,7 @@ Active failure causes.
 | `askpass_auth_failed` | authentication | — | no | An askpass helper presents the wrong one-use token to the broker. |
 | `askpass_material_missing` | internal | 1 | no | The askpass broker was started without credential material. |
 | `askpass_password_unset` | authentication | — | no | OpenSSH asks the broker for a password that was not resolved. |
-| `askpass_prompt_unrecognized` | authentication | — | no | OpenSSH shows the askpass helper a prompt karvi does not recognize. |
+| `askpass_prompt_unrecognized` | authentication | — | no | OpenSSH asks the askpass helper its own question (a key's passphrase, a security key's PIN, a password change, the host key), or a device's prompt that asks for neither the username nor the password. |
 | `askpass_request_invalid` | authentication | — | no | An askpass helper sends a request the broker cannot decode. |
 | `askpass_start_failed` | internal | 1 | no | The one-use askpass broker cannot be started. |
 | `askpass_username_unset` | authentication | — | no | OpenSSH asks the broker for a username that was not resolved. |
@@ -72,6 +72,7 @@ Active failure causes.
 | `audit_sensitive_property_rejected` | internal | 1 | no | An audit record contains a property name reserved for secrets. |
 | `audit_sink_open_failed` | permission | 9 | no | Unclassified. The audit sinks cannot be opened. |
 | `audit_write_failed` | output | 111 | no | An audit record cannot be written to a required journald or file sink. |
+| `authentication_change_requested` | authentication | 108 | no | The device asks to change a secret (a new, next, or confirmed PIN or password), which karvi does not answer. |
 | `authentication_failed` | authentication | 108 | no | The device rejects the supplied credentials. |
 | `base_directory_unavailable` | permission | 9 | no | Unclassified. The karvi base directory cannot be resolved or created. |
 | `blind_return_conflict` | usage | 4 | no | One command both ends in `\r` sequences and is given `--blind-return`, or is given `--blind-return` more than once; the two counts contradict, and one form is written. |

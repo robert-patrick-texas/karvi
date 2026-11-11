@@ -269,10 +269,11 @@ var entries = []Entry{
 	// Authentication and the askpass broker.
 	failure("askpass_auth_failed", "authentication", none, false, "An askpass helper presents the wrong one-use token to the broker."),
 	failure("askpass_password_unset", "authentication", none, false, "OpenSSH asks the broker for a password that was not resolved."),
-	failure("askpass_prompt_unrecognized", "authentication", none, false, "OpenSSH shows the askpass helper a prompt karvi does not recognize."),
+	failure("askpass_prompt_unrecognized", "authentication", none, false, "OpenSSH asks the askpass helper its own question (a key's passphrase, a security key's PIN, a password change, the host key), or a device's prompt that asks for neither the username nor the password."),
 	failure("askpass_request_invalid", "authentication", none, false, "An askpass helper sends a request the broker cannot decode."),
 	failure("askpass_start_failed", "internal", exitGen, false, "The one-use askpass broker cannot be started."),
 	failure("askpass_username_unset", "authentication", none, false, "OpenSSH asks the broker for a username that was not resolved."),
+	failure("authentication_change_requested", "authentication", exitAuth, false, "The device asks to change a secret (a new, next, or confirmed PIN or password), which karvi does not answer."),
 	failure("authentication_failed", "authentication", exitAuth, false, "The device rejects the supplied credentials."),
 
 	// Host keys.

@@ -989,15 +989,45 @@ no prompt. Under `ssh.include-user-config` (the default) the operator's
 transport may offer such a key once karvi's are refused.
 
 Both transports try the methods in one order: `publickey`, then
-`keyboard-interactive`, then `password`, the last two answered with the
-password, since some servers allow keyboard-interactive and refuse password.
+`keyboard-interactive`, then `password`, since some servers allow
+keyboard-interactive and refuse password.
 `ssh.keyboard-interactive-authentication` and `ssh.password-authentication`
 (true by default) each, set false, leaves its method out on both transports;
-with both false the keys alone are offered. Each record's `credential.auth`
-names the method that authenticated the session (`publickey`,
-`keyboard-interactive`, or `password`; absent where the session never
-authenticated), and every `<kind>.command` audit event names it in
-`device_identity` beside `device_username` and `backend`:
+with both false the keys alone are offered. Each keyboard-interactive prompt
+is answered by what it asks for, matched case-insensitively against three
+lists of RE2 patterns in this order, the first with a match deciding (over
+`system` the prompt's words after the `(user@host) ` OpenSSH puts first):
+
+- a change of a secret, `new`, `next`, `re-?enter(ed)?`, `re-?typed?`,
+  `(re)?confirm(ed)?`, `verify`, `repeat(ed)?`, `again`, `once more`,
+  `chang(e|ed|es|ing)`, `renew(ed)?`, `generat(e|es|ed|ing)`, `creat(e|ed)`,
+  `\(y/n\)`, `\[y/n\]`, `yes/no` (`Enter new PIN:`, `Re-enter PIN:`,
+  `Password again:`, `Confirmed PIN:`): no answer; the connection ends with
+  `authentication_change_requested` (exit 108), which quotes the prompt, and
+  no other method is tried;
+- the username, `[\w-]*user[\w-]*`, `log ?[io]n`, `name\s*:` (`Username:`,
+  `login as:`, `Login for pin-gw1:`);
+- the password, `passw\w*`, `passcode`, `passphrase`, `pass\s*:`, `pin`,
+  `token(code)?`, `code`, `otp` (`Password:`, `Enter PASSCODE:`, `PIN:`,
+  `Token:`, `Verification code:`);
+- any other prompt: an empty answer.
+
+Each pattern is a word of its own: an ASCII letter, digit, underscore, or
+hyphen beside it joins it to a longer word, so a device named in a prompt
+(`Password for new-rtr1:`, `Password for repeater1:`) is not a field's word;
+`user` alone is found inside a word, so a prompt naming it gets the username
+even beside a password (`Password for user jsmith:`). Over `system` the
+askpass broker answers only a prompt beginning with OpenSSH's `user@host`, a
+device's; OpenSSH's own questions (a key's passphrase, a security key's PIN,
+user presence, a password change) are refused. The broker is one-use: it
+answers the first prompt OpenSSH asks, and OpenSSH answers every later one
+empty, so over `system` a device asking `Username:` then `Password:` fails,
+and a change prompt after an answered one gets the empty answer.
+
+Each record's `credential.auth` names the method that authenticated the
+session (`publickey`, `keyboard-interactive`, or `password`; absent where the
+session never authenticated), and every `<kind>.command` audit event names it
+in `device_identity` beside `device_username` and `backend`:
 
 ```text
 1 {"auth": "publickey", "backend": "builtin-operator-keys", "device_username": "netops", "selected_address": "127.0.0.1"}

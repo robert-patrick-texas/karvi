@@ -98,6 +98,12 @@ type Options struct {
 	// NoKeyboardInteractive refuses the keyboard-interactive method, as a
 	// server that takes the password method alone.
 	NoKeyboardInteractive bool
+	// KbdPrompts are the keyboard-interactive round's prompts, each with the
+	// field it takes; the round passes when every answer is its field's.
+	// Empty asks "Password: " for the password and records nothing; set,
+	// each answer, and each password-method attempt, is recorded by what it
+	// held (KbdAnswers).
+	KbdPrompts []KbdPrompt
 	// SudoAsks makes the Linux persona's sudo need a password (Enable):
 	// sudo -n is refused and sudo -S prompts on stderr. Without it every
 	// sudo command runs as root with none asked, as under NOPASSWD.
@@ -117,6 +123,10 @@ type PTYRequest struct {
 	ModeBytes     int
 }
 
+// KbdPrompt is a keyboard-interactive prompt and the field it takes:
+// "password", "username", or "empty", an empty answer.
+type KbdPrompt struct{ Prompt, Want string }
+
 // Server is a running fake.
 type Server struct {
 	opts     Options
@@ -127,6 +137,7 @@ type Server struct {
 	mu          sync.Mutex
 	authorized  map[string]bool // fingerprints of the authorized keys
 	keyLogins   []string        // fingerprints of the keys that logged in
+	kbdAnswers  []string        // under KbdPrompts: "PROMPT FIELD" per answer, "password-method FIELD" per attempt
 	connections int
 	sessions    int
 	lines       []string
@@ -149,6 +160,13 @@ func Start(opts Options) (*Server, error) {
 	case PersonaIOSXE, PersonaLinux:
 	default:
 		return nil, fmt.Errorf("unknown persona %q", opts.Persona)
+	}
+	for _, p := range opts.KbdPrompts {
+		switch p.Want {
+		case "password", "username", "empty":
+		default:
+			return nil, fmt.Errorf("keyboard-interactive prompt %q: field %q is not password, username, or empty", p.Prompt, p.Want)
+		}
 	}
 	if opts.Hostname == "" {
 		opts.Hostname = "Router"
@@ -188,12 +206,20 @@ func Start(opts Options) (*Server, error) {
 			return nil, fmt.Errorf("key %s refused for %q", fingerprint, meta.User())
 		},
 		PasswordCallback: func(meta ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
+			if len(opts.KbdPrompts) > 0 {
+				s.mu.Lock()
+				s.kbdAnswers = append(s.kbdAnswers, "password-method "+s.held(string(password)))
+				s.mu.Unlock()
+			}
 			if meta.User() == opts.Username && string(password) == opts.Password {
 				return nil, nil
 			}
 			return nil, fmt.Errorf("password rejected for %q", meta.User())
 		},
 		KeyboardInteractiveCallback: func(meta ssh.ConnMetadata, client ssh.KeyboardInteractiveChallenge) (*ssh.Permissions, error) {
+			if len(opts.KbdPrompts) > 0 {
+				return s.kbdRound(meta, client)
+			}
 			answers, err := client("", "", []string{"Password: "}, []bool{false})
 			if err != nil {
 				return nil, err
@@ -328,6 +354,56 @@ func (s *Server) Lines() []string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return append([]string(nil), s.lines...)
+}
+
+// kbdRound asks KbdPrompts in one round and records each answer by what it
+// held: the password, the username, empty, or other; never the value.
+func (s *Server) kbdRound(meta ssh.ConnMetadata, client ssh.KeyboardInteractiveChallenge) (*ssh.Permissions, error) {
+	questions := make([]string, len(s.opts.KbdPrompts))
+	for i, p := range s.opts.KbdPrompts {
+		questions[i] = p.Prompt
+	}
+	answers, err := client("", "", questions, make([]bool, len(questions)))
+	if err != nil {
+		return nil, err
+	}
+	pass := meta.User() == s.opts.Username && len(answers) == len(questions)
+	s.mu.Lock()
+	for i, a := range answers {
+		held := s.held(a)
+		s.kbdAnswers = append(s.kbdAnswers, fmt.Sprintf("%q %s", questions[i], held))
+		if i < len(questions) && held != s.opts.KbdPrompts[i].Want {
+			pass = false
+		}
+	}
+	s.mu.Unlock()
+	if !pass {
+		return nil, fmt.Errorf("keyboard-interactive answers rejected for %q", meta.User())
+	}
+	return nil, nil
+}
+
+// held names what an answer held: the password, the username, empty, or
+// other; never the value.
+func (s *Server) held(answer string) string {
+	switch answer {
+	case s.opts.Password:
+		return "password"
+	case s.opts.Username:
+		return "username"
+	case "":
+		return "empty"
+	}
+	return "other"
+}
+
+// KbdAnswers returns, under KbdPrompts, each keyboard-interactive answer as
+// "PROMPT FIELD", the prompt quoted and FIELD what the answer held, and
+// each password-method attempt as "password-method FIELD".
+func (s *Server) KbdAnswers() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.kbdAnswers...)
 }
 
 // KeyLogins returns the fingerprint of each key that logged in, in order.

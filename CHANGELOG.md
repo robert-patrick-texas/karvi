@@ -210,6 +210,38 @@ they were published in.
   Their documentation (`config show --explain`) says what each does in place
   of "At least one auth mechanism must remain." and "Supports network-device
   challenge prompts."
+- **A keyboard-interactive prompt gets the password only where it asks for
+  one, on both SSH transports, and a change of a secret ends the
+  connection.** The native transport answered every keyboard-interactive
+  prompt with the password, a `Username:` prompt among them; the system
+  transport's askpass broker answered any prompt naming a password or
+  passcode with the password, a device's `New password:` among them. Both
+  now answer by one rule, three lists of patterns matched case-insensitively
+  in order:
+
+  - a prompt asking to change a secret (`new`, `next`, `re-?enter(ed)?`,
+    `re-?typed?`, `(re)?confirm(ed)?`, `verify`, `repeat(ed)?`, `again`,
+    `once more`, `chang(e|ed|es|ing)`, `renew(ed)?`,
+    `generat(e|es|ed|ing)`, `creat(e|ed)`, `\(y/n\)`, `\[y/n\]`,
+    `yes/no`) ends the connection before any answer with the new code
+    `authentication_change_requested` (exit 108), which quotes the prompt;
+    no other method is tried after it (the system transport ends OpenSSH at
+    the prompt, which would otherwise send an empty answer, then an empty
+    password);
+  - a prompt naming `user` (`[\w-]*user[\w-]*`), a login (`log ?[io]n`),
+    or a name (`name\s*:`) gets the username;
+  - one naming a password (`passw\w*`), passcode, passphrase, `pass\s*:`,
+    PIN, token(code), code, or OTP gets the password (`PIN:` and `Token:`
+    among them);
+  - any other an empty answer.
+
+  Each pattern is a word of its own, so a device named in a prompt
+  (`Password for repeater1:`, `pin-gw1`) is not a field's word; `user` alone
+  is found inside a word. The askpass broker answers only a prompt beginning
+  with OpenSSH's `user@host`, a device's, and refuses OpenSSH's own questions
+  (a key's passphrase, a FIDO or PKCS#11 PIN, user presence, a password
+  change). It is still one-use: over the system transport the first prompt
+  OpenSSH asks is judged, and OpenSSH answers every later one empty.
 
 ### Breaking changes
 
