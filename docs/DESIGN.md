@@ -598,14 +598,13 @@ the plan and the manifest, shown on a dry run's `intended:` line; the daemon
 does not re-evaluate it, and no option sets it for one run (`--platform NAME`
 does). A target planned over telnet whose platform says `exec` is refused at
 planning, naming both. `login` is always interactive; `crun` follows the
-platform. The platform field `control-master`, read by nothing, is removed.
-*Why:* whether a device takes an exec channel is the device's nature, which is
-what the platform carries, while the transport is only the SSH implementation
-and either can open both; one job mixes routers, servers, and servers that
-refuse exec, so the choice is per target, and an inventory row naming
-`linux_shell` makes it without a table; what a vendor's later releases accept
-is the operator's to decide, not a list karvi keeps; telnet has no exec in any
-version, and a shell run in its place would record no exit status while
+platform. *Why:* whether a device takes an exec channel is the device's nature,
+which is what the platform carries, while the transport is only the SSH
+implementation and either can open both; one job mixes routers, servers, and
+servers that refuse exec, so the choice is per target, and an inventory row
+naming `linux_shell` makes it without a table; what a vendor's later releases
+accept is the operator's to decide, not a list karvi keeps; telnet has no exec
+in any version, and a shell run in its place would record no exit status while
 looking like a record with one. *Not taken:* exec as a transport or an
 implementation ID; a per-run `--exec`; an admission list limiting `exec` to
 `linux`; `session` as the field's name (`session-cap` and `session-init` use
@@ -654,10 +653,11 @@ must see, before and after the fact, why a device ran as a platform its row
 did not name, and a connection failure must not lose that explanation.
 
 **An unknown name never reaches a session.** The executor, `login`, and the
-exercise look a platform up with a function that says whether the name is
-known and refuse an unknown one before any connection. *Why:* a daemon whose
-configuration lacks the client's alias table used to run the alias as
-`generic` under the alias's name.
+exercise look a platform up with a function that says whether the name is known
+and refuse an unknown one before any connection. *Why:* the lookup answers an
+unknown name with `generic`'s definition under that name, so without the refusal
+a daemon whose configuration lacks the client's alias table would run the alias
+as `generic` under the alias's name.
 
 **An inventory file holds no secret column.** A header that is or ends with
 `password`, `passwd`, `secret`, `token`, `private_key`, or `passphrase` is
@@ -743,16 +743,16 @@ name, a portable variable name, is checked when the file loads, and its value is
 read when a device selects the row. An unset or empty variable is
 `credential_env_missing` at planning, naming the file, the line, the column, and
 the variable, and the device moves on to no later row, backend, or fallback.
-Every other cell is a literal, and no backend takes an `env-indirection` key
-(below). *Why:* under the flags a cell naming an unset variable was sent as the
-password, failed logins and, on some devices, lockouts, with nothing naming the
-cause; a reference marked as one fails before any device is reached, and its
-name may be said, the prefix marking it as a name. *Not taken:* the flags kept
-beside the cell (a file under two rules); an escape for a literal that begins
-with `env:` (a variable carries it); a reference only when its rest is a valid
-name (a typo sent as a password); an empty variable taken as set (a blank enable
-secret reaching the device); every row's variables read at load (a run on one
-site's devices needing every site's variables).
+Every other cell is a literal. *Why:* a cell read as a name where its variable
+is set and as a literal where it is not sends the name as the password: failed
+logins and, on some devices, lockouts, with nothing naming the cause; a
+reference marked as one fails before any device is reached, and its name may be
+said, the prefix marking it as a name. *Not taken:* a flag making a column's
+cells names, beside the prefix (a file under two rules); an escape for a literal
+that begins with `env:` (a variable carries it); a reference only when its rest
+is a valid name (a typo sent as a password); an empty variable taken as set (a
+blank enable secret reaching the device); every row's variables read at load (a
+run on one site's devices needing every site's variables).
 
 **Every credential reader reads the environment through the resolver's one
 lookup.** The resolver's lookup is its input provider's, the client's, the
@@ -764,12 +764,12 @@ Vault record's `env:` fields. No backend calls `os.LookupEnv`, and a resolver
 without a provider reads no variable. A variable a Redis or Vault backend's
 configuration names, unset or empty, is `credential_env_missing` (exit 6), read
 before any connection, naming the backend, the key, and the variable
-(`credential backend v: token-env: VAULT_TOKEN not set`); `redis_auth_missing`
-and `vault_token_missing` are retired into it. *Why:* the credential helper's
-values are held as secrets and never put into the process environment a child
-such as `ssh` inherits, so a reader of the process environment could not see
-them; one door gives them to each reader; Redis sent an empty `AUTH` for an
-empty variable where Vault called it missing. *Not taken:* the helper's values
+(`credential backend v: token-env: VAULT_TOKEN not set`). *Why:* the credential
+helper's values are held as secrets and never put into the process environment a
+child such as `ssh` inherits, so a reader of the process environment could not
+see them; one door gives them to each reader; one reading treats an empty
+variable alike in both stores, where a reading per store can send Redis an empty
+`AUTH` for a variable Vault refuses as missing. *Not taken:* the helper's values
 put into the process environment; a lookup given to each backend as it is built
 (the backends are built before the planner sets the provider).
 
@@ -798,32 +798,32 @@ outside the macro syntax, `{operator}`; `%user%` (the device's username
 everywhere else); `%s` refused in the seven keys (a guard for an upgrade); a
 store's answer expanded (a password holding `%operator%` changed).
 
-**A store names a variable as `env:NAME`; no backend takes `env-indirection`.**
-A Redis or Vault record's username, password, or enable field whose value,
-trimmed, begins with `env:`, the prefix's case ignored, names a variable, read
-through the one lookup by the credential CSV's own functions
-(`envindirect.Reference`, `Read`); unset or empty, it is
+**A store names a variable as `env:NAME`.** A Redis or Vault record's username,
+password, or enable field whose value, trimmed, begins with `env:`, the prefix's
+case ignored, names a variable, read through the one lookup by the credential
+CSV's own functions (`envindirect.Reference`, `Read`); unset or empty, it is
 `credential_env_missing`, naming the backend, the record, the field, and the
 variable; a rest that is no variable name is the store's code for a malformed
 record (`redis_malformed`, `vault_response_malformed`), naming the field and
 never the value. Any other value is a literal. An env backend's variable's value
-is the value, its template naming the variable. *Why:* under a flag a field was
-a name or a value as the environment happened to say: a name whose variable was
-unset was sent as the password (exit 108), and a real password that named a
-variable was replaced by its value; without one a store could not name
-`NETENABLE`. *Not taken:* the flags kept; the flags kept with an unset name
-failing (every field of the column a name); no reference in a store; `env:` in
-the env backend's values (a variable naming a variable, which its template
-does); a new code for a bad reference.
+is the value, its template naming the variable. *Why:* a field that is a name or
+a value as the environment happens to say sends a name whose variable is unset
+as the password (exit 108) and replaces a real password that names a variable by
+its value; without a reference a store cannot name `NETENABLE`. *Not taken:* a
+per-field flag making the field a name; such a flag with an unset name failing
+(every field of the column a name); no reference in a store; `env:` in the env
+backend's values (a variable naming a variable, which its template does); a new
+code for a bad reference.
 
 **A credential backend takes its type's keys alone.** The registry holds one key
 list per backend type, and any other key on a table of that type is
-`config_credential_backend_key_unsupported`, naming the types that read it. The
-`sqlite` type, which had no driver, is refused, and its keys as unknown. *Why:*
-a key its type ignores is a setting the operator takes to be in force that is
-not (a Redis backend's `mount`, a CSV's `token-env`); a type no build can read
-validates and never answers. *Not taken:* a warning (the setting left in the
-file); a code per family of keys (the scope code, retired into the one).
+`config_credential_backend_key_unsupported`, naming the types that read it. A
+named type the registry does not list is
+`config_credential_backend_type_unsupported`. *Why:* a key its type ignores is a
+setting the operator takes to be in force that is not (a Redis backend's
+`mount`, a CSV's `token-env`); a type no build can read validates and never
+answers. *Not taken:* a warning (the setting left in the file); a code per
+family of keys.
 
 **A store backend's keys are judged at load.** Each key of the env, Redis, and
 Vault types has a kind, a string but Redis's `tls` and both stores' `tls-verify`
@@ -845,18 +845,17 @@ pair, Redis's login variables, Vault's `namespace`), and refused, `must not be
 empty`, where the default is a value; a written value, the default's included,
 is judged as any other, so `tls-verify = true` beside plain text is refused. The
 defaults are set once, where the resolver builds the backend, and `Resolve`
-never writes its backend. `redis_address_missing`, `vault_address`,
-`redis_client_cert_key_unpaired`, and `vault_client_cert_key_unpaired` are
-retired into these. *Why:* each of these validated and was silently a default, a
-key not in force, or a name no shell can export (`tls = "false"` sent a TLS
-hello to a plain server, `token-env = "VAULT TOKEN"` was missing with
-`VAULT_TOKEN` exported); Vault's `Resolve` wrote its defaults into the backend
-every device shares, a data race under the planning pool; layers merge a
-backend's table key by key, so `""` is the one way a later layer says none over
-an earlier one's value. *Not taken:* a warning (the setting left in the file);
-the race fixed alone (the silent defaults kept); a code per key; the operator's
-name checked at load (a shared configuration refused for `j.smith`, whose runs
-never reach the env backend); `""` refused on every key; a word `none`.
+never writes its backend. *Why:* a value not judged at load validates and is
+silently a default, a key not in force, or a name no shell can export
+(`tls = "false"` would send a TLS hello to a plain server, and
+`token-env = "VAULT TOKEN"` would be missing with `VAULT_TOKEN` exported); a
+`Resolve` that writes its defaults into the backend every device shares is a
+data race under the planning pool; layers merge a backend's table key by key,
+so `""` is the one way a later layer says none over an earlier one's value.
+*Not taken:* a warning (the setting left in the file); the race fixed alone
+(the defaults still silent); a code per key; the operator's name checked at
+load (a shared configuration refused for `j.smith`, whose runs never reach the
+env backend); `""` refused on every key; a word `none`.
 
 **An operator-keyed store is asked once per resolver.** The env, Redis, and
 Vault backends declare `credentials.OperatorKeyed`: their request is the
@@ -894,13 +893,13 @@ validate` builds every `[name-transform.NAME]` and `[credential-transform.NAME]`
 table with the one builder every reader at the run uses (`transform.Names`,
 `transform.Credentials`), whether or not anything names the table, and refuses a
 credential backend's `transform` or an inventory source's `name-transform` that
-names none. `name.default-transform`, which nothing read, is removed: a device
-that names no transform takes `[name-transform.default]`. *Why:* the run builds
-every table, so a typo in a table nothing names stopped every run while `config
-validate` passed it, and the builder's three copies had drifted (one refused a
-list that was no array, two read it as none). *Not taken:* the run building only
-the tables named (a typo hidden until the day the table is used); the key made
-to work (two ways to name one default).
+names none. A device that names no transform takes `[name-transform.default]`.
+*Why:* the run builds every table, so a typo in a table nothing names stops
+every run, and a `config validate` that passed it would not say so; copies of
+the builder drift apart (one refusing a list that is no array, another reading
+it as none). *Not taken:* the run building only the tables named (a typo hidden
+until the day the table is used); a key naming the default table (two ways to
+name one default).
 
 **A pin is a pin.** A device with `credkeyref` matches only rows whose key
 equals it, walks its policy's sequence asking only backends that declare the
@@ -1077,27 +1076,26 @@ connects (`ssh`, or the native transport, both the operator's) reads the file at
 the connection, and a `keyfile` passes the credential file checks (the owner,
 `0600`, no symlink). A key protected by a passphrase is skipped with a notice,
 never prompted for and never offered to the askpass helper; passphrases are
-later work. What follows the policy's backends is the platform's `fallback`,
-an ordered list of `netvars` (`NETUSER`, `NETPASS`, `NETENABLE`), `keys` (the
-operator's username and keys), and `prompt` (the terminal prompts): the
-network built-ins and `generic` are `["netvars", "prompt"]`, `linux` and
-`linux_shell` `["keys"]`, a platform that leaves the field unset `["netvars",
-"prompt"]`, and an empty list no fallback; a site that lets the variables serve
-its servers writes `[platform.linux] fallback = ["netvars", "keys"]`. For a
-server on the exec channel the enable field is a `--sudo` command's password;
-a fallback that answered, by whichever word, reads `NETSUDO` for it, then
-`NETENABLE` where the list holds `netvars`. Whether keys are offered is the
-credential's, and `ssh.pubkey-authentication` is removed: a credential
-with a key offers it, one without offers none, and a server whose credential
-has no password needs none. *Why:* the production fleet needs all four forms,
-and a backend's rows already map a credential to devices; a key's bytes copied
-into a package would be one more copy of the most valuable secret, while the
-daemon runs as the operator and reads the file itself; the variables an
-operator exports for routers must not reach servers unasked, and a platform
-table already holds a class of devices' settings. *Not taken:* a key's bytes
-in the credential package; two boolean fields in place of `fallback`; the map
+later work. What follows the policy's backends is the platform's `fallback`, an
+ordered list of `netvars` (`NETUSER`, `NETPASS`, `NETENABLE`), `keys` (the
+operator's username and keys), and `prompt` (the terminal prompts): the network
+built-ins and `generic` are `["netvars", "prompt"]`, `linux` and `linux_shell`
+`["keys"]`, a platform that leaves the field unset `["netvars", "prompt"]`, and
+an empty list no fallback; a site that lets the variables serve its servers
+writes `[platform.linux] fallback = ["netvars", "keys"]`. For a server on the
+exec channel the enable field is a `--sudo` command's password; a fallback that
+answered, by whichever word, reads `NETSUDO` for it, then `NETENABLE` where the
+list holds `netvars`. Whether keys are offered is the credential's alone: a
+credential with a key offers it, one without offers none, and a server whose
+credential has no password needs none. *Why:* the production fleet needs all
+four forms, and a backend's rows already map a credential to devices; a key's
+bytes copied into a package would be one more copy of the most valuable secret,
+while the daemon runs as the operator and reads the file itself; the variables
+an operator exports for routers must not reach servers unasked, and a platform
+table already holds a class of devices' settings. *Not taken:* a key's bytes in
+the credential package; two boolean fields in place of `fallback`; the map
 matching base drivers (every existing alias would change policy); `ssh-agent`
-in the first build (it follows the key files as a `keys` source).
+ahead of the key files (it follows them as a `keys` source).
 
 **The operator's keys are a list in order, judged at planning, and the record
 names the method that authenticated.** `ssh.identities` names the files, offered
@@ -1169,21 +1167,21 @@ code), no key usable (`credential_operator_keys_missing`), or telnet
 (`credential_password_missing`); with nothing found, no username was supplied
 (`credential_username_missing`). A backend's credential holds no key until the
 credential CSV's `keyfile` column is built, so it needs a password whatever the
-settings, and `config_ssh_auth_mechanisms_disabled` is retired: both password
-methods off is a key-only site, where a password credential is refused by the
-device. A skipped key is a warning line once at planning, as a platform not set
-is, beside its notice in the dry run and on each device's first record. The key
-files are parsed in an adapter of their own, `internal/adapters/sshkey`, so
-x/crypto stays out of the credential code as it stays out of `hostkey`. *Why:*
-the order is the operator's, so a later source is reached only when an earlier
-one gives nothing whole, and the error names the last thing tried; the variables
-an operator exports for routers are often a username alone, which must not stop
-a server that has a key; a key is judged once per invocation, so the operator
-sees it once at the terminal and again on every record it touches; the import
-boundary keeps the SSH library behind adapters. *Not taken:* a partial `netvars`
-credential failing at once under `["netvars", "keys"]`; the keys offered over
-telnet; the mechanisms check kept as "a password method must remain" (it would
-refuse a key-only site); key parsing in the credential package itself.
+settings; both password methods off is a key-only site, where a password
+credential is refused by the device. A skipped key is a warning line once at
+planning, as a platform not set is, beside its notice in the dry run and on each
+device's first record. The key files are parsed in an adapter of their own,
+`internal/adapters/sshkey`, so x/crypto stays out of the credential code as it
+stays out of `hostkey`. *Why:* the order is the operator's, so a later source is
+reached only when an earlier one gives nothing whole, and the error names the
+last thing tried; the variables an operator exports for routers are often a
+username alone, which must not stop a server that has a key; a key is judged
+once per invocation, so the operator sees it once at the terminal and again on
+every record it touches; the import boundary keeps the SSH library behind
+adapters. *Not taken:* a partial `netvars` credential failing at once under
+`["netvars", "keys"]`; the keys offered over telnet; a check that a password
+method remains on (it would refuse a key-only site); key parsing in the
+credential package itself.
 
 **The credential CSV has its own guide.**
 [`docs/CREDENTIAL-CSV.md`](CREDENTIAL-CSV.md) is the text an operator works from
@@ -1491,15 +1489,15 @@ authentication callbacks at authentication time. No subprocess, no
 `ssh-keyscan`, one TCP connection per open, and no SSH library beyond x/crypto.
 `native` and `telnet` are selected by name; an `ssh.transports` slot maps a
 name to an executable (`system`'s path, another slot's `exec:PATH`) and
-nothing else. *Why:* scrapligo's standard transport checks a known-hosts file
-strictly or not at all and cannot enroll a first-seen key; the earlier pre-scan
-made every open six connections; and once karvi's connection was all
-scrapligo-v1 carried, its wrapper passed each read, write, and close through and
-moved with every scrapligo release ([`docs/EXAMPLES.md`, chapter
+nothing else. *Why:* a library's transport that checks a known-hosts file
+strictly or not at all cannot enroll a first-seen key; a host-key pre-scan
+makes every open more than one connection; and a wrapper that passes each read,
+write, and close through to another library's connection moves with every
+release of that library ([`docs/EXAMPLES.md`, chapter
 82](EXAMPLES.md#82-the-native-transport-without-scrapligo-2026-10-27)). *Not
-taken:* a new implementation ID such as `karvi-v1`; `ssh.transports.native` kept
-with one legal value; a ScrapliGo v2 behind `native`, which would be a transport
-with its own selector.
+taken:* a new implementation ID such as `karvi-v1`; an `ssh.transports.native`
+slot with one legal value; a ScrapliGo v2 behind `native`, which would be a
+transport with its own selector.
 
 **Platform admission is the native transport's table; every built-in is
 admitted.** The native transport lists what it admits by the definition's
@@ -1509,21 +1507,20 @@ serves a later connector with its own admission list; with every built-in's
 patterns compiled in and one session layer, nothing holds a built-in back.
 
 **The fake device is the engineering fixture.** One SSH server,
-`karvi-fake-device` (`internal/fakedevice`, renamed from the IOS XE fake in a
-section of its own), with two personas sharing its host keys, algorithms,
-keepalives, and recording. The IOS XE persona, the default, models what the
-session layer sees (prompts, enable, paging, confirm and value prompts, a slow
-command, a large one, silence, reload, configuration mode, a syntax error). The
-Linux persona (`-persona linux`) answers exec channels from a fixed table (the
-collection list; `fail N` on stderr with exit N; `both` on each stream; `big`
-and `bigerr` for the two spools; `slow`, ended by a `KILL` request and recorded
-as left running when its channel closes; `signal TERM`; `nostatus`; `whoami`
-and `id -u`, the login user's, uid 1000; an unknown command `sh: 1: NAME: not
-found`, exit 127) and a `sudo` before any of them: every root command run as
-under `NOPASSWD`, or under `-sudo-asks` a password wanted (`-enable`, else the
-login password), `sudo -n` refused and `sudo -S` prompting on stderr, in
-classic `sudo`'s words or, under `-sudo-rs`, sudo-rs's, by the bytes both write
-on Ubuntu 26.04 ([`docs/EXAMPLES.md`, chapter
+`karvi-fake-device` (`internal/fakedevice`), with two personas sharing its host
+keys, algorithms, keepalives, and recording. The IOS XE persona, the default,
+models what the session layer sees (prompts, enable, paging, confirm and value
+prompts, a slow command, a large one, silence, reload, configuration mode, a
+syntax error). The Linux persona (`-persona linux`) answers exec channels from a
+fixed table (the collection list; `fail N` on stderr with exit N; `both` on each
+stream; `big` and `bigerr` for the two spools; `slow`, ended by a `KILL` request
+and recorded as left running when its channel closes; `signal TERM`; `nostatus`;
+`whoami` and `id -u`, the login user's, uid 1000; an unknown command `sh: 1:
+NAME: not found`, exit 127) and a `sudo` before any of them: every root command
+run as under `NOPASSWD`, or under `-sudo-asks` a password wanted (`-enable`,
+else the login password), `sudo -n` refused and `sudo -S` prompting on stderr,
+in classic `sudo`'s words or, under `-sudo-rs`, sudo-rs's, by the bytes both
+write on Ubuntu 26.04 ([`docs/EXAMPLES.md`, chapter
 96](EXAMPLES.md#96-root-commands-on-the-exec-channel-2026-11-04)); it sends a
 command's status or signal before its end of output (OpenSSH's client closes a
 channel as soon as its output ends, and x/crypto answers that close at once
@@ -1581,10 +1578,10 @@ connection is 255 as well); the fake changed now.
 transport translates the one enum into its own options. Failures are per
 device, not per run. A site locks the key in the global configuration where
 weakening is not allowed; the global file is the only place a lock may be
-declared. *Why:* separate system and native settings caused policy drift; the
-three approaches serve organisations with different risk tolerances behind a
-safe default that cannot be weakened silently. *Not taken:* aliases `auto` and
-`default` (removed outright).
+declared. *Why:* separate system and native settings drift apart; the three
+approaches serve organisations with different risk tolerances behind a safe
+default that cannot be weakened silently. *Not taken:* a second name for a
+policy, such as `auto` or `default`.
 
 **What a policy accepts unchecked is said on every path.** Under `accept-new`
 a session that stores a key, unknown until then, is the notice
@@ -1643,15 +1640,13 @@ not make: a wrong mode halts `accept-new` and `secure` with the remedy in the
 message. *Why:* the store is the operator's private state and lives with the
 rest of it, so in shared mode the site sees, backs up, and for `secure`
 provisions every operator's store under `users`, and the home holds nothing of
-karvi's but the configuration; `accept-new` used to repair a 0644 store
-silently while `insecure` under an explicit path refused it, so the paths
-disagreed; a legacy `~/karvi` candidate once won the chain by accident and
-split the operator's state. *Not taken:* repairing with a warning; a shared
-trust store (the owner checks refuse one); the home under `auto` whatever
-`basedir` is, which left the store alone in the home on a shared host; a
-`<user>` placeholder in the key, which would leave each site to write the rule
-`basedir` already applies; a refusal or a move for a store left in the home by
-an earlier release (the operator re-enrolls under `accept-new`).
+karvi's but the configuration; a store one path repairs in silence and another
+refuses makes the paths disagree; a chain of the store's own beside `basedir`'s
+can pick another place by accident and split the operator's state. *Not
+taken:* repairing with a warning; a shared trust store (the owner checks refuse
+one); the home under `auto` whatever `basedir` is, which leaves the store alone
+in the home on a shared host; a `<user>` placeholder in the key, which would
+leave each site to write the rule `basedir` already applies.
 
 **`config show --explain` names the resolved path of every place.** Every key
 whose value is a place karvi writes or reads has a `resolved: PATH` line, the
@@ -1679,14 +1674,14 @@ encodes the full view alone, the values as TOML lines or a JSON object; beside
 keys or `--explain`, whose view is text, it is refused,
 `config_show_format_conflict`. The whole table is a recipe over it
 ([`docs/FILES.md`](FILES.md)). A controlled enrollment takes the store's path
-from the line. *Why:* under `auto` a place depends on what the host holds, and
-the view printed none but two, so the two modes looked alike and a literal
-default named a place the activity did not use; a key the view could not show
-was an `error: not found` block, exit 0, so a script took a misspelt key for one
-shown ([`docs/EXAMPLES.md`, chapter
-83](EXAMPLES.md#83-config-show-refuses-a-key-it-cannot-show-2026-10-27)), and
-`--format json` beside a key printed text a JSON reader could not read
+from the line. *Why:* under `auto` a place depends on what the host holds, so a
+view of the values alone makes the two modes look alike, and a literal default
+names a place the activity may not use; a key the view cannot show, answered
+with exit 0, lets a script take a misspelt key for one shown
 ([`docs/EXAMPLES.md`, chapter
+83](EXAMPLES.md#83-config-show-refuses-a-key-it-cannot-show-2026-10-27)), and
+text printed for `--format json` beside a key is output a JSON reader cannot
+read ([`docs/EXAMPLES.md`, chapter
 84](EXAMPLES.md#84-config-show-refuses---format-beside-keys-2026-10-27)). *Not
 taken:* a new command word or option for paths; the rule repeated in shell in
 each site's scripts; a probe file written by the view (it moves the shared
@@ -1719,8 +1714,8 @@ the operator configured, which is itself the record of the exception. Each
 transport offers the names it implements, in the configured order, and a list
 with none is refused before connecting. *Why:* the operator's order, and the
 exception's record in configuration rather than a per-device audit field.
-*Not taken:* the removed `ssh.legacy-hosts` classes with fixed algorithm
-blocks; a `crypto_exception` field on every record.
+*Not taken:* fixed classes of legacy hosts, each with its own algorithm block;
+a `crypto_exception` field on every record.
 
 **A device's key exchange, cipher, and MAC lists may be its transport's own.**
 `ssh-algorithms.source` is `karvi` (alias `auto`), the lists above, or
@@ -2134,16 +2129,15 @@ manifest names it once a job).
 **The client judges the daemon; the daemon checks nothing of the client's.**
 Whether a daemon is acceptable is the client's judgment alone: the daemon takes
 a job from a client of any version or build. The client reports neither its
-version nor its build: a request carries no `client_version` or `client_pid`
-(IPC schema 12), and the job header's `client` holds the client's pid and
-hostname alone (execution plan 13). The daemon reports its own, and the prepare
-answer's `daemon` block names its `build` and `commit`, so a client that finds
-the preparing daemon unacceptable, one replaced between the probe and the
-request, abandons the preparation before any credential is sent and runs its
-sequence once more; a second such answer is refused, `daemon_incompatible`.
-*Why:* a later client may accept a daemon of another build without the daemon
-changing, and the moment between the probe and the submission is closed.
-*Not taken:* the daemon checking the client's build; the moment left open.
+version nor its build, and the job header's `client` holds the client's pid and
+hostname alone. The daemon reports its own, and the prepare answer's `daemon`
+block names its `build` and `commit`, so a client that finds the preparing
+daemon unacceptable, one replaced between the probe and the request, abandons
+the preparation before any credential is sent and runs its sequence once more; a
+second such answer is refused, `daemon_incompatible`. *Why:* a later client may
+accept a daemon of another build without the daemon changing, and the moment
+between the probe and the submission is closed. *Not taken:* the daemon checking
+the client's build; the moment left open.
 
 ## 8. Rehearsal, follow, cancel, and the daemon's lifecycle
 
@@ -2730,10 +2724,11 @@ message alone still links each line; a digest answers only someone who guesses
 it; the audit is read more widely than a job's folder (the journal's readers,
 syslog, and whatever it forwards to), and a statement can carry a secret in
 clear; a device's events masked by its own platform's list alone would leave
-in clear what another platform's list hides. *Not taken:* `command_completed`
-with no mode, and the past-tense names; `KARVI_ACTIVITY_ID` as the link;
-journald's `_UID` alone (a host's number); the digests beside the statements;
-each device's events masked by its own list ([`docs/EXAMPLES.md`, chapter
+in clear what another platform's list hides. *Not taken:* an event named
+without its kind, or in the past tense; one activity ID for jobs and logins
+alike as the link; journald's `_UID` alone (a host's number); the digests beside
+the statements; each device's events masked by its own list
+([`docs/EXAMPLES.md`, chapter
 63](EXAMPLES.md#63-the-audit-trails-names-and-fields-2026-10-17)).
 
 **A sink that is not required only warns, and an event of any size reaches
@@ -3013,7 +3008,7 @@ told. Twelve colour roles under a dark and a light theme, `display.theme`
 `auto` resolved by the terminal, `karvi config colors` showing each role in its
 colour under both themes. *Why:* one display mechanism rather than parallel
 banner switches; a site that wants another mark writes its templates. *Not
-taken:* `--command-headers`; a key for the prefix.
+taken:* a header option of its own beside `--quiet`; a key for the prefix.
 
 **Every run ends with the footer; jsonl ends with the summary document.** Text
 mode ends with `display.run.footer` on every run path, rendered from the job's
@@ -3788,26 +3783,28 @@ it; only the scoreboards and the ledger refused to make a missing parent.
 it); a fallback for such an explicit path (an explicit value replaces its
 chain).
 
-**One rule for `~` and a relative path.** In every place key and every file
-key, `~` and `~/…` are the operator's home from the password database,
-`~user` is refused, and a relative path is taken from the invoking client's
-working directory and made absolute. *Why:* four rules had grown: the audit
-file took `$HOME`, a relative trust store the home, the scoreboards and the
-ledger ignored `~` without a word, and `daemon.socket` broke on any value but
-an absolute path. *Not taken:* refusing a relative path (`--cd ./out` uses
-one); a path relative to the file that sets it (a `--set` has no file).
+**One rule for `~` and a relative path.** In every place key and every file key,
+`~` and `~/…` are the operator's home from the password database, `~user` is
+refused, and a relative path is taken from the invoking client's working
+directory and made absolute. *Why:* a path names one place whichever key holds
+it, and a rule per key reads one path several ways: `~` as `$HOME` in one and as
+the home in another, a relative path taken from the home, `~` kept as written
+without a word, a value that is not absolute failing. *Not taken:* refusing a
+relative path (`--cd ./out` uses one); a path relative to the file that sets it
+(a `--set` has no file).
 
 **The scoreboards are one place, read where they are written.** `scoreboards`
 (`auto`: `/dev/shm/karvi/scoreboards` where the scratch root exists, else
 `<basedir>/state/scoreboards`) is where every activity writes its file;
 `sessions.shared-capacity-root` takes `auto` by the same shape. `karvi watch`
-makes nothing and reads every place of the chain that exists, the shared
-folder and the operator's private fallback, one row per job. *Why:* the key
-was `watch.directory`, a literal path, while the writers, the folders, and
-`karvi-prune --scoreboards` said scoreboards; `watch` made the private root
-and, with the shared folder closed, did not show the operator's own jobs
-written to the fallback. *Not taken:* `watch` reading the first usable place
-alone, or the fallback alone (it loses the team's view).
+makes nothing and reads every place of the chain that exists, the shared folder
+and the operator's private fallback, one row per job. *Why:* the key is named by
+the word the writers, the folders, and `karvi-prune --scoreboards` use, and
+takes `auto`, a chain, where a literal path names one place; a `watch` that made
+the private root would create state by reading, and one that read one place
+would, with the shared folder closed, miss the operator's own jobs written to
+the fallback. *Not taken:* `watch` reading the first usable place alone, or the
+fallback alone (it loses the team's view).
 
 **Login transcripts record the device stream only.** `--record` writes
 `<device>-<HHMMSS>.log` and its metadata side by side in a day folder of
@@ -4006,11 +4003,11 @@ holds the generated reference and the development overlay. A section is active
 where its value is karvi's default or the example set needs it, and commented
 where it is a shape a site adds; what a guide holds stays in the guide. Every
 pointer, `reference.toml`'s, `config generate`'s, and the guides', names it.
-*Why:* `configs/example.toml` beside it had drifted (its transports under a
-stale comment, a policy without the csv backend), so that the set's own dry
-run could not plan under it (executed). *Not taken:* both kept, one pointing at
-the other; everything active (a copied example would change what every IOS XE
-device is sent); the CSV's rules repeated in the file.
+*Why:* a second example beside it drifts from karvi (a stale comment, a policy
+missing a backend the set uses), and the set's own dry run can stop planning
+under it. *Not taken:* a second example pointing at the first; everything active
+(a copied example would change what every IOS XE device is sent); the CSV's
+rules repeated in the file.
 
 **Every documented range is enforced by one loop.** A row carries `Min`,
 `Max`, and `ZeroDisables`; one loop applies them to every bounded row after
@@ -4024,26 +4021,22 @@ option that stands for one configuration key is applied as an override of the
 key in the lock-aware options layer of the invocation's read, so the key's type,
 range, cross-key checks, and lock apply to it as to `--set`: `--order`,
 `--blind-wait`, `--ssh-host-key-policy`, `--ssh-known-hosts-file`, `--ping` and
-`--noping`, `--4` and `--6`, `--of` and `--nof`, and `--cd` as before, and
-`run`'s Dispatch options with them: `--dispatch` and `--dp`, `--dw`, `--ds`
-(`dispatch.default`), `--workers` (`dispatch.parallel-workers`), `--start-width`
-and `--max-width` (`dispatch.wave-start-width`, `dispatch.wave-max-width`), the
-two halts and the two wave gates (`dispatch.halt-on-error-*`,
-`dispatch.wave-gate-error-*`), and `--wave-delay`
-(`dispatch.wave-gate-timed-delay`). A locked key refuses its option
-(`config_lock_violation`), an out-of-range value is the key's own error, and the
-planner reads the keys alone; the plan's dispatch block is unchanged. The
-command line's own dispatch checks, `dispatch_value_negative` and
-`dispatch_percent_out_of_range`, are retired to `config_value_out_of_range`.
-`--address-authority` is not one: it names a device's authority, above the
-inventory row, and `name.default-address-authority` is the default beneath both.
-*Why:* the Dispatch options went to the planner beside the configuration, so a
-site's lock on any of the nine lock-eligible keys was passed by the option
-(`--max-width 64` planned under a lock of 8; `--wave-delay 5m` under a lock of
-`0s`), and values the keys refuse were clamped without a word or reached the
-plan's validation. *Not taken:* the command line checking each range itself (a
-second copy of the registry's ranges, the locks still passed); clamping with a
-notice; `--dispatch` outside the rule.
+`--noping`, `--4` and `--6`, `--of` and `--nof`, `--cd`, and `run`'s Dispatch
+options with them: `--dispatch` and `--dp`, `--dw`, `--ds` (`dispatch.default`),
+`--workers` (`dispatch.parallel-workers`), `--start-width` and `--max-width`
+(`dispatch.wave-start-width`, `dispatch.wave-max-width`), the two halts and the
+two wave gates (`dispatch.halt-on-error-*`, `dispatch.wave-gate-error-*`), and
+`--wave-delay` (`dispatch.wave-gate-timed-delay`). A locked key refuses its
+option (`config_lock_violation`), an out-of-range value is the key's own error,
+and the planner reads the keys alone. `--address-authority` is not one: it names
+a device's authority, above the inventory row, and
+`name.default-address-authority` is the default beneath both. *Why:* an option
+handed to the planner beside the configuration would pass a site's lock on any
+of the nine lock-eligible keys (`--max-width 64` planned under a lock of 8;
+`--wave-delay 5m` under a lock of `0s`), and a value the key refuses would be
+clamped without a word or reach the plan's validation. *Not taken:* the command
+line checking each range itself (a second copy of the registry's ranges, the
+locks still passed); clamping with a notice; `--dispatch` outside the rule.
 
 **A locked key takes its macros from the global configuration.** A locked
 key's value takes no macro whose winning definition comes from a layer below
@@ -4290,15 +4283,16 @@ vendored dependency, left to the HTML documents); generating the whole page.
 `flagspec.Spec` holds each flag's completion words, whether it takes a path,
 and, for a value that is neither, its name (`days` `N`, `minfree` `PERCENT`);
 the placeholder is the words joined with `|` and `|PATH`, or the name, none for
-a switch; and its `Order` is the synopsis's order. The synopsis (`Usage`, pinned
-to the former constant), `-h` (`Help`, double dash, the placeholder, the usage
-string, an unquoted default; replacing Go's `PrintDefaults`), the man page's
+a switch; and its `Order` is the synopsis's order. The synopsis (`Usage`, its
+line pinned by a test), `-h` (`Help`, double dash, the placeholder, the usage
+string, an unquoted default; in place of Go's `PrintDefaults`), the man page's
 OPTIONS, and Tab all read them, through `internal/flagspec`; tests hold the
-order and the table to the defined flags. *Why:* the synopsis said `auto|PATH`, `N`, and `PERCENT`
-where `-h` said `string`, `int`, and `float` with one dash, and a page
-generated from the flag set alone would have said the latter. *Not taken:* Go's
-backquoted value names in the usage strings; parsing the hand-written
-synopsis; alphabetical order.
+order and the table to the defined flags. *Why:* a synopsis written by hand and
+Go's `-h` drawn from the flag set say different things (`auto|PATH`, `N`, and
+`PERCENT` against `string`, `int`, and `float` with one dash), and a page
+generated from the flag set alone would say the latter. *Not taken:* Go's
+backquoted value names in the usage strings; parsing the hand-written synopsis;
+alphabetical order.
 
 **The page is the terminal reference; the guide stays the guide.**
 `karvi-prune.8` states in full what an operator needs at the shell: NAME,
@@ -4533,8 +4527,8 @@ meets a dead link, and the tool's own rewriting is checked with the documents.
 the rest the text unchanged; README's License section links to it and
 [`NOTICE.md`](../NOTICE.md) names it. *Why:* the site carries the licence like
 any document, GitHub reads `LICENSE.md` as the repository's licence, and one
-copy cannot drift from another. *Not taken:* a `LICENSE.md` beside `LICENSE`; a
-converter exception for a file without a heading.
+copy cannot drift from another. *Not taken:* a plain-text `LICENSE` beside it;
+a converter exception for a file without a heading.
 
 **One document indexes every place karvi uses.** [`docs/FILES.md`](FILES.md)
 lists each directory and file karvi reads or writes, in shared and in
