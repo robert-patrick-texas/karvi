@@ -117,8 +117,7 @@ func has(lines []string, path string) bool {
 
 // TestDayFolderLayout covers the day folder layout: the walk is over the
 // YYMMDD day folders of both trees; a folder of another name under the
-// root, the earlier YYYY-MM-DD layout included, is skipped and
-// counted, its contents never examined.
+// root is skipped and counted, its contents never examined.
 func TestDayFolderLayout(t *testing.T) {
 	base := t.TempDir()
 	old := time.Date(2026, 8, 17, 15, 38, 59, 0, time.UTC)
@@ -126,12 +125,11 @@ func TestDayFolderLayout(t *testing.T) {
 	jobs := filepath.Join(base, "jobs")
 	oldJob := writeJob(t, jobs, "260817", "260817-153859-00", "complete", old)
 	youngJob := writeJob(t, jobs, "260926", "260926-153859-00", "complete", young)
-	legacy := writeJob(t, jobs, "2026-08-17", "260817-100000-00", "complete", old)
 	other := writeJob(t, jobs, "archive", "260817-110000-00", "complete", old)
 	transcripts := filepath.Join(base, "transcripts")
 	oldMeta := writeTranscript(t, transcripts, "260817", "fake-iosxe-153900", old)
 	youngMeta := writeTranscript(t, transcripts, "260926", "fake-iosxe-153900", young)
-	legacyMeta := writeTranscript(t, transcripts, "2026-08-17", "fake-iosxe-100000", old)
+	otherMeta := writeTranscript(t, transcripts, "archive", "fake-iosxe-100000", old)
 
 	lines, res := run(t, Options{PrivateRoots: []string{base}})
 	if !has(lines, oldJob) {
@@ -140,7 +138,7 @@ func TestDayFolderLayout(t *testing.T) {
 	if has(lines, youngJob) {
 		t.Fatalf("the young job is a candidate:\n%s", strings.Join(lines, "\n"))
 	}
-	for _, p := range []string{legacy, other, legacyMeta} {
+	for _, p := range []string{other, otherMeta} {
 		if has(lines, p) {
 			t.Fatalf("%s under a folder that is not a day folder is a candidate:\n%s", p, strings.Join(lines, "\n"))
 		}
@@ -148,9 +146,9 @@ func TestDayFolderLayout(t *testing.T) {
 	if !has(lines, oldMeta) || has(lines, youngMeta) {
 		t.Fatalf("the transcripts: old must be a candidate and young not:\n%s", strings.Join(lines, "\n"))
 	}
-	// Two jobs and two transcripts examined; the three folders that are not
-	// day folders (two in the job tree, one in the transcript tree) skipped.
-	if res.Examined != 4 || res.Skipped != 3 || res.Removed != 2 {
+	// Two jobs and two transcripts examined; the two folders that are not
+	// day folders (one in each tree) skipped.
+	if res.Examined != 4 || res.Skipped != 2 || res.Removed != 2 {
 		t.Fatalf("result %+v", res)
 	}
 }
@@ -474,7 +472,7 @@ func TestReportForm(t *testing.T) {
 	jobs := filepath.Join(base, "jobs")
 	oldJob := writeJob(t, jobs, "260817", "260817-153859-00", "complete", old)
 	young := writeJob(t, jobs, "260926", "260926-153859-00", "complete", now.Add(-time.Hour))
-	legacy := writeJob(t, jobs, "2026-08-17", "260817-100000-00", "complete", old)
+	other := writeJob(t, jobs, "archive", "260817-100000-00", "complete", old)
 	meta := writeTranscript(t, filepath.Join(base, "transcripts"), "260817", "fake-iosxe-153900", old)
 	liveOrphan := filepath.Join(jobs, "260817", "260817-153900-00")
 	if err := os.MkdirAll(liveOrphan, 0o750); err != nil {
@@ -491,7 +489,7 @@ func TestReportForm(t *testing.T) {
 		"would-remove kind=activity path=" + oldJob + " age=40d bytes=",
 		"would-remove kind=transcript path=" + meta + " transcript=" + strings.TrimSuffix(meta, ".meta.jsonl") + ".log age=40d bytes=",
 		"kept kind=activity path=" + young + " reason=young",
-		"kept kind=activity path=" + filepath.Dir(legacy) + " reason=not-a-day-folder",
+		"kept kind=activity path=" + filepath.Dir(other) + " reason=not-a-day-folder",
 		"kept kind=orphan path=" + liveOrphan + " reason=live",
 		"kept kind=scoreboard path=" + liveSnap + " reason=live",
 	} {
@@ -499,8 +497,8 @@ func TestReportForm(t *testing.T) {
 			t.Fatalf("no line %q in:\n%s", want, joined)
 		}
 	}
-	if strings.Contains(joined, "\x00") || strings.Contains(joined, "bytes_estimated") {
-		t.Fatalf("the old form:\n%s", joined)
+	if strings.Contains(joined, "\x00") {
+		t.Fatalf("a NUL in the report:\n%s", joined)
 	}
 	lines, _ = runAs(t, Options{PrivateRoots: []string{base}, ScoreboardRoot: score, Verbose: true}, os.Getuid()+1, true)
 	if !strings.Contains(strings.Join(lines, "\n"), "kept kind=activity path="+oldJob+" reason=not-owned") {

@@ -139,13 +139,12 @@ absent 'VISIBLE-RUN-BORDER' "$TMP/run-noborder.out"
 
 # run --no-daemon is displayed as command is: rendered from memory as the
 # records arrive and ended by the footer (display.run.footer, the command
-# footer's default), nothing on standard error (28.4: the result line is
-# gone); nothing is read back from commands.jsonl. The footer is the
-# display's last line, once; a site's template is used; an empty one
-# disables it.
+# footer's default), no result line on standard error; nothing is read back
+# from commands.jsonl. The footer is the display's last line, once; a site's
+# template is used; an empty one disables it.
 [ "$(tail -n 1 "$TMP/run-border.out" | grep -Ec '^! exit=0 elapsed=[^ ]+ artifacts=.+$')" -eq 1 ]
 [ "$(grep -c ' artifacts=' "$TMP/run-border.out")" -eq 1 ]
-[ "$(grep -Ec 'exit=ExitSuccess\(0\) artifacts=' "$TMP/run-border.err")" -eq 0 ]
+[ "$(grep -c ' artifacts=' "$TMP/run-border.err")" -eq 0 ]
 # shellcheck disable=SC2046
 HOME="$HOME_DIR" NETUSER=svc.quinlan NETPASS=test "$KARVI" $(common_args) \
   --set 'display.run.footer="RUN-FOOTER <exit-status>"' \

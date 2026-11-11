@@ -203,7 +203,7 @@ func TestValidationVectors(t *testing.T) {
 		{"reserved attribute", func(x *ExecutionTarget) { x.Device.Attributes["karvi_x"] = "1" }, Draft, "device.attributes"},
 		{"remote endpoint", func(x *ExecutionTarget) { x.ExecutionEndpoint = "worker-7" }, Draft, "execution_endpoint"},
 		{"zero source digest", func(x *ExecutionTarget) { x.SourceDigest = Digest{} }, Draft, "source_digest"},
-		{"bad authority", func(x *ExecutionTarget) { x.AddressPlan.Authority = "executor" }, Draft, "address_plan.authority"},
+		{"bad authority", func(x *ExecutionTarget) { x.AddressPlan.Authority = "bogus" }, Draft, "address_plan.authority"},
 		{"bad family", func(x *ExecutionTarget) { x.AddressPlan.FamilyPreference = "any" }, Draft, "address_plan.family_preference"},
 		{"bad suffix action", func(x *ExecutionTarget) { x.AddressPlan.SuffixAction = "none" }, Draft, "address_plan.suffix_action"},
 		{"nil alternates", func(x *ExecutionTarget) { x.AddressPlan.Alternates = nil }, Draft, "address_plan.alternates"},

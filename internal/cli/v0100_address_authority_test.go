@@ -34,8 +34,8 @@ func TestV0100AddressAuthorityOptions(t *testing.T) {
 		code string
 		exit int
 	}{
-		{[]string{"command", "--address-authority", "executor", "r1", "show", "clock"}, "cli_option_value_invalid", exitcode.ExitUsageError},
-		{[]string{"run", "--no-daemon", "--target", "127.0.0.1", "--address-authority", "127.0.0.1=executor", "show", "clock"}, "cli_option_value_invalid", exitcode.ExitUsageError},
+		{[]string{"command", "--address-authority", "bogus", "r1", "show", "clock"}, "cli_option_value_invalid", exitcode.ExitUsageError},
+		{[]string{"run", "--no-daemon", "--target", "127.0.0.1", "--address-authority", "127.0.0.1=bogus", "show", "clock"}, "cli_option_value_invalid", exitcode.ExitUsageError},
 		{[]string{"run", "--no-daemon", "--target", "127.0.0.1", "--address-authority", "daemon", "show", "clock"}, "cli_option_value_invalid", exitcode.ExitUsageError},
 		{[]string{"run", "--no-daemon", "--target", "127.0.0.1", "--address-authority", "ghost=daemon", "show", "clock"}, "address_authority_target_unknown", exitcode.ExitUsageError},
 		{[]string{"run", "--no-daemon", "--target", "127.0.0.1", "--address-authority", "127.0.0.1=daemon", "show", "clock"}, "daemon_resolution_not_allowed", exitcode.ExitPermissionError},

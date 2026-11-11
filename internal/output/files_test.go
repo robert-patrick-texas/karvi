@@ -38,9 +38,6 @@ func TestSkippedFilesFromTheKeys(t *testing.T) {
 	if got, want := SkippedFiles(load(all...), false), (FileSet{true, true, true, true, true, true, true, false}); got != want {
 		t.Fatalf("all seven off skip %+v, not every file but the summary", got)
 	}
-	if _, err := configload.Load(configload.Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{"output.files.summary-json=false"}}); err == nil {
-		t.Fatal("output.files.summary-json is still a key")
-	}
 	if got := SkippedFiles(load("output.persist-command=false"), false); got != AllFiles {
 		t.Fatalf("persist false skips %+v, not AllFiles", got)
 	}

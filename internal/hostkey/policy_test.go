@@ -19,10 +19,8 @@ func TestParseModes(t *testing.T) {
 			t.Fatalf("Parse(%q)=%q,%v want %q", input, got, err, want)
 		}
 	}
-	for _, removed := range []string{"auto", "default", "ask"} {
-		if _, err := Parse(removed); err == nil {
-			t.Fatalf("Parse(%q) accepted a removed or invalid mode", removed)
-		}
+	if _, err := Parse("ask"); err == nil {
+		t.Fatal(`Parse("ask") accepted an invalid mode`)
 	}
 }
 
@@ -90,13 +88,11 @@ func TestStorePath(t *testing.T) {
 	}
 }
 
-func TestResolveRejectsRemovedModes(t *testing.T) {
-	for _, removed := range []string{"auto", "default"} {
-		_, err := Resolve(removed, "auto", t.TempDir(), t.TempDir())
-		var hostErr *Error
-		if !errors.As(err, &hostErr) || hostErr.Code != "host_key_policy_invalid" {
-			t.Fatalf("Resolve(%q) expected host_key_policy_invalid, got %v", removed, err)
-		}
+func TestResolveRejectsAnInvalidMode(t *testing.T) {
+	_, err := Resolve("bogus", "auto", t.TempDir(), t.TempDir())
+	var hostErr *Error
+	if !errors.As(err, &hostErr) || hostErr.Code != "host_key_policy_invalid" {
+		t.Fatalf(`Resolve("bogus") expected host_key_policy_invalid, got %v`, err)
 	}
 }
 

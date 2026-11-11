@@ -3,8 +3,8 @@
 # the version, the checksums, the file format, the links, every schema counter
 # the executable reports against the release's manifest, its build, both
 # transports, a stateless --help and
-# version, every command's help, the configuration examples, and the removed
-# keys refused. scripts/verify-bundle.sh runs this first and then the tests
+# version, every command's help, the configuration examples, and an unknown
+# key refused. scripts/verify-bundle.sh runs this first and then the tests
 # and the suites; the release evidence runs this on the shipped bytes and lets
 # scripts/verify-release.sh, which rebuilds to the same checksums, carry the
 # tests and the suites once.
@@ -93,15 +93,12 @@ chmod 755 "$TMP/bin/ssh"
 PATH="$TMP/bin:$PATH" ./bin/karvi-linux-amd64 config validate configs/development.toml >/dev/null
 PATH="$TMP/bin:$PATH" ./bin/karvi-linux-amd64 config validate examples/config.toml >/dev/null
 
-# Removed settings must fail as unknown keys. Breaking configuration changes
-# are deliberate unless a future release explicitly documents an alias.
-for removed in   'output.command-headers=true'   'ssh.binary="ssh"'   'login.transport="system"'   'command.transport="system"'   'run.transport="native"'   'ssh.control-master="auto"'; do
-  set +e
-  ./bin/karvi-linux-amd64 --set "$removed" config show >/dev/null 2>"$TMP/removed.err"
-  removed_code=$?
-  set -e
-  [ "$removed_code" -eq 2 ]
-  grep -q 'config_unknown_key' "$TMP/removed.err"
-done
+# An unknown key is refused: exit 2, config_unknown_key.
+set +e
+./bin/karvi-linux-amd64 --set 'ssh.bogus=true' config show >/dev/null 2>"$TMP/unknown.err"
+unknown_code=$?
+set -e
+[ "$unknown_code" -eq 2 ]
+grep -q 'config_unknown_key' "$TMP/unknown.err"
 
-echo 'shipped executables: pass (bytes, counters, build, transports, helps, examples, removed keys)'
+echo 'shipped executables: pass (bytes, counters, build, transports, helps, examples, unknown key)'

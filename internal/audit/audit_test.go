@@ -130,7 +130,7 @@ func TestLine(t *testing.T) {
 }
 
 // TestJournalEntry: the entry carries a field a match names whole only where
-// the event has its value; no activity ID.
+// the event has its value.
 func TestJournalEntry(t *testing.T) {
 	fields := func(r records.AuditRecord) map[string]string {
 		m := map[string]string{}
@@ -144,7 +144,7 @@ func TestJournalEntry(t *testing.T) {
 	if cmd["KARVI_EVENT_NAME"] != "run.command" || cmd["KARVI_OPERATOR"] != "netops" || cmd["KARVI_JOB_ID"] != "j" || cmd["KARVI_DEVICE"] != "core-rtr-1" || cmd["PRIORITY"] != "6" || cmd["SYSLOG_IDENTIFIER"] != "karvi" || cmd["KARVI_AUDIT_JSON"] != "{}" {
 		t.Errorf("command event: %v", cmd)
 	}
-	for _, absent := range []string{"KARVI_LOGINUSER", "KARVI_LOGIN_ID", "KARVI_ACTIVITY_ID"} {
+	for _, absent := range []string{"KARVI_LOGINUSER", "KARVI_LOGIN_ID"} {
 		if _, ok := cmd[absent]; ok {
 			t.Errorf("command event carries %s: %v", absent, cmd)
 		}

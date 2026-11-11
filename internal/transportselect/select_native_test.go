@@ -28,28 +28,25 @@ func TestNativeAndTelnetResolveDirectly(t *testing.T) {
 	}
 }
 
-// preferred and scrapligo-v1 are ordinary slot names, missing unless a slot
-// maps them.
-func TestRemovedSelectorsAreSlotNames(t *testing.T) {
+// Any other selector is an ordinary slot name, missing unless a slot maps
+// it.
+func TestOtherSelectorIsASlotName(t *testing.T) {
 	cfg := defaultConfig(t)
-	for _, selector := range []string{"preferred", "scrapligo-v1"} {
-		_, err := Resolve(cfg, "command", selector)
-		if errorcodes.Of(err) != "transport_mapping_missing" || !strings.Contains(err.Error(), "ssh.transports."+selector) {
-			t.Fatalf("%s: %v", selector, err)
-		}
+	_, err := Resolve(cfg, "command", "bogus")
+	if errorcodes.Of(err) != "transport_mapping_missing" || !strings.Contains(err.Error(), "ssh.transports.bogus") {
+		t.Fatalf("bogus: %v", err)
 	}
 }
 
-// An ssh.transports entry that cannot be used is refused at load: a custom
-// slot not exec:PATH, and a slot named for a built-in transport, whatever
-// its value. A custom slot mapped to default is refused when selected.
+// An ssh.transports entry that cannot be used is refused at load: a slot
+// named for a built-in transport, whatever its value (a custom slot not
+// exec:PATH: TestAlternateWithoutExecFailsConfigurationCheck). A custom slot
+// mapped to default is refused when selected.
 func TestMappingInvalidRefusedAtLoad(t *testing.T) {
 	for _, c := range []struct{ set, code, want string }{
 		{`ssh.transports.native="exec:/bin/true"`, "transport_mapping_invalid", "ssh.transports.native: native is a built-in transport, not a slot"},
 		{`ssh.transports.native="default"`, "transport_mapping_invalid", "ssh.transports.native: native is a built-in transport"},
 		{`ssh.transports.telnet="exec:/bin/true"`, "transport_mapping_invalid", "ssh.transports.telnet: telnet is a built-in transport"},
-		{`ssh.transports.alt="builtin:native"`, "transport_mapping_invalid", `ssh.transports.alt="builtin:native" is not exec:PATH`},
-		{`ssh.transports.alt="scrapligo-v1"`, "transport_mapping_invalid", `ssh.transports.alt="scrapligo-v1" is not exec:PATH`},
 	} {
 		cfg, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{c.set}})
 		if err != nil {

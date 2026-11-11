@@ -118,10 +118,11 @@ make deps            # optional on a connected host: download and verify
 `verify-release.sh` is the official build's gate. It asserts in source that
 the native transport carries karvi's host-key callback in its handshake and
 opens karvi's device session, and fails if its package references
-`ssh-keyscan`, `os/exec`, or the removed pre-scan; runs `go mod verify`, the
-tests, `go vet`, and the race run under `-mod=vendor`; builds the executable
-and checks its version, its build, and both transport IDs; runs every historical
-smoke suite; then runs the parity suite `scripts/native-smoke-test.sh`, which
+`ssh-keyscan`, `os/exec`, or the system transport's ssh-keyscan inspector
+`InspectRemote`; runs `go mod verify`, the tests, `go vet`, and the race run
+under `-mod=vendor`; builds the executable and checks its version, its build,
+and both transport IDs; runs every historical smoke suite; then runs
+the parity suite `scripts/native-smoke-test.sh`, which
 builds the fake device from the tree and runs every case as `command` and
 `run` over `system` and `native` with its own trust store, base directory, and
 `HOME`, comparing the records path by path (about a minute; no fake or daemon is

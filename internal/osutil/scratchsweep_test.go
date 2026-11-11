@@ -14,8 +14,8 @@ import (
 )
 
 // TestScratchFileOwner: a name made by ScratchFilePattern carries the
-// maker's pid; a name of another shape, an earlier release's without a pid
-// among them, is not karvi's to sweep.
+// maker's pid; a name of another shape, one without the pid field among
+// them, is not karvi's to sweep.
 func TestScratchFileOwner(t *testing.T) {
 	dir := t.TempDir()
 	for _, k := range scratchFileKinds {
@@ -37,8 +37,8 @@ func TestScratchFileOwner(t *testing.T) {
 }
 
 // TestAskpassSocketOwner: a name made by AskpassSocketName carries the
-// maker's pid; an earlier release's name without a pid, and a name of
-// another shape, are not karvi's to sweep.
+// maker's pid; a name without the pid field, and a name of another shape,
+// are not karvi's to sweep.
 func TestAskpassSocketOwner(t *testing.T) {
 	name := AskpassSocketName("0123456789abcdef")
 	if pid, ok := askpassSocketOwner(name); !ok || pid != os.Getpid() {
@@ -53,8 +53,8 @@ func TestAskpassSocketOwner(t *testing.T) {
 
 // TestSweepScratch: a scratch file and an askpass socket whose pid is not
 // alive as karvi are removed and reported; a file and a socket whose maker
-// lives, a name of another shape (an earlier release's socket among them),
-// and a directory are left.
+// lives, a name of another shape (a socket without the pid field among
+// them), and a directory are left.
 func TestSweepScratch(t *testing.T) {
 	const live = 4242
 	saved := scratchOwnerAlive

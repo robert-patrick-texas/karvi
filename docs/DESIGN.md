@@ -4184,7 +4184,7 @@ it and once shipped the wrong executable.
 **Verification runs the battery once per bytes.** The release verifier builds
 from source and runs the tests, the race detector, and every suite; the bundle
 verifier checks the shipped executables as bytes (checksums, counters,
-transports, help, removed keys) and then the same battery from the vendored
+transports, help, an unknown key) and then the same battery from the vendored
 tree; the suites are one list run in three lanes with separate work
 directories, sockets, and scoreboards, never touching the host's shared
 places. *Why:* the proof that two trees hold the same bytes is stronger than

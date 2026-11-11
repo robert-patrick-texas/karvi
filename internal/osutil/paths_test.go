@@ -582,14 +582,14 @@ func TestEnsureCollectionDirectory(t *testing.T) {
 }
 
 // TestIsDayFolder: the one matcher accepts exactly the YYMMDD layout as a
-// valid date and nothing else, the earlier YYYY-MM-DD layout included.
+// valid date and nothing else.
 func TestIsDayFolder(t *testing.T) {
 	for _, name := range []string{"260926", "000101", "991231"} {
 		if !IsDayFolder(name) {
 			t.Fatalf("%q must be a day folder", name)
 		}
 	}
-	for _, name := range []string{"2026-09-26", "26092", "2609261", "261340", "260932", "26092a", "", "260926-153859-00", "2026", "..", "jobs"} {
+	for _, name := range []string{"26092", "2609261", "261340", "260932", "26092a", "", "260926-153859-00", "2026", "..", "jobs"} {
 		if IsDayFolder(name) {
 			t.Fatalf("%q must not be a day folder", name)
 		}

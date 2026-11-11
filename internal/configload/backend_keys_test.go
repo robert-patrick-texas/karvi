@@ -10,8 +10,8 @@ import (
 
 // TestBackendKeysByType is EXAMPLES chapter 55, issues 6 and 7: each
 // credential backend type loads with every key it reads; a key its type does
-// not read is refused, naming the types that read it; the sqlite type is
-// refused as unsupported.
+// not read is refused, naming the types that read it; a type karvi does not
+// have is refused as unsupported.
 func TestBackendKeysByType(t *testing.T) {
 	load := func(sets ...string) error {
 		_, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: sets})
@@ -59,9 +59,9 @@ func TestBackendKeysByType(t *testing.T) {
 			t.Errorf("%v: %v, want %q for credential-backend.b.%s", tc.sets, err, tc.reason, tc.key)
 		}
 	}
-	err := load(b("sqlite")...)
+	err := load(b("bogus")...)
 	if got := errorcodes.Of(err); got != "config_credential_backend_type_unsupported" {
-		t.Errorf("sqlite: code %q (%v)", got, err)
+		t.Errorf("bogus: code %q (%v)", got, err)
 	}
 }
 

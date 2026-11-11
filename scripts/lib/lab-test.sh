@@ -107,12 +107,12 @@ case $1 in
     rc=0; fake_stop DONE_PID || rc=$?; echo "ended $rc [$DONE_PID]"
     rc=0; fake_stop 'x;y' 2>/dev/null || rc=$?; echo "bad name $rc" ;;
   absent)
-    printf 'one\n      --address string        Alias for --target\n' >"$W/f"
+    printf 'one\n      --bogus string          Some option\n' >"$W/f"
     case $2 in
       none) absent SECRET "$W/f" ;;
-      match) absent 'Alias for' "$W/f" ;;
-      dash) absent '--address .*Alias for --target' "$W/f" ;;
-      escape) absent 'Alias\b\1' "$W/missing" ;;
+      match) absent 'Some option' "$W/f" ;;
+      dash) absent '--bogus .*Some option' "$W/f" ;;
+      escape) absent 'Some\b\1' "$W/missing" ;;
       missing) absent SECRET "$W/missing" ;;
     esac
     echo "went on" ;;
@@ -211,11 +211,11 @@ for sh in sh bash; do
   fresh nosocket
   check "$sh absent, no match: returns" "0 went on|" "$(lab "$sh" absent none)|$(cat "$LAB_W/err")"
   fresh nosocket
-  check "$sh absent, a match: the script ends" "1 |$TMP/caller.sh: W/f must not match: Alias for" "$(lab "$sh" absent match)|$(sed "s|$LAB_W|W|" "$LAB_W/err")"
+  check "$sh absent, a match: the script ends" "1 |$TMP/caller.sh: W/f must not match: Some option" "$(lab "$sh" absent match)|$(sed "s|$LAB_W|W|" "$LAB_W/err")"
   fresh nosocket
-  check "$sh absent, a pattern that begins with --" "1 |$TMP/caller.sh: W/f must not match: --address .*Alias for --target" "$(lab "$sh" absent dash)|$(sed "s|$LAB_W|W|" "$LAB_W/err")"
+  check "$sh absent, a pattern that begins with --" "1 |$TMP/caller.sh: W/f must not match: --bogus .*Some option" "$(lab "$sh" absent dash)|$(sed "s|$LAB_W|W|" "$LAB_W/err")"
   fresh nosocket
-  check "$sh absent, a pattern with backslashes named as written" "1 |$TMP/caller.sh: cannot read W/missing, which must not match: Alias\\b\\1" "$(lab "$sh" absent escape)|$(sed "s|$LAB_W|W|" "$LAB_W/err")"
+  check "$sh absent, a pattern with backslashes named as written" "1 |$TMP/caller.sh: cannot read W/missing, which must not match: Some\\b\\1" "$(lab "$sh" absent escape)|$(sed "s|$LAB_W|W|" "$LAB_W/err")"
   fresh nosocket
   check "$sh absent, a file that cannot be read: the script ends" "1 |$TMP/caller.sh: cannot read W/missing, which must not match: SECRET" "$(lab "$sh" absent missing)|$(sed "s|$LAB_W|W|" "$LAB_W/err")"
   fresh nosocket

@@ -89,7 +89,7 @@ func TestV0100AlternatesAndAuthorityRefusals(t *testing.T) {
 	for _, tc := range []struct{ name, csv, code string }{
 		{"alternates without management", "name,addresses\nr1,10.0.0.2\n", "inventory_alternate_without_management"},
 		{"bad alternate", "name,management_address,addresses\nr1,10.0.0.1,not-an-ip\n", "inventory_alternate_address_invalid"},
-		{"bad authority", "name,address_authority\nr1,executor\n", "inventory_address_authority_invalid"},
+		{"bad authority", "name,address_authority\nr1,bogus\n", "inventory_address_authority_invalid"},
 	} {
 		_, err := loadCSV(t, tc.csv)
 		if errorcodes.Of(err) != tc.code {
@@ -97,7 +97,7 @@ func TestV0100AlternatesAndAuthorityRefusals(t *testing.T) {
 		}
 	}
 	// A bad source default is refused the same way.
-	if _, err := loadCSV(t, "name\nr1\n", `defaults.address-authority = "executor"`); errorcodes.Of(err) != "inventory_address_authority_invalid" {
+	if _, err := loadCSV(t, "name\nr1\n", `defaults.address-authority = "bogus"`); errorcodes.Of(err) != "inventory_address_authority_invalid" {
 		t.Errorf("bad default: %v", err)
 	}
 }

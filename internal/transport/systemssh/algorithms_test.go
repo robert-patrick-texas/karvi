@@ -66,9 +66,6 @@ func TestGeneratedConfigOffersTheDeviceListsTheBinaryImplements(t *testing.T) {
 			t.Fatalf("want %q in:\n%s", want, text)
 		}
 	}
-	if strings.Contains(text, "Host legacy") || strings.Contains(text, "PubkeyAcceptedAlgorithms") {
-		t.Fatalf("a legacy block remains:\n%s", text)
-	}
 
 	// A list the binary implements none of fails before any connection.
 	f = Factory{Binary: bin, Config: cfg, Home: home, BaseDir: filepath.Join(home, ".local", "share", "karvi"), ScratchDir: t.TempDir(), Algorithms: sshalgorithms.Apply(cfg.SSHAlgorithms(), map[string]any{"kex": []any{"mlkem768x25519-sha256"}})}

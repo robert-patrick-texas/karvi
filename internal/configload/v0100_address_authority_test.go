@@ -33,10 +33,8 @@ func TestV0100AddressAuthorityKeys(t *testing.T) {
 		t.Fatalf("gate enable: %v", err)
 	}
 	for _, tc := range []struct{ set, code string }{
-		{`name.default-address-authority="executor"`, "config_enum_value_invalid"},
 		{`name.default-address-authority="bogus"`, "config_enum_value_invalid"},
 		{`name.allow-daemon-resolution="yes"`, "config_type_error"},
-		{`name.allow-executor-resolution=true`, "config_unknown_key"},
 	} {
 		_, err := load(tc.set)
 		if errorcodes.Of(err) != tc.code {

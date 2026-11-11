@@ -134,9 +134,6 @@ Rows the script does not run, and how they are done:
 - **Cancellation at the device**: during D9's `BIG_COMMAND` press Ctrl-C
   in a hand-run `karvi command`, then run `ROWS=D14`: the vty line must be
   free.
-- **An entry left from an earlier release for a non-22 port**: only where
-  `PORT` is not 22; write `ADDRESS ssh-ed25519 KEY` (the old form) into a
-  scratch store and run D7 d's command: `host_key_not_enrolled`.
 - **D15, how a login ends.** Whether the device sends an exit status when
   a session ends with `exit`, and what `karvi login` makes of it. `login` is
   interactive and runs on the system transport alone, and the script drives

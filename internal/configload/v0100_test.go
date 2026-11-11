@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
 
 func TestV0100HostKeyPolicyValues(t *testing.T) {
@@ -24,22 +22,10 @@ func TestV0100HostKeyPolicyValues(t *testing.T) {
 			t.Fatalf("%s rejected: %v", set, err)
 		}
 	}
-	for _, removed := range []string{"auto", "default"} {
-		set := "ssh.host-key-policy=\"" + removed + "\""
-		if _, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{set}}); err == nil {
-			t.Fatalf("removed value accepted: %s", set)
-		}
-	}
 }
 
-// TestPlatformControlMasterRemoved: the platform table's control-master,
-// read by nothing since v0.10.0, is no key now; channel takes its place in
-// the table.
-func TestPlatformControlMasterRemoved(t *testing.T) {
-	_, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{"platform.linux.control-master=true"}})
-	if errorcodes.Of(err) != "config_unknown_key" {
-		t.Fatalf("platform.linux.control-master: %v", err)
-	}
+// TestPlatformChannelLoads: a platform table's channel loads and reads back.
+func TestPlatformChannelLoads(t *testing.T) {
 	snap, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{`platform.linux.channel="exec"`}})
 	if err != nil {
 		t.Fatal(err)

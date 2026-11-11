@@ -68,13 +68,13 @@ func TestAlternateWithoutExecFailsConfigurationCheck(t *testing.T) {
 	cfg, err := configload.Load(configload.Options{
 		InternalOnly: true,
 		Environment:  []string{},
-		Sets:         []string{`ssh.transports.alternate1="scrapligo-v2"`},
+		Sets:         []string{`ssh.transports.alternate1="bogus"`},
 	})
 	if err != nil {
 		t.Fatalf("load config: %v", err)
 	}
 	err = ValidateConfigured(cfg)
-	if errorcodes.Of(err) != "transport_mapping_invalid" || !strings.Contains(err.Error(), "alternate1") || !strings.Contains(err.Error(), "scrapligo-v2") {
+	if errorcodes.Of(err) != "transport_mapping_invalid" || !strings.Contains(err.Error(), `ssh.transports.alternate1="bogus" is not exec:PATH`) {
 		t.Fatalf("expected alternate mapping error, got %v", err)
 	}
 }

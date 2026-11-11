@@ -16,16 +16,16 @@ rebuilding them: identity and checksums, static Linux binaries, the build
 `karvi version` names (20 characters, never `none`), both transports in
 `version`, stateless help/version behavior, script syntax, `gofmt` over the Go
 source outside `vendor/`, the unit tests and vet in vendor mode, deterministic
-generated files, the example configurations, removed-key rejection, and every
+generated files, the example configurations, an unknown key refused, and every
 historical smoke suite through `v090-smoke-test.sh`, plus the k03 parser suite,
 the daemon-upgrade smoke suite, the v0100 suite `scripts/v0100-smoke-test.sh`,
 the canary suite `scripts/canary-smoke-test.sh`, and the parity suite
 `scripts/native-smoke-test.sh`.
 
-`verify-release.sh` builds from source: the import boundary and host-key
-assertions on the adapter, `gofmt`, `go mod verify`, the tests, vet, and the
-race detector in vendor mode, the build, its module metadata, version, and
-build, and the same smoke suites; then the tree's package, which
+`verify-release.sh` builds from source: the native transport's source
+assertions (host key, device session, no subprocess), `gofmt`, `go mod
+verify`, the tests, vet, and the race detector in vendor mode, the build, its
+version and build, and the same smoke suites; then the tree's package, which
 `scripts/check-deb.sh` checks against the tree and
 `scripts/sysutil-smoke-test.sh` tests as root in an Ubuntu 26.04 container
 under Docker (`karvi-sysutil`, the template unit, the maintainer scripts, the
@@ -219,8 +219,8 @@ make deps            # optional on a connected host: download and verify
   karvi's device session, and run no subprocess: the verifier asserts
   `HostKeyCallback` and `hostkey.Verify` in `internal/transport/native/dial.go`
   and `devsession.Open` in its `native.go`, and fails if the package
-  references `ssh-keyscan`, `os/exec`, or the removed pre-scan
-  (`PrepareNative`, `InspectRemote`).
+  references `ssh-keyscan`, `os/exec`, or the system transport's ssh-keyscan
+  inspector `InspectRemote`.
 - The tests, `go vet`, and the race run MUST pass under `-mod=vendor`.
 - `karvi version --format json` MUST report both transport IDs, the text
   form's transport line checked verbatim, and the shipped executable the

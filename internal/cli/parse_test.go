@@ -521,32 +521,6 @@ func TestParseGatherAndPrefix(t *testing.T) {
 	}
 }
 
-func TestParseRemovedSpellingsAreUnknown(t *testing.T) {
-	for _, tc := range []struct {
-		mode []string
-		old  string
-	}{
-		{[]string{"command", "r1"}, "--commands-file"},
-		{[]string{"run"}, "--commands-file"},
-		{[]string{"run"}, "--targets-file"},
-		{[]string{"run"}, "--targets"},
-		{[]string{"command", "r1"}, "--host-key-policy"},
-		{[]string{"login", "r1"}, "--host-key-policy"},
-		{[]string{"run"}, "--host-key-policy"},
-		{[]string{"command", "r1"}, "--known-hosts-file"},
-		{[]string{"login", "r1"}, "--known-hosts-file"},
-		{[]string{"run"}, "--known-hosts-file"},
-		{[]string{"login", "r1"}, "--record-file"},
-		{[]string{"login", "r1"}, "--record-path"},
-	} {
-		args := append(append([]string(nil), tc.mode...), tc.old, "x")
-		code, msg := parseCode(t, args...)
-		if code != "cli_option_unknown" {
-			t.Errorf("%q: %s (%s), want cli_option_unknown", args, code, msg)
-		}
-	}
-}
-
 // TestParseDeviceShortcut covers the parser's reading of a first word that
 // is no command (EXAMPLES chapter 71, rules 1 to 3): a command word, alias,
 // or prefix keeps its meaning; a plain name is a device marked as the

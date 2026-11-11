@@ -54,11 +54,10 @@ common_args() {
     --set 'ssh.command.transport="system"'
 }
 
-# Help must describe --address only as the management-address alias.
+# Help names --address as the management-address alias.
 for mode in login command run; do
   "$KARVI" "$mode" --help >"$TMP/$mode.help"
   grep -q -- '--management-address IP, --address, --a' "$TMP/$mode.help"
-  absent '--address .*Alias for --target' "$TMP/$mode.help"
 done
 
 # Command: --address may appear among explicit commands but does not supply the

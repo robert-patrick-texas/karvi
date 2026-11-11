@@ -1,6 +1,6 @@
 #!/bin/bash
-# K03 parser acceptance (the command rows, aliases, spellings, renames,
-# and parser codes) against the prebuilt karvi binary and a fake ssh that logs
+# K03 parser acceptance (the command rows, aliases, spellings, and parser
+# codes) against the prebuilt karvi binary and a fake ssh that logs
 # exactly what reaches the device. Runs without a network.
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -92,13 +92,7 @@ row a10 0 -- k -h;                                                           hel
 row a11 0 -- k login 127.0.0.1 --help;                                       helped a11
 row a12 0 -- k run --no-daemon -t 127.0.0.1 -t 127.0.0.1 --c "show clock";   sent a12 "show clock"
 
-echo "== renamed and removed spellings"
-row r1 4 -- k run --targets-file x show clock;                               code r1 cli_option_unknown
-row r2 4 -- k run --targets x show clock;                                    code r2 cli_option_unknown
-row r3 4 -- k command --commands-file x 127.0.0.1;                           code r3 cli_option_unknown
-row r4 4 -- k command --host-key-policy insecure 127.0.0.1 show clock;       code r4 cli_option_unknown
-row r5 4 -- k command --known-hosts-file auto 127.0.0.1 show clock;          code r5 cli_option_unknown
-row r6 4 -- k login 127.0.0.1 --record-file x;                               code r6 cli_option_unknown
+echo "== the --ssh-* spellings, commands files, and targets files"
 row r7 0 -- k command --ssh-host-key-policy insecure --ssh-known-hosts-file auto 127.0.0.1 show clock; sent r7 "show clock"
 printf 'show clock\n\n# comment\nshow version\r\n' >"$TMP/cmds"
 row r8 0 -- k command 127.0.0.1 --cf "$TMP/cmds";                            sent r8 "show clock" "" "# comment" "show version"

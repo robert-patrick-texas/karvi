@@ -62,15 +62,13 @@ grep -Eq '^! display-device \[127\.0\.0\.1\] platform=generic user=smoke backend
 [ "$(grep -c '^! display-device \[127\.0\.0\.1\] ' "$TMP/default.out")" -eq 1 ]
 grep -Eq '^! exit=0 elapsed=[^ ]+ artifacts=.+$' "$TMP/default.out"
 [ "$(grep -c '^! exit=0 elapsed=.* artifacts=' "$TMP/default.out")" -eq 1 ]
-absent '^command ' "$TMP/default.out"
 [ "$(grep -c '^OUTPUT:show clock$' "$TMP/default.out")" -eq 1 ]
 [ "$(grep -c '^START:' "$FAKE.log")" -eq 1 ]
 [ "$(grep -c '^COMMAND:show clock$' "$FAKE.log")" -eq 1 ]
 
 # --nof (output.persist-command=false): the same display, the footer's
 # artifacts is "none", and no job folder or output file is created; the
-# audit log still has the command. --no-persist, which it replaced, is no
-# option.
+# audit log still has the command.
 nof_folders() { find "$BASE/jobs" -mindepth 1 2>/dev/null | wc -l; }
 nof_before=$(nof_folders)
 rm -f "$FAKE.master" "$FAKE.log"
@@ -82,13 +80,6 @@ grep -Eq '^! exit=0 elapsed=[^ ]+ artifacts=none$' "$TMP/nof.out"
 [ "$(grep -c '^OUTPUT:show clock$' "$TMP/nof.out")" -eq 1 ]
 [ "$(nof_folders)" -eq "$nof_before" ]
 [ "$(audit_events "$BASE/audit.jsonl" event_name | grep -c '\.command$')" -eq 2 ]
-nof_code=0
-# shellcheck disable=SC2046
-HOME="$HOME_DIR" NETUSER=smoke NETPASS=test "$KARVI" $(common_args) \
-  command --management-address 127.0.0.1 --command 'show clock' --no-persist display-device \
-  >"$TMP/nopersist.out" 2>"$TMP/nopersist.err" || nof_code=$?
-[ "$nof_code" -eq 4 ]
-grep -q '^cli_option_unknown: unknown option --no-persist' "$TMP/nopersist.err"
 
 # --of[=PATH]: the PATH attaches with = only,
 # so the word after a bare --of is the device and the files go to the

@@ -375,7 +375,7 @@ func TestV0100AuthorityOverridesAndLiteralAlternates(t *testing.T) {
 		{"ghost=daemon", "address_authority_target_unknown"},
 		{"core-*=daemon", "address_authority_target_unknown"},
 		{"core-a", "cli_option_value_invalid"},
-		{"core-a=executor", "cli_option_value_invalid"},
+		{"core-a=bogus", "cli_option_value_invalid"},
 		{"=daemon", "cli_option_value_invalid"},
 	} {
 		if _, err := applyAuthorityOverrides(&set, []string{tc.value}); errorcodes.Of(err) != tc.code {

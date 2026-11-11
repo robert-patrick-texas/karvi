@@ -95,8 +95,7 @@ targeting, test on both transports:
 2. The identity ([`docs/SSH-HOST-KEY-POLICY.md`](SSH-HOST-KEY-POLICY.md)): a
    device on port 22 is enrolled under its canonical name, a device on another
    port as `[name]:PORT`, on both transports (**fake**); a manual enrollment
-   under the identity accepted under `secure` (**device**); an entry left from
-   an earlier release for a non-22 port not matched (**device**).
+   under the identity accepted under `secure` (**device**).
 3. `secure`: missing file, unknown host, matching host, changed key
    (**fake**); wrong owner, symlink, non-`0700` directory, non-`0600` file
    (unit tests; **device** for the message an operator sees).

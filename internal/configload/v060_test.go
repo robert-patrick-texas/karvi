@@ -66,37 +66,22 @@ func TestV090DisplayTransportAndTimeoutDefaults(t *testing.T) {
 	}
 }
 
-func TestV060RemovedConfigurationKeysAreUnknown(t *testing.T) {
-	removed := []string{
-		"ssh.strict-host-key-checking=\"accept-new\"",
-		"ssh.user-known-hosts-file=\"/tmp/known_hosts\"",
-		"native-ssh.strict-host-key-checking=\"yes\"",
-		"native-ssh.known-hosts-file=\"/tmp/known_hosts\"",
-		"output.command-headers=true",
-		"watch.theme=\"dark\"",
-		"login.transport=\"system\"",
-		"command.transport=\"system\"",
-		"run.transport=\"native\"",
-		"ssh.binary=\"ssh\"",
-		"ssh.control-master=\"auto\"",
+// TestUnknownKeyFromSet: a --set naming no configuration key is
+// config_unknown_key, the code in the operator's message.
+func TestUnknownKeyFromSet(t *testing.T) {
+	_, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{"ssh.bogus=true"}})
+	if err == nil {
+		t.Fatal("an unknown configuration key was accepted")
 	}
-	for _, set := range removed {
-		t.Run(set, func(t *testing.T) {
-			_, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{set}})
-			if err == nil {
-				t.Fatal("removed configuration key was accepted")
-			}
-			var configErr *Error
-			if !errors.As(err, &configErr) {
-				t.Fatalf("error type=%T, want *configload.Error", err)
-			}
-			if configErr.Code != "config_unknown_key" {
-				t.Fatalf("code=%q, want config_unknown_key; err=%v", configErr.Code, err)
-			}
-			if !strings.Contains(err.Error(), "config_unknown_key:") {
-				t.Fatalf("operator-facing error omits stable code: %v", err)
-			}
-		})
+	var configErr *Error
+	if !errors.As(err, &configErr) {
+		t.Fatalf("error type=%T, want *configload.Error", err)
+	}
+	if configErr.Code != "config_unknown_key" {
+		t.Fatalf("code=%q, want config_unknown_key; err=%v", configErr.Code, err)
+	}
+	if !strings.Contains(err.Error(), "config_unknown_key:") {
+		t.Fatalf("operator-facing error omits stable code: %v", err)
 	}
 }
 

@@ -97,7 +97,6 @@ func TestExplainRefusesANameItCannotShow(t *testing.T) {
 		{[]string{"ssh"}, "config_unknown_key", "config_unknown_key: unknown configuration key for ssh"},
 		{[]string{""}, "config_key_blank", "config_key_blank: blank configuration key"},
 		{[]string{"ssh.transports.other"}, "config_key_unset", "config_key_unset: ssh.transports.other is not set"},
-		{[]string{"ssh.transports.native"}, "config_key_unset", "config_key_unset: ssh.transports.native is not set"},
 		{[]string{"basedir", "macros.SITE", "no.such.key"}, "config_key_unset", "config_key_unset: macros.SITE is not set"},
 	} {
 		got, err := snap.Explain(c.names, nil)

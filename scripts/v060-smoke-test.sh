@@ -69,14 +69,14 @@ grep -q '^  native: compiled-in$' "$TMP/version.txt"
 # An operator-authored custom slot that is not exec:PATH is a configuration
 # error even if no activity selects it.
 set +e
-"$KARVI" --set 'ssh.transports.alternate1="scrapligo-v2"' config validate \
+"$KARVI" --set 'ssh.transports.alternate1="bogus"' config validate \
   >"$TMP/unavailable.out" 2>"$TMP/unavailable.err"
 rc=$?
 set -e
 [ "$rc" -eq 2 ]
 grep -q 'transport_mapping_invalid' "$TMP/unavailable.err"
 grep -q 'ssh.transports.alternate1' "$TMP/unavailable.err"
-grep -q 'scrapligo-v2' "$TMP/unavailable.err"
+grep -qF 'ssh.transports.alternate1="bogus" is not exec:PATH' "$TMP/unavailable.err"
 
 # `cmd`, --cmd, --host, and an after-command --target remain equivalent to the
 # long command syntax. --echo renders the prompt plus sent command. Command mode uses one interactive SSH process.
