@@ -60,8 +60,8 @@ type Policy struct {
 	KnownHostsFile string
 }
 
-// Parse normalizes a configured mode. The removed values "auto" and "default"
-// are rejected rather than aliased so a stale configuration fails visibly.
+// Parse normalizes a configured mode: accept-new (also empty), secure, or
+// insecure, case and surrounding space ignored; any other value is an error.
 func Parse(value string) (Mode, error) {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "", "accept-new":

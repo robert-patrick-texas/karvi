@@ -28,21 +28,20 @@ IPC schema and its build, the Go build ID of its executable, equal the client's:
 after an upgrade the next submission drains an operator's daemon of the older
 build, replacing an idle one in the same invocation and refusing new jobs while
 a busy one finishes its own and exits
-([`docs/OPERATIONS.md`, "Upgrade"](docs/OPERATIONS.md#upgrade)); since v0.14.0
-the records of a run travel over the socket, the invocation decides the job's
-files on every path, and the configuration keys nothing read are refused. The
-breaking changes of v0.10.0 from v0.9.2 remain in force:
+([`docs/OPERATIONS.md`, "Upgrade"](docs/OPERATIONS.md#upgrade)). The records
+of a run travel over the socket, the invocation decides the job's files on
+every path, and a configuration key karvi does not know is refused.
+Standing rules:
 
 1. `ssh.host-key-policy` accepts `accept-new` (the default), `secure`, and
-   `insecure`; `auto` and `default` are rejected.
+   `insecure`.
 2. No OpenSSH connection outlives a device's session: nothing is reused across
    devices or jobs.
 3. `karvi daemon stop` and `karvi daemon restart` refuse while jobs are active
    unless `--grace`, `--after=DURATION`, or `--force` is given.
 4. Every error carries one registered code, listed in
    [`docs/ERROR-CODES.md`](docs/ERROR-CODES.md).
-5. Configuration schema 6; `karvi version` reports this tree's other schema
-   counters.
+5. `karvi version` reports this tree's schema counters.
 
 A client drains a daemon of another build at that daemon's own IPC schema and
 kills nothing; job submission stays exact-schema, and a daemon of a newer
@@ -623,10 +622,9 @@ Qualification and release:
 ## Repository map
 
 Reusable public packages are `inventory`, `credentials`, `transform`,
-`tabular`, `dispatch`, `platform`, `records`, and `configschema`
-(an earlier public `transport` package was removed). Concrete runtime,
-operating-system, secret, and third-party adapters remain under
-`internal/`.
+`tabular`, `dispatch`, `platform`, `records`, and `configschema`.
+Concrete runtime, operating-system, secret, and third-party adapters remain
+under `internal/`.
 
 ## License
 

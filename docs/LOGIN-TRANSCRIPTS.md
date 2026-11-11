@@ -2,8 +2,7 @@
 
 `karvi login --record HOST` and `karvi login HOST --record` are equivalent, and
 `--rec` is an alias. PATH is given only with `=`, so `karvi login --rec
-router01` records a session with `router01`. The v0.9.1 spellings
-`--record-file` and `--record-path` are not accepted.
+router01` records a session with `router01`.
 
 A recorded login runs through a real pseudo-terminal owned by a small parent
 karvi process, the recording wrapper, which uses util-linux `script(1)`. The

@@ -1531,8 +1531,6 @@ helper](#the-credential-helper)).
 karvi opens the file first and checks the file it opened, so the file that
 passed the checks is the file that is read. A file that is present but cannot be
 opened (mode `0000`, say) is reported by its check and is not treated as absent.
-These codes replaced the `cloginrc_*` check codes of v0.10.0 and v0.11.0;
-[`docs/ERROR-CODES.md`](ERROR-CODES.md) lists the retired names.
 
 ### The credential CSV
 
@@ -1552,12 +1550,11 @@ says where to look in it:
 | `inventory_secret_column`, `config_inventory_source_secret_mapping`: an inventory file holds no secrets, there is no override, and what the check does not find | [section 9](CREDENTIAL-CSV.md#9-an-inventory-file-holds-no-secrets) |
 | `credential_csv_malformed`, `credential_csv_row_invalid`, `credential_csv_credkey_duplicate`, `credential_env_missing`: the messages, which never quote a cell but an `env:` cell's variable | [section 10](CREDENTIAL-CSV.md#10-what-a-bad-credential-csv-says) |
 
-Two things to know at an upgrade. An inventory file with a column named
-like a secret (`password`, `enable-password`, `api_token`) no longer loads
-(exit 5): move the secrets into a credential CSV and delete the column. And
-a pinned device never falls to a general row, to `NETUSER`/`NETPASS`, or to
-a prompt: a mistyped `credkeyref` stops that device with
-`credkeyref_unresolved`, naming the device and the key.
+An inventory file with a column named like a secret (`password`,
+`enable-password`, `api_token`) does not load (exit 5): the secrets belong in a
+credential CSV. A pinned device never falls to a general row, to
+`NETUSER`/`NETPASS`, or to a prompt: a mistyped `credkeyref` stops that device
+with `credkeyref_unresolved`, naming the device and the key.
 
 ## The operator's name and the credential transforms
 
@@ -2288,8 +2285,8 @@ naming it and the private place taken, as `config show --explain` lists it:
 `shared capacity root unavailable`, whose message names its cause: the
 shape it needs, a link in it to remove, a server ledger that does not
 decode, no free inodes, or the folder it could not make. A scratch
-root an earlier release left behind (0700, the first operator's) is set
-right by `sudo karvi setup shared`, which reports it `repaired`.
+root of another group or mode is set right by `sudo karvi setup shared`,
+which reports it `repaired`.
 
 **The operators' roots.** Once `/opt/karvi/users` exists, an operator's
 first activity that needs the private root creates

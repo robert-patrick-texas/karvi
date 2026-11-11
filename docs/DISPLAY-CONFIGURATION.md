@@ -78,8 +78,6 @@ Under `--format json` and `--format jsonl` nothing is printed; the jsonl
 summary document and `summary.json` carry the `collection` block. An empty
 template prints no line, `--quiet` suppresses it, and a template that does
 not render refuses the configuration (`config_display_template_invalid`).
-It replaced the plain `crun JOB-ID exit=… collection=…` line on standard
-error.
 
 ## The ping line
 

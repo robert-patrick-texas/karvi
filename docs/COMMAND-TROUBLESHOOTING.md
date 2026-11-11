@@ -40,9 +40,7 @@ exec channel a command already sent may still run on the device
 `ssh` configuration, the askpass socket, and a recorded login's timing log,
 stay until the next admission, daemon start, or login removes them, logged
 `scratch_abandoned_removed` (in `daemon.log`, or under `--debug`); a recorded
-login's transcript keeps the bytes `script(1)` wrote. An `ssh` still holding
-a device's session under init after an earlier release was killed is that
-release's; end it by its pid.
+login's transcript keeps the bytes `script(1)` wrote.
 
 ## `Master refused session request: Permission denied`
 

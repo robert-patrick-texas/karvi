@@ -127,8 +127,7 @@ system = "ssh"
 # still-unset options such as approved bastion routing.
 include-user-config = true
 # Unified login, command, and run host-key policy: accept-new accepts new keys and rejects
-# changes; secure requires prior enrollment; insecure accepts all keys with warnings. The
-# removed values auto and default are rejected.
+# changes; secure requires prior enrollment; insecure accepts all keys with warnings.
 host-key-policy = "accept-new"
 # The karvi trust store, the one known_hosts file both transports trust. auto is
 # <basedir>/known_hosts: the operator's root under the site's users directory, else

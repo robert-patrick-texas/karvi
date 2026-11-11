@@ -358,7 +358,7 @@
         "secure",
         "insecure"
       ],
-      "documentation": "Unified login, command, and run host-key policy: accept-new accepts new keys and rejects changes; secure requires prior enrollment; insecure accepts all keys with warnings. The removed values auto and default are rejected."
+      "documentation": "Unified login, command, and run host-key policy: accept-new accepts new keys and rejects changes; secure requires prior enrollment; insecure accepts all keys with warnings."
     },
     {
       "path": "ssh.known-hosts-file",

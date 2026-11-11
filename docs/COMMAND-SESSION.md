@@ -67,19 +67,16 @@ that contains a karvi option name:
 karvi command router1 -- show running-config | include --echo
 ```
 
-## History: one shell, since v0.7.0
+## One shell per device
 
-The v0.6 command path prepared an OpenSSH ControlMaster and requested a new
-session channel per command. Cisco IOS XE accepts the authentication and refuses
-the extra channel (`Master refused session request: Permission denied`), which
-the text classifier then read as an authentication failure. Since v0.7.0 the
-command path opens one fresh interactive shell per device and sends every
-command through it; that diagnostic, should it appear, is
-`ssh_session_channel_refused` in the `connection` category, never
-`authentication_failed`.
+The command path opens one fresh interactive shell per device and sends every
+command through it, with no OpenSSH ControlMaster: Cisco IOS XE refuses a
+master's further session channel (`Master refused session request: Permission
+denied`). That line, should it appear, is `ssh_session_channel_refused` in the
+`connection` category, never `authentication_failed`.
 [`docs/TRANSPORT-DRIVER-ARCHITECTURE.md`](TRANSPORT-DRIVER-ARCHITECTURE.md)
 states the ControlMaster rule. A platform whose `channel` is `exec` (built-in
-`linux`) takes a channel per command again, on a device that accepts it,
+`linux`) takes a channel per command, on a device that accepts it,
 under its own rules ([The exec channel](#the-exec-channel)); the shell stays
 the path for every other platform.
 

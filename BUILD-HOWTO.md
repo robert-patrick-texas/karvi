@@ -273,11 +273,10 @@ host-key-policy = "accept-new"
 known-hosts-file = "auto"
 ```
 
-The removed values `auto` and `default` are rejected. Under `known-hosts-file =
-"auto"` the trust store is `known_hosts` in the operator's private root:
-`/opt/karvi/users/<user>/known_hosts` where the site made the operators' roots,
-`~/.local/share/karvi/known_hosts` otherwise; `karvi config show --explain
-ssh.known-hosts-file` names it on its `resolved:` line.
+Under `known-hosts-file = "auto"` the trust store is `known_hosts` in the
+operator's private root: `/opt/karvi/users/<user>/known_hosts` where the site
+made the operators' roots, `~/.local/share/karvi/known_hosts` otherwise; `karvi
+config show --explain ssh.known-hosts-file` names it on its `resolved:` line.
 
 For authenticated pre-enrollment, select `secure` and populate the store before
 using `login`, `command`, or `run`, by

@@ -128,12 +128,6 @@ writes the address; `native` looks up only the identity. A line
 [router1]:2222 ssh-ed25519 AAAA... karvi-auto-enrolled
 ```
 
-Entries enrolled before this rule for a port other than 22, under the bare
-name by system OpenSSH or as `[name]:port,[address]:port` by the earlier
-native adapter, no longer match: `accept-new` enrols the device again and
-`secure` refuses it until it is enrolled under the identity. Port 22
-entries are unchanged.
-
 ## Marked lines
 
 A line marked `@revoked` names a key refused wherever a device presents it:
@@ -181,8 +175,7 @@ private root
 | neither | `~/.local/share/karvi/known_hosts` |
 | `basedir` set to a path | `<that path>/known_hosts` |
 
-There is no fallback location, and a store elsewhere, such as one an earlier
-release made in the home on a host with `users`, is not read.
+There is no fallback location: a store elsewhere is not read.
 `karvi config show --explain ssh.known-hosts-file` names the file on its
 `resolved:` line, before anything exists.
 
@@ -304,33 +297,6 @@ specific error-code halt before generic count/percentage evaluation.
 `karvi-login(1)` (`man karvi login`), HOST KEYS, restates the policies,
 the trust store, the identity, and the controlled enrollment for the
 terminal; a change to one changes both.
-
-## Breaking changes in v0.10.0
-
-Configuration schema 6 renames the default policy from `auto` to `accept-new`.
-The values `auto` and `default` are rejected with no alias; replace them with
-`accept-new`. Configuration files that declare `schema-version = 5` must be
-updated to `6`.
-
-## Breaking changes in v0.5.0
-
-Configuration schema 2 carries no host-key migration aliases. These old keys
-are unknown and fail validation:
-
-```text
-ssh.strict-host-key-checking
-ssh.user-known-hosts-file
-native-ssh.strict-host-key-checking
-native-ssh.known-hosts-file
-```
-
-Use only:
-
-```text
-ssh.host-key-policy
-ssh.known-hosts-file
-ssh.halt-run-on-host-key-mismatch
-```
 
 ## Diagnostics
 
