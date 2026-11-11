@@ -220,9 +220,9 @@ type execMaster struct {
 	closeOnce sync.Once
 }
 
-// startMaster starts the device's master and returns it with the one-use
-// askpass broker that serves its authentication; the caller closes the
-// broker once the master is ready. The master is started tied to karvi
+// startMaster starts the device's master and returns it with the askpass
+// broker that serves its authentication; the caller closes the broker once
+// the master is ready. The master is started tied to karvi
 // (osutil.StartTied): its death signal is SIGTERM, on which OpenSSH removes
 // its socket.
 func (d *Driver) startMaster() (*execMaster, *askpass.Broker, error) {
@@ -235,7 +235,7 @@ func (d *Driver) startMaster() (*execMaster, *askpass.Broker, error) {
 	}
 	material := callbackMaterial{username: d.req.Username, password: d.req.Password}
 	end := newProcessEnd()
-	broker, err := askpass.Start(d.f.ScratchDir, material, askpass.Hooks{Change: end.end})
+	broker, err := askpass.Start(d.f.ScratchDir, material, askpass.Hooks{End: end.end})
 	if err != nil {
 		return nil, nil, fmt.Errorf("askpass_start_failed: %w", err)
 	}

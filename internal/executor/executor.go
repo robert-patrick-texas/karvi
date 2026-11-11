@@ -1524,7 +1524,7 @@ func openStatus(code string) string {
 		return "privilege_error"
 	case "paging_disable_failed":
 		return "device_error"
-	case "authentication_failed", "authentication_change_requested":
+	case "authentication_failed", "authentication_change_requested", "askpass_auth_failed", "askpass_request_invalid":
 		return "authentication_error"
 	}
 	return ""

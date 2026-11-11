@@ -72,13 +72,13 @@ func (b *synchronizedBuffer) String() string {
 }
 
 // startShell starts one fresh interactive OpenSSH process for the device
-// session and returns it as a stream, with the one-use askpass broker that
-// serves its authentication; the caller closes the broker once the first
-// prompt has arrived.
+// session and returns it as a stream, with the askpass broker that serves
+// its authentication; the caller closes the broker once the first prompt has
+// arrived.
 func (d *Driver) startShell(ctx context.Context) (*processStream, *askpass.Broker, error) {
 	material := callbackMaterial{username: d.req.Username, password: d.req.Password}
 	end := newProcessEnd()
-	broker, err := askpass.Start(d.f.ScratchDir, material, askpass.Hooks{Change: end.end})
+	broker, err := askpass.Start(d.f.ScratchDir, material, askpass.Hooks{End: end.end})
 	if err != nil {
 		return nil, nil, fmt.Errorf("askpass_start_failed: %w", err)
 	}

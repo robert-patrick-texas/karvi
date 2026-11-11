@@ -141,9 +141,13 @@ type connection struct {
 	// called: it tries the methods in order and stops at the first that
 	// succeeds, so once the handshake ends it names the method that did.
 	auth atomic.Value
-	// change is the change prompt keyboard-interactive met, once it has
-	// (askpass.FieldChange): the handshake ends with its error.
-	change atomic.Pointer[string]
+	// authEnd is why a callback ended the connection, once one has: a
+	// change prompt (askpass.ChangeRequested) or a field asked a second
+	// time (askpass.AskedAgain); the handshake ends with it.
+	authEnd atomic.Pointer[error]
+	// sentUsername and sentPassword are set once the field has gone to the
+	// device, each at most once a connection, as the askpass broker gives it.
+	sentUsername, sentPassword atomic.Bool
 }
 
 var (
@@ -241,11 +245,11 @@ func (c *connection) open() error {
 	config := &ssh.ClientConfig{
 		User: req.Username,
 		Auth: auth,
-		// A change prompt ends the handshake: after a callback's error
-		// x/crypto would go on to the next method, the password.
+		// A callback that ended the connection ends the handshake: after its
+		// error x/crypto would go on to the next method, the password.
 		AuthCallback: func(*ssh.ClientAuthContext) (ssh.AuthMethod, error) {
-			if prompt := c.change.Load(); prompt != nil {
-				return nil, askpass.ChangeRequested(*prompt)
+			if ended := c.authEnd.Load(); ended != nil {
+				return nil, *ended
 			}
 			return nil, nil
 		},
@@ -409,10 +413,25 @@ func (c *connection) signers() ([]ssh.Signer, error) {
 	return out, nil
 }
 
-// passwordMethod is the password method's callback: the password, noted.
+// passwordMethod is the password method's callback: the password, noted,
+// unless keyboard-interactive sent it, which ends the connection.
 func (c *connection) passwordMethod() (string, error) {
 	c.auth.Store(authPassword)
-	return c.password()
+	if c.sentPassword.Load() {
+		return "", c.endAuth(askpass.AskedAgain(askpass.FieldPassword))
+	}
+	password, err := c.password()
+	if err == nil {
+		c.sentPassword.Store(true)
+	}
+	return password, err
+}
+
+// endAuth records err as why the connection ends (AuthCallback) and
+// returns it.
+func (c *connection) endAuth(err error) error {
+	c.authEnd.Store(&err)
+	return err
 }
 
 func (c *connection) password() (string, error) {
@@ -428,21 +447,29 @@ func (c *connection) password() (string, error) {
 }
 
 // keyboardInteractive answers each prompt by what it asks for
-// (askpass.Field), as the system transport's askpass broker answers the
-// first: the password, the username, or, for a prompt no list matches, an
-// empty answer, as OpenSSH sends for a prompt the broker refuses. A round
-// holding a change prompt is answered by none: the handshake ends with its
-// error (AuthCallback).
+// (askpass.Field), as the system transport's askpass broker does: the
+// password, the username, each at most once a connection, or, for a prompt
+// no list matches, an empty answer, as OpenSSH sends for a prompt the
+// broker refuses. A round is judged whole, in order, before anything is
+// resolved: one holding a change prompt or a field asked a second time is
+// answered by none, the first such prompt ending the handshake with its
+// error (AuthCallback), as the broker meets OpenSSH's requests in order.
 func (c *connection) keyboardInteractive(_, _ string, questions []string, _ []bool) ([]string, error) {
 	if len(questions) == 0 {
 		return nil, nil
 	}
 	c.auth.Store(authKeyboardInteractive)
 	fields := make([]string, len(questions))
+	asked := map[string]bool{askpass.FieldUsername: c.sentUsername.Load(), askpass.FieldPassword: c.sentPassword.Load()}
 	for i, question := range questions {
-		if fields[i] = askpass.Field(question); fields[i] == askpass.FieldChange {
-			c.change.Store(&question)
-			return nil, askpass.ChangeRequested(question)
+		switch fields[i] = askpass.Field(question); fields[i] {
+		case askpass.FieldChange:
+			return nil, c.endAuth(askpass.ChangeRequested(question))
+		case askpass.FieldUsername, askpass.FieldPassword:
+			if asked[fields[i]] {
+				return nil, c.endAuth(askpass.AskedAgain(fields[i]))
+			}
+			asked[fields[i]] = true
 		}
 	}
 	answers := make([]string, len(questions))
@@ -456,6 +483,14 @@ func (c *connection) keyboardInteractive(_, _ string, questions []string, _ []bo
 			answers[i] = password
 		case askpass.FieldUsername:
 			answers[i] = c.req.Username
+		}
+	}
+	for _, field := range fields {
+		switch field {
+		case askpass.FieldPassword:
+			c.sentPassword.Store(true)
+		case askpass.FieldUsername:
+			c.sentUsername.Store(true)
 		}
 	}
 	return answers, nil
@@ -558,8 +593,8 @@ func (c *connection) handshakeError(target string, port int, err error) error {
 	if c.ctx.Err() != nil {
 		return c.ctx.Err()
 	}
-	if prompt := c.change.Load(); prompt != nil {
-		return askpass.ChangeRequested(*prompt)
+	if ended := c.authEnd.Load(); ended != nil {
+		return *ended
 	}
 	if errorcodes.Of(err) != "" {
 		return err // the host-key policy's own code

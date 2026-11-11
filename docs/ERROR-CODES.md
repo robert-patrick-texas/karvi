@@ -59,12 +59,12 @@ Active failure causes.
 | `address_authority_target_unknown` | usage | 4 | no | A `run --address-authority TARGET=...` value names a target that is not in the assembled target set. |
 | `address_family_conflict` | usage | 4 | no | `--ipv4` and `--ipv6`, in any spelling or position, are both given. |
 | `address_family_unavailable` | name_resolution | 7 | no | The management address uses an IP family with no usable sockets, or neither IPv4 nor IPv6 is available. |
-| `askpass_auth_failed` | authentication | — | no | An askpass helper presents the wrong one-use token to the broker. |
+| `askpass_auth_failed` | authentication | 108 | no | A request to the askpass broker bears the wrong token: the broker answers nothing more and ends the SSH connection. |
 | `askpass_material_missing` | internal | 1 | no | The askpass broker was started without credential material. |
 | `askpass_password_unset` | authentication | — | no | OpenSSH asks the broker for a password that was not resolved. |
 | `askpass_prompt_unrecognized` | authentication | — | no | OpenSSH asks the askpass helper its own question (a key's passphrase, a security key's PIN, a password change, the host key), or a device's prompt that asks for neither the username nor the password. |
-| `askpass_request_invalid` | authentication | — | no | An askpass helper sends a request the broker cannot decode. |
-| `askpass_start_failed` | internal | 1 | no | The one-use askpass broker cannot be started. |
+| `askpass_request_invalid` | authentication | 108 | no | A request to the askpass broker cannot be decoded, or none arrives within ten seconds: the broker answers nothing more and ends the SSH connection. |
+| `askpass_start_failed` | internal | 1 | no | The askpass broker cannot be started. |
 | `askpass_username_unset` | authentication | — | no | OpenSSH asks the broker for a username that was not resolved. |
 | `audit_directory_create_failed` | permission | 9 | no | The directory for `audit.file` cannot be created. |
 | `audit_file_unavailable` | permission | 9 | no | `audit.file-required` is true and the audit file cannot be opened. |
@@ -73,7 +73,7 @@ Active failure causes.
 | `audit_sink_open_failed` | permission | 9 | no | Unclassified. The audit sinks cannot be opened. |
 | `audit_write_failed` | output | 111 | no | An audit record cannot be written to a required journald or file sink. |
 | `authentication_change_requested` | authentication | 108 | no | The device asks to change a secret (a new, next, or confirmed PIN or password), which karvi does not answer. |
-| `authentication_failed` | authentication | 108 | no | The device rejects the supplied credentials. |
+| `authentication_failed` | authentication | 108 | no | The device rejects the supplied credentials, or asks for one again. |
 | `base_directory_unavailable` | permission | 9 | no | Unclassified. The karvi base directory cannot be resolved or created. |
 | `blind_return_conflict` | usage | 4 | no | One command both ends in `\r` sequences and is given `--blind-return`, or is given `--blind-return` more than once; the two counts contradict, and one form is written. |
 | `blind_return_out_of_range` | usage | 4 | no | `--blind-return` is outside 0..20, or a command ends in more than twenty `\r` sequences. |

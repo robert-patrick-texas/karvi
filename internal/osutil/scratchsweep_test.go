@@ -115,9 +115,9 @@ func TestSweepScratch(t *testing.T) {
 }
 
 // TestSweepScratchConnectsToNoSocket: the sweep judges an askpass socket by
-// its name alone. A broker serves one connection, so a sweep that connected
-// would take a live broker's one connection, and the job's helper would
-// find no socket; a socket of a maker that died is removed unconnected too.
+// its name alone. A sweep that connected would be a request without the
+// token, which ends a live broker and the session it serves; a socket of a
+// maker that died is removed unconnected too.
 func TestSweepScratchConnectsToNoSocket(t *testing.T) {
 	const live = 4242
 	saved := scratchOwnerAlive

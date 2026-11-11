@@ -57,6 +57,8 @@ var codeArgs = map[string]int{
 	// credfile: the parse-failure code a file backend gives an uncoded
 	// load error.
 	"Classify": 2,
+	// askpass: the code of a refusal the broker serves on after.
+	"refuse": 1,
 }
 
 // isCodeExpr reports whether e reads a code field, as in

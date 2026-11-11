@@ -52,9 +52,9 @@ func scratchFileOwner(name string) (int, bool) {
 
 // AskpassSocketName is the name of an askpass broker's socket of id (16
 // lowercase hex): askpass-<pid>-<id>.sock, the maker's pid first, so that a
-// sweep judges it as it judges a scratch file. The broker is one-use: a
-// sweep that connected to tell a live socket from an abandoned one would be
-// the connection it serves, and the helper would find no socket.
+// sweep judges it as it judges a scratch file. A sweep that connected to
+// tell a live socket from an abandoned one would be a request without the
+// token, which ends the broker and the session it serves.
 func AskpassSocketName(id string) string {
 	return fmt.Sprintf("askpass-%d-%s.sock", os.Getpid(), id)
 }

@@ -1019,10 +1019,16 @@ hyphen beside it joins it to a longer word, so a device named in a prompt
 even beside a password (`Password for user jsmith:`). Over `system` the
 askpass broker answers only a prompt beginning with OpenSSH's `user@host`, a
 device's; OpenSSH's own questions (a key's passphrase, a security key's PIN,
-user presence, a password change) are refused. The broker is one-use: it
-answers the first prompt OpenSSH asks, and OpenSSH answers every later one
-empty, so over `system` a device asking `Username:` then `Password:` fails,
-and a change prompt after an answered one gets the empty answer.
+user presence, a password change) are refused. On both transports each
+field is answered at most once per connection: `Username:` then `Password:`
+logs in, and a second ask of either (after a
+refusal, or for a second factor) ends the connection, the device getting
+nothing in that round, with `authentication_failed: device refused password`
+(or `username`, exit 108). Over `system` a request to the broker without its
+token ends the session too (`askpass_auth_failed`, `askpass_request_invalid`,
+exit 108); the broker serves until the login is over (a command session's
+first prompt or exec master ready, a `karvi login`'s end), five minutes at
+most, each exchange within ten seconds.
 
 Each record's `credential.auth` names the method that authenticated the
 session (`publickey`, `keyboard-interactive`, or `password`; absent where the

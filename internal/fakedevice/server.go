@@ -98,11 +98,12 @@ type Options struct {
 	// NoKeyboardInteractive refuses the keyboard-interactive method, as a
 	// server that takes the password method alone.
 	NoKeyboardInteractive bool
-	// KbdPrompts are the keyboard-interactive round's prompts, each with the
-	// field it takes; the round passes when every answer is its field's.
-	// Empty asks "Password: " for the password and records nothing; set,
-	// each answer, and each password-method attempt, is recorded by what it
-	// held (KbdAnswers).
+	// KbdPrompts are the keyboard-interactive prompts, each with the field
+	// it takes, in one round or, where a prompt begins one (NewRound), in
+	// several, asked in turn; a round passes when every answer is its
+	// field's, and the method when every round does. Empty asks "Password: "
+	// for the password and records nothing; set, each answer, and each
+	// password-method attempt, is recorded by what it held (KbdAnswers).
 	KbdPrompts []KbdPrompt
 	// SudoAsks makes the Linux persona's sudo need a password (Enable):
 	// sudo -n is refused and sudo -S prompts on stderr. Without it every
@@ -124,8 +125,13 @@ type PTYRequest struct {
 }
 
 // KbdPrompt is a keyboard-interactive prompt and the field it takes:
-// "password", "username", or "empty", an empty answer.
-type KbdPrompt struct{ Prompt, Want string }
+// "password", "username", or "empty", an empty answer. NewRound begins a
+// round after the one before it has passed, as a SecurID server asks for a
+// new PIN once the passcode is taken.
+type KbdPrompt struct {
+	Prompt, Want string
+	NewRound     bool
+}
 
 // Server is a running fake.
 type Server struct {
@@ -218,7 +224,7 @@ func Start(opts Options) (*Server, error) {
 		},
 		KeyboardInteractiveCallback: func(meta ssh.ConnMetadata, client ssh.KeyboardInteractiveChallenge) (*ssh.Permissions, error) {
 			if len(opts.KbdPrompts) > 0 {
-				return s.kbdRound(meta, client)
+				return s.kbdMethod(meta, client)
 			}
 			answers, err := client("", "", []string{"Password: "}, []bool{false})
 			if err != nil {
@@ -356,31 +362,46 @@ func (s *Server) Lines() []string {
 	return append([]string(nil), s.lines...)
 }
 
-// kbdRound asks KbdPrompts in one round and records each answer by what it
-// held: the password, the username, empty, or other; never the value.
-func (s *Server) kbdRound(meta ssh.ConnMetadata, client ssh.KeyboardInteractiveChallenge) (*ssh.Permissions, error) {
-	questions := make([]string, len(s.opts.KbdPrompts))
-	for i, p := range s.opts.KbdPrompts {
-		questions[i] = p.Prompt
-	}
-	answers, err := client("", "", questions, make([]bool, len(questions)))
-	if err != nil {
-		return nil, err
-	}
-	pass := meta.User() == s.opts.Username && len(answers) == len(questions)
-	s.mu.Lock()
-	for i, a := range answers {
-		held := s.held(a)
-		s.kbdAnswers = append(s.kbdAnswers, fmt.Sprintf("%q %s", questions[i], held))
-		if i < len(questions) && held != s.opts.KbdPrompts[i].Want {
-			pass = false
+// kbdMethod asks KbdPrompts round by round, a round only once the one before
+// it has passed, and records each answer by what it held: the password, the
+// username, empty, or other; never the value.
+func (s *Server) kbdMethod(meta ssh.ConnMetadata, client ssh.KeyboardInteractiveChallenge) (*ssh.Permissions, error) {
+	for _, round := range kbdRounds(s.opts.KbdPrompts) {
+		questions := make([]string, len(round))
+		for i, p := range round {
+			questions[i] = p.Prompt
+		}
+		answers, err := client("", "", questions, make([]bool, len(questions)))
+		if err != nil {
+			return nil, err
+		}
+		pass := meta.User() == s.opts.Username && len(answers) == len(questions)
+		s.mu.Lock()
+		for i, a := range answers {
+			held := s.held(a)
+			s.kbdAnswers = append(s.kbdAnswers, fmt.Sprintf("%q %s", questions[i], held))
+			if i < len(questions) && held != round[i].Want {
+				pass = false
+			}
+		}
+		s.mu.Unlock()
+		if !pass {
+			return nil, fmt.Errorf("keyboard-interactive answers rejected for %q", meta.User())
 		}
 	}
-	s.mu.Unlock()
-	if !pass {
-		return nil, fmt.Errorf("keyboard-interactive answers rejected for %q", meta.User())
-	}
 	return nil, nil
+}
+
+// kbdRounds splits prompts into rounds, a new one at each NewRound.
+func kbdRounds(prompts []KbdPrompt) [][]KbdPrompt {
+	var rounds [][]KbdPrompt
+	for i, p := range prompts {
+		if i == 0 || p.NewRound {
+			rounds = append(rounds, nil)
+		}
+		rounds[len(rounds)-1] = append(rounds[len(rounds)-1], p)
+	}
+	return rounds
 }
 
 // held names what an answer held: the password, the username, empty, or

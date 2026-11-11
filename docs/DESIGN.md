@@ -943,12 +943,12 @@ secret; a login's operator types `enable` at the device, so nothing of the
 login would send the secret; on exec nothing but `sudo` sends it, and a
 secret no command uses would only travel to the daemon.
 
-**A prompt gets the username or the password by what it asks for, on both
-transports, and a change of a secret ends the connection.** Over `system`,
-OpenSSH's questions reach karvi's askpass broker; over `native`, a device's
-keyboard-interactive prompts reach its callback. Both answer by one rule,
-`askpass.Field`: three lists of RE2 patterns, matched case-insensitively, in
-this order, the first list with a match deciding:
+**A prompt gets the username or the password by what it asks for, each at most
+once per connection, on both transports, and a change of a secret ends the
+connection.** Over `system`, OpenSSH's questions reach karvi's askpass broker;
+over `native`, a device's keyboard-interactive prompts reach its callback. Both
+answer by one rule, `askpass.Field`: three lists of RE2 patterns, matched
+case-insensitively, in this order, the first list with a match deciding:
 
 - `change`: `new`, `next`, `re-?enter(ed)?`, `re-?typed?`,
   `(re)?confirm(ed)?`, `verify`, `repeat(ed)?`, `again`, `once more`,
@@ -963,32 +963,54 @@ this order, the first list with a match deciding:
   sends it).
 
 Each pattern is a word of its own: where its match's own first or last
-character is an ASCII letter, digit, or underscore, the character beside it
-is none of those and no hyphen, so `pin` matches `PIN:`, `PIN?`, and `Enter
-your PIN.` but not `pin-gw1`, and `\(y/n\)` matches `Accept PIN(y/n)?`. The
-broker answers only a prompt that begins with
-OpenSSH's `user@host` (`user@host's password: ` before its password method's
-prompt, `(user@host) ` before a keyboard-interactive server's) and judges the
-words after it; every other prompt is OpenSSH's own question (a key's
-passphrase, a FIDO or PKCS#11 PIN, user presence, the host key, a password
-change), refused (`askpass_prompt_unrecognized`). The broker is one-use: it
-judges the first prompt OpenSSH asks, and OpenSSH answers every later one
-empty, a later round's included. At a change prompt the broker's hook kills
-OpenSSH before the refusal goes back, while OpenSSH waits on the helper; the
-native transport's callback returns the error, and its `AuthCallback` ends the
-handshake. With a `ProxyJump` the hook kills the device's OpenSSH, not the
-hop's own process, which still answers a change prompt at the jump host
-empty ([`ROADMAP.md`](../ROADMAP.md), "Jump hosts over the system
-transport"). The enable secret goes to the device in-band, the command
-session sending it at the escalate prompt, and a login resolves none
-(above). *Why:* the password goes only where a
-prompt asks for it: a device asking for the username in keyboard-interactive
-would otherwise have the password in a field it logs, and a prompt to set a
-new PIN or password would set the stored one. Any prompt naming `user` gets
-the username, so `Password for user jsmith:` gets it too (the login fails;
-nothing leaks). A word of its own, since a device named in a prompt
-(`Password for repeater1:`, `Username for pin-gw1:`) would otherwise end the
-connection or draw the password. A change prompt is not answered empty:
+character is an ASCII letter, digit, or underscore, the character beside it is
+none of those and no hyphen, so `pin` matches `PIN:`, `PIN?`, and `Enter your
+PIN.` but not `pin-gw1`, and `\(y/n\)` matches `Accept PIN(y/n)?`. The broker
+answers only a prompt that begins with OpenSSH's `user@host` (`user@host's
+password: ` before its password method's prompt, `(user@host) ` before a
+keyboard-interactive server's) and judges the words after it; every other
+prompt is OpenSSH's own question (a key's passphrase, a FIDO or PKCS#11 PIN,
+user presence, the host key, a password change), refused
+(`askpass_prompt_unrecognized`). The username is answered at most once and the
+password at most once per connection: a prompt asking for a field already
+answered ends the connection at that prompt, the device getting nothing in its
+round, with `authentication_failed: device refused password` (or `username`,
+exit 108); the password method after keyboard-interactive sent the password is
+such an ask. So `Username:` then `Password:` logs in; a refused `Password:`
+sends the password once; `Password:` twice in one round sends nothing, since
+OpenSSH reads every prompt of a round before it sends any answer and the native
+transport judges a round whole, in order, before answering; and a change prompt
+at any position, a later round's included, ends the connection. At a change
+prompt or a second ask the broker's hook ends OpenSSH (SIGTERM) before the
+refusal goes back, while OpenSSH waits on the helper; the native transport's
+callback returns the error, and its `AuthCallback` ends the handshake. The
+broker serves every request of the session until its login is over, for a
+command session a shell's first prompt or an exec device's master ready and for
+`karvi login` its end, and closes five minutes after its start at the latest;
+each exchange is bounded to ten seconds on both sides; neither bound is a
+setting. A request without the broker's token, a wrong one or one it cannot
+decode (nothing within the ten seconds included), ends the broker: it answers
+nothing more and its hook ends OpenSSH, and the session fails with
+`askpass_auth_failed` (`a request to the askpass broker bears the wrong token`)
+or `askpass_request_invalid` (`the askpass broker cannot decode a request`),
+exit 108. OpenSSH's own questions, a prompt no list matches, and a field the
+session did not resolve (`askpass_username_unset`, `askpass_password_unset`)
+are refused and the broker serves on, OpenSSH sending an empty answer. With a
+`ProxyJump` the hop's child `ssh -W` reaches the same broker and,
+authenticating first, takes the fields it asks for, so the device's own ask of
+one of them ends the connection as a second ask (not executed: the fake cannot
+be a jump host); the hook ends the device's OpenSSH, not the hop's own process,
+which still answers a change prompt or a second ask at the jump host empty
+([`ROADMAP.md`](../ROADMAP.md), "Jump hosts over the system transport"). The
+enable secret goes to the device in-band, the command session sending it at the
+escalate prompt, and a login resolves none (above). *Why:* the password goes
+only where a prompt asks for it: a device asking for the username in
+keyboard-interactive would otherwise have the password in a field it logs, and
+a prompt to set a new PIN or password would set the stored one. Any prompt
+naming `user` gets the username, so `Password for user jsmith:` gets it too
+(the login fails; nothing leaks). A word of its own, since a device named in a
+prompt (`Password for repeater1:`, `Username for pin-gw1:`) would otherwise end
+the connection or draw the password. A change prompt is not answered empty:
 OpenSSH would send the empty answer and go on to the password method, and
 x/crypto to the next method after a callback's error, two failed attempts a
 SecurID or RADIUS server counts. The yes/no questions are in `change`, since
@@ -996,14 +1018,29 @@ SecurID's `Do you want to enter your own pin (y/n)` names a PIN, and `again`,
 the confirm word (`Password again:`); an unrelated yes/no question is then
 `authentication_change_requested`, not `authentication_failed`. OpenSSH's
 `user@host` is cut and required, since it carries the device's name and the
-username, and a device or user named with `enable` drew the enable secret
-where the password was asked. *Not taken:* the password to every
-keyboard-interactive prompt; the prompt's runs of letters as its words, the
-first rule (`Login for pin-gw1:` drew the password, `pin` a word of its own);
-patterns bounded at their start alone (`Password for repeater1:` was a
-change); `confirmation` in `change` (`Enter confirmation code:` is a code);
-`.` as a joiner too (`Enter your PIN.` would match nothing); a change
-prompt answered empty; the yes/no questions only where they name a secret.
+username, and a device or user named with `enable` drew the enable secret where
+the password was asked. A field is answered once: a second ask means the device
+refused the answer, or wants a second factor karvi does not hold (a Duo-style
+`Passcode or option (1-3):` matches `passcode`), and an empty answer or the
+password again is one more failed attempt counted against the account's
+lockout. SIGTERM, since a login's OpenSSH then restores the terminal (SIGKILL
+left echo off), and during authentication it ends OpenSSH at once as SIGKILL
+does. A request without the token ends the session, failing closed: only the
+operator's account or root reaches the 0600 socket. A login's broker stays open
+until the login ends, at most its five minutes, with nothing added to the
+login: the device's prompts come in its first seconds; the cost is a stray
+request in those minutes ending the login, and only the operator's account or
+root can send one. *Not taken:* the password to every keyboard-interactive
+prompt; the prompt's runs of letters as its words, the first rule (`Login for
+pin-gw1:` drew the password, `pin` a word of its own); patterns bounded at
+their start alone (`Password for repeater1:` was a change); `confirmation` in
+`change` (`Enter confirmation code:` is a code); `.` as a joiner too (`Enter
+your PIN.` would match nothing); a change prompt answered empty; the yes/no
+questions only where they name a secret; a second ask refused, the broker
+serving on (OpenSSH then sends an empty answer); a code or message of its own
+for a second ask (it is a refusal); SIGKILL; a request without the token
+refused, the broker serving on; a login's broker closed by a timer at the
+login's bound, at the first output byte, or by OpenSSH's `LocalCommand`.
 
 **Prompting once per invocation, and a prompt left unanswered ends the
 run.** The client's input provider caches by field: the first target
@@ -2081,12 +2118,12 @@ shell for good, and a killed login's `ssh` fought the shell for the terminal
 stayed. *Not taken:* a sweep of orphaned `ssh` processes (the session held
 until karvi next runs); `ServerAlive` (the device answers it); a sweep by age (a
 recorded login runs for hours); `karvi-prune` (no configuration, no judgement
-of an owner alive); an askpass socket judged by connecting to it (the broker
-serves one connection, so a probe took a live job's and its authentication
-failed, executed); a broker that waits past a connection that sends nothing
-(its one-use rule changed, and a probe still races the helper); the owner
-judged by its `argv[0]` (the name it was started by: a login started through a
-site's link `k` had its timing log swept by its own child, executed).
+of an owner alive); an askpass socket judged by connecting to it (a probe is a
+request without the broker's token, which ends the live session it serves); a
+broker that serves on past a connection that sends nothing (it fails closed at
+a request without its token, and a probe would still race the helper); the
+owner judged by its `argv[0]` (the name it was started by: a login started
+through a site's link `k` had its timing log swept by its own child, executed).
 
 **The scratch is bounded for the askpass socket.** A path socket holds 107
 bytes, and the askpass socket's name, `askpass-<pid>-<16 hex>.sock`, is up to 37

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -14,42 +15,219 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/testsocket"
 )
 
-func TestBrokerReturnsOneRecognizedSecretAndThenCloses(t *testing.T) {
+// TestBrokerAnswersEachFieldOnce: the broker serves every request of the
+// session, in OpenSSH's order, answering the username at most once and the
+// password at most once; a request for either a second time, a later
+// round's or the password method's after keyboard-interactive, calls the
+// End hook before its refusal, the broker reporting the field refused
+// (authentication_failed), and the broker then answers nothing more.
+func TestBrokerAnswersEachFieldOnce(t *testing.T) {
 	material := secrets.NewMaterial("operator", "login-secret", "enable-secret")
 	defer material.Destroy()
-	b, err := Start(testsocket.Dir(t), material, Hooks{})
+	for _, c := range []struct {
+		prompts []string
+		want    string
+	}{
+		{[]string{"(operator@router1) Username: ", "(operator@router1) Password: ", "(operator@router1) Password: "}, `device refused password`},
+		{[]string{"(operator@router1) Enter PASSCODE: ", "operator@router1's password: "}, `device refused password`},
+		{[]string{"operator@router1's password: ", "(operator@router1) PIN: "}, `device refused password`},
+		{[]string{"(operator@router1) Username: ", "(operator@router1) login as: "}, `device refused username`},
+	} {
+		var b *Broker
+		hooked := 0
+		b, err := Start(testsocket.Dir(t), material, Hooks{End: func() {
+			hooked++
+			if b.Err() == nil {
+				t.Errorf("%q: the end was not recorded before the hook", c.prompts)
+			}
+		}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		last := len(c.prompts) - 1
+		for i, prompt := range c.prompts[:last] {
+			want := "login-secret"
+			if Field(prompt[strings.Index(prompt, " ")+1:]) == FieldUsername {
+				want = "operator"
+			}
+			if got := ask(t, b, "", prompt); got.Error != "" || string(got.Secret) != want {
+				t.Errorf("%q: request %d: %+v, want %q", c.prompts, i+1, got, want)
+			}
+		}
+		if hooked != 0 {
+			t.Errorf("%q: the End hook was called before the second ask", c.prompts)
+		}
+		if got := ask(t, b, "", c.prompts[last]); got.Error != "authentication_failed" || len(got.Secret) != 0 {
+			t.Errorf("%q: the second ask: %+v, want authentication_failed", c.prompts, got)
+		}
+		if hooked != 1 {
+			t.Errorf("%q: the End hook was called %d times, want once", c.prompts, hooked)
+		}
+		if err := b.Err(); errorcodes.Message(err) != "authentication_failed: "+c.want {
+			t.Errorf("%q: Err() = %v, want %s", c.prompts, err, c.want)
+		}
+		if answersAgain(b) {
+			t.Errorf("%q: the broker serves on after it ended the connection", c.prompts)
+		}
+		b.Close()
+	}
+}
+
+// TestBrokerServesOnAfterARefusal: a refusal that ends nothing (OpenSSH's
+// own question, a prompt no list matches, a field the session did not
+// resolve) answers nothing and counts as no answer: the broker serves the
+// next request, and a field it refused is still unanswered.
+func TestBrokerServesOnAfterARefusal(t *testing.T) {
+	material := secrets.NewMaterial("operator", "", "")
+	defer material.Destroy()
+	b, err := Start(testsocket.Dir(t), material, Hooks{End: func() { t.Error("the End hook was called") }})
 	if err != nil {
 		t.Fatal(err)
 	}
-	env := b.Environment()
-	var socket, token string
-	for _, value := range env {
-		if strings.HasPrefix(value, SocketEnv+"=") {
-			socket = strings.TrimPrefix(value, SocketEnv+"=")
-		}
-		if strings.HasPrefix(value, TokenEnv+"=") {
-			token = strings.TrimPrefix(value, TokenEnv+"=")
+	defer b.Close()
+	for _, c := range []struct{ prompt, secret, err string }{
+		{"Enter passphrase for key '/home/operator/.ssh/id_ed25519': ", "", "askpass_prompt_unrecognized"},
+		{"(operator@router1) Response: ", "", "askpass_prompt_unrecognized"},
+		{"(operator@router1) Password: ", "", "askpass_password_unset"},
+		{"operator@router1's password: ", "", "askpass_password_unset"},
+		{"(operator@router1) Username: ", "operator", ""},
+	} {
+		if got := ask(t, b, "", c.prompt); string(got.Secret) != c.secret || got.Error != c.err {
+			t.Errorf("%q: %+v, want %q %q", c.prompt, got, c.secret, c.err)
 		}
 	}
-	conn, err := net.DialTimeout("unix", socket, time.Second)
+	if err := b.Err(); err != nil {
+		t.Errorf("Err() = %v, want nil", err)
+	}
+}
+
+// TestBrokerEndsAtARequestWithoutTheToken: a request bearing another token,
+// or one the broker cannot decode, calls the End hook before its refusal,
+// is the broker's Err, and the broker answers nothing more, the helper's
+// own request included.
+func TestBrokerEndsAtARequestWithoutTheToken(t *testing.T) {
+	material := secrets.NewMaterial("operator", "login-secret", "")
+	defer material.Destroy()
+	for _, c := range []struct {
+		send, code, want string
+	}{
+		{`{"token":"` + strings.Repeat("00", 32) + `","prompt":"(operator@router1) Password: "}`, "askpass_auth_failed", "a request to the askpass broker bears the wrong token"},
+		{`{"token":"not hex","prompt":"(operator@router1) Password: "}`, "askpass_auth_failed", "a request to the askpass broker bears the wrong token"},
+		{`not a request`, "askpass_request_invalid", "the askpass broker cannot decode a request"},
+	} {
+		hooked := 0
+		b, err := Start(testsocket.Dir(t), material, Hooks{End: func() { hooked++ }})
+		if err != nil {
+			t.Fatal(err)
+		}
+		conn, err := net.DialTimeout("unix", brokerSocket(b), time.Second)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := conn.Write([]byte(c.send + "\n")); err != nil {
+			t.Fatal(err)
+		}
+		var got response
+		if err := json.NewDecoder(conn).Decode(&got); err != nil {
+			t.Fatal(err)
+		}
+		conn.Close()
+		if got.Error != c.code || len(got.Secret) != 0 {
+			t.Errorf("%q: %+v, want %s", c.send, got, c.code)
+		}
+		if hooked != 1 {
+			t.Errorf("%q: the End hook was called %d times, want once", c.send, hooked)
+		}
+		if err := b.Err(); errorcodes.Message(err) != c.code+": "+c.want {
+			t.Errorf("%q: Err() = %v, want %s: %s", c.send, err, c.code, c.want)
+		}
+		if answersAgain(b) {
+			t.Errorf("%q: the broker serves on after a request without the token", c.send)
+		}
+		b.Close()
+	}
+}
+
+// brokerSocket is b's socket path, as its environment names it.
+func brokerSocket(b *Broker) string {
+	for _, value := range b.Environment() {
+		if key, val, _ := strings.Cut(value, "="); key == SocketEnv {
+			return val
+		}
+	}
+	return ""
+}
+
+// answersAgain reports whether b, having ended the connection, serves on:
+// it has not closed by itself within a second.
+func answersAgain(b *Broker) bool {
+	select {
+	case <-b.done:
+		return false
+	case <-time.After(time.Second):
+		return true
+	}
+}
+
+// TestBrokerEndsNothingOnceClosed: a request the broker accepted before
+// Close and ends after it (one that sends nothing, its ten seconds running
+// out once the login is over), records no error and calls no End hook, so a
+// stray connection cannot end a session already running; its refusal still
+// goes back.
+func TestBrokerEndsNothingOnceClosed(t *testing.T) {
+	material := secrets.NewMaterial("operator", "login-secret", "")
+	defer material.Destroy()
+	b, err := Start(testsocket.Dir(t), material, Hooks{End: func() { t.Error("the End hook was called after Close") }})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := json.NewEncoder(conn).Encode(request{Token: token, Prompt: "operator@router1's password: "}); err != nil {
+	b.Close()
+	client, server := net.Pipe()
+	defer client.Close()
+	refused := make(chan response, 1)
+	go func() {
+		var got response
+		_ = json.NewDecoder(client).Decode(&got)
+		refused <- got
+	}()
+	if !b.end(server, errorcodes.Errorf("askpass_request_invalid", "the askpass broker cannot decode a request")) {
+		t.Error("end did not report the connection ended")
+	}
+	if got := <-refused; got.Error != "askpass_request_invalid" {
+		t.Errorf("refusal %+v, want askpass_request_invalid", got)
+	}
+	if err := b.Err(); err != nil {
+		t.Errorf("Err() = %v, want nil", err)
+	}
+}
+
+// unresolved is material whose password is set but does not resolve, as a
+// login's credential without keys or password offers one (app.login).
+type unresolved struct{}
+
+func (unresolved) UsernameSet() bool                        { return true }
+func (unresolved) PasswordSet() bool                        { return true }
+func (unresolved) WithUsername(fn func([]byte) error) error { return fn([]byte("operator")) }
+func (unresolved) WithPassword(func([]byte) error) error {
+	return errorcodes.Errorf("secret_password_unset", "password unset")
+}
+
+// TestBrokerRefusesAFieldThatDoesNotResolve: a password that does not
+// resolve is refused as one unset, every time it is asked, and is not
+// answered, so the password method's ask after it is no second ask.
+func TestBrokerRefusesAFieldThatDoesNotResolve(t *testing.T) {
+	b, err := Start(testsocket.Dir(t), unresolved{}, Hooks{End: func() { t.Error("the End hook was called") }})
+	if err != nil {
 		t.Fatal(err)
 	}
-	var got response
-	if err := json.NewDecoder(conn).Decode(&got); err != nil {
-		t.Fatal(err)
+	defer b.Close()
+	for _, prompt := range []string{"(operator@router1) Password: ", "operator@router1's password: "} {
+		if got := ask(t, b, "", prompt); got.Error != "askpass_password_unset" || len(got.Secret) != 0 {
+			t.Errorf("%q: %+v, want askpass_password_unset", prompt, got)
+		}
 	}
-	_ = conn.Close()
-	if got.Error != "" || string(got.Secret) != "login-secret" {
-		t.Fatalf("unexpected response: %+v", got)
-	}
-	b.Wait(time.Second)
-	if second, err := net.DialTimeout("unix", socket, 50*time.Millisecond); err == nil {
-		second.Close()
-		t.Fatal("single-use socket accepted a second connection")
+	if err := b.Err(); err != nil {
+		t.Errorf("Err() = %v, want nil", err)
 	}
 }
 
@@ -137,7 +315,7 @@ func TestBrokerRefusesOpenSSHsOwnQuestions(t *testing.T) {
 		"Password: ",
 		"",
 	} {
-		b, err := Start(testsocket.Dir(t), material, Hooks{Change: func() { t.Errorf("%q: the change hook was called", prompt) }})
+		b, err := Start(testsocket.Dir(t), material, Hooks{End: func() { t.Errorf("%q: the End hook was called", prompt) }})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -146,16 +324,17 @@ func TestBrokerRefusesOpenSSHsOwnQuestions(t *testing.T) {
 		if len(got.Secret) != 0 || got.Error != "askpass_prompt_unrecognized" {
 			t.Errorf("%q: secret %q error %q, want askpass_prompt_unrecognized", prompt, got.Secret, got.Error)
 		}
-		if err := b.Change(); err != nil {
-			t.Errorf("%q: Change() = %v, want nil", prompt, err)
+		if err := b.Err(); err != nil {
+			t.Errorf("%q: Err() = %v, want nil", prompt, err)
 		}
 	}
 }
 
-// TestBrokerEndsOpenSSHAtAChangePrompt: a change prompt calls the change
-// hook before its refusal is sent, so the transport ends OpenSSH while it
-// still waits on the helper; the broker then reports the prompt's own words
-// as authentication_change_requested, and no secret leaves it.
+// TestBrokerEndsOpenSSHAtAChangePrompt: a change prompt calls the End hook
+// before its refusal is sent, so the transport ends OpenSSH while it still
+// waits on the helper; the broker then reports the prompt's own words as
+// authentication_change_requested, no secret leaves it, and it answers
+// nothing more.
 func TestBrokerEndsOpenSSHAtAChangePrompt(t *testing.T) {
 	material := secrets.NewMaterial("jsmith", "login-secret", "")
 	defer material.Destroy()
@@ -167,9 +346,9 @@ func TestBrokerEndsOpenSSHAtAChangePrompt(t *testing.T) {
 	} {
 		var b *Broker
 		hooked := 0
-		b, err := Start(testsocket.Dir(t), material, Hooks{Change: func() {
+		b, err := Start(testsocket.Dir(t), material, Hooks{End: func() {
 			hooked++
-			if b.Change() == nil {
+			if b.Err() == nil {
 				t.Errorf("%q: the change was not recorded before the hook", c.prompt)
 			}
 		}})
@@ -177,16 +356,19 @@ func TestBrokerEndsOpenSSHAtAChangePrompt(t *testing.T) {
 			t.Fatal(err)
 		}
 		got := ask(t, b, "", c.prompt)
+		if answersAgain(b) {
+			t.Errorf("%q: the broker serves on after a change prompt", c.prompt)
+		}
 		b.Close()
 		if len(got.Secret) != 0 || got.Error != "authentication_change_requested" {
 			t.Errorf("%q: secret %q error %q, want authentication_change_requested", c.prompt, got.Secret, got.Error)
 		}
 		if hooked != 1 {
-			t.Errorf("%q: the change hook was called %d times, want once", c.prompt, hooked)
+			t.Errorf("%q: the End hook was called %d times, want once", c.prompt, hooked)
 		}
 		want := `authentication_change_requested: the device asks to change a secret: "` + c.words + `"`
-		if err := b.Change(); err == nil || errorcodes.Message(err) != want {
-			t.Errorf("%q: Change() = %v, want %s", c.prompt, err, want)
+		if err := b.Err(); err == nil || errorcodes.Message(err) != want {
+			t.Errorf("%q: Err() = %v, want %s", c.prompt, err, want)
 		}
 	}
 }
@@ -405,5 +587,39 @@ func TestStartLeavesAnExistingDirectoryAsItIs(t *testing.T) {
 		if info, err := os.Stat(dir); err != nil || info.Mode().Perm() != want {
 			t.Fatalf("%s: mode %v err %v; want %04o", dir, info.Mode().Perm(), err, want)
 		}
+	}
+}
+
+// TestBrokerEndHookRunsBeforeTheRefusal: the End hook has returned before
+// the refusal reaches the helper, at a change prompt, a field asked a second
+// time, and a request without the token alike, so the transport has ended
+// OpenSSH before it could send the device the empty answer a refusal brings.
+// The hook takes its time, as a slow end would.
+func TestBrokerEndHookRunsBeforeTheRefusal(t *testing.T) {
+	material := secrets.NewMaterial("operator", "login-secret", "")
+	defer material.Destroy()
+	for _, c := range []struct {
+		first, token, last string
+	}{
+		{"", "", "(operator@router1) Enter new PIN: "},
+		{"(operator@router1) Password: ", "", "operator@router1's password: "},
+		{"", strings.Repeat("00", 32), "(operator@router1) Password: "},
+	} {
+		var hooked atomic.Bool
+		b, err := Start(testsocket.Dir(t), material, Hooks{End: func() {
+			time.Sleep(100 * time.Millisecond)
+			hooked.Store(true)
+		}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if c.first != "" {
+			ask(t, b, "", c.first)
+		}
+		got := ask(t, b, c.token, c.last)
+		if !hooked.Load() {
+			t.Errorf("%q: the refusal %q arrived before the End hook returned", c.last, got.Error)
+		}
+		b.Close()
 	}
 }

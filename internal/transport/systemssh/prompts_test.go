@@ -3,18 +3,25 @@ package systemssh
 import (
 	"bytes"
 	"context"
+	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/askpass"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/fakedevice"
+	"github.com/robert-patrick-texas/karvi/internal/testprompts"
+	"github.com/robert-patrick-texas/karvi/internal/testpty"
 	"github.com/robert-patrick-texas/karvi/internal/testsocket"
 	"github.com/robert-patrick-texas/karvi/platform"
+	"golang.org/x/sys/unix"
 )
 
 // TestMain lets the test binary play the real askpass helper, linked as
@@ -120,5 +127,108 @@ func TestChangePromptEndsOpenSSH(t *testing.T) {
 	}
 	if got := srv.KbdAnswers(); strings.Join(got, "|") != `"Token: " password` {
 		t.Errorf("token prompt: the device received %q", got)
+	}
+}
+
+// TestEachFieldOnceOverSystem: over the system transport the askpass broker
+// serves every prompt OpenSSH asks, in a shell's session, an exec device's
+// master, and a login alike (testprompts.Rows): the username and the password
+// each at most once, a second ask or a change prompt at any position ending
+// OpenSSH while it waits on the helper, so the device gets nothing in that
+// round and no password-method attempt after it. The login is to the Linux
+// persona, whose shell sends its exit status at "exit".
+func TestEachFieldOnceOverSystem(t *testing.T) {
+	for _, row := range testprompts.Rows {
+		for _, tc := range []struct {
+			name string
+			run  func(*Driver) error
+			exec bool
+		}{
+			{"shell", func(d *Driver) error { return d.Prepare(context.Background()) }, false},
+			{"exec", func(d *Driver) error { return d.Prepare(context.Background()) }, true},
+			{"login", func(d *Driver) error {
+				var out bytes.Buffer
+				return d.Interactive(context.Background(), strings.NewReader("exit\n"), &out, &out)
+			}, true},
+		} {
+			d, srv := promptDriver(t, row.Prompts, tc.exec)
+			err := tc.run(d)
+			if got := errorcodes.Message(err); got != row.Err {
+				t.Errorf("%s, %s: %q, want %q", row.Name, tc.name, got, row.Err)
+			}
+			if got := strings.Join(srv.KbdAnswers(), "|"); got != row.Got {
+				t.Errorf("%s, %s: the device received %q, want %q", row.Name, tc.name, got, row.Got)
+			}
+			if row.Err != "" && srv.Sessions() != 0 {
+				t.Errorf("%s, %s: sessions=%d", row.Name, tc.name, srv.Sessions())
+			}
+		}
+	}
+}
+
+// TestALoginEndedByTheBrokerRestoresTheTerminal: a login the broker ends
+// after authentication (a stray request without the token, the broker open
+// until the login ends) ends OpenSSH by SIGTERM, which restores the
+// terminal it set raw: echo is on again once the login has ended.
+func TestALoginEndedByTheBrokerRestoresTheTerminal(t *testing.T) {
+	master, slave := testpty.Open(t)
+	var mu sync.Mutex
+	var seen bytes.Buffer
+	go func() {
+		buf := make([]byte, 4096)
+		for {
+			n, err := master.Read(buf)
+			mu.Lock()
+			seen.Write(buf[:n])
+			mu.Unlock()
+			if err != nil {
+				return
+			}
+		}
+	}()
+	echo := func() bool {
+		tio, err := unix.IoctlGetTermios(int(slave.Fd()), unix.TCGETS)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return tio.Lflag&unix.ECHO != 0
+	}
+	d, srv := promptDriver(t, []fakedevice.KbdPrompt{{Prompt: "Password: ", Want: "password"}}, true)
+	done := make(chan error, 1)
+	go func() { done <- d.Interactive(context.Background(), slave, slave, slave) }()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		mu.Lock()
+		up := srv.Sessions() > 0 && strings.Contains(seen.String(), "$") && !echo()
+		mu.Unlock()
+		if up {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the login's shell did not come up with the terminal raw")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	socks, _ := filepath.Glob(filepath.Join(d.f.ScratchDir, "askpass-*.sock"))
+	if len(socks) != 1 {
+		t.Fatalf("broker sockets %q, want one", socks)
+	}
+	conn, err := net.Dial("unix", socks[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = conn.Write([]byte(`{"token":"` + strings.Repeat("00", 32) + `","prompt":"x"}` + "\n"))
+	_, _ = io.Copy(io.Discard, conn)
+	conn.Close()
+	select {
+	case err := <-done:
+		if errorcodes.Of(err) != "askpass_auth_failed" {
+			t.Errorf("the login ended %v, want askpass_auth_failed", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("the login did not end")
+	}
+	if !echo() {
+		t.Error("the terminal was left with echo off")
 	}
 }

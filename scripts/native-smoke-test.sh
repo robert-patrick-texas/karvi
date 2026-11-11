@@ -304,6 +304,26 @@ KBDPROMPTS='Enter new PIN: =empty' KBD=none
 parity_case 'S13h a new PIN prompt ends the connection unanswered' accept-new cisco_ios "$BUILTIN" en '' \
   'authentication_error:authentication_change_requested' 108 '' \
   -- --cmd 'show clock'
+# S13i-S13k: the username and the password each at most once a connection:
+# a username prompt, then a password prompt, logs in; a password the device
+# refuses in keyboard-interactive is not sent again by the password method
+# (the fake would take it there); a new PIN asked in a round after the
+# passcode, a change of a secret at a later prompt, ends the connection
+# before any answer in that round.
+AUTH=keyboard-interactive
+KBDPROMPTS='Username: =username|Password: =password' KBD='"Username: " username|"Password: " password|'
+parity_case 'S13i a username prompt, then a password prompt' accept-new cisco_ios "$BUILTIN" en '' \
+  'success' 0 "$OPEN"'"show clock"|"exit"|' \
+  -- --cmd 'show clock'
+unset AUTH
+KBDPROMPTS='Password: =username' KBD='"Password: " password|'
+parity_case 'S13j a refused password is not sent again' accept-new cisco_ios "$BUILTIN" en '' \
+  'authentication_error:authentication_failed' 108 '' \
+  -- --cmd 'show clock'
+KBDPROMPTS='Enter PASSCODE: =password||Enter new PIN: =empty' KBD='"Enter PASSCODE: " password|'
+parity_case 'S13k a new PIN round after the passcode ends the connection' accept-new cisco_ios "$BUILTIN" en '' \
+  'authentication_error:authentication_change_requested' 108 '' \
+  -- --cmd 'show clock'
 unset KBDPROMPTS KBD
 
 # S35: the exec channel over the Linux persona, logged in by the operator's

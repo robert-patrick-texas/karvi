@@ -210,10 +210,11 @@ they were published in.
   Their documentation (`config show --explain`) says what each does in place
   of "At least one auth mechanism must remain." and "Supports network-device
   challenge prompts."
-- **A keyboard-interactive prompt gets the password only where it asks for
-  one, on both SSH transports, and a change of a secret ends the
-  connection.** The native transport answered every keyboard-interactive
-  prompt with the password, a `Username:` prompt among them; the system
+- **A prompt gets the username or the password only where it asks for one,
+  each once per connection, on both SSH transports; a change of a secret
+  ends the connection.** The native transport answered every
+  keyboard-interactive prompt with the password, a `Username:` prompt among
+  them; the system
   transport's askpass broker answered any prompt naming a password or
   passcode with the password, a device's `New password:` among them. Both
   now answer by one rule, three lists of patterns matched case-insensitively
@@ -223,11 +224,11 @@ they were published in.
     `re-?typed?`, `(re)?confirm(ed)?`, `verify`, `repeat(ed)?`, `again`,
     `once more`, `chang(e|ed|es|ing)`, `renew(ed)?`,
     `generat(e|es|ed|ing)`, `creat(e|ed)`, `\(y/n\)`, `\[y/n\]`,
-    `yes/no`) ends the connection before any answer with the new code
-    `authentication_change_requested` (exit 108), which quotes the prompt;
-    no other method is tried after it (the system transport ends OpenSSH at
-    the prompt, which would otherwise send an empty answer, then an empty
-    password);
+    `yes/no`) ends the connection before any answer in its round with the
+    new code `authentication_change_requested` (exit 108), which quotes the
+    prompt; no other method is tried after it (the system transport ends
+    OpenSSH at the prompt, which would otherwise send an empty answer, then
+    an empty password);
   - a prompt naming `user` (`[\w-]*user[\w-]*`), a login (`log ?[io]n`),
     or a name (`name\s*:`) gets the username;
   - one naming a password (`passw\w*`), passcode, passphrase, `pass\s*:`,
@@ -240,8 +241,20 @@ they were published in.
   is found inside a word. The askpass broker answers only a prompt beginning
   with OpenSSH's `user@host`, a device's, and refuses OpenSSH's own questions
   (a key's passphrase, a FIDO or PKCS#11 PIN, user presence, a password
-  change). It is still one-use: over the system transport the first prompt
-  OpenSSH asks is judged, and OpenSSH answers every later one empty.
+  change). Each field is answered at most once per connection on both SSH
+  transports (the broker answered only the first prompt OpenSSH asked,
+  OpenSSH every later one empty): `Username:` then `Password:` logs in, and a
+  second ask of either ends the connection, the device getting nothing in
+  that round, with `authentication_failed: device refused password` (or
+  `username`, exit 108). So a refused `Password:` sends
+  the password once, the password method not tried with it (the native
+  transport sent it twice), and a change prompt at any position, a later
+  round's included, ends the connection over the system transport too. A
+  request to the broker without its token (`askpass_auth_failed`) or one it
+  cannot decode (`askpass_request_invalid`) ends OpenSSH, and the session
+  fails with that code (exit 108, record `authentication_error`); neither code
+  reached a session before. A `karvi login`'s broker serves until the login
+  ends, five minutes at most, so a stray request in that time ends it.
 
 ### Breaking changes
 

@@ -14,6 +14,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/fakedevice"
 	"github.com/robert-patrick-texas/karvi/internal/sshalgorithms"
+	"github.com/robert-patrick-texas/karvi/internal/testprompts"
 	"github.com/robert-patrick-texas/karvi/platform"
 )
 
@@ -279,6 +280,42 @@ func TestProviderChangePromptEndsTheHandshake(t *testing.T) {
 		}
 		if srv.Sessions() != 0 {
 			t.Errorf("%q: sessions=%d", last, srv.Sessions())
+		}
+	}
+}
+
+// TestProviderAnswersEachFieldOnce: the native transport answers
+// testprompts.Rows as the system transport's broker does (systemssh's
+// TestEachFieldOnceOverSystem): the username and the password each at most
+// once a connection, keyboard-interactive and the password method together,
+// a second ask or a change prompt at any position ending the handshake with
+// nothing sent in its round; the password is resolved only as often as the
+// device receives it.
+func TestProviderAnswersEachFieldOnce(t *testing.T) {
+	for _, row := range testprompts.Rows {
+		srv := startFake(t, fakedevice.Options{Enable: "en", KbdPrompts: row.Prompts})
+		f, _ := factory(t, "accept-new")
+		req := request(srv, "cisco_ios", "en")
+		resolved := 0
+		req.Password = func(f func([]byte) error) error { resolved++; return f([]byte("pw")) }
+		d, err := f.Open(context.Background(), req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = d.Prepare(context.Background())
+		d.Close()
+		if got := errorcodes.Message(err); got != row.Err {
+			t.Errorf("%s: %q, want %q", row.Name, got, row.Err)
+		}
+		got := strings.Join(srv.KbdAnswers(), "|")
+		if got != row.Got {
+			t.Errorf("%s: the device received %q, want %q", row.Name, got, row.Got)
+		}
+		if want := strings.Count(got, " password"); resolved != want {
+			t.Errorf("%s: the password was resolved %d times, want %d", row.Name, resolved, want)
+		}
+		if row.Err != "" && srv.Sessions() != 0 {
+			t.Errorf("%s: sessions=%d", row.Name, srv.Sessions())
 		}
 	}
 }

@@ -312,17 +312,17 @@ None chosen: the operator names the next item, from "Later" or anew.
 - **Jump hosts over the system transport.** A `ProxyJump` in `~/.ssh/config`
   (`ssh.include-user-config`) makes the hop a child `ssh -W` that inherits the
   askpass environment, so the jump host's prompts reach the broker and are
-  answered from the device's credential; the hop authenticates first, so
-  its prompt is the one the one-use broker judges, and the device's own
-  prompts then get OpenSSH's empty answer (such a bastion works today only
-  where the device then takes a key). To decide: whether a hop's prompts
-  are answered at all (the broker could require the device's own HostKeyAlias
-  in OpenSSH's `user@host`, refusing the jump host's, which would end a bastion
-  that shares the device's credential today) or from a credential of the
-  hop's own; and a change prompt at the jump host ending the hop's process:
-  the change hook kills the device's OpenSSH, and the hop's own process still
-  sends the jump host OpenSSH's empty answer. The fake device cannot yet be a
-  jump host.
+  answered from the device's credential; the hop authenticates first, so it
+  takes the fields it asks for, and the device's own ask of one of them then
+  ends the connection as a second ask (`authentication_failed`; such a bastion
+  works today only where the device then takes a key). To decide: whether a
+  hop's prompts are answered at all (the broker could require the device's own
+  HostKeyAlias in OpenSSH's `user@host`, refusing the jump host's, which would
+  end a bastion that shares the device's credential today) or from a credential
+  of the hop's own; and a change prompt or a second ask at the jump host ending
+  the hop's process: the broker's hook ends the device's OpenSSH, and the hop's
+  own process still sends the jump host OpenSSH's empty answer. The fake device
+  cannot yet be a jump host.
 - **A suite's failure that names its call.** A suite under `set -eu` that runs
   karvi with its output redirected into the work directory dies at a refused
   call with karvi's exit status and prints nothing, and its cleanup removes the

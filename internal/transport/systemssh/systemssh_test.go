@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 )
@@ -167,5 +168,49 @@ func TestClassifyTakesOpenSSHsLastFailureLine(t *testing.T) {
 		if code, _, _, _ := classify(tc.stderr, nil); code != tc.code {
 			t.Errorf("%s: %s, want %s", tc.name, code, tc.code)
 		}
+	}
+}
+
+// TestProcessEndEndsOpenSSHWhenEverItStarts: the broker's End hook ends the
+// started process at once; one requested before the start (a request
+// without the token may come first) ends the process as it starts; and one
+// whose process never starts returns at once, so the broker never waits on
+// it.
+func TestProcessEndEndsOpenSSHWhenEverItStarts(t *testing.T) {
+	sleep, err := exec.LookPath("sleep")
+	if err != nil {
+		t.Skip("no sleep")
+	}
+	for _, first := range []string{"started", "end"} {
+		cmd := exec.Command(sleep, "30")
+		if err := cmd.Start(); err != nil {
+			t.Fatal(err)
+		}
+		e := newProcessEnd()
+		if first == "started" {
+			e.started(cmd.Process)
+			e.end()
+		} else {
+			e.end()
+			e.started(cmd.Process)
+		}
+		done := make(chan error, 1)
+		go func() { done <- cmd.Wait() }()
+		select {
+		case err := <-done:
+			if err == nil {
+				t.Errorf("%s first: the process exited cleanly, want ended", first)
+			}
+		case <-time.After(5 * time.Second):
+			_ = cmd.Process.Kill()
+			t.Errorf("%s first: the process was not ended", first)
+		}
+	}
+	ended := make(chan struct{})
+	go func() { newProcessEnd().end(); close(ended) }()
+	select {
+	case <-ended:
+	case <-time.After(5 * time.Second):
+		t.Error("end waited on a process that never started")
 	}
 }

@@ -1,5 +1,6 @@
-// Package askpass implements the single-use authenticated local callback used
-// to deliver one already-resolved field to OpenSSH.
+// Package askpass implements the authenticated local callback that delivers
+// the session's already-resolved username and password to OpenSSH, each at
+// most once.
 package askpass
 
 import (
@@ -32,7 +33,7 @@ type request struct {
 }
 type response struct {
 	// Secret is encoded as base64 by encoding/json. Keeping it as bytes lets
-	// both sides wipe their explicit working copy after the one-use exchange.
+	// both sides wipe their explicit working copy after the exchange.
 	Secret []byte `json:"secret,omitempty"`
 	Error  string `json:"error,omitempty"`
 }
@@ -52,11 +53,11 @@ type Hooks struct {
 	// it is answered: OpenSSH asks only once key exchange is done, so a
 	// login reads the trust store then (Driver.Interactive).
 	Requested func()
-	// Change is called for a change prompt, before the broker refuses it,
-	// and ends OpenSSH, which is then waiting on the helper: refused,
-	// OpenSSH would send the device an empty answer and go on to the
-	// password method.
-	Change func()
+	// End is called when the broker ends the connection it serves (Err),
+	// before its refusal goes back, and ends OpenSSH, which is then waiting
+	// on the helper: refused, OpenSSH would send the device an empty answer
+	// and go on to the password method. End must not call Close.
+	End func()
 }
 
 type Broker struct {
@@ -66,12 +67,22 @@ type Broker struct {
 	hooks         Hooks
 	done          chan struct{}
 	once          sync.Once
-	mu            sync.Mutex
-	change        *string // the change prompt's words, once refused
+	// answered holds the fields given to OpenSSH (FieldUsername,
+	// FieldPassword); serve alone reads and writes it.
+	answered map[string]bool
+	mu       sync.Mutex
+	err      error // why the broker ended the connection, once it has
+	// ending serializes an end with Close: once closed, the login it
+	// served is over, and a request still in hand ends nothing.
+	ending sync.Mutex
+	closed bool
 }
 
-// Start serves one request from OpenSSH's askpass helper on a socket in
-// dir, calling hooks as it goes.
+// Start serves OpenSSH's askpass helper on a socket in dir until Close,
+// five minutes at most, calling hooks as it goes: the username and the
+// password each at most once, and a request that would have either a second
+// time, a change prompt, or a request without the token ends the connection
+// (Err).
 func Start(dir string, material Material, hooks Hooks) (*Broker, error) {
 	if material == nil {
 		return nil, errorcodes.Errorf("askpass_material_missing", "credential material is nil")
@@ -98,7 +109,7 @@ func Start(dir string, material Material, hooks Hooks) (*Broker, error) {
 		os.Remove(socket)
 		return nil, err
 	}
-	b := &Broker{socket: socket, token: token, listener: ln, material: material, hooks: hooks, done: make(chan struct{})}
+	b := &Broker{socket: socket, token: token, listener: ln, material: material, hooks: hooks, done: make(chan struct{}), answered: map[string]bool{}}
 	go b.serve()
 	return b, nil
 }
@@ -107,6 +118,9 @@ func (b *Broker) Environment() []string {
 }
 func (b *Broker) Close() {
 	b.once.Do(func() {
+		b.ending.Lock()
+		b.closed = true
+		b.ending.Unlock()
 		if b.listener != nil {
 			b.listener.Close()
 		}
@@ -121,81 +135,123 @@ func (b *Broker) Wait(timeout time.Duration) {
 		b.Close()
 	}
 }
+
+// serve answers the helper's requests one at a time, in OpenSSH's order,
+// until Close, the five minutes, or a request that ends the connection.
 func (b *Broker) serve() {
 	defer b.Close()
 	_ = b.listener.(*net.UnixListener).SetDeadline(time.Now().Add(5 * time.Minute))
-	conn, err := b.listener.Accept()
-	if err != nil {
-		return
+	for {
+		conn, err := b.listener.Accept()
+		if err != nil {
+			return
+		}
+		ended := b.answer(conn)
+		conn.Close()
+		if ended {
+			return
+		}
 	}
-	defer conn.Close()
+}
+
+// answer serves one request on conn, within ten seconds, and reports
+// whether it ended the connection.
+func (b *Broker) answer(conn net.Conn) bool {
 	_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
 	var req request
 	if err := json.NewDecoder(io.LimitReader(bufio.NewReader(conn), 64*1024)).Decode(&req); err != nil {
-		json.NewEncoder(conn).Encode(response{Error: "askpass_request_invalid"})
-		return
+		return b.end(conn, errorcodes.Errorf("askpass_request_invalid", "the askpass broker cannot decode a request"))
 	}
 	expected, _ := hex.DecodeString(b.token)
 	got, err := hex.DecodeString(req.Token)
 	if err != nil || len(got) != len(expected) || subtle.ConstantTimeCompare(got, expected) != 1 {
-		json.NewEncoder(conn).Encode(response{Error: "askpass_auth_failed"})
-		return
+		return b.end(conn, errorcodes.Errorf("askpass_auth_failed", "a request to the askpass broker bears the wrong token"))
 	}
 	if b.hooks.Requested != nil {
 		b.hooks.Requested()
 	}
 	words, asked := openSSHWords(req.Prompt)
 	if !asked {
-		json.NewEncoder(conn).Encode(response{Error: "askpass_prompt_unrecognized"})
-		return
+		return refuse(conn, "askpass_prompt_unrecognized")
+	}
+	field := Field(words)
+	switch field {
+	case FieldChange:
+		return b.end(conn, ChangeRequested(words))
+	case FieldUsername, FieldPassword:
+		if b.answered[field] {
+			return b.end(conn, AskedAgain(field))
+		}
+	default:
+		return refuse(conn, "askpass_prompt_unrecognized")
 	}
 	var secret []byte
-	switch Field(words) {
-	case FieldChange:
-		b.mu.Lock()
-		b.change = &words
-		b.mu.Unlock()
-		if b.hooks.Change != nil {
-			b.hooks.Change()
+	collect := func(v []byte) error { secret = append(secret, v...); return nil }
+	// A field that does not resolve is refused as one unset, and is not
+	// answered.
+	if field == FieldUsername {
+		if !b.material.UsernameSet() || b.material.WithUsername(collect) != nil {
+			wipe(secret)
+			return refuse(conn, "askpass_username_unset")
 		}
-		json.NewEncoder(conn).Encode(response{Error: "authentication_change_requested"})
-		return
-	case FieldUsername:
-		if !b.material.UsernameSet() {
-			json.NewEncoder(conn).Encode(response{Error: "askpass_username_unset"})
-			return
+	} else {
+		if !b.material.PasswordSet() || b.material.WithPassword(collect) != nil {
+			wipe(secret)
+			return refuse(conn, "askpass_password_unset")
 		}
-		_ = b.material.WithUsername(func(v []byte) error { secret = append(secret, v...); return nil })
-	case FieldPassword:
-		if !b.material.PasswordSet() {
-			json.NewEncoder(conn).Encode(response{Error: "askpass_password_unset"})
-			return
-		}
-		_ = b.material.WithPassword(func(v []byte) error { secret = append(secret, v...); return nil })
-	default:
-		json.NewEncoder(conn).Encode(response{Error: "askpass_prompt_unrecognized"})
-		return
 	}
+	b.answered[field] = true
 	_ = json.NewEncoder(conn).Encode(response{Secret: secret})
 	wipe(secret)
-	secret = nil
+	return false
 }
 
-// Change returns ChangeRequested's error once the broker has refused a
-// change prompt, or nil.
-func (b *Broker) Change() error {
+// refuse sends code as the request's refusal, OpenSSH then sending the
+// device an empty answer; the broker serves on.
+func refuse(conn net.Conn, code string) bool {
+	_ = json.NewEncoder(conn).Encode(response{Error: code})
+	return false
+}
+
+// end records err as why the broker ended the connection, calls the End
+// hook, and sends err's code as the refusal; once closed it records nothing
+// and calls no hook: the login is over.
+func (b *Broker) end(conn net.Conn, err error) bool {
+	b.ending.Lock()
+	if !b.closed {
+		b.mu.Lock()
+		b.err = err
+		b.mu.Unlock()
+		if b.hooks.End != nil {
+			b.hooks.End()
+		}
+	}
+	b.ending.Unlock()
+	_ = json.NewEncoder(conn).Encode(response{Error: errorcodes.Of(err)})
+	return true
+}
+
+// Err returns why the broker ended the connection it serves, once it has: a
+// change prompt (ChangeRequested), a field asked a second time
+// (AskedAgain), or a request without the token (askpass_auth_failed,
+// askpass_request_invalid); or nil.
+func (b *Broker) Err() error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	if b.change == nil {
-		return nil
-	}
-	return ChangeRequested(*b.change)
+	return b.err
 }
 
 // ChangeRequested is the error a change prompt ends the connection with, on
 // both SSH transports; prompt is the prompt's own words.
 func ChangeRequested(prompt string) error {
 	return errorcodes.Errorf("authentication_change_requested", "the device asks to change a secret: %q", prompt)
+}
+
+// AskedAgain is the error a prompt asking for a field already answered
+// (FieldUsername, FieldPassword) ends the connection with, on both SSH
+// transports: the device refused it, and karvi does not try again.
+func AskedAgain(field string) error {
+	return errorcodes.Errorf("authentication_failed", "device refused %s", field)
 }
 
 // openSSHPrefix is the user@host OpenSSH puts before a device's prompt, the

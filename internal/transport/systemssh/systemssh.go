@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/askpass"
@@ -174,13 +175,13 @@ func (d *Driver) Prepare(ctx context.Context) error {
 		LoginTimeout: connectTimeout + promptTimeout, EnableTimeout: enableTimeout, PromptTimeout: promptTimeout,
 		Debug: d.f.Debug, Live: d.req.Live,
 	})
-	// The one-use askpass broker serves the authentication, which is over
-	// once the first prompt has arrived (or the open has failed); a change
-	// prompt it refused is the failure's cause.
+	// The askpass broker serves the authentication, which is over once the
+	// first prompt has arrived (or the open has failed); a connection the
+	// broker ended (askpass.Broker.Err) is the failure's cause.
 	broker.Close()
 	if err != nil {
-		if change := broker.Change(); change != nil {
-			err = change
+		if ended := broker.Err(); ended != nil {
+			err = ended
 		}
 		d.debugf("system SSH command session open failed code=%s diagnostic=%q", errorcodes.Of(err), compactDiagnostic(stream.Diagnostics()))
 		return err
@@ -202,8 +203,8 @@ func (d *Driver) prepareExec(ctx context.Context) error {
 	err = master.ready(ctx, connectTimeout+promptTimeout)
 	broker.Close()
 	if err != nil {
-		if change := broker.Change(); change != nil {
-			err = change
+		if ended := broker.Err(); ended != nil {
+			err = ended
 		}
 		d.debugf("system SSH exec master failed code=%s diagnostic=%q", errorcodes.Of(err), compactDiagnostic(master.diagnostics.String()))
 		return err
@@ -361,7 +362,7 @@ func (d *Driver) Interactive(ctx context.Context, stdin io.Reader, stdout, stder
 	material := callbackMaterial{username: d.req.Username, password: d.req.Password}
 	firstContact := d.firstContact()
 	end := newProcessEnd()
-	broker, err := askpass.Start(d.f.ScratchDir, material, askpass.Hooks{Requested: firstContact, Change: end.end})
+	broker, err := askpass.Start(d.f.ScratchDir, material, askpass.Hooks{Requested: firstContact, End: end.end})
 	if err != nil {
 		return errorcodes.Ensure(err, "askpass_start_failed")
 	}
@@ -385,9 +386,9 @@ func (d *Driver) Interactive(ctx context.Context, stdin io.Reader, stdout, stder
 		firstContact()
 	}
 	if err != nil {
-		if change := broker.Change(); change != nil {
-			d.debugf("system SSH interactive session ended code=%s", errorcodes.Of(change))
-			return change
+		if ended := broker.Err(); ended != nil {
+			d.debugf("system SSH interactive session ended code=%s", errorcodes.Of(ended))
+			return ended
 		}
 		code, _, _, _ := classify(diagnostic.String(), err)
 		d.debugf("system SSH interactive session failed code=%s diagnostic=%q", code, compactDiagnostic(diagnostic.String()))
@@ -468,10 +469,10 @@ func (f Factory) renderConfig() (string, error) {
 		}
 	}
 	// The methods in karvi's order on both transports: the keys, then
-	// keyboard-interactive, the first prompt answered by what it asks for
-	// (askpass.Field; the one-use broker leaves OpenSSH to answer any later
-	// one empty), and password (a server may allow keyboard-interactive and
-	// refuse password).
+	// keyboard-interactive, each prompt answered by what it asks for
+	// (askpass.Field), and password (a server may allow keyboard-interactive
+	// and refuse password); the broker gives the username and the password
+	// each at most once.
 	b.WriteString("  PreferredAuthentications publickey,keyboard-interactive,password\n")
 	fmt.Fprintf(&b, "  PasswordAuthentication %s\n", yesno(!f.passwordless && f.Config.Bool("ssh.password-authentication")))
 	fmt.Fprintf(&b, "  KbdInteractiveAuthentication %s\n", yesno(!f.passwordless && f.Config.Bool("ssh.keyboard-interactive-authentication")))
@@ -541,27 +542,39 @@ func (d *Driver) debugf(format string, args ...any) {
 	}
 }
 
-// processEnd ends an OpenSSH process from the askpass broker's change hook
-// (askpass.Hooks.Change): at once, while OpenSSH waits on the helper's
-// answer, so it sends the device none and tries no other method. OpenSSH
-// asks only once started, which started records.
+// processEnd ends an OpenSSH process from the askpass broker's End hook
+// (askpass.Hooks.End): at once, while OpenSSH waits on the helper's answer,
+// so it sends the device none and tries no other method. It sends SIGTERM:
+// OpenSSH ends at once during authentication, and a login's restores the
+// terminal. A request without the token may end it
+// before OpenSSH has started, which then ends it as it starts; one that
+// never starts leaves nothing to end.
 type processEnd struct {
-	set  chan struct{}
-	proc *os.Process
+	mu    sync.Mutex
+	proc  *os.Process
+	ended bool
 }
 
-func newProcessEnd() *processEnd { return &processEnd{set: make(chan struct{})} }
+func newProcessEnd() *processEnd { return &processEnd{} }
 
-// started records the started OpenSSH process.
+// started records the started OpenSSH process, ending it if end came first.
 func (e *processEnd) started(p *os.Process) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	e.proc = p
-	close(e.set)
+	if e.ended {
+		_ = p.Signal(syscall.SIGTERM)
+	}
 }
 
-// end kills the process started records.
+// end ends the process started records, or the one it will.
 func (e *processEnd) end() {
-	<-e.set
-	_ = e.proc.Kill()
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.ended = true
+	if e.proc != nil {
+		_ = e.proc.Signal(syscall.SIGTERM)
+	}
 }
 
 // callbackMaterial is the askpass broker's material (askpass.Material): the

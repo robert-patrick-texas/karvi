@@ -25,7 +25,7 @@ in the environment, and
 .B ssh
 runs the helper with its prompt as the one argument whenever it needs an
 answer.
-The helper sends the one\-use token from
+The helper sends the session's token from
 .B KARVI_ASKPASS_TOKEN
 and the prompt to the broker karvi holds open at the socket
 .BR KARVI_ASKPASS_SOCKET ,
@@ -59,13 +59,14 @@ Otherwise a prompt naming user, found inside a word too, a login, or
 name: gets the username, and one naming a password, passcode,
 passphrase, pass:, PIN, token, code, or OTP the password, of the
 credential karvi resolved for the session.
-The broker answers the first prompt
+The broker answers the username at most once and the password at most
+once: a second ask of either is refused, karvi ends
 .B ssh
-asks, one per session;
-.B ssh
-answers every later one empty.
+at once, and the session fails with
+.BR authentication_failed :
+device refused password (or username).
 karvi's native transport answers a device's keyboard\-interactive
-prompts by the same lists, each of them.
+prompts by the same lists, each field at most once.
 Any other prompt is refused,
 .BR ssh 's
 own questions among them: a key's passphrase, a security key's PIN,
@@ -92,7 +93,7 @@ in a release tree), else on
 .SH ENVIRONMENT
 .TP
 .BR KARVI_ASKPASS_SOCKET ", " KARVI_ASKPASS_TOKEN
-The broker's socket and the session's one\-use token; karvi sets them for
+The broker's socket and the session's token; karvi sets them for
 the one
 .B ssh
 process.
@@ -102,11 +103,15 @@ The helper's path; karvi reads it, and the daemon's launcher passes it
 through the environment filter that keeps an operator's shell secrets out
 of the daemon.
 .SH SECURITY
+The broker answers the session's requests until its login is over, at
+most five minutes; each exchange is bounded to ten seconds.
+It answers the username at most once and the password at most once.
+A second ask, a change prompt, a wrong token, or a request it cannot
+decode ends
+.BR ssh .
 The token is 32 random bytes, compared in constant time.
-The socket is mode 0600 in the operator's scratch directory.
-The broker accepts one connection per session, then closes and removes
-the socket; it waits at most five minutes for that connection, and the
-exchange is bounded to ten seconds.
+The socket is mode 0600 in the operator's scratch directory, removed
+when the broker closes.
 Both sides wipe their copy of the secret.
 The broker refuses with
 .B askpass_auth_failed
@@ -116,7 +121,9 @@ The broker refuses with
 .B askpass_prompt_unrecognized
 (a prompt it does not answer),
 .B authentication_change_requested
-(a change prompt), and
+(a change prompt),
+.B authentication_failed
+(a second ask), and
 .B askpass_username_unset
 or
 .B askpass_password_unset

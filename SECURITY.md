@@ -92,8 +92,10 @@ host from suppressing evidence for the rest of a fleet operation.
 ## Credential boundary
 
 Passwords are resolved per operator and are not put in SSH arguments.
-System OpenSSH receives them through the authenticated, one-use
-`karvi-askpass` callback. The transport/driver adapter receives short-lived
+System OpenSSH receives them through the authenticated `karvi-askpass`
+callback, which answers the username and the password each at most once per
+connection and ends the connection at a second ask, a change prompt, or a
+request without its token. The transport/driver adapter receives short-lived
 copies through karvi-owned secret wrappers. Audit records contain the operator,
 device-facing username, backend, and safe match metadata, never secret values.
 

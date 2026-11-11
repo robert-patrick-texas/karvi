@@ -89,7 +89,7 @@ key, listed with its relations in [`docs/TIMEOUTS.md`](TIMEOUTS.md).
 ```text
 resolve target/address/credential/transport/platform definition
   -> open the connection, the host-key policy in the handshake
-       system: private OpenSSH config, one-use askpass, one fresh ssh -tt process
+       system: private OpenSSH config, askpass for the login, one fresh ssh -tt process
        native: one x/crypto connection, no subprocess
   -> wait for the first prompt            (execution.prompt-timeout; system adds ssh.connect-timeout)
   -> escalate once when below the level    (execution.enable-timeout, the whole step)
