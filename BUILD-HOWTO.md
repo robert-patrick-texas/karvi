@@ -100,8 +100,8 @@ cat go.mod
 ### 4.1 Official build
 
 The source carries every module the build needs: `go.mod` names
-golang.org/x/crypto v0.58.0, golang.org/x/sys v0.49.0, and golang.org/x/term
-v0.47.0, `go.sum` holds their sums, and `vendor/` holds their sources. goldmark
+golang.org/x/crypto v0.59.0, golang.org/x/sys v0.50.0, and golang.org/x/term
+v0.48.0, `go.sum` holds their sums, and `vendor/` holds their sources. goldmark
 v1.8.7 is vendored beside them for `tools/md-to-html` (`make html`); no
 executable contains it. A build host needs no network. On a host with an
 approved module proxy, `make deps` re-downloads the modules and checks them

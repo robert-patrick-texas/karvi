@@ -369,6 +369,26 @@ they were published in.
   for an opening in flight to be answered and for the stopped command's
   channel to close, and close the connection then, or as soon as the channel
   closes. Over `system` a command given up ended at once, and still does.
+- **The newest x/crypto, x/sys, and x/term.** `golang.org/x/crypto` v0.59.0
+  (from v0.58.0), `golang.org/x/sys` v0.50.0 (v0.49.0), and
+  `golang.org/x/term` v0.48.0 (v0.47.0, its sources unchanged); goldmark
+  v1.8.7 was the newest already. `karvi` links all three and `karvi-audit`
+  x/sys; `karvi-askpass` and `karvi-prune` link none. x/crypto's SSH client
+  is the `native` transport's, and three of its changes reach it. A channel
+  opened on a connection that has ended returns `EOF` at once, where it
+  could wait without end; it more often returned why the connection ended,
+  so a command started on a lost connection is now `command_session_lost:
+  the connection ended: EOF`, where the message named a reset or the
+  device's disconnect. A packet whose write fails reports the failure at
+  that write, where the next write reported it. A device's banner message
+  carrying bytes after its language tag is read, where it ended the
+  handshake (`native_session_open_failed`). The package no longer
+  implements DSA: karvi refuses `ssh-dss` in every host-key list
+  (`config_ssh_algorithm_forbidden`), and a DSA key among the operator's
+  identities is no longer used (Breaking changes). Its stricter certificate
+  checks are on paths karvi does not take, and x/sys's changes on Linux are
+  in functions karvi does not call. `govulncheck` finds no advisory against
+  the three modules on karvi's call paths, before or after the move.
 
 ### Breaking changes
 
@@ -420,6 +440,16 @@ they were published in.
   it with `--tf` goes as a sorted run went, and `karvi watch`'s `target`
   sort key orders the jobs' first targets by it. The shuffle's rank and its
   tie by name are unchanged.
+- **A DSA key in `ssh.identities` is no longer used.** x/crypto, which
+  reads the operator's keys for both SSH transports, no longer implements
+  DSA at v0.59.0 (Bugs fixed, the newest modules). An unencrypted PEM DSA
+  key (`-----BEGIN DSA PRIVATE KEY-----`) a site listed in `ssh.identities`
+  was read and, over `native`, offered as `ssh-dss`; it is now skipped,
+  `operator_key_skipped` with the reason `not a private key karvi reads`,
+  and a credential with no other key fails with
+  `credential_operator_keys_missing` (exit 6). The default list names no
+  DSA file; a DSA key in OpenSSH's own format, or under a passphrase, was
+  skipped before and still is.
 
 ### Other notes
 

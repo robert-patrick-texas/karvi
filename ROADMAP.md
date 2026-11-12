@@ -491,7 +491,7 @@ None chosen: the operator names the next item, from "Later" or anew.
   mode. An option for it waits until that set holds AES-256-GCM. Go 1.27's
   certified module (`v1.0.0-c2097c7c`) has an SSH form of AES-GCM
   (`NewGCMForSSH`, RFC 5647's nonce) inside the standard library alone;
-  x/crypto's SSH package (v0.58.0) calls `crypto/cipher.NewGCM`, which the
+  x/crypto's SSH package (v0.59.0) calls `crypto/cipher.NewGCM`, which the
   module counts as unapproved under `GODEBUG=fips140=on` and refuses under
   `fips140=only`. The approved cipher left is AES-CTR, which karvi does not
   lead with. The item opens when a `GOFIPS140=certified` build negotiates
