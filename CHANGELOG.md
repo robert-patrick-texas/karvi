@@ -389,6 +389,15 @@ they were published in.
   checks are on paths karvi does not take, and x/sys's changes on Linux are
   in functions karvi does not call. `govulncheck` finds no advisory against
   the three modules on karvi's call paths, before or after the move.
+- **Go 1.27.4.** The executables are built with Go 1.27.4, where 0.41.0's
+  were built with Go 1.27.3. Go 1.27.4 carries security fixes to cgo, the
+  `go` command, the compiler, the linker, and `net/http`, and bug fixes to
+  the assembler, the compiler, the runtime, and `crypto/fips140`,
+  `crypto/hkdf`, `crypto/rsa`, `crypto/tls`, and `net`. `karvi` links
+  `net/http`, for the Vault credential backend's client, and the three
+  helpers do not; `govulncheck` named one advisory on karvi's call paths at
+  Go 1.27.3, GO-2026-6859 (an HTTP/1 server's crash in `net/http`), and
+  names none at Go 1.27.4.
 
 ### Breaking changes
 
