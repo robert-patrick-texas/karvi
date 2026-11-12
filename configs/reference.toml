@@ -140,7 +140,8 @@ halt-run-on-host-key-mismatch = false
 # The operator's own keys, offered in this order where a platform's fallback reaches keys:
 # each an absolute path or ~/, the home the password database names. A file that does not
 # exist is passed over; one that is not the operator's own regular file without group or other
-# access, holds a passphrase, or is hardware-backed is skipped with operator_key_skipped.
+# access, holds a passphrase, is hardware-backed, or holds a DSA key is skipped with
+# operator_key_skipped.
 identities = ["~/.ssh/id_ed25519", "~/.ssh/id_ecdsa", "~/.ssh/id_rsa"]
 # Offer SSH password authentication, answered with the credential's password, after the keys
 # and keyboard-interactive, on both SSH transports; where keyboard-interactive sent the

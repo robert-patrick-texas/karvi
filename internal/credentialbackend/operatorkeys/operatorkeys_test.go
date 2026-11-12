@@ -38,6 +38,7 @@ func TestJudge(t *testing.T) {
 	write("id_locked", locked, 0o600)
 	write("id_open", good, 0o644)
 	write("id_ed25519_sk", sshkeytest.SK(t), 0o600)
+	write("id_dsa", sshkeytest.DSA(t)["openssh"], 0o600)
 	write("id_junk", []byte("not a key\n"), 0o600)
 	if err := os.Symlink(filepath.Join(ssh, "id_ed25519"), filepath.Join(ssh, "id_link")); err != nil {
 		t.Fatal(err)
@@ -46,7 +47,7 @@ func TestJudge(t *testing.T) {
 		t.Fatal(err)
 	}
 	rules := credfile.Rules{Home: home, UID: os.Getuid()}
-	got := Judge(rules, []string{"~/.ssh/id_missing", "~/.ssh/id_locked", "~/.ssh/id_ed25519", "~/.ssh/id_open", "~/.ssh/id_ro", "~/.ssh/id_ed25519_sk", "~/.ssh/id_link", "~/.ssh/id_dir", "~/.ssh/id_junk"})
+	got := Judge(rules, []string{"~/.ssh/id_missing", "~/.ssh/id_locked", "~/.ssh/id_ed25519", "~/.ssh/id_open", "~/.ssh/id_ro", "~/.ssh/id_ed25519_sk", "~/.ssh/id_dsa", "~/.ssh/id_link", "~/.ssh/id_dir", "~/.ssh/id_junk"})
 	if len(got.Keys) != 2 || got.Keys[0].Path != filepath.Join(ssh, "id_ed25519") || got.Keys[0].Fingerprint != goodFP || got.Keys[1].Path != filepath.Join(ssh, "id_ro") || got.Keys[1].Fingerprint != readOnlyFP {
 		t.Fatalf("keys: %+v", got.Keys)
 	}
@@ -54,6 +55,7 @@ func TestJudge(t *testing.T) {
 		"id_locked":     sshkey.ReasonPassphrase,
 		"id_open":       "mode 0644, not 0600 or 0400",
 		"id_ed25519_sk": sshkey.ReasonUnsupported,
+		"id_dsa":        sshkey.ReasonDSA,
 		"id_link":       "a symbolic link, and security.allow-credential-symlinks is false",
 		"id_dir":        "not a regular file",
 		"id_junk":       sshkey.ReasonUnreadable,
@@ -66,7 +68,7 @@ func TestJudge(t *testing.T) {
 			t.Errorf("%s: %q, want %q", s.Path, s.Reason, want[filepath.Base(s.Path)])
 		}
 	}
-	if len(got.Examined) != 9 || got.Examined[0] != filepath.Join(ssh, "id_missing")+" (absent)" || got.Examined[2] != filepath.Join(ssh, "id_ed25519") {
+	if len(got.Examined) != 10 || got.Examined[0] != filepath.Join(ssh, "id_missing")+" (absent)" || got.Examined[2] != filepath.Join(ssh, "id_ed25519") {
 		t.Fatalf("examined: %q", got.Examined)
 	}
 	for _, line := range got.Examined {

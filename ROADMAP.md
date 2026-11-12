@@ -16,11 +16,6 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   why the connection ended (a reset, the device's disconnect message). The
   item: karvi keeps the connection's own end (the client's `Wait`) and the
   message names it.
-- **A reason of its own for a DSA key in `ssh.identities`.** x/crypto v0.59.0
-  reads no DSA key, so an unencrypted PEM DSA key is skipped
-  (`operator_key_skipped`) as `not a private key karvi reads`, the reason a
-  damaged file gets. The item: the notice says the key is DSA and no longer
-  used, and the code's description lists the reason.
 - **An RSA key over `system` for a device that takes `ssh-rsa` alone.** Over
   `system` an RSA key of `ssh.identities` does not log in to a device whose
   public-key algorithms hold `ssh-rsa` (SHA-1) alone, an older device
@@ -31,6 +26,12 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   writes `PubkeyAcceptedAlgorithms` (the SHA-2 names, then `ssh-rsa` last, as
   `native` signs) or leaves OpenSSH's choice and says so, and whether a site
   shapes the list on both transports.
+- **A PKCS#8 key under a passphrase named as one.** A PKCS#8 key file under
+  a passphrase (`BEGIN ENCRYPTED PRIVATE KEY`) in `ssh.identities` is skipped
+  (`operator_key_skipped`) as `not a private key karvi reads`, where a PEM
+  or OpenSSH-format key under a passphrase reads `protected by a
+  passphrase`: x/crypto refuses the block's type before it looks for a
+  passphrase. The item: the block's type gives the passphrase's reason.
 
 ## Later
 

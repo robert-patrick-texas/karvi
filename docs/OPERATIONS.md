@@ -969,11 +969,11 @@ password database names, each an absolute path or one under the home; a site
 may lock the list. At planning a file that does not exist is passed over, and
 one that exists is used only when it is the operator's own regular file with
 mode `0600` or `0400` (a symbolic link under
-`security.allow-credential-symlinks`), opens without a passphrase, and is not
-hardware-backed. Any other is skipped with the notice `operator_key_skipped`,
-naming the file and the reason, as a warning line, a dry-run finding, and on
-each device's first record. The dry run shows each key used with its
-fingerprint:
+`security.allow-credential-symlinks`), opens without a passphrase, and is
+neither hardware-backed nor a DSA key. Any other is skipped with the notice
+`operator_key_skipped`, naming the file and the reason, as a warning line, a
+dry-run finding, and on each device's first record. The dry run shows each
+key used with its fingerprint:
 
 ```text
 - name:srv1: planned

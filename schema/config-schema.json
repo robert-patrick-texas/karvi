@@ -396,7 +396,7 @@
       "environment": "KARVI__SSH__IDENTITIES",
       "cli_flags": null,
       "place": true,
-      "documentation": "The operator's own keys, offered in this order where a platform's `fallback` reaches `keys`: each an absolute path or `~/`, the home the password database names. A file that does not exist is passed over; one that is not the operator's own regular file without group or other access, holds a passphrase, or is hardware-backed is skipped with `operator_key_skipped`."
+      "documentation": "The operator's own keys, offered in this order where a platform's `fallback` reaches `keys`: each an absolute path or `~/`, the home the password database names. A file that does not exist is passed over; one that is not the operator's own regular file without group or other access, holds a passphrase, is hardware-backed, or holds a DSA key is skipped with `operator_key_skipped`."
     },
     {
       "path": "ssh.password-authentication",

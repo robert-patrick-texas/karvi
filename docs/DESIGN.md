@@ -1240,9 +1240,11 @@ file that does not exist is passed over; one that exists is judged in the client
 at planning: the operator's own regular file with no group or other access
 (`0600` or `0400`), a symbolic link under the credential file rule, parsed
 without a passphrase, of a type both transports sign with (no hardware-backed
-`_sk` key). A key that fails is skipped with the notice `operator_key_skipped`,
-naming the file and the reason and never the contents, on the device's first
-record and in the dry run; with no key left the device fails with
+`_sk` key, no DSA key). A key that fails is skipped with the notice
+`operator_key_skipped`, naming the file and the reason and never the contents,
+on the device's first record and in the dry run, a DSA key whose file names
+its type by a reason of its own, ahead of a passphrase's; with no key left the
+device fails with
 `credential_operator_keys_missing` (exit 6), listing the files examined. The
 credential is the operator's login name and the keys' paths, its backend
 `builtin-operator-keys`; the dry run shows each key's fingerprint as seen at
@@ -1953,6 +1955,17 @@ device's offer read from the wire and x/crypto's choice repeated in karvi,
 which would name a failed handshake's; OpenSSH's log level raised under
 `--debug`, which changes the standard error karvi classifies; the line in the
 command record ([`docs/EXAMPLES.md`, chapter 94](EXAMPLES.md#94-the-negotiated-ssh-algorithms-in---debug-2026-11-03)).
+
+**Legacy cryptography is not an objective.** Support for legacy cryptography is
+not an objective of this project, and we celebrate when outdated math is
+retired. karvi leads each list with the strongest algorithm its transports
+implement, post-quantum first (`mlkem768x25519-sha256` heads the key
+exchanges), and an algorithm x/crypto or OpenSSH retires is retired here with
+no path kept for it: a DSA key in `ssh.identities` is named and skipped. What
+an older device still needs stays last in its list, or in a profile the
+operator configured, while the transports carry it and no longer. *Why:* the
+operator's word: onward to post-quantum cryptography (PQC) and the strongest
+math available. *Not taken:* effort to keep a retired algorithm working.
 
 **No FIPS 140-3 mode until Go's module performs AES-256-GCM for SSH.** karvi
 leads with the strongest algorithms its transports implement, and has no mode

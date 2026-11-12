@@ -29,6 +29,16 @@ they were published in.
   Under `--debug` the transport names the key that signs and its algorithm,
   `native SSH connection key signs path=… algorithm=…`. A key of any other
   type has one algorithm and signs as before.
+- **A DSA key in `ssh.identities` is skipped for its own reason.** A DSA
+  key, which neither transport signs with, was skipped
+  (`operator_key_skipped`) for a reason that turned on its file's form and
+  named DSA in none: `not a private key karvi reads` (PEM, PKCS#8, or
+  OpenSSH's format under a passphrase), `protected by a passphrase` (PEM
+  under one), or `a key type neither transport signs with (a
+  hardware-backed key)` (OpenSSH's format). Each now reads `a DSA key, no
+  longer used`, as does a PEM file with the key's parameters in a block
+  ahead of it. A PKCS#8 file under a passphrase names no key type and stays
+  `not a private key karvi reads`.
 
 ## 0.42.0 - 2026-11-12
 
