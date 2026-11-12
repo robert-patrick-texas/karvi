@@ -9,7 +9,20 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-None chosen: the operator names the next item, from "Later" or anew.
+- **Prompt parity between the SSH transports: two gaps.** Chosen to follow
+  the prompt answers' EXAMPLES chapter. Both transports answer a device's
+  prompts by one rule; two cases still differ, each executed first, OpenSSH
+  the benchmark:
+  - **A field the credential cannot supply.** Over `system` the broker
+    refuses it (`askpass_password_unset`) and OpenSSH sends an empty answer,
+    then tries the password method; over `native` the round fails and
+    nothing is sent. Found by reading in a review; planning may refuse such a
+    credential first (`credential_password_missing`).
+  - **Keyboard-interactive after a partial success.** Where a device accepts
+    a key and then requires keyboard-interactive, x/crypto may try
+    keyboard-interactive again after a refusal where OpenSSH
+    (`NumberOfPasswordPrompts 1`) likely does not. Reasoned only: the fake
+    device cannot answer with a partial success yet.
 
 ## Later
 
