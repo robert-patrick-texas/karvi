@@ -9,20 +9,7 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-- **Prompt parity between the SSH transports: two gaps.** Chosen to follow
-  the prompt answers' EXAMPLES chapter. Both transports answer a device's
-  prompts by one rule; two cases still differ, each executed first, OpenSSH
-  the benchmark:
-  - **A field the credential cannot supply.** Over `system` the broker
-    refuses it (`askpass_password_unset`) and OpenSSH sends an empty answer,
-    then tries the password method; over `native` the round fails and
-    nothing is sent. Found by reading in a review; planning may refuse such a
-    credential first (`credential_password_missing`).
-  - **Keyboard-interactive after a partial success.** Where a device accepts
-    a key and then requires keyboard-interactive, x/crypto may try
-    keyboard-interactive again after a refusal where OpenSSH
-    (`NumberOfPasswordPrompts 1`) likely does not. Reasoned only: the fake
-    device cannot answer with a partial success yet.
+None chosen: the operator names the next item, from "Later" or anew.
 
 ## Later
 
@@ -339,6 +326,25 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   the operator answers a second ask, a change prompt, and a prompt no list
   matches at the terminal instead, the jump host's and the device's alike
   (reasoned, not executed). The fake device cannot yet be a jump host.
+- **Authentication in stages.** A server may require methods in turn
+  (OpenSSH's `AuthenticationMethods`, each stage a partial success): a Linux
+  server a key and then one or more username or password answers, to pursue
+  (Rob), or a password and then a second factor. Executed against a scratch
+  device, karvi logs in on no such chain over either transport, where plain
+  `ssh` does: a credential with keys holds no password, so after the key
+  neither transport has a method left; a later stage asking for the password
+  or a code is a second ask (`device refused password`); and OpenSSH, at
+  `NumberOfPasswordPrompts 1` and its count kept across a partial success,
+  does not run keyboard-interactive a second time, so in `karvi login` the
+  operator is not asked. The transports differ only there: native runs it
+  again and answers a prompt no list matches empty, a failed attempt the
+  device counts; system sends nothing, a command's error led by OpenSSH's
+  `Authenticated using "keyboard-interactive" with partial success.` After a
+  refusal neither runs keyboard-interactive again. Waits on the key and
+  password credential agreed in [`docs/EXAMPLES.md`, chapter
+  24](docs/EXAMPLES.md#24-jobs-across-linux-servers-2026-10-04) (the key
+  first, the password on partial success; the credential CSV's `keyfile`),
+  not built; the tree's fake device answers no partial success.
 - **One message for a refused authentication on both SSH transports.** A
   refused key, or a password credential with both password methods off, fails
   `authentication_failed` (exit 108) on both transports, each in its own words:
