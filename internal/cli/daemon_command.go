@@ -317,15 +317,29 @@ func stopDaemonRuntime(ctx context.Context, rt app.DaemonRuntime, opts stopOptio
 		mode = daemon.StopForce
 	}
 	stopCtx, stopCancel := context.WithTimeout(ctx, stopTimeout(rt))
-	defer stopCancel()
-	probe, err = daemon.StopCompatible(stopCtx, rt.Socket, rt.MaxFrame, mode)
+	stopped, err := daemon.StopCompatible(stopCtx, rt.Socket, rt.MaxFrame, mode)
+	stopCancel()
+	probe = stopped.ProbeResult
 	if err != nil {
 		if errorcodes.Of(err) == "daemon_active_jobs" {
 			return probe, fmt.Errorf("%w; %s", err, activeJobsRemedy)
 		}
 		return probe, errorcodes.Ensure(err, "daemon_stop_failed")
 	}
-	return probe, waitStopped(stopCtx, rt.Socket, probe.Status.PID)
+	waitCtx, waitCancel := context.WithTimeout(ctx, stoppedTimeout(rt, stopped.Wait))
+	defer waitCancel()
+	return probe, waitStopped(waitCtx, rt.Socket, probe.Status.PID)
+}
+
+// stoppedTimeout is the wait for a stopped daemon to exit: start-timeout
+// plus the wait its answer names, the longest it may take (EXAMPLES chapter
+// 108), or, from a daemon naming none, a build from before the field,
+// stopTimeout.
+func stoppedTimeout(rt app.DaemonRuntime, wait time.Duration) time.Duration {
+	if wait > 0 {
+		return startTimeout(rt) + wait
+	}
+	return stopTimeout(rt)
 }
 
 // waitStopped waits for the stopped daemon, pid, to exit (daemonExited)

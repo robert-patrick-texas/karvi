@@ -2438,6 +2438,22 @@ leaving it running unreachable. *Not taken:* removing the lock file at exit
 passes it); the dial alone (a stopping daemon's closed socket refuses as a
 dead one's does).
 
+**A stop waits as long as the daemon may.** The daemon's answer to a stop it
+takes names its wait, `wait` in milliseconds: its accounting bound, its
+start's `daemon.forced-grace-seconds` with the two-second floor. The daemon
+sets one deadline as it answers, the wait from then, at which a follower's
+wait for its job's terminal, the wait for the connections, and the wait for
+the jobs' records all end. The client waits `daemon.start-timeout` plus the
+wait for the stopped daemon to exit, its socket gone or its pid ended; an
+answer naming none, a build's from before it, keeps `daemon.start-timeout`
+plus the client's own forced-grace. The IPC schema stays: no schema names the
+stop's answer, and the client reads it from any build. *Why:* the daemon
+reads forced-grace at its start and alone applies the floor, so the client's
+own value fell short, `daemon_stop_timeout` with the daemon still accounting.
+*Not taken:* the client applying the floor itself (the daemon's value still
+unknown to it); moving the IPC schema for an answer's field; a wait per
+stage (a followed job's stop took twice the wait).
+
 **`daemon stop` and `daemon restart` refuse an active daemon without an
 option.** Every stop names its mode, and the daemon alone counts its jobs,
 under the lock that admits them. Without an option the mode is `if_idle`,

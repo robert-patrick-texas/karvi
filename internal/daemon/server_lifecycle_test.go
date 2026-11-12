@@ -8,9 +8,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/ipc"
 	"github.com/robert-patrick-texas/karvi/internal/testsocket"
 )
@@ -226,5 +228,94 @@ func TestIdleConnectionsDoNotHoldTheStop(t *testing.T) {
 	}
 	if _, err := os.Stat(socket); !os.IsNotExist(err) {
 		t.Errorf("the socket remains: %v", err)
+	}
+}
+
+// TestTheStopAnswerNamesTheDaemonsWait: the stop's answer carries the
+// daemon's accounting bound, its forced-grace with a two-second floor, so
+// the client waits as long as the daemon may (EXAMPLES chapter 108).
+func TestTheStopAnswerNamesTheDaemonsWait(t *testing.T) {
+	for _, c := range []struct {
+		grace int64
+		want  time.Duration
+	}{{0, 2 * time.Second}, {10, 10 * time.Second}} {
+		dir := testsocket.Dir(t)
+		socket := filepath.Join(dir, "d.sock")
+		cfg := configload.Snapshot{Values: map[string]configload.Value{"daemon.forced-grace-seconds": {Data: c.grace}}}
+		s := &Server{Socket: socket, StatePath: filepath.Join(dir, "state.json"), UID: os.Geteuid(), Config: cfg}
+		_, served := serveLocked(t, s)
+		waitAnswers(t, socket)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		stopped, err := StopCompatible(ctx, socket, 1<<20, StopForce)
+		cancel()
+		if err != nil || stopped.Wait != c.want {
+			t.Fatalf("forced-grace %d: wait %v, %v; want %v", c.grace, stopped.Wait, err, c.want)
+		}
+		if err := waitServed(t, served, "the stopped daemon"); err != nil {
+			t.Fatalf("Serve = %v", err)
+		}
+	}
+}
+
+// TestAFollowerDoesNotLengthenTheStop: a forced stop of a daemon whose job
+// does not account in time, its client following it, removes the socket
+// within the wait its answer names: the follower's wait for the terminal and
+// the accounting end at the stop's one deadline (stopDeadline), not one
+// after the other (twice the wait).
+func TestAFollowerDoesNotLengthenTheStop(t *testing.T) {
+	dir := testsocket.Dir(t)
+	socket := filepath.Join(dir, "d.sock")
+	cfg := configload.Snapshot{Values: map[string]configload.Value{"daemon.forced-grace-seconds": {Data: int64(0)}}}
+	var logged bytes.Buffer
+	s := &Server{Socket: socket, StatePath: filepath.Join(dir, "state.json"), UID: os.Geteuid(), Config: cfg, Logger: slog.New(slog.NewTextHandler(&logged, nil))}
+	_, served := serveLocked(t, s)
+	waitAnswers(t, socket)
+	// A job that never accounts: its wait group held, its terminal never
+	// given.
+	const id = "261112-120000-ab"
+	s.jobWait.Add(1)
+	var release sync.Once
+	t.Cleanup(func() { release.Do(s.jobWait.Done) })
+	s.active.Store(1)
+	j := newJob()
+	j.open(ipc.JobReceipt{JobID: id}, nil)
+	s.jobTable.add(id, j)
+	req, err := ipc.NewRequest("r-follow", ipc.OpFollowJob, ipc.FollowRequest{JobID: id, Cursor: 0})
+	if err != nil {
+		t.Fatal(err)
+	}
+	started := make(chan struct{}, 1)
+	go func() {
+		_ = ipc.Stream(context.Background(), socket, req, 1<<20, func(ipc.Response) error {
+			select {
+			case started <- struct{}{}:
+			default:
+			}
+			return nil
+		})
+	}()
+	select {
+	case <-started:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the follow did not start")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	stopped, err := StopCompatible(ctx, socket, 1<<20, StopForce)
+	cancel()
+	if err != nil {
+		t.Fatal(err)
+	}
+	answered := time.Now()
+	if err := waitServed(t, served, "the stopped daemon"); err != nil {
+		t.Fatalf("Serve = %v", err)
+	}
+	if took := time.Since(answered); took > stopped.Wait+500*time.Millisecond {
+		t.Errorf("the socket went %v after the answer, which named %v", took, stopped.Wait)
+	}
+	if _, err := os.Lstat(socket); !os.IsNotExist(err) {
+		t.Errorf("the socket after Serve: %v", err)
+	}
+	if !strings.Contains(logged.String(), "code=shutdown_incomplete") {
+		t.Errorf("log = %q", logged.String())
 	}
 }

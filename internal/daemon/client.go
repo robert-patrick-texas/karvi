@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/robert-patrick-texas/karvi/credentialpackage"
 	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
@@ -77,29 +78,40 @@ func Probe(ctx context.Context, socket string, maxFrame int64) (ProbeResult, err
 	return ProbeResult{Status: status, DaemonSchema: mismatch.DaemonSchema, ClientSchema: ipc.SchemaVersion, Compatible: false}, nil
 }
 
+// Stopped is a stop's answer: the daemon as the probe before the stop found
+// it, and Wait, the longest the daemon may take after its answer before it
+// removes its socket (its accounting bound), zero from a daemon whose
+// answer names none, a build from before the field.
+type Stopped struct {
+	ProbeResult
+	Wait time.Duration
+}
+
 // StopCompatible explicitly stops the daemon reached at socket, including a
 // same-UID daemon of an older IPC schema, at its own. This operation is
 // invoked only by an operator's daemon stop/restart command; a submission
 // drains a daemon of another build (Drain) and never stops one. The mode is
 // always sent, and the daemon refuses an if_idle stop while jobs run.
-func StopCompatible(ctx context.Context, socket string, maxFrame int64, mode string) (ProbeResult, error) {
+func StopCompatible(ctx context.Context, socket string, maxFrame int64, mode string) (Stopped, error) {
 	probe, err := Probe(ctx, socket, maxFrame)
 	if err != nil {
-		return ProbeResult{}, err
+		return Stopped{}, err
 	}
+	stopped := Stopped{ProbeResult: probe}
 	id, err := osutil.NewID(now())
 	if err != nil {
-		return probe, err
+		return stopped, err
 	}
 	req, err := ipc.NewRequestForSchema(probe.DaemonSchema, id, "stop", StopRequest{Mode: mode})
 	if err != nil {
-		return probe, err
+		return stopped, err
 	}
-	var result map[string]any
-	if err := ipc.CallForSchema(ctx, socket, req, probe.DaemonSchema, maxFrame, &result); err != nil {
-		return probe, err
+	var reply StopReply
+	if err := ipc.CallForSchema(ctx, socket, req, probe.DaemonSchema, maxFrame, &reply); err != nil {
+		return stopped, err
 	}
-	return probe, nil
+	stopped.Wait = time.Duration(reply.Wait) * time.Millisecond
+	return stopped, nil
 }
 
 // Drain drains the daemon at socket, sent at schema, the daemon's own as a

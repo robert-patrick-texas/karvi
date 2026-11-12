@@ -37,7 +37,12 @@ type stopFixture struct {
 	build string
 	// stay keeps it running when drained with no job, as a daemon that
 	// does not exit.
-	stay     atomic.Bool
+	stay atomic.Bool
+	// wait is the stop answer's wait in milliseconds, none when zero (a
+	// daemon of another build); linger keeps the socket file that long
+	// after the stop, its listener closed, as a daemon accounting its jobs.
+	wait     atomic.Int64
+	linger   atomic.Int64
 	listener net.Listener
 	mu       sync.Mutex
 	ops      []string
@@ -78,6 +83,11 @@ func startStopFixtureBuild(t *testing.T, socket string, active int64, build stri
 			stop := f.serve(conn, socket)
 			conn.Close()
 			if stop {
+				if linger := time.Duration(f.linger.Load()); linger > 0 {
+					listener.(*net.UnixListener).SetUnlinkOnClose(false)
+					_ = listener.Close()
+					time.Sleep(linger)
+				}
 				return
 			}
 		}
@@ -124,7 +134,11 @@ func (f *stopFixture) serve(conn net.Conn, socket string) bool {
 			_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: ipc.SchemaVersion, RequestID: req.RequestID, Error: &ipc.Error{Code: "daemon_active_jobs", Message: fmt.Sprintf("daemon reports %d active job(s)", f.active.Load()), Details: map[string]any{}}}, 1<<20)
 			return false
 		}
-		reply(map[string]any{"stopping": true})
+		if wait := f.wait.Load(); wait > 0 {
+			reply(map[string]any{"stopping": true, "wait": wait})
+		} else {
+			reply(map[string]any{"stopping": true})
+		}
 		return true
 	case ipc.OpCancelJob:
 		// A running job answers cancelling, a finished
@@ -387,5 +401,42 @@ func TestTheStopWaitEndsAtThePidsExit(t *testing.T) {
 	defer cancelShort()
 	if err := waitStopped(short, socket, os.Getpid()); errorcodes.Of(err) != "daemon_stop_timeout" {
 		t.Fatalf("the wait for a live pid = %v", err)
+	}
+}
+
+// TestDaemonStopWaitsAsLongAsTheDaemonSays: the stop's answer names the
+// daemon's wait, and the client waits start-timeout plus it, not plus its
+// own forced-grace (EXAMPLES chapter 108). At start-timeout 1s: a daemon
+// naming 1.5 s that keeps its socket 2 s is waited for at forced-grace 0;
+// one naming none, a build from before the field, keeps the client's own
+// bound, start-timeout plus its forced-grace: at 0 it times out at 1 s, at
+// 2 it waits the 2 s out.
+func TestDaemonStopWaitsAsLongAsTheDaemonSays(t *testing.T) {
+	for _, c := range []struct {
+		name  string
+		wait  int64
+		grace string
+		exit  int
+	}{{"named", 1500, "0", 0}, {"none", 0, "0", exitcode.ExitShutdownIncomplete}, {"none-own-grace", 0, "2", 0}} {
+		t.Run(c.name, func(t *testing.T) {
+			_, g, socket := daemonTestRuntime(t)
+			g.sets = append(g.sets, `daemon.start-timeout="1s"`, "daemon.forced-grace-seconds="+c.grace)
+			f := startStopFixture(t, socket, 1, nil)
+			f.wait.Store(c.wait)
+			f.linger.Store(int64(2 * time.Second))
+			var stdout, stderr bytes.Buffer
+			began := time.Now()
+			got := daemonStop(context.Background(), stopInvocation(t, g, "--force"), app.IO{Stdout: &stdout, Stderr: &stderr})
+			elapsed := time.Since(began)
+			if got != c.exit {
+				t.Fatalf("exit=%d after %v stderr=%q", got, elapsed, stderr.String())
+			}
+			if c.exit == 0 && (stdout.String() != "daemon stopped\n" || elapsed < 1900*time.Millisecond) {
+				t.Fatalf("stdout=%q after %v", stdout.String(), elapsed)
+			}
+			if c.exit != 0 && (!strings.Contains(stderr.String(), "daemon_stop_timeout") || elapsed > 1400*time.Millisecond) {
+				t.Fatalf("stderr=%q after %v", stderr.String(), elapsed)
+			}
+		})
 	}
 }

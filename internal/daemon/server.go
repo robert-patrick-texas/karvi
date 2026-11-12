@@ -87,7 +87,10 @@ type Server struct {
 	// over and clears it, so the log names the stop that ended the daemon.
 	drained     atomic.Bool
 	drainedExit sync.Once
-	mu          sync.Mutex
+	// stopOnce sets stopBy, the stop's one deadline (stopDeadline).
+	stopOnce sync.Once
+	stopBy   time.Time
+	mu       sync.Mutex
 	// build is this executable's build, read at Serve's start and named in
 	// every status (buildinfo.Build).
 	build string
@@ -122,6 +125,16 @@ type Status struct {
 // admitted between the count and the stop (EXAMPLES chapter 57, issue 4).
 type StopRequest struct {
 	Mode string `json:"mode,omitempty"`
+}
+
+// StopReply is the daemon's answer to a stop it takes: Wait, in
+// milliseconds, is its accounting bound (accountingBound), the longest it
+// may take after the answer before it removes its socket (stopDeadline,
+// set as it answers), so that the client waits as long as the daemon may
+// (EXAMPLES chapter 108).
+type StopReply struct {
+	Stopping bool  `json:"stopping"`
+	Wait     int64 `json:"wait,omitempty"`
 }
 
 const (
@@ -282,8 +295,7 @@ func (s *Server) Serve(parent context.Context) error {
 	}()
 	err = s.acceptLoop(ctx, listener, s.Socket, &wg, s.handle)
 	_ = s.writeState("draining")
-	wg.Wait()
-	s.awaitAccounting()
+	s.awaitStop(&wg)
 	s.preparations.destroyAll()
 	if err == nil {
 		err = <-frameErr
@@ -356,7 +368,7 @@ func acceptRetryable(err error) bool {
 // daemon.shutdown-grace-seconds to finish, after which the daemon stops. A
 // second signal shortens the remaining wait to daemon.forced-grace-seconds.
 // At expiry the jobs are cancelled with the grace-expired cause and their
-// accounting is still awaited (through awaitAccounting). A stop
+// accounting is still awaited (through awaitStop). A stop
 // request over IPC during the wait behaves as it does at any other time.
 func (s *Server) handleSignals(ctx context.Context) {
 	var sig os.Signal
@@ -495,20 +507,44 @@ func (s *Server) accountingBound() time.Duration {
 	return bound
 }
 
-// awaitAccounting waits for the job goroutines to finalize their records
-// and summaries before the socket and state file go. Under a forced stop
-// the jobs are already cancelled with their cause; the wait is
-// accountingBound, so a configured zero still attempts the terminal writes,
-// and a job still writing at the bound is logged shutdown_incomplete.
-func (s *Server) awaitAccounting() {
-	done := make(chan struct{})
-	go func() { s.jobWait.Wait(); close(done) }()
-	bound := s.accountingBound()
-	select {
-	case <-done:
-	case <-time.After(bound):
-		if s.Logger != nil {
-			s.Logger.Warn("shutdown", slog.String("code", "shutdown_incomplete"), slog.Int64("active_jobs", s.active.Load()), slog.Duration("waited", bound))
+// stopDeadline is the stop's one deadline, accountingBound from its first
+// call: at a stop request, as its answer names the wait, or at the cancel
+// that ends Serve's accepts. A follower's wait for its job's terminal and
+// awaitStop both end at it, so the daemon removes its socket within the
+// wait it names (EXAMPLES chapter 108), however many waits it holds. The
+// real clock, not Clock, which a test may fix.
+func (s *Server) stopDeadline() time.Time {
+	s.stopOnce.Do(func() { s.stopBy = time.Now().Add(s.accountingBound()) })
+	return s.stopBy
+}
+
+// awaitStop waits, up to the stop's deadline, for the connection handlers,
+// a follower delivering its job's terminal among them, and for the job
+// goroutines to finalize their records and summaries, before the socket and
+// state file go. Under a forced stop the jobs are already cancelled with
+// their cause; the bound's floor means a configured zero still attempts the
+// terminal writes. A job still writing at the deadline is logged
+// shutdown_incomplete; a handler still running then, a follower that stopped
+// reading, is left to the process's exit.
+func (s *Server) awaitStop(handlers *sync.WaitGroup) {
+	deadline := s.stopDeadline()
+	handled := make(chan struct{})
+	go func() { handlers.Wait(); close(handled) }()
+	accounted := make(chan struct{})
+	go func() { s.jobWait.Wait(); close(accounted) }()
+	timer := time.NewTimer(time.Until(deadline))
+	defer timer.Stop()
+	for handled != nil || accounted != nil {
+		select {
+		case <-handled:
+			handled = nil
+		case <-accounted:
+			accounted = nil
+		case <-timer.C:
+			if accounted != nil && s.Logger != nil {
+				s.Logger.Warn("shutdown", slog.String("code", "shutdown_incomplete"), slog.Int64("active_jobs", s.active.Load()), slog.Duration("waited", s.accountingBound()))
+			}
+			return
 		}
 	}
 }
@@ -575,7 +611,8 @@ func (s *Server) handle(ctx context.Context, conn *net.UnixConn) {
 		}
 		s.drained.Store(false)
 		_ = s.writeState("draining")
-		s.writeResult(conn, req.RequestID, map[string]any{"stopping": true})
+		s.stopDeadline()
+		s.writeResult(conn, req.RequestID, StopReply{Stopping: true, Wait: s.accountingBound().Milliseconds()})
 		if stop.Mode == StopForce {
 			// Forcing cancels the jobs with the shutdown cause; Serve then
 			// awaits their accounting.

@@ -547,12 +547,12 @@ func (s *Server) followJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 			return
 		case <-ctx.Done():
 			// The listener's cancel under a stop: the job is finalizing;
-			// deliver its terminal to the follower
-			// within the accounting bound rather than dropping the stream.
+			// deliver its terminal to the follower by the stop's deadline
+			// rather than dropping the stream.
 			select {
 			case <-j.done:
 				finish()
-			case <-time.After(s.accountingBound()):
+			case <-time.After(time.Until(s.stopDeadline())):
 			}
 			return
 		}

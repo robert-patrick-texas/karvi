@@ -323,7 +323,7 @@ Active failure causes.
 | `daemon_stop_mode_unknown` | usage | 112 | no | A stop request names a stop mode the daemon does not support. |
 | `daemon_stop_options_conflict` | usage | 4 | no | `daemon stop` or `restart` is given more than one of `--grace`, `--after`, and `--force`. |
 | `daemon_stop_request_malformed` | internal | 112 | no | A stop request payload is not valid JSON. |
-| `daemon_stop_timeout` | shutdown | 106 | no | The daemon socket remains after the stop timeout. |
+| `daemon_stop_timeout` | shutdown | 106 | no | The stopped daemon has not exited, its pid alive and its socket there, within the stop's bound: `daemon.start-timeout` plus the wait the daemon's answer names, its own accounting bound (its `daemon.forced-grace-seconds`, two seconds at least); with none named (a build from before that answer), or for a drained daemon no longer answering, plus this client's `daemon.forced-grace-seconds`. An interrupt of a forced stop's wait ends it so too. |
 | `daemon_stop_wait_interrupted` | shutdown | 113 | no | The operator interrupted `--grace` or `--after` waiting; the daemon finishes its jobs and exits. |
 | `daemon_submit_failed` | dependency | 112 | no | Unclassified. A job cannot be submitted to the daemon. |
 | `daemon_unreachable` | connection | 110 | no | Unclassified. The daemon socket cannot be reached or does not answer. Under `daemon.launch = "systemd"`, where no client starts a daemon, a submission and `daemon start` finding none are refused so, naming `systemctl start` of the unit. |

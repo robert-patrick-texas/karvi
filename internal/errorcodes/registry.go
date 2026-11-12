@@ -629,7 +629,7 @@ var entries = []Entry{
 	failure("daemon_socket_uninspectable", "permission", exitPerm, false, "The daemon socket path cannot be inspected."),
 	failure("daemon_status_schema_mismatch", "dependency", exitJob, false, "A daemon status reports an IPC schema different from its response envelope."),
 	fallback("daemon_stop_failed", "dependency", exitConn, "The daemon does not accept the stop request."),
-	failure("daemon_stop_timeout", "shutdown", exitcode.ExitShutdownIncomplete, false, "The daemon socket remains after the stop timeout."),
+	failure("daemon_stop_timeout", "shutdown", exitcode.ExitShutdownIncomplete, false, "The stopped daemon has not exited, its pid alive and its socket there, within the stop's bound: `daemon.start-timeout` plus the wait the daemon's answer names, its own accounting bound (its `daemon.forced-grace-seconds`, two seconds at least); with none named (a build from before that answer), or for a drained daemon no longer answering, plus this client's `daemon.forced-grace-seconds`. An interrupt of a forced stop's wait ends it so too."),
 	fallback("daemon_submit_failed", "dependency", exitJob, "A job cannot be submitted to the daemon."),
 	fallback("daemon_unreachable", "connection", exitConn, "The daemon socket cannot be reached or does not answer. Under `daemon.launch = \"systemd\"`, where no client starts a daemon, a submission and `daemon start` finding none are refused so, naming `systemctl start` of the unit."),
 	failure("daemon_log_open_failed", "permission", exitPerm, false, "The daemon log file cannot be opened."),

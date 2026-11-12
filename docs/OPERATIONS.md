@@ -84,13 +84,15 @@ and waits up to the limit, then forces; `--force` stops it at once, forced work
 still receiving terminal records. A wait begins with a line naming the jobs
 (`daemon draining: 1 job running; waiting for it to exit`), which `--quiet`
 leaves out; interrupted, the wait ends and the daemon still finishes its jobs
-and exits. With no option, `daemon stop` and `daemon restart` are refused while
-the daemon runs a job, which it alone counts. A socket a daemon killed outright
-left refuses the connection: `daemon restart` finds nothing to stop there and
-starts a daemon, as `daemon start` does. A daemon started while another is
-still stopping, its jobs' records still being written, waits for that one to
-exit (its lock, `d.lock` beside the socket), up to `daemon.start-timeout`;
-past it the start fails, `daemon_start_failed`, and `daemon.log` then names
+and exits. A forced stop waits for the daemon's exit up to
+`daemon.start-timeout` plus the time the daemon names for those records. With
+no option, `daemon stop` and `daemon restart` are refused while the daemon runs
+a job, which it alone counts. A socket a daemon killed outright left refuses
+the connection: `daemon restart` finds nothing to stop there and starts a
+daemon, as `daemon start` does. A daemon started while another is still
+stopping, its jobs' records still being written, waits for that one to exit
+(its lock, `d.lock` beside the socket), up to `daemon.start-timeout`; past it
+the start fails, `daemon_start_failed`, and `daemon.log` then names
 `daemon_already_running: daemon still stopping: pid N`.
 
 An older karvi beside a newer daemon is refused, `daemon_incompatible`, the

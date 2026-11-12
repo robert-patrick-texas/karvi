@@ -303,6 +303,19 @@ they were published in.
   One beside a running daemon is refused at once, as before. `daemon stop`
   and `daemon restart` wait for the stopped daemon's pid to end, not for its
   socket file to go, which a daemon started meanwhile now takes at once.
+- **`daemon stop` waits as long as the daemon may.** The client waited
+  `daemon.start-timeout` plus its own `daemon.forced-grace-seconds` for the
+  daemon to exit, while the daemon waits for its jobs' records up to its
+  start's forced-grace, two seconds at least: at `start-timeout = "1s"` and
+  forced-grace 0 a `daemon stop --force` exited `daemon_stop_timeout` (exit
+  106) after 1 s with the daemon still writing, and so did a stop whose
+  forced-grace was shorter than the daemon's start's. The stop's answer now
+  names the daemon's wait (`wait`, in milliseconds), and the client waits
+  `daemon.start-timeout` plus it; from a daemon naming none, a build from
+  before it, as before. `daemon restart` and `--after`'s forced stop wait
+  the same. The daemon keeps to the wait it names: a job followed by its
+  client no longer doubles it, the follower's wait for the job's terminal
+  and the wait for its records ending at one deadline.
 
 ### Breaking changes
 
