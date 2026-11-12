@@ -2,7 +2,9 @@
 // and manual runs of both transports. It prints the listening port on
 // stdout; on stderr every received input line and exec request, PTY
 // request, key login, signal request, and command left running as it
-// arrives, and at the end the counts and the channels per connection.
+// arrives, and at the end the counts and the channels per connection. The
+// IOS XE persona's "show reset" and "show close" end their connection as a
+// device does, by a TCP reset or by a close with no message.
 package main
 
 import (

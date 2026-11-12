@@ -93,10 +93,11 @@ func (e *ExecConnection) Start(command string, input bool) (devsession.ExecChann
 }
 
 // lost is the connection's end: the keepalive's code when it ended it,
-// else command_session_lost.
+// else command_session_lost naming why (endedError), or with x/crypto's
+// error when the connection's own end is not known.
 func (e *ExecConnection) lost(err error) error {
-	if lost := e.c.lostError(); lost != nil {
-		return lost
+	if ended := e.c.endedError(); ended != nil {
+		return ended
 	}
 	return errorcodes.Errorf("command_session_lost", "the connection ended: %v", err)
 }

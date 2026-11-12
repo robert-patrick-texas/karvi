@@ -1,8 +1,10 @@
 package fakedevice
 
 import (
+	"errors"
 	"io"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -231,5 +233,59 @@ func TestConfigurationModeAndTheQualificationShowCommands(t *testing.T) {
 	c.send("show users\n")
 	if got := c.expect("Router#"); !strings.Contains(got, "vty 0     netops") {
 		t.Fatalf("show users: %q", got)
+	}
+}
+
+// TestEndEndsConnectionsAsADevice:
+// End ends every open connection, by a TCP reset or by a close with no
+// message; the shell's "show reset" and "show close" end their own
+// connection and leave another open.
+func TestEndEndsConnectionsAsADevice(t *testing.T) {
+	srv, err := Start(Options{StartPrivileged: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer srv.Close()
+	// ended is why the client's connection ended, within five seconds.
+	ended := func(c *client) error {
+		t.Helper()
+		done := make(chan error, 1)
+		go func() { done <- c.conn.Wait() }()
+		select {
+		case err := <-done:
+			return err
+		case <-time.After(5 * time.Second):
+			t.Fatal("the connection had not ended in 5s")
+			return nil
+		}
+	}
+	check := func(way string, err error) {
+		t.Helper()
+		switch way {
+		case EndReset:
+			if !errors.Is(err, syscall.ECONNRESET) {
+				t.Errorf("%s: the connection ended %v, want a reset", way, err)
+			}
+		case EndClose:
+			if err != io.EOF {
+				t.Errorf("%s: the connection ended %v, want EOF", way, err)
+			}
+		}
+	}
+	for _, way := range []string{EndReset, EndClose} {
+		a, b := dial(t, srv), dial(t, srv)
+		a.expect("Router#")
+		b.expect("Router#")
+		srv.End(way)
+		check(way, ended(a))
+		check(way, ended(b))
+
+		own, other := dial(t, srv), dial(t, srv)
+		own.expect("Router#")
+		other.expect("Router#")
+		own.send("show " + way + "\n")
+		check(way, ended(own))
+		other.send("show clock\n")
+		other.expect("Router#")
 	}
 }

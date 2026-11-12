@@ -39,6 +39,42 @@ they were published in.
   longer used`, as does a PEM file with the key's parameters in a block
   ahead of it. A PKCS#8 file under a passphrase names no key type and stays
   `not a private key karvi reads`.
+- **`command_session_lost` over `native` names why the connection ended.**
+  A command on a connection the device or the network had ended failed
+  `the connection ended: EOF` over exec and `the device session ended` over
+  the shell, whatever ended it. The message now names it: the socket's error
+  in the kernel's words (`the connection ended: connection reset by peer`),
+  the device's disconnect message as x/crypto gives it (`the connection
+  ended: ssh: disconnect, reason 11: "idle timeout"`, its first 2048 bytes),
+  or `the connection ended: closed by the device` for a close with no
+  message. A close that met karvi's bytes in flight reads as a reset, and a
+  reset whose error a write took before the read did reads as a close: the
+  socket's own account either way. A shell the device ends with the connection up
+  still reads `the device session ended`, up to 500 ms later.
+- **An ended connection is no longer a keepalive timeout.** With keepalives
+  on, a command that came more than `native-ssh.keepalive-count-max` + 1
+  intervals after the device had reset or closed the connection failed
+  `session_keepalive_timeout` (`the device answered none of …`), the failed
+  requests on the ended connection counted as unanswered. It is now
+  `command_session_lost` naming the end, `retry_eligible` false; a device
+  gone silent with the connection up is `session_keepalive_timeout` as
+  before.
+- **A command the shell could not send reports as one whose read failed.**
+  A command written to a session that had ended failed `command_session_lost`
+  with `retry_eligible` true and the message `write command to the device
+  session: …`, and the command after it the same with `the device session
+  ended before the next command; …`, against the registry's value for the
+  code. Both now carry the registry's `retry_eligible`, false, on every
+  transport, and the first the stream's own message (`the connection ended:
+  connection reset by peer`, or `the device session ended`).
+
+### Other notes
+
+- **The fake device ends a connection as a device does.**
+  `fakedevice.Server.End` resets or closes every open connection, and the
+  IOS XE persona's `show reset` and `show close` end their own; the native
+  transport's tests end connections with them, and `native-smoke-test.sh`
+  S38 reads the two messages from the records of `command` and `run`.
 
 ## 0.42.0 - 2026-11-12
 

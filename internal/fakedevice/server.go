@@ -41,6 +41,13 @@ const (
 	PersonaLinux = "linux"
 )
 
+// The ways a connection is ended (End, and the shell's "show reset" and
+// "show close").
+const (
+	EndReset = "reset" // a TCP reset
+	EndClose = "close" // the SSH connection closed with no message: a TCP close
+)
+
 // Options configure a server.
 type Options struct {
 	// Persona is PersonaIOSXE (also "") or PersonaLinux.
@@ -161,6 +168,40 @@ type Server struct {
 	// up: nothing more is answered, keepalive requests included.
 	muted      atomic.Bool
 	keepalives atomic.Int64
+	// links are the open authenticated connections, for End.
+	links map[*link]struct{}
+}
+
+// link is one authenticated connection: its socket and the SSH connection
+// on it.
+type link struct {
+	raw  net.Conn
+	conn *ssh.ServerConn
+}
+
+// end ends the connection as a device does: EndReset, or EndClose.
+func (l *link) end(way string) {
+	if tcp, ok := l.raw.(*net.TCPConn); ok && way == EndReset {
+		_ = tcp.SetLinger(0)
+		_ = tcp.Close()
+		return
+	}
+	_ = l.conn.Close()
+}
+
+// End ends every open connection as a device does: EndReset, a TCP reset,
+// or EndClose, the SSH connection closed with no message. The shell's "show
+// reset" and "show close" end their own connection the same ways.
+func (s *Server) End(way string) {
+	s.mu.Lock()
+	links := make([]*link, 0, len(s.links))
+	for l := range s.links {
+		links = append(links, l)
+	}
+	s.mu.Unlock()
+	for _, l := range links {
+		l.end(way)
+	}
 }
 
 // Start listens on 127.0.0.1 and serves until Close.
@@ -497,7 +538,17 @@ func (s *Server) handleConn(conn net.Conn) {
 		return // a key scan or a failed authentication
 	}
 	defer serverConn.Close()
+	l := &link{raw: conn, conn: serverConn}
+	defer func() {
+		s.mu.Lock()
+		delete(s.links, l)
+		s.mu.Unlock()
+	}()
 	s.mu.Lock()
+	if s.links == nil {
+		s.links = map[*link]struct{}{}
+	}
+	s.links[l] = struct{}{}
 	if serverConn.Permissions != nil && serverConn.Permissions.Extensions["key"] != "" {
 		s.keyLogins = append(s.keyLogins, serverConn.Permissions.Extensions["key"])
 	}
@@ -529,11 +580,11 @@ func (s *Server) handleConn(conn net.Conn) {
 		s.mu.Lock()
 		s.channels[index]++
 		s.mu.Unlock()
-		go s.channelRequests(channel, requests)
+		go s.channelRequests(l, channel, requests)
 	}
 }
 
-func (s *Server) channelRequests(channel ssh.Channel, requests <-chan *ssh.Request) {
+func (s *Server) channelRequests(l *link, channel ssh.Channel, requests <-chan *ssh.Request) {
 	// signals carries the channel's signal requests to its exec command;
 	// gone closes when the channel closes, from either end, or the
 	// connection ends.
@@ -572,7 +623,7 @@ func (s *Server) channelRequests(channel ssh.Channel, requests <-chan *ssh.Reque
 			if s.opts.Persona == PersonaLinux {
 				go s.linuxShell(channel)
 			} else {
-				go s.shell(channel)
+				go s.shell(l, channel)
 			}
 		case "env", "window-change":
 			reply(req, true)
@@ -654,7 +705,7 @@ func (s *Server) answer(text string) string {
 	return strings.Repeat(" ", 5) + "^\r\n% Invalid input detected at '^' marker.\r\n\r\n"
 }
 
-func (s *Server) shell(ch ssh.Channel) {
+func (s *Server) shell(l *link, ch ssh.Channel) {
 	defer ch.Close()
 	privileged := s.opts.StartPrivileged
 	// config is global configuration mode, entered by "configure terminal"
@@ -862,6 +913,10 @@ func (s *Server) shell(ch ssh.Channel) {
 		case "show mute":
 			s.muted.Store(true)
 			select {}
+		case "show reset", "show close":
+			// The device ends the connection during the command.
+			l.end(strings.TrimPrefix(strings.TrimSpace(text), "show "))
+			return
 		case "disable":
 			privileged = false
 			if !w("\r\n" + prompt()) {

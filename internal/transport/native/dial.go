@@ -13,6 +13,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode/utf8"
 
 	"golang.org/x/crypto/ssh"
 
@@ -99,7 +100,7 @@ func connect(ctx context.Context, req DialRequest) (*connection, error) {
 	if req.KeepaliveCountMax <= 0 {
 		req.KeepaliveCountMax = 3
 	}
-	c := &connection{ctx: ctx, req: req, closed: make(chan struct{}), ended: make(chan struct{})}
+	c := &connection{ctx: ctx, req: req, closed: make(chan struct{}), ended: make(chan struct{}), left: make(chan struct{})}
 	if err := c.open(); err != nil {
 		c.shut()
 		return nil, err
@@ -124,6 +125,11 @@ type connection struct {
 	// lost is why the keepalive ended the connection; reads and writes
 	// report it in place of the closed connection's own error.
 	lost error
+	// left is closed once the connection has ended; cause is then why, the
+	// client's Wait: a reset, the device's disconnect or close. Nil when
+	// karvi's own shut ended it.
+	left  chan struct{}
+	cause error
 	// lastRead is when device output last arrived (Unix nanoseconds): the
 	// keepalive, as OpenSSH's, is sent only when nothing was received for
 	// the interval.
@@ -135,6 +141,9 @@ type connection struct {
 	shutOnce sync.Once
 	ended    chan struct{}
 	endOnce  sync.Once
+	// endWaitOnce makes the wait for the connection's end one wait
+	// (endedError).
+	endWaitOnce sync.Once
 	// closeOnce makes Close and Abort one shut.
 	closeOnce sync.Once
 	// auth is the method of the last authentication callback x/crypto
@@ -306,6 +315,20 @@ func (c *connection) open() error {
 	c.mu.Lock()
 	c.client = client
 	c.mu.Unlock()
+	go func() {
+		// The connection's own end, kept: once it has ended, x/crypto
+		// answers a channel's opening, read, and write with EOF alone.
+		err := client.Wait()
+		select {
+		case <-c.closed: // karvi's own shut, which closes closed first
+			err = nil
+		default:
+		}
+		c.mu.Lock()
+		c.cause = err
+		c.mu.Unlock()
+		close(c.left)
+	}()
 	if req.exec {
 		// An exec device is ready once it has authenticated; each command
 		// opens its own channel (DialExec).
@@ -366,7 +389,8 @@ const keepaliveRequest = "keepalive@openssh.com"
 // output or request, any reply clears the count, and an interval that ends
 // with KeepaliveCountMax requests unanswered closes the connection at once,
 // (count + 1) intervals after the last output; the shell's reader reports
-// session_keepalive_timeout.
+// session_keepalive_timeout. A connection that has ended is not a silent
+// device: the keepalive stops there, and the end keeps its own cause.
 func (c *connection) keepalive(client *ssh.Client) {
 	interval, countMax := c.req.KeepaliveInterval, c.req.KeepaliveCountMax
 	c.lastRead.Store(time.Now().UnixNano())
@@ -377,6 +401,8 @@ func (c *connection) keepalive(client *ssh.Client) {
 	for {
 		select {
 		case <-c.closed:
+			return
+		case <-c.left:
 			return
 		case <-answered:
 			unanswered = 0
@@ -392,6 +418,11 @@ func (c *connection) keepalive(client *ssh.Client) {
 			default:
 			}
 			if unanswered >= countMax {
+				select {
+				case <-c.left:
+					return // ended, not silent
+				default:
+				}
 				c.debugf("native SSH connection keepalive timeout target=%q unanswered=%d interval=%s", c.req.Host, unanswered, interval)
 				c.mu.Lock()
 				c.lost = devsession.KeepaliveTimeout(countMax, interval, "")
@@ -687,7 +718,10 @@ func (c *connection) shut() {
 }
 
 // Read returns the shell's output and notes its arrival for the keepalive.
-// Once the keepalive has ended the connection, its code is the error.
+// Once the keepalive has ended the connection, its code is the error; once
+// the device or the network has, command_session_lost naming why
+// (endedError). The shell's end is marked before that is asked, so Close
+// does not wait on it.
 func (c *connection) Read(b []byte) (int, error) {
 	c.mu.Lock()
 	stdout, lost := c.stdout, c.lost
@@ -705,10 +739,10 @@ func (c *connection) Read(b []byte) (int, error) {
 		c.lastRead.Store(time.Now().UnixNano())
 	}
 	if err != nil {
-		if lost := c.lostError(); lost != nil {
-			err = lost
-		}
 		c.end()
+		if ended := c.endedError(); ended != nil {
+			err = ended
+		}
 	}
 	return n, err
 }
@@ -732,7 +766,80 @@ func (c *connection) Write(b []byte) (int, error) {
 	if stdin == nil {
 		return 0, io.ErrClosedPipe
 	}
-	return stdin.Write(b)
+	n, err := stdin.Write(b)
+	if err != nil {
+		if ended := c.endedError(); ended != nil {
+			err = ended
+		}
+	}
+	return n, err
+}
+
+// endWait bounds the wait for the connection's end once a channel has
+// shown one: x/crypto ends the channels first, then its Wait. A shell the
+// device ends with the connection up waits it out, once: what fails after
+// that wait finds the connection's end already known or not at all.
+const endWait = 500 * time.Millisecond
+
+// endedError is the connection's end under its code: the keepalive's, or
+// command_session_lost naming why the device or the network ended it; nil
+// while the connection is up and after karvi's own shut.
+func (c *connection) endedError() error {
+	if lost := c.lostError(); lost != nil {
+		return lost
+	}
+	c.endWaitOnce.Do(func() {
+		select {
+		case <-c.left:
+		case <-time.After(endWait):
+		}
+	})
+	select {
+	case <-c.left:
+	default:
+		return nil
+	}
+	if lost := c.lostError(); lost != nil {
+		return lost
+	}
+	c.mu.Lock()
+	cause := c.cause
+	c.mu.Unlock()
+	if cause == nil {
+		return nil
+	}
+	return errorcodes.Errorf("command_session_lost", "the connection ended: %s", endText(cause))
+}
+
+// endTextMax bounds endText: a disconnect's message is the device's text,
+// up to a packet of it.
+const endTextMax = 2048
+
+// endText is why: the device's close with no message, the network's error
+// in the kernel's words without the addresses, or x/crypto's own words (a
+// disconnect's reason and its message, which x/crypto quotes), their start
+// kept up to endTextMax bytes.
+func endText(err error) string {
+	if errors.Is(err, io.EOF) {
+		return "closed by the device"
+	}
+	text := err.Error()
+	var op *net.OpError
+	if errors.As(err, &op) {
+		text = op.Err.Error()
+		var sys *os.SyscallError
+		if errors.As(op.Err, &sys) {
+			text = sys.Err.Error()
+		}
+	}
+	if len(text) > endTextMax {
+		cut := endTextMax
+		for cut > 0 && !utf8.RuneStart(text[cut]) {
+			cut--
+		}
+		text = text[:cut] + "..."
+	}
+	return text
 }
 
 // shellEndGrace is how long Close waits for the device to end the shell

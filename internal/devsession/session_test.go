@@ -3,6 +3,7 @@ package devsession
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -985,5 +986,71 @@ func TestPromptBeforeIsThePromptTheStatementWasSentAt(t *testing.T) {
 	// Not sent: the session is ended, and nothing was typed at any prompt.
 	if r := s.Execute(context.Background(), platform.Command{Text: "show clock", Timeout: time.Second}); r.ErrorCode != "command_session_lost" || r.PromptBefore != "" {
 		t.Fatalf("after the timeout: code=%q promptbefore=%q", r.ErrorCode, r.PromptBefore)
+	}
+}
+
+// failingWrites is a Stream whose writes fail with an error once one is set.
+type failingWrites struct {
+	Stream
+	mu  sync.Mutex
+	err error
+}
+
+func (f *failingWrites) fail(err error) {
+	f.mu.Lock()
+	f.err = err
+	f.mu.Unlock()
+}
+
+func (f *failingWrites) Write(p []byte) (int, error) {
+	f.mu.Lock()
+	err := f.err
+	f.mu.Unlock()
+	if err != nil {
+		return 0, err
+	}
+	return f.Stream.Write(p)
+}
+
+// TestWriteFailureReportsAsTheStreamDoes:
+// a command the session cannot write fails as one whose read fails: the
+// stream's own code and message passed through, an uncoded end as
+// command_session_lost, each with the registry's category and retryable;
+// the command after it is the session's refusal by the same values.
+func TestWriteFailureReportsAsTheStreamDoes(t *testing.T) {
+	keepalive := KeepaliveTimeout(2, time.Second, "")
+	for _, tc := range []struct {
+		name      string
+		err       error
+		code      string
+		retryable bool
+		text      string
+	}{
+		{"the connection's end", errorcodes.Errorf("command_session_lost", "the connection ended: connection reset by peer"), "command_session_lost", false, "command_session_lost: the connection ended: connection reset by peer"},
+		{"the keepalive's", keepalive, "session_keepalive_timeout", true, errorcodes.Message(keepalive)},
+		{"an end without a code", io.EOF, "command_session_lost", false, "command_session_lost: the device session ended"},
+		{"an error without a code", errors.New("broken pipe"), "command_session_lost", false, "command_session_lost: broken pipe"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			sh := newShell(shellOptions{privileged: true})
+			stream := &failingWrites{Stream: sh}
+			s, err := Open(context.Background(), stream, Options{Definition: iosxe(t), LoginTimeout: 3 * time.Second, PromptTimeout: 2 * time.Second})
+			if err != nil {
+				t.Fatalf("open: %v", err)
+			}
+			defer s.Close()
+			stream.fail(tc.err)
+			r := s.Execute(context.Background(), platform.Command{Text: "show clock"})
+			if r.ErrorCode != tc.code || r.ErrorCategory != "connection" || r.Retryable != tc.retryable || !r.External || fmt.Sprint(r.Err) != tc.text {
+				t.Fatalf("code %q category %q retryable %t external %t err %v", r.ErrorCode, r.ErrorCategory, r.Retryable, r.External, r.Err)
+			}
+			if s.Usable() {
+				t.Fatal("the session is usable after a failed write")
+			}
+			r = s.Execute(context.Background(), platform.Command{Text: "show clock"})
+			if r.ErrorCode != "command_session_lost" || r.ErrorCategory != "connection" || r.Retryable || !r.External || fmt.Sprint(r.Err) != "command_session_lost: the device session ended before the next command; no replacement login was attempted" {
+				t.Fatalf("the next command: code %q category %q retryable %t external %t err %v", r.ErrorCode, r.ErrorCategory, r.Retryable, r.External, r.Err)
+			}
+		})
 	}
 }

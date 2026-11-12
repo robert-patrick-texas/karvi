@@ -470,6 +470,27 @@ keepalive-count-max = 1" en '' \
   -- --continue-device-on-error --cmd 'show clock' --cmd 'show mute' --cmd 'show version'
 unset COMMAND_TIMEOUT SSH
 
+# S38: a connection the device ends during a command, over native. On `show
+# reset` the fake resets its connection and on `show close` closes it with no
+# message; the device's record is command_session_lost and its message names
+# which end it was. (Over system the same ends are ssh_process_failed, in
+# OpenSSH's words.)
+# s38_case LABEL WORD TEXT
+s38_case() {
+  case $1 in "${ONLY:-}"*) ;; *) return 0 ;; esac
+  COMBOS='command:native run:native'
+  parity_case "$1" accept-new cisco_ios "$BUILTIN" en '' \
+    "success,connection_error:command_session_lost,$NOT_ATTEMPTED" 110 "$OPEN"'"show clock"|"show '"$2"'"|' \
+    -- --continue-device-on-error --cmd 'show clock' --cmd "show $2" --cmd 'show version'
+  unset COMBOS
+  for s38_tag in command.native run.native; do
+    s38_got=$(jsonl_records "$TMP/out.$s38_tag" error.code error.message | awk -F"$TAB" '$1 == "command_session_lost" { print $2 }')
+    [ "$s38_got" = "$3" ] || fail "$1 $s38_tag: the message is '$s38_got', expected '$3'"
+  done
+}
+s38_case 'S38a a connection the device resets during a command' reset 'the connection ended: connection reset by peer'
+s38_case 'S38b a connection the device closes during a command' close 'the connection ended: closed by the device'
+
 # S19-S20: blind sends (the count implying the tolerance). The fake answers
 # `clear counters` and `reload` with a [confirm] taking one unechoed key;
 # after `reload` nothing more is written, the connection up. A trailing \r

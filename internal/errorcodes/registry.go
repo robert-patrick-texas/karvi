@@ -302,7 +302,7 @@ var entries = []Entry{
 
 	// SSH, Telnet, and device sessions.
 	fallback("command_failed", "device", exitDevice, "A command failed and the transport reported no specific code."),
-	failure("command_session_lost", "connection", exitConn, false, "The authenticated direct command session ended or became unusable before the next command; no replacement login is attempted."),
+	failure("command_session_lost", "connection", exitConn, false, "The authenticated direct command session ended or became unusable before the next command; no replacement login is attempted. Over the native transport the message names why a connection ended: the socket's error (`connection reset by peer`), the device's disconnect message, or `closed by the device` for a close with no message. Which of a reset and a close the socket reports can turn on karvi's own bytes in flight: a close that met them reads as a reset, and a reset whose error a write took first reads as a close."),
 	failure("command_session_prompt_timeout", "timeout", exitConn, true, "The direct command session shows no device prompt, or an exec device's OpenSSH master does not answer `-O check`, before the connect and prompt timeouts expire."),
 	failure("command_session_start_failed", "dependency", exitDep, false, "OpenSSH cannot be started for the direct command session."),
 	failure("command_session_stderr_pipe_failed", "internal", exitGen, false, "The standard-error pipe for the direct command session cannot be created."),

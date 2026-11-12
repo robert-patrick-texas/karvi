@@ -110,7 +110,13 @@ resolve target/address/credential/transport/platform definition
 
 Keepalives prove the peer alive throughout (`ssh.server-alive-*` on
 `system`, `native-ssh.keepalive-*` on `native`); a device gone silent
-ends as `session_keepalive_timeout`. A session that has failed (a timeout,
+ends as `session_keepalive_timeout`. A connection the device or the network
+ended is `command_session_lost`, over `native` with why: `the connection
+ended: connection reset by peer` (the socket's error), `the connection
+ended: ssh: disconnect, reason 11: "idle timeout"` (the device's disconnect
+message), or `the connection ended: closed by the device` (a close with no
+message). Which of a reset and a close the socket reports can turn on
+karvi's own bytes in flight at that moment. A session that has failed (a timeout,
 a lost read, a write failure, output over the limit before the prompt
 returned) is aborted, not closed: nothing is sent on a desynchronised
 shell, no replacement login is made, and the remaining commands receive

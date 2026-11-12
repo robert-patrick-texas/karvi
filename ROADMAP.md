@@ -9,13 +9,6 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-- **Why a connection ended, in `command_session_lost`.** Since x/crypto
-  v0.59.0 a command started over `native` on a connection that has ended
-  fails `command_session_lost: the connection ended: EOF`: x/crypto answers
-  the channel's opening with `EOF` before any write, where its error named
-  why the connection ended (a reset, the device's disconnect message). The
-  item: karvi keeps the connection's own end (the client's `Wait`) and the
-  message names it.
 - **A PKCS#8 key under a passphrase named as one.** A PKCS#8 key file under
   a passphrase (`BEGIN ENCRYPTED PRIVATE KEY`) in `ssh.identities` is skipped
   (`operator_key_skipped`) as `not a private key karvi reads`, where a PEM

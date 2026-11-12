@@ -385,7 +385,7 @@ func (s *Session) Execute(ctx context.Context, command platform.Command) platfor
 	s.opMu.Lock()
 	defer s.opMu.Unlock()
 	if s.unusable() {
-		return failed(started, "command_session_lost", "connection", true, true, errors.New("the device session ended before the next command; no replacement login was attempted"))
+		return codedFailure(started, errorcodes.Errorf("command_session_lost", "the device session ended before the next command; no replacement login was attempted"))
 	}
 	blind := command.Blind
 	timeout := defaultDuration(command.Timeout, 120*time.Second)
@@ -400,7 +400,7 @@ func (s *Session) Execute(ctx context.Context, command platform.Command) platfor
 	s.debugf("device session send sha256=%s bytes=%d blind=%t blind_returns=%d expectations=%d prompt=%q", hex.EncodeToString(hash[:8]), len(command.Text), blind, command.BlindReturns, len(command.Expectations), s.currentPrompt())
 	if err := s.write(command.Text + "\n" + strings.Repeat("\r", max(command.BlindReturns, 0))); err != nil {
 		s.fail()
-		return failed(started, "command_session_lost", "connection", true, true, fmt.Errorf("write command to the device session: %w", err))
+		return codedFailure(started, err)
 	}
 	reused := s.sent > 0
 	s.sent++
