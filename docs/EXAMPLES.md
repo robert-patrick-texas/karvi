@@ -25369,10 +25369,11 @@ stops answering does not hold an exec command", and [section
 
   A start succeeds only on an answer and fails only once the child has ended.
   An interrupt leaves the child, as before, which starts or fails by itself
-  (an interrupt in the wait after the kill ends that wait, with the same
-  message). Under `daemon.launch = "systemd"` nothing is launched, and `daemon
-  serve` keeps its own bound. The three messages, each `daemon_start_failed`
-  (exit 112), LOG the path of `daemon.log`:
+  (at `cee2964` an interrupt in the wait after the kill ended that wait with
+  the same message; Left open, below). Under `daemon.launch = "systemd"`
+  nothing is launched, and `daemon serve` keeps its own bound. The three
+  messages, each `daemon_start_failed` (exit 112), LOG the path of
+  `daemon.log`:
   - `daemon failed to start; inspect LOG` (the child ended; before, with `:
     context deadline exceeded`);
   - `daemon did not start in 7s and was killed; inspect LOG` (the backstop,
@@ -25872,7 +25873,9 @@ S3 is this chapter.
   first answer.
 - An interrupt in the wait after the backstop's kill reports `start
   interrupted, the launched daemon left to start` for a child already
-  killed (by the code). For the operator to settle.
+  killed (by the code). Settled after the chapter, the operator's word: the
+  failure there is the kill's, `daemon did not start in 7s and was killed`
+  (`TestAnInterruptAfterTheKillReportsTheKill`).
 - The `native` shell's write on a full channel window
   (`internal/transport/native/dial.go`, `Write`) waits on a device that has
   stopped reading: to the keepalives when it answers nothing, without end

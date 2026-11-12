@@ -2483,8 +2483,9 @@ which is a start; and `daemon.start-timeout` plus 2 seconds, when the child is
 killed and waited for, the failure saying so. A start succeeds only on an
 answer and fails only once the child has ended, so a failed start leaves no
 daemon. An interrupt leaves the child, which starts or fails by itself, and
-the message says so. Under `daemon.launch =
-"systemd"` nothing is launched, and `daemon serve` keeps its own bound. *Why:*
+the message says so; one after the kill only ends the wait, the failure
+still the kill's. Under `daemon.launch = "systemd"` nothing is launched, and
+`daemon serve` keeps its own bound. *Why:*
 the client counted `daemon.start-timeout` from its spawn and the daemon from
 after its start-up, so a lock freed between the two ends gave exit 112 and
 then a running daemon (executed: 20 of 20 in a test, 4 and 8 of 10 in a lab),

@@ -537,6 +537,10 @@ func ensureDaemon(ctx context.Context, rt app.DaemonRuntime, g globalOptions, st
 // that has neither answered nor ended is left before it is killed.
 var startBackstop = 2 * time.Second
 
+// killChild is the backstop's kill; a test withholds it to hold the wait
+// that follows.
+var killChild = (*os.Process).Kill
+
 // awaitDaemon waits for the daemon this client launched, by the daemon's
 // own clock: its wait for a stopping daemon's lock counts
 // daemon.start-timeout from after its start-up, so a second count here
@@ -545,7 +549,8 @@ var startBackstop = 2 * time.Second
 // ended with none answering, the cause in the log; another launcher's
 // daemon answering then is a start. A child that has done neither
 // startBackstop past the timeout is killed and waited for. An interrupt
-// leaves the child, which goes on to start or to fail by itself.
+// leaves the child, which goes on to start or to fail by itself; one after
+// the kill only ends the wait for the child.
 func awaitDaemon(ctx context.Context, rt app.DaemonRuntime, child *os.Process) (int, error) {
 	ended := make(chan struct{})
 	go func() {
@@ -618,11 +623,12 @@ func awaitDaemon(ctx context.Context, rt app.DaemonRuntime, child *os.Process) (
 		return childEnded()
 	default:
 	}
-	_ = child.Kill()
+	_ = killChild(child)
+	// An interrupt ends the wait, not the report: the child was killed,
+	// not left to start.
 	select {
 	case <-ended:
 	case <-ctx.Done():
-		return interrupted()
 	}
 	return 0, errorcodes.Errorf("daemon_start_failed", "daemon did not start in %s and was killed; inspect %s", bound, rt.LogPath)
 }

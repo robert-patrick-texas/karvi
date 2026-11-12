@@ -344,8 +344,9 @@ they were published in.
   did not start in 7s and was killed; inspect LOG`. A socket that took a
   connection before its daemon answered no longer fails a start after 2 s.
   An interrupt leaves the launched daemon, as before, and says so: `start
-  interrupted, the launched daemon left to start; inspect LOG`. Nothing
-  changes under `daemon.launch = "systemd"` or for `daemon serve`.
+  interrupted, the launched daemon left to start; inspect LOG`. An
+  interrupt after the kill only ends the wait; the failure is still `… was
+  killed`. Nothing changes under `daemon.launch = "systemd"` or for `daemon serve`.
 - **An exec command over `native` ends at its bounds on a device that stops
   answering.** A device whose connection stayed up while it answered nothing
   held the next command's channel opening, and a command given up, until the

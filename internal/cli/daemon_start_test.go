@@ -171,21 +171,29 @@ func TestAStartWaitsByItsDaemonsClock(t *testing.T) {
 	}
 }
 
+// hangingDaemon makes the next daemon launched one that neither answers nor
+// ends, and the backstop 300ms: TMPDIR reaches the daemon
+// (daemonEnvironment), and TestMain's daemon hangs on finding the marker
+// there.
+func hangingDaemon(t *testing.T) {
+	t.Helper()
+	was := startBackstop
+	t.Cleanup(func() { startBackstop = was })
+	startBackstop = 300 * time.Millisecond
+	tmp := t.TempDir()
+	if err := os.WriteFile(filepath.Join(tmp, hangingDaemonMarker), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("TMPDIR", tmp)
+}
+
 // TestAStartKillsADaemonThatNeitherAnswersNorEnds: startBackstop past
 // daemon.start-timeout the launched daemon is killed and waited for, and
 // the start fails saying so.
 func TestAStartKillsADaemonThatNeitherAnswersNorEnds(t *testing.T) {
 	g, _, release, launched := startBound(t)
 	release()
-	defer func(was time.Duration) { startBackstop = was }(startBackstop)
-	startBackstop = 300 * time.Millisecond
-	// TMPDIR reaches the daemon (daemonEnvironment), and TestMain's daemon
-	// hangs on finding the marker there.
-	tmp := t.TempDir()
-	if err := os.WriteFile(filepath.Join(tmp, hangingDaemonMarker), nil, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("TMPDIR", tmp)
+	hangingDaemon(t)
 	var stderr bytes.Buffer
 	began := time.Now()
 	rt, err := ensureTestDaemon(context.Background(), g, &stderr)
@@ -195,6 +203,36 @@ func TestAStartKillsADaemonThatNeitherAnswersNorEnds(t *testing.T) {
 	}
 	if want := "daemon_start_failed: daemon did not start in 1.3s and was killed; inspect " + rt.LogPath; err == nil || err.Error() != want || took < 1300*time.Millisecond {
 		t.Fatalf("the start: %v after %s", err, took)
+	}
+}
+
+// TestAnInterruptAfterTheKillReportsTheKill: an interrupt in the wait for
+// the killed daemon ends that wait, and the start still fails as killed,
+// not as a daemon left to start.
+func TestAnInterruptAfterTheKillReportsTheKill(t *testing.T) {
+	g, _, release, launched := startBound(t)
+	release()
+	hangingDaemon(t)
+	// The kill withheld, the wait after it lasts until the interrupt, 100ms
+	// on; startBound's cleanup ends the daemon.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	defer func(was func(*os.Process) error) { killChild = was }(killChild)
+	killChild = func(*os.Process) error {
+		time.AfterFunc(100*time.Millisecond, cancel)
+		return nil
+	}
+	var stderr bytes.Buffer
+	began := time.Now()
+	rt, err := ensureTestDaemon(ctx, g, &stderr)
+	took := time.Since(began)
+	if want := "daemon_start_failed: daemon did not start in 1.3s and was killed; inspect " + rt.LogPath; err == nil || err.Error() != want || took < 1400*time.Millisecond {
+		t.Fatalf("the start: %v after %s", err, took)
+	}
+	// The daemon still there: the wait ended at the interrupt, not at the
+	// daemon's own end.
+	if pid := launched(); pid == 0 || reaped(pid) {
+		t.Fatalf("the wait for the launched daemon %d did not end at the interrupt", pid)
 	}
 }
 
