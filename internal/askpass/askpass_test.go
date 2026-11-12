@@ -201,8 +201,10 @@ func TestBrokerEndsNothingOnceClosed(t *testing.T) {
 	}
 }
 
-// unresolved is material whose password is set but does not resolve, as a
-// login's credential without keys or password offers one (app.login).
+// unresolved is material whose password is set but cannot be read, as one
+// destroyed between the check and the read; unreached in a session, since
+// planning refuses a credential without a password and a grant outlives its
+// sessions.
 type unresolved struct{}
 
 func (unresolved) UsernameSet() bool                        { return true }
