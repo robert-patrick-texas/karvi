@@ -147,6 +147,82 @@ func execDriverVia(t *testing.T, opts fakedevice.Options, wrap func(ssh string) 
 	return d, srv, cut
 }
 
+// TestMasterCloseEndsAtTheJobsEnd: a master that outlives SIGTERM is
+// killed abortWait after it once the job has ended. Ended before the close,
+// the close asks nothing of it (no ssh -O exit); ended during the close's
+// wait after -O exit, the close goes on to the kill at once. Either way the
+// stopped daemon's floor of 2 s for a job's accounting is not reached.
+func TestMasterCloseEndsAtTheJobsEnd(t *testing.T) {
+	for _, during := range []bool{true, false} {
+		t.Run(map[bool]string{true: "during", false: "before"}[during], func(t *testing.T) {
+			dir := t.TempDir()
+			client := filepath.Join(dir, "ssh")
+			if err := os.WriteFile(client, []byte("#!/bin/sh\necho \"$*\" >> '"+dir+"/control'\n"), 0o700); err != nil {
+				t.Fatal(err)
+			}
+			// The master: notes each SIGTERM and goes on.
+			cmd := exec.Command("/bin/sh", "-c", "trap 'echo term >> \""+dir+"/term\"' TERM; : > \""+dir+"/ready\"; while :; do sleep 0.05; done")
+			if err := cmd.Start(); err != nil {
+				t.Fatal(err)
+			}
+			jobEnded := make(chan struct{})
+			m := &execMaster{binary: client, socket: filepath.Join(dir, "s"), address: "192.0.2.10", cmd: cmd, done: make(chan struct{}), jobEnded: jobEnded}
+			go func() {
+				err := cmd.Wait()
+				m.mu.Lock()
+				m.waitErr = err
+				m.mu.Unlock()
+				close(m.done)
+			}()
+			t.Cleanup(func() { _ = cmd.Process.Kill(); <-m.done })
+			for deadline := time.Now().Add(5 * time.Second); ; {
+				if _, err := os.Stat(filepath.Join(dir, "ready")); err == nil {
+					break
+				}
+				if time.Now().After(deadline) {
+					t.Fatal("the master did not set its trap")
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
+			if !during {
+				close(jobEnded)
+			}
+			closed := make(chan struct{})
+			go func() { m.close(); close(closed) }()
+			if during {
+				// The control: the close holds for the master's exit.
+				select {
+				case <-closed:
+					t.Fatal("the close ended before the cancel: nothing held it")
+				case <-time.After(300 * time.Millisecond):
+				}
+				close(jobEnded)
+			}
+			cancelled := time.Now()
+			select {
+			case <-closed:
+			case <-time.After(10 * time.Second):
+				t.Fatal("the close did not end")
+			}
+			if elapsed := time.Since(cancelled); elapsed > 1500*time.Millisecond {
+				t.Fatalf("the close ended %s after the cancel", elapsed)
+			}
+			select {
+			case <-m.done:
+			case <-time.After(time.Second):
+				t.Fatal("the master outlived its close")
+			}
+			if _, err := os.Stat(filepath.Join(dir, "term")); err != nil {
+				t.Fatalf("the master was not sent SIGTERM: %v", err)
+			}
+			asked, err := os.ReadFile(filepath.Join(dir, "control"))
+			if during != (err == nil) || during && !strings.Contains(string(asked), "-O exit") {
+				t.Fatalf("ssh -O asked %q (%v), want -O exit only when the job ended during the close", asked, err)
+			}
+		})
+	}
+}
+
 // relay forwards a local port to the fake's; cut closes every connection
 // through it.
 func relay(t *testing.T, to int) (int, func()) {

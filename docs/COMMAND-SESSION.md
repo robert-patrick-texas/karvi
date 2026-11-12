@@ -103,7 +103,8 @@ resolve target/address/credential/transport/platform definition
        emit one command record
        stop or continue according to the device-error policy
   -> the definition's exit-commands, then close
-       (native waits up to 2 s for the shell's end)
+       (native waits up to 2 s for the shell's end, system up to 2 s for
+        OpenSSH's; neither once the job is stopped or cancelled)
   -> remove temporary config and askpass material (system)
 ```
 
@@ -180,8 +181,8 @@ resolve target/address/credential/transport/platform definition
        wait for the exit status or signal   (its command timeout, from the channel's opening)
        emit one command record
        stop or continue according to the device-error policy
-  -> close: system ssh -O exit, the master killed on an abort;
-            native closes its connection
+  -> close: system ssh -O exit (none for a job stopped or cancelled),
+            the master killed on an abort; native closes its connection
 ```
 
 There is no first prompt, no privilege step but a root command's own `sudo`

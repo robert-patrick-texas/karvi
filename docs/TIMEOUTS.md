@@ -145,7 +145,7 @@ client's load has checked every key's range.
 | `native` keepalive | `DialRequest.KeepaliveInterval`, `DialRequest.KeepaliveCountMax`; `connection.keepalive`, `connection.lastRead`, `connection.lost`; the constant `keepaliveRequest` | `internal/transport/native/dial.go` |
 | `system` keepalive | `processStream.aliveInterval`, `processStream.aliveCountMax`; `classify`'s "not responding" case | `internal/transport/systemssh/stream.go`, `systemssh.go` |
 | The keepalive timeout's wording | `devsession.KeepaliveTimeout(count, interval, detail)` | `internal/devsession/session.go` |
-| Fixed waits, not configurable | `promptSettleDelay` (100ms, a prompt-shaped last line must stay unchanged); `shellEndGrace` (2s, the shell's end after the exit commands) | `internal/devsession/session.go`; `internal/transport/native/dial.go` |
+| Fixed waits, not configurable | `promptSettleDelay` (100ms, a prompt-shaped last line must stay unchanged); `shellEndGrace` (2s, the shell's end after the exit commands, none once the job is stopped or cancelled); `abortWait` (500ms, a killed OpenSSH's end, and a master's after SIGTERM once the job is stopped or cancelled) | `internal/devsession/session.go`; `internal/transport/native/dial.go`; `internal/transport/systemssh/stream.go`, `exec.go` |
 
 ## 5. Test and fixture labels
 

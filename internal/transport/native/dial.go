@@ -712,11 +712,13 @@ func (c *connection) Write(b []byte) (int, error) {
 const shellEndGrace = 2 * time.Second
 
 // Close waits for the shell's end up to the grace, then shuts the
-// connection.
+// connection; once the job has ended (the context the connection was
+// opened with: a stop or a cancel) it shuts it at once.
 func (c *connection) Close() error {
 	c.closeOnce.Do(func() {
 		select {
 		case <-c.ended:
+		case <-c.ctx.Done():
 		case <-time.After(shellEndGrace):
 		}
 		c.shut()

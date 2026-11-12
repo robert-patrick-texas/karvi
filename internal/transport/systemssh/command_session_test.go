@@ -4,8 +4,11 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
@@ -265,6 +268,66 @@ func bannerSession(t *testing.T, banner, rest string, notice func(platform.HostK
 	d := opened.(*Driver)
 	t.Cleanup(func() { d.Close() })
 	return d
+}
+
+// TestCloseEndsAtTheJobsEnd: a close waiting for OpenSSH's end, which a
+// child holding its stderr keeps from coming (a ProxyCommand's), ends
+// within abortWait when the job ends, during the close or before it: the
+// stopped daemon's floor of 2 s for a job's accounting is not reached. The
+// cancel itself kills the stand-in (exec.CommandContext); what the holder
+// keeps is the reap.
+func TestCloseEndsAtTheJobsEnd(t *testing.T) {
+	for _, during := range []bool{true, false} {
+		t.Run(map[bool]string{true: "during", false: "before"}[during], func(t *testing.T) {
+			holder := filepath.Join(t.TempDir(), "holder")
+			d := bannerSession(t, "", `sleep 30 </dev/null >/dev/null &
+echo $! > '`+holder+`'
+printf 'Authenticated to 192.0.2.10 ([192.0.2.10]:22) using "password".\r\n' >&2
+printf 'switch01#'
+while IFS= read -r line; do
+  case "$line" in
+    exit) exit 0 ;;
+  esac
+  printf '%s\r\nswitch01#' "$line"
+done
+`, nil)
+			t.Cleanup(func() {
+				if data, err := os.ReadFile(holder); err == nil {
+					if pid, err := strconv.Atoi(strings.TrimSpace(string(data))); err == nil {
+						_ = syscall.Kill(pid, syscall.SIGKILL)
+					}
+				}
+			})
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			if err := d.Prepare(ctx); err != nil {
+				t.Fatal(err)
+			}
+			if !during {
+				cancel()
+			}
+			closed := make(chan struct{})
+			go func() { _ = d.Close(); close(closed) }()
+			if during {
+				// The control: the close holds for OpenSSH's end.
+				select {
+				case <-closed:
+					t.Fatal("the close ended before the cancel: nothing held it")
+				case <-time.After(300 * time.Millisecond):
+				}
+				cancel()
+			}
+			cancelled := time.Now()
+			select {
+			case <-closed:
+			case <-time.After(10 * time.Second):
+				t.Fatal("the close did not end")
+			}
+			if elapsed := time.Since(cancelled); elapsed > 1500*time.Millisecond {
+				t.Fatalf("the close ended %s after the cancel", elapsed)
+			}
+		})
+	}
 }
 
 // TestABannerDoesNotClassifyALaterFailure: a failure after authentication

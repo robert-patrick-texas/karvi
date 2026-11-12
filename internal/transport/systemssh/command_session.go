@@ -151,7 +151,7 @@ func (d *Driver) startShell(ctx context.Context) (*processStream, *askpass.Broke
 	diagnostics := &synchronizedBuffer{maxBytes: 64 << 10}
 	auth := &authFilter{next: diagnostics, enrolled: enrolled}
 	done := make(chan struct{})
-	stream := &processStream{cmd: cmd, stdin: stdin, stdout: stdout, stderr: diagnostics, auth: auth, done: done, cancel: cancel, failures: d.sessionFailure()}
+	stream := &processStream{cmd: cmd, stdin: stdin, stdout: stdout, stderr: diagnostics, auth: auth, done: done, cancel: cancel, failures: d.sessionFailure(), jobEnded: ctx.Done()}
 	go func() {
 		_, _ = io.Copy(auth, stderr)
 		auth.Flush()

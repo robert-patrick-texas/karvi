@@ -316,6 +316,18 @@ they were published in.
   the same. The daemon keeps to the wait it names: a job followed by its
   client no longer doubles it, the follower's wait for the job's terminal
   and the wait for its records ending at one deadline.
+- **A job forced while its device session closes keeps its record.** A
+  `daemon stop --force`, or a stop whose grace ended, landing as a device
+  session closed waited out the close: over `system` up to 2.5 s for
+  OpenSSH's end, which a ProxyCommand's child holding OpenSSH's stderr kept
+  from coming; over `native` 2 s for a shell the device did not end; on the
+  exec channel over `system` up to 4.5 s for the ControlMaster. Past the
+  daemon's two-second floor for its jobs' records the job's record was lost:
+  no final status, no `run.end`, `shutdown_incomplete` in `daemon.log`. Once
+  the job has ended, by a stop or a cancel, a close now ends its transport
+  at once: OpenSSH killed and waited for 0.5 s at most, the native
+  connection shut, the master sent SIGTERM without `ssh -O exit` and SIGKILL
+  0.5 s on.
 
 ### Breaking changes
 

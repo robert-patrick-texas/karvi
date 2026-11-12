@@ -29,6 +29,10 @@ type processStream struct {
 	done     chan struct{}
 	cancel   func()
 	failures sessionFailure
+	// jobEnded is closed when the job the session serves ends (the
+	// context Prepare was given: a stop or a cancel); Close then waits no
+	// more for the device's logout.
+	jobEnded <-chan struct{}
 
 	stateMu sync.Mutex
 	waitErr error
@@ -106,18 +110,17 @@ func (f sessionFailure) classify(diagnostic string, cause error) error {
 func (p *processStream) Write(b []byte) (int, error) { return p.stdin.Write(b) }
 
 // Close ends the process: stdin is closed so a remote logout the session
-// already sent completes, then the process is killed if it lingers.
+// already sent completes, then the process is killed if it lingers, or at
+// once when the job has ended (Abort's end).
 func (p *processStream) Close() error {
 	p.closeOnce.Do(func() {
 		_ = p.stdin.Close()
 		select {
 		case <-p.done:
+		case <-p.jobEnded:
+			p.kill()
 		case <-time.After(2 * time.Second):
-			p.terminate()
-			select {
-			case <-p.done:
-			case <-time.After(500 * time.Millisecond):
-			}
+			p.kill()
 		}
 		if p.cancel != nil {
 			p.cancel()
@@ -129,13 +132,24 @@ func (p *processStream) Close() error {
 // Abort kills the process at once: the session it served has failed.
 func (p *processStream) Abort() {
 	p.closeOnce.Do(func() {
-		p.terminate()
-		select {
-		case <-p.done:
-		case <-time.After(500 * time.Millisecond):
-		}
+		p.kill()
 		_ = p.stdin.Close()
 	})
+}
+
+// abortWait bounds a wait for an OpenSSH process's end once it is killed,
+// and an exec master's after SIGTERM once the job has ended: a child of
+// OpenSSH (a ProxyCommand's) may keep its stderr open, and Wait follows the
+// copy.
+const abortWait = 500 * time.Millisecond
+
+// kill kills the process and waits for its end up to abortWait.
+func (p *processStream) kill() {
+	p.terminate()
+	select {
+	case <-p.done:
+	case <-time.After(abortWait):
+	}
 }
 
 func (p *processStream) terminate() {

@@ -1366,9 +1366,9 @@ with the managed configuration, host-key policy, and algorithms of the shell,
 karvi's own child (never backgrounded by `-f`) set to die with its parent; one
 `ssh -S SOCKET -n` client per command at `LogLevel QUIET` with `ProxyCommand
 false`, so that it reaches the device only through the master and its stderr
-holds only the command's; `ssh -O exit` at the end, and the master killed on an
-abort. Its socket is in `ssh.control-path-root` under a 16-hex-character name
-karvi picks (`/dev/shm/karvi/<user>/sockets/NAME` in shared mode,
+holds only the command's; `ssh -O exit` at the end (none for a job stopped or
+cancelled), and the master killed on an abort. Its socket is in
+`ssh.control-path-root` under a 16-hex-character name karvi picks (`/dev/shm/karvi/<user>/sockets/NAME` in shared mode,
 `<basedir>/socket/ssh/NAME` in individual), a root too long for the 108-byte
 limit with OpenSSH's 17-character binding suffix refused at planning
 (`control_path_root_too_long`, a root of at most 73 bytes passing), naming the
@@ -2453,6 +2453,23 @@ own value fell short, `daemon_stop_timeout` with the daemon still accounting.
 *Not taken:* the client applying the floor itself (the daemon's value still
 unknown to it); moving the IPC schema for an answer's field; a wait per
 stage (a followed job's stop took twice the wait).
+
+**A stopped or cancelled job's close does not wait.** A device session's
+close waits for the device's logout: the system shell up to 2 s for
+OpenSSH's end, then kills it and waits 0.5 s; the native shell up to 2 s for
+the shell's end; the system exec master up to 2 s after `ssh -O exit` and
+2 s after SIGTERM. Each wait also ends with the job's context, the one the
+session was prepared under, which a stop or a cancel ends and a normal
+finish does not: the shell's OpenSSH is killed and waited for 0.5 s at most,
+the native connection shut at once, the master sent SIGTERM without `ssh -O
+exit`, then SIGKILL 0.5 s on. The exit commands are still written. *Why:* a
+forced stop landing as a session closed held its job past the daemon's
+two-second floor (over system a ProxyCommand's child holding OpenSSH's
+stderr kept its end from coming), and the job's record was lost. *Not
+taken:* an abort the executor sends on a cancel during the close (a driver
+interface down through the session engine to each stream, the streams' once
+guards reworked so an abort cuts a close already running): the same result
+in five packages.
 
 **`daemon stop` and `daemon restart` refuse an active daemon without an
 option.** Every stop names its mode, and the daemon alone counts its jobs,

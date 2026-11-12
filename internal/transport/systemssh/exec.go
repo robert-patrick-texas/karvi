@@ -213,6 +213,10 @@ type execMaster struct {
 	diagnostics             *synchronizedBuffer
 	failures                sessionFailure
 	done                    chan struct{}
+	// jobEnded is closed when the job the master serves ends (the context
+	// Prepare was given: a stop or a cancel); its close and kill then wait
+	// no more than abortWait for each signal.
+	jobEnded <-chan struct{}
 
 	mu      sync.Mutex
 	waitErr error
@@ -220,12 +224,13 @@ type execMaster struct {
 	closeOnce sync.Once
 }
 
-// startMaster starts the device's master and returns it with the askpass
-// broker that serves its authentication; the caller closes the broker once
-// the master is ready. The master is started tied to karvi
+// startMaster starts the device's master, ctx the job's context, whose end
+// shortens the master's close, and returns it with the askpass broker that
+// serves its authentication; the caller closes the broker once the master
+// is ready. The master is started tied to karvi
 // (osutil.StartTied): its death signal is SIGTERM, on which OpenSSH removes
 // its socket.
-func (d *Driver) startMaster() (*execMaster, *askpass.Broker, error) {
+func (d *Driver) startMaster(ctx context.Context) (*execMaster, *askpass.Broker, error) {
 	if err := osutil.CheckControlPathRoot(d.f.ControlRoot); err != nil {
 		return nil, nil, err
 	}
@@ -245,7 +250,7 @@ func (d *Driver) startMaster() (*execMaster, *askpass.Broker, error) {
 		return nil, nil, fmt.Errorf("dependency_askpass_unavailable: %w", err)
 	}
 	m := &execMaster{binary: d.binary, socket: filepath.Join(d.f.ControlRoot, name), address: d.req.Address, env: childEnvironment(d.f.Config),
-		diagnostics: &synchronizedBuffer{maxBytes: 64 << 10}, failures: d.sessionFailure(), done: make(chan struct{})}
+		diagnostics: &synchronizedBuffer{maxBytes: 64 << 10}, failures: d.sessionFailure(), done: make(chan struct{}), jobEnded: ctx.Done()}
 	m.lines = newMasterLines(m.diagnostics)
 	m.lines.enrolled = d.hostKeyEnrolled()
 	// The command line's control options come first and win over the
@@ -356,7 +361,7 @@ func (m *execMaster) failure(lost bool) error {
 }
 
 // kill ends the master: SIGTERM, on which OpenSSH removes its socket, then
-// SIGKILL if it lingers.
+// SIGKILL if it lingers 2 s, or abortWait once the job has ended.
 func (m *execMaster) kill() {
 	if m.cmd.Process == nil {
 		return
@@ -366,15 +371,22 @@ func (m *execMaster) kill() {
 	case <-m.done:
 		return
 	case <-time.After(2 * time.Second):
+	case <-m.jobEnded:
+		select {
+		case <-m.done:
+			return
+		case <-time.After(abortWait):
+		}
 	}
 	_ = m.cmd.Process.Kill()
 	select {
 	case <-m.done:
-	case <-time.After(500 * time.Millisecond):
+	case <-time.After(abortWait):
 	}
 }
 
-// close asks the master to exit (ssh -O exit) and kills it if it lingers.
+// close asks the master to exit (ssh -O exit) and kills it if it lingers;
+// once the job has ended it kills it without asking.
 func (m *execMaster) close() {
 	m.closeOnce.Do(func() {
 		select {
@@ -382,15 +394,26 @@ func (m *execMaster) close() {
 			return
 		default:
 		}
-		if m.control("exit") == nil {
+		if !m.ended() && m.control("exit") == nil {
 			select {
 			case <-m.done:
 				return
+			case <-m.jobEnded:
 			case <-time.After(2 * time.Second):
 			}
 		}
 		m.kill()
 	})
+}
+
+// ended says whether the job the master serves has ended.
+func (m *execMaster) ended() bool {
+	select {
+	case <-m.jobEnded:
+		return true
+	default:
+		return false
+	}
 }
 
 // execConn is the master as devsession's exec connection.

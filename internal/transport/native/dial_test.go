@@ -130,6 +130,51 @@ func TestDialAbortAfterTimeoutReturnsAtOnce(t *testing.T) {
 	}
 }
 
+// TestCloseEndsAtTheJobsEnd: a close waiting for a shell the device does
+// not end (exit in configuration mode only leaves it) shuts the connection
+// at once when the job ends, during the close or before it: the stopped
+// daemon's floor of 2 s for a job's accounting is not reached.
+func TestCloseEndsAtTheJobsEnd(t *testing.T) {
+	for _, during := range []bool{true, false} {
+		t.Run(map[bool]string{true: "during", false: "before"}[during], func(t *testing.T) {
+			srv := startFake(t, fakedevice.Options{Enable: "en"})
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			s, err := Dial(ctx, dialRequest(srv, hostkey.Insecure, filepath.Join(t.TempDir(), "absent")))
+			if err != nil {
+				t.Fatal(err)
+			}
+			session := openSession(t, s, "cisco_ios")
+			if r := session.Execute(context.Background(), platform.Command{Text: "configure terminal", Timeout: 5 * time.Second}); r.Err != nil {
+				t.Fatalf("configure terminal: %+v", r)
+			}
+			if !during {
+				cancel()
+			}
+			closed := make(chan struct{})
+			go func() { _ = session.Close(); close(closed) }()
+			if during {
+				// The control: the close holds for the shell's end.
+				select {
+				case <-closed:
+					t.Fatal("the close ended before the cancel: nothing held it")
+				case <-time.After(300 * time.Millisecond):
+				}
+				cancel()
+			}
+			cancelled := time.Now()
+			select {
+			case <-closed:
+			case <-time.After(10 * time.Second):
+				t.Fatal("the close did not end")
+			}
+			if elapsed := time.Since(cancelled); elapsed > time.Second {
+				t.Fatalf("the close ended %s after the cancel", elapsed)
+			}
+		})
+	}
+}
+
 // TestKeepalives: requests on the
 // interval that the device answers keep a slow command's session; a device
 // gone silent ends the read under session_keepalive_timeout after the count

@@ -200,7 +200,7 @@ func (d *Driver) Prepare(ctx context.Context) error {
 // answer -O check within the connect and prompt timeouts together, the
 // bound a shell's login has; no first prompt, privilege, or paging.
 func (d *Driver) prepareExec(ctx context.Context) error {
-	master, broker, err := d.startMaster()
+	master, broker, err := d.startMaster(ctx)
 	if err != nil {
 		return err
 	}
