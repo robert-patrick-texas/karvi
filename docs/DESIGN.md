@@ -2416,6 +2416,28 @@ drains and waits `daemon.shutdown-grace-seconds`, a second shortens the wait.
 terminal record received none; a forced stop must be distinguishable from a
 device failure and an operator cancel.
 
+**A daemon holds a lock for its life.** `daemon serve` first takes an
+exclusive `flock` on `d.lock` beside its socket, before its start's sweeps
+and before it judges a socket file stale, and holds it until its sockets and
+state file are removed; its exit releases it, a kill included. Held by a
+daemon whose socket answers, a start is refused at once,
+`daemon_already_running`; held by one whose socket does not answer, a daemon
+still stopping, the start waits for it up to `daemon.start-timeout`, then is
+refused, `daemon still stopping: pid N`, the pid the holder wrote into the
+file; a signal ends the wait. With the lock taken, a socket file present is
+stale and is removed; one that still answers, a running daemon whose lock
+file was removed under it, is refused, `daemon_already_running`, not taken.
+The file stays at exit. `daemon stop`
+and `daemon restart` wait for the stopped pid's end, since a daemon waiting
+for the lock binds the path at once. *Why:* a stopping daemon keeps its
+files until its jobs' records are written, and a start in that window
+removed its socket as stale and bound its own, which the stopping daemon's
+exit then removed with the new daemon's credential socket and state file,
+leaving it running unreachable. *Not taken:* removing the lock file at exit
+(it races its next taker); a pid file (a kill leaves it, and a reused pid
+passes it); the dial alone (a stopping daemon's closed socket refuses as a
+dead one's does).
+
 **`daemon stop` and `daemon restart` refuse an active daemon without an
 option.** Every stop names its mode, and the daemon alone counts its jobs,
 under the lock that admits them. Without an option the mode is `if_idle`,

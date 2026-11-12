@@ -285,6 +285,24 @@ they were published in.
   (`credential_prompt_unavailable`), each later job's prompt ended at once,
   not shown, with the same code: the line editor kept the Ctrl-D unread. The
   editor now starts afresh after it.
+- **A daemon started while another stops keeps its socket.** A daemon
+  stopping closes its listeners at once but removes its sockets and state
+  file only after its jobs' records are written, up to
+  `daemon.forced-grace-seconds` (two seconds at least). A start in that
+  window (`daemon start`, a run launching its daemon, `daemon restart`)
+  removed the stopping daemon's socket as stale and bound its own, and the
+  stopping daemon's exit then removed the new daemon's sockets and state
+  file: the new daemon ran unreachable, ended only by its pid. Each daemon now
+  holds a lock for its life, `d.lock` beside its socket, taken before its
+  start's sweeps and its sockets and released at its exit, a kill included.
+  A start that finds it held by a daemon still stopping waits for it, up to
+  `daemon.start-timeout`, then `daemon serve` exits `daemon_already_running:
+  daemon still stopping: pid N` (exit 1); a signal ends the wait. A
+  launching client waits as long for the socket, so it fails first,
+  `daemon_start_failed` (exit 112), the refusal following in `daemon.log`.
+  One beside a running daemon is refused at once, as before. `daemon stop`
+  and `daemon restart` wait for the stopped daemon's pid to end, not for its
+  socket file to go, which a daemon started meanwhile now takes at once.
 
 ### Breaking changes
 

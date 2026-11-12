@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -17,8 +18,10 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/app"
 	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/daemon"
+	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/ipc"
+	"github.com/robert-patrick-texas/karvi/internal/testsocket"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
@@ -358,4 +361,31 @@ func stopInvocation(t *testing.T, g globalOptions, args ...string) *Invocation {
 	}
 	inv.Global = g
 	return inv
+}
+
+// TestTheStopWaitEndsAtThePidsExit: the stopped daemon's socket path taken
+// at once by a daemon started while it stopped (its lifetime lock, EXAMPLES
+// chapter 108) still ends the wait, the stopped pid gone; a pid still alive
+// with a socket there waits to the bound.
+func TestTheStopWaitEndsAtThePidsExit(t *testing.T) {
+	socket := filepath.Join(testsocket.Dir(t), "d.sock")
+	l, err := net.Listen("unix", socket)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	gone := exec.Command("true")
+	if err := gone.Run(); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if err := waitStopped(ctx, socket, gone.Process.Pid); err != nil {
+		t.Fatalf("the wait for an exited pid = %v", err)
+	}
+	short, cancelShort := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancelShort()
+	if err := waitStopped(short, socket, os.Getpid()); errorcodes.Of(err) != "daemon_stop_timeout" {
+		t.Fatalf("the wait for a live pid = %v", err)
+	}
 }

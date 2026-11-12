@@ -833,10 +833,11 @@ func scratchSockets(username string, uid int) (Passed, bool) {
 // The daemon's sockets. The daemon binds two path sockets in
 // daemon.sockets: its envelope socket and, beside it, the credential
 // channel's, each path within 107 bytes (sun_path's 108 less its
-// terminating NUL).
+// terminating NUL). Beside them is its lifetime lock, a regular file.
 const (
 	DaemonSocketName     = "d.sock"
 	CredentialSocketName = "c.sock"
+	DaemonLockName       = "d.lock"
 )
 
 // MaxDaemonSocketDir is the longest socket directory both of the daemon's

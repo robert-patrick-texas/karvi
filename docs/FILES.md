@@ -252,6 +252,7 @@ in a shared place and the operator's primary group in a private one.
 | `known_hosts` | `<basedir>/` (`ssh.known-hosts-file`) | `0600` | `0600` | kept | the trust store: every host key karvi accepted ([`docs/SSH-HOST-KEY-POLICY.md`](SSH-HOST-KEY-POLICY.md)) |
 | `d.sock` | `<basedir>/socket/` (`daemon.sockets`) | `0600` socket | `0600` socket | while the daemon runs | the client's requests to the daemon; peer credentials checked |
 | `c.sock` | `<basedir>/socket/` (`daemon.sockets`) | `0600` socket | `0600` socket | while the daemon runs | the credential package, one frame per connection under a one-use token |
+| `d.lock` | `<basedir>/socket/` (`daemon.sockets`) | `0600`, the holder's pid | `0600`, the holder's pid | kept; held while the daemon runs | the daemon's lifetime lock: a daemon starting while one still stopping holds it waits for it, up to `daemon.start-timeout` |
 | `daemon.json` | `<basedir>/state/` | `0600` | `0600` | while the daemon runs | the running daemon's status (pid, socket, version, schema, jobs), removed when it stops |
 | `crun.lock` | `<basedir>/state/` (`KARVI_CRUN_LOCK` names another) | the umask's, empty | the umask's, empty | kept; held while a `karvi-crun` collection runs | the cron script's lock: a tick that finds it held is skipped |
 | `daemon.log` | `<basedir>/logs/` | `0600`, appended | `0600`, appended | kept | one line per request outcome, the token redacted |

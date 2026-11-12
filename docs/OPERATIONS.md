@@ -87,7 +87,11 @@ leaves out; interrupted, the wait ends and the daemon still finishes its jobs
 and exits. With no option, `daemon stop` and `daemon restart` are refused while
 the daemon runs a job, which it alone counts. A socket a daemon killed outright
 left refuses the connection: `daemon restart` finds nothing to stop there and
-starts a daemon, as `daemon start` does.
+starts a daemon, as `daemon start` does. A daemon started while another is
+still stopping, its jobs' records still being written, waits for that one to
+exit (its lock, `d.lock` beside the socket), up to `daemon.start-timeout`;
+past it the start fails, `daemon_start_failed`, and `daemon.log` then names
+`daemon_already_running: daemon still stopping: pid N`.
 
 An older karvi beside a newer daemon is refused, `daemon_incompatible`, the
 schemas stacked: the older client cannot speak the newer schema, so it neither

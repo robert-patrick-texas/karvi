@@ -179,6 +179,23 @@ func (s *Server) Serve(parent context.Context) error {
 			s.Operator = op
 		}
 	}
+	// The lifetime lock first (lock.go): a daemon still stopping holds it,
+	// so neither the sweeps below nor the socket check reach its files.
+	if err := osutil.MakeDirectories(filepath.Dir(s.Socket), 0700); err != nil {
+		return err
+	}
+	lock, err := takeLifetimeLock(parent, s.Signals, LockPath(s.Socket), s.Socket, s.startTimeout())
+	var stopped stoppedWaiting
+	if errors.As(err, &stopped) {
+		if stopped.sig != nil {
+			s.logShutdown("daemon_stopped", stopped.sig, 0)
+		}
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	defer lock.Close()
 	s.StartedAt = s.now()
 	s.touch()
 	s.jobs = make(chan struct{}, s.MaxJobs)
@@ -202,9 +219,6 @@ func (s *Server) Serve(parent context.Context) error {
 	s.sweepControlSockets()
 	// And the scratch: what a karvi killed outright left there.
 	s.sweepScratch()
-	if err := osutil.MakeDirectories(filepath.Dir(s.Socket), 0700); err != nil {
-		return err
-	}
 	if err := removeStaleSocket(s.Socket); err != nil {
 		return err
 	}
@@ -336,12 +350,6 @@ func acceptRetryable(err error) bool {
 	return false
 }
 
-// awaitAccounting waits for the job goroutines to finalize their records
-// and summaries before the socket and state file go. Under a forced stop
-// the jobs are already cancelled with their
-// cause and finish within milliseconds; the wait is bounded by
-// daemon.forced-grace-seconds with a floor of one second, so a configured
-// zero still attempts the terminal writes.
 // handleSignals is the signal-driven shutdown. The first signal drains:
 // new submissions
 // are refused with daemon_draining while active jobs get up to
@@ -466,6 +474,15 @@ func (s *Server) logShutdown(code string, sig os.Signal, wait time.Duration) {
 	s.Logger.Info("shutdown", slog.String("code", code), slog.String("signal", sig.String()), slog.Int64("active_jobs", s.active.Load()), slog.Duration("wait", wait))
 }
 
+// startTimeout is daemon.start-timeout, 5 s when unset: how long a start
+// waits for a stopping daemon's lifetime lock.
+func (s *Server) startTimeout() time.Duration {
+	if timeout := s.Config.Duration("daemon.start-timeout"); timeout > 0 {
+		return timeout
+	}
+	return 5 * time.Second
+}
+
 // accountingBound is how long a stopping daemon waits for a job's terminal
 // writes: daemon.forced-grace-seconds with a floor of two seconds, one for
 // the SSH driver's pipe wait after the kill and one for the writes (a
@@ -478,6 +495,11 @@ func (s *Server) accountingBound() time.Duration {
 	return bound
 }
 
+// awaitAccounting waits for the job goroutines to finalize their records
+// and summaries before the socket and state file go. Under a forced stop
+// the jobs are already cancelled with their cause; the wait is
+// accountingBound, so a configured zero still attempts the terminal writes,
+// and a job still writing at the bound is logged shutdown_incomplete.
 func (s *Server) awaitAccounting() {
 	done := make(chan struct{})
 	go func() { s.jobWait.Wait(); close(done) }()
@@ -681,6 +703,11 @@ func (s *Server) writeCoded(conn io.Writer, fallback string, err error, id strin
 	s.writeError(conn, code, err, id)
 	return code
 }
+
+// removeStaleSocket removes the socket file a daemon left at path. Serve
+// calls it under the lifetime lock, so a socket there is stale; one that
+// still answers is a running daemon whose lock file was removed under it,
+// refused, not taken.
 func removeStaleSocket(path string) error {
 	fi, err := os.Lstat(path)
 	if os.IsNotExist(err) {
@@ -692,9 +719,7 @@ func removeStaleSocket(path string) error {
 	if fi.Mode()&os.ModeSocket == 0 {
 		return errorcodes.Errorf("daemon_socket_path_not_socket", "daemon socket path exists and is not a socket: %s", path)
 	}
-	conn, dialErr := net.DialTimeout("unix", path, 150*time.Millisecond)
-	if dialErr == nil {
-		conn.Close()
+	if answers(path) {
 		return errorcodes.Errorf("daemon_already_running", "daemon already running at %s", path)
 	}
 	// The parent directory is private and owner-checked by osutil; a dead socket

@@ -22,12 +22,16 @@ import (
 // linked as fake-ssh it is the device, which
 // authenticates through askpass and records each command beside the
 // SHA-256 of the answer; linked as karvi-askpass it is the real helper.
+// Linked as daemon-lock-holder it holds a daemon's lifetime lock until it
+// is killed (lockHolderMain).
 func TestMain(m *testing.M) {
 	switch filepath.Base(os.Args[0]) {
 	case "fake-ssh":
 		os.Exit(fakeSSHMain())
 	case "karvi-askpass":
 		os.Exit(askpass.HelperMain(os.Args[1:]))
+	case "daemon-lock-holder":
+		os.Exit(lockHolderMain())
 	}
 	// Off the host (osutiltest.Isolate): the daemon's tests draft plans
 	// through the planner, so without this the jobs of a run land in the

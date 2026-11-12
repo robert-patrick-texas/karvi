@@ -325,13 +325,21 @@ func stopDaemonRuntime(ctx context.Context, rt app.DaemonRuntime, opts stopOptio
 		}
 		return probe, errorcodes.Ensure(err, "daemon_stop_failed")
 	}
+	return probe, waitStopped(stopCtx, rt.Socket, probe.Status.PID)
+}
+
+// waitStopped waits for the stopped daemon, pid, to exit (daemonExited)
+// until ctx ends, daemon_stop_timeout. Its pid's end counts, not the socket
+// file alone: a daemon started while it stopped binds the path as soon as
+// it is gone (its lifetime lock, EXAMPLES chapter 108).
+func waitStopped(ctx context.Context, socket string, pid int) error {
 	for {
-		if _, err := os.Stat(rt.Socket); os.IsNotExist(err) {
-			return probe, nil
+		if daemonExited(socket, pid) {
+			return nil
 		}
 		select {
-		case <-stopCtx.Done():
-			return probe, errorcodes.Errorf("daemon_stop_timeout", "daemon stop timed out")
+		case <-ctx.Done():
+			return errorcodes.Errorf("daemon_stop_timeout", "daemon stop timed out")
 		case <-time.After(25 * time.Millisecond):
 		}
 	}

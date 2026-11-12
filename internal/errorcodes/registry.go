@@ -620,7 +620,7 @@ var entries = []Entry{
 	failure("transport_executable_not_regular", "dependency", exitDep, false, "A configured transport executable is not a regular file."),
 	failure("transport_executable_spec_empty", "config", exitDep, false, "A transport executable specification is empty."),
 	failure("native_session_open_failed", "connection", exitConn, true, "The native transport cannot open the device session."),
-	failure("daemon_already_running", "dependency", exitGen, false, "`daemon serve` finds a live daemon already listening on the socket."),
+	failure("daemon_already_running", "dependency", exitGen, false, "`daemon serve` finds another daemon: one answering at the socket, refused at once (`daemon already running at SOCKET`), whether it holds the daemon's lock, `d.lock` beside the socket, or its lock file was removed under it; or one holding the lock whose socket does not answer, a daemon still stopping, refused after waiting `daemon.start-timeout` for it (`daemon still stopping: pid N`)."),
 	failure("daemon_drain_failed", "dependency", exitConn, false, "The daemon does not accept the drain request."),
 	fallback("daemon_serve_failed", "dependency", exitGen, "The daemon cannot start serving."),
 	failure("daemon_socket_blank", "config", exitConfig, false, "The daemon socket path is blank."),
