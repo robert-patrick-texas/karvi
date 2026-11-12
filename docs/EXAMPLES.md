@@ -25859,14 +25859,14 @@ S3 is this chapter.
 - Over `system` the close `Execute` now makes at the device's timeout runs
   `ssh -O exit`, as the session's close did before, which has no bound (by
   the code; the local master answers it, so a silent device alone should
-  not hold it, an inference).
+  not hold it, an inference). To the ROADMAP's Later.
 - On a slow link a given-up command with output still in flight can have
   the device's close arrive past the 2 s, closing a connection the earlier
   tree kept: x/crypto's window is 2 MiB, about 2 s at 8 Mbit/s. Reasoned,
-  not executed.
+  not executed. Left as it is, the operator's word: the case is rare.
 - `KILL` and then the connection's close is shown against the fake alone,
   not against a real sshd. The device qualification runbook's L4, with a
-  cancel, would show it.
+  cancel, would show it. To the ROADMAP's device-qualification track.
 - A start's backstop counts from the spawn: a daemon that took the lock near
   its bound has 2 s less its start-up for its sweeps, its bind, and its
   first answer.

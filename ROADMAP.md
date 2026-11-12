@@ -327,6 +327,18 @@ None chosen: the operator names the next item, from "Later" or anew.
   The question: the shell's write under the command's timeout and the job's
   context as well, either closing the connection, the one release of a
   pending write.
+- **A bound on the exec master's control commands.** Over `system` the exec
+  channel's OpenSSH master is asked `ssh -O check` as it starts and
+  `ssh -O exit` as it closes (`execMaster.control`,
+  `internal/transport/systemssh/exec.go`), each a client run to its end with
+  no timeout. The local master answers them, so a silent device alone should
+  not hold one (an inference, not executed); a master that does not answer
+  its socket would hold the session's start or its close, and the close an
+  exec command makes at `execution.device-timeout`
+  ([`docs/EXAMPLES.md`, chapter
+  109](docs/EXAMPLES.md#109-two-bounds-exec-on-a-silent-device-a-starts-one-clock-2026-11-12),
+  Left open). A stopped or cancelled job's close asks nothing. The question:
+  a bound on each, the master killed past it.
 - **Jump hosts over the system transport.** A `ProxyJump` in `~/.ssh/config`
   (`ssh.include-user-config`) makes the hop a child `ssh -W` that inherits the
   askpass environment, so the jump host's prompts reach the broker and are
@@ -697,6 +709,15 @@ device; the laboratory run needs the operator and a device:
    read from OpenSSH's own log (`-E` at `VERBOSE`, the terminal unchanged);
    a device that dies mid-session then ends 0 too, accepted for an
    interactive session whose operator saw it end.
+6. Show a cancelled exec command's end against a real `sshd`: the runbook's
+   row L4 with a cancel in place of the command's timeout, on both
+   transports. Over `native` a cancel asks the server for `KILL`, closes the
+   channel, and closes the connection 0.5 s on or as soon as the channel
+   closes, which only the fake device has shown
+   ([`docs/EXAMPLES.md`, chapter
+   109](docs/EXAMPLES.md#109-two-bounds-exec-on-a-silent-device-a-starts-one-clock-2026-11-12),
+   Left open). Observed: what is left running on the server, as L4 looks
+   for it.
 
 Production activation of the daemon, the shared trees, the timers, and the
 2,500-device accounting gate waits on that run and on review by the network
