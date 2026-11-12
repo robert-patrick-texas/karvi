@@ -26264,3 +26264,163 @@ example, the 1/3 draft, the shipped-bytes check on the 2/3 draft,
 `v0420-release-numbers-check.out`, the artifacts, the container install, the
 release notes and their check with chapter 106's example's output, the push,
 the site, the GitHub release, and the published check).
+
+## 111. An RSA key over native signs with SHA-2 (2026-11-12)
+
+The first of the three Next items [chapter
+110](#110-the-release-0420-2026-11-12)'s reading of the module move left on
+the ROADMAP, on the operator's word. The fault is older than the move. Over
+`native` an RSA key of `ssh.identities` signed with `ssh-rsa` (SHA-1) alone.
+karvi hands x/crypto each key in a wrapper, `noteSigner`
+(`internal/transport/native/dial.go`), which notes that a key authenticated
+when the key signs. The wrapper held the key as an `ssh.Signer`, the
+interface with no choice of algorithm, and x/crypto signs with one algorithm
+for such a signer, the key's format (`pickSignatureAlgorithm`, its last
+case). An RSA key's format is `ssh-rsa`. A server whose public-key
+algorithms leave `ssh-rsa` out, OpenSSH's default since 8.8, refused the
+key, and the device failed `authentication_failed`, where the same key
+logged in over `system`.
+
+**What it gains.** An operator's RSA key reaches a current OpenSSH server
+over `native` as it does over `system`: an exec device (the built-in
+`linux`), and any device whose SSH server names the SHA-2 algorithms.
+`--debug` names the key that signs and its algorithm, which no line named.
+It waits on nothing.
+
+**The operator's decisions**, in simple terms:
+
+- `rsa-sha2-512` first: karvi leads with the strongest algorithms.
+- The `system` transport's refusal by a device that takes `ssh-rsa` alone
+  (Left open) goes to the ROADMAP.
+
+**The rule, as built** ([`docs/DESIGN.md`, section
+4](DESIGN.md#4-credentials)):
+
+- An RSA key signs with `rsa-sha2-512` where the server's list
+  (`server-sig-algs`) holds it, with `rsa-sha2-256` where the list holds
+  that and not the first, and with `ssh-rsa` where the list holds neither or
+  the server sends none.
+- A key of any other type has one algorithm and signs as before.
+- The wrapper holds the key as an `ssh.MultiAlgorithmSigner`, which names
+  its algorithms in karvi's order, and notes the method in
+  `SignWithAlgorithm`, the one call x/crypto signs through. x/crypto asks
+  the server about a key before it signs, so a key the server refuses signs
+  nothing.
+- Under `--debug` the key that signs writes `native SSH connection key signs
+  path=… algorithm=…`.
+- A signer that takes no algorithm is passed over with the `key passed over`
+  line. x/crypto v0.59.0 parses none.
+- The system transport is unchanged: its choice is OpenSSH's.
+
+**The executed examples.** `rsa.sh` runs the host's own OpenSSH 10.2 `sshd`
+unprivileged on 127.0.0.1, twice: `modern` with OpenSSH's default
+`PubkeyAcceptedAlgorithms` (no `ssh-rsa`), and `legacy` with
+`PubkeyAcceptedAlgorithms ssh-rsa`, an older device. One new RSA 3072 key is
+the lab's `ssh.identities` and the servers' `authorized_keys`; the target is
+`srv1`, the built-in `linux`, its command `uname -s`. Each server is reached
+by the released 0.42.0 and by the tree's build over `native`, and by the
+tree's build over `system`. Each block shows karvi's exit and its error or
+output, its `--debug` line, and sshd's own lines about the key (`L` the
+lab's folder):
+
+```text
+== server=modern build=released transport=native
+karvi: exit=108 error=authentication_failed: SSH authentication failed for netops at 127.0.0.1:PORT: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+sshd: userauth_pubkey: signature algorithm ssh-rsa not in PubkeyAcceptedAlgorithms [preauth]
+== server=modern build=tree transport=native
+karvi: exit=0 Linux
+native SSH connection key signs path="L/id_rsa" algorithm=rsa-sha2-512
+sshd: Accepted publickey for netops ssh2: RSA SHA256:…
+sshd: userauth_pubkey: publickey test pkalg rsa-sha2-512
+== server=modern build=tree transport=system
+karvi: exit=0 Linux
+sshd: Accepted publickey for netops ssh2: RSA SHA256:…
+sshd: userauth_pubkey: publickey test pkalg rsa-sha2-512
+== server=legacy build=released transport=native
+karvi: exit=0 Linux
+sshd: Accepted publickey for netops ssh2: RSA SHA256:…
+sshd: userauth_pubkey: publickey test pkalg ssh-rsa
+== server=legacy build=tree transport=native
+karvi: exit=0 Linux
+native SSH connection key signs path="L/id_rsa" algorithm=ssh-rsa
+sshd: Accepted publickey for netops ssh2: RSA SHA256:…
+sshd: userauth_pubkey: publickey test pkalg ssh-rsa
+== server=legacy build=tree transport=system
+karvi: exit=108 error=authentication_failed: netops@127.0.0.1: Permission denied (publickey).
+```
+
+Read in order: the fault, the released build refused by `modern` in sshd's
+own words; the tree's build taken with `rsa-sha2-512`, the algorithm
+`system` signs with on the same server; `legacy` reached with `ssh-rsa` by
+both builds; and no login to `legacy` over `system`, with no line of sshd's
+about the key: OpenSSH's client signs with no SHA-1 and offers it none (Left
+open).
+
+`TestProviderRSAKeySignsWithSHA2` (`internal/transport/native`) holds the
+rule against `karvi-fake-device`'s server, whose new option
+(`PublicKeyAlgorithms`) limits the algorithms a key may log in with. Five
+servers, one RSA key, the `--debug` line read for the algorithm:
+
+| The server takes | The key signs with |
+|---|---|
+| x/crypto's defaults | `rsa-sha2-512` |
+| no `ssh-rsa`, as OpenSSH | `rsa-sha2-512` |
+| `rsa-sha2-256` alone | `rsa-sha2-256` |
+| `rsa-sha2-256` beside `ssh-rsa` | `rsa-sha2-256` |
+| `ssh-rsa` alone | `ssh-rsa` |
+
+On the commit before, the second and third fail `authentication_failed` and
+the others log in and find no line.
+
+**What changed.** One commit on dev, `7afea23`, with its texts (the
+CHANGELOG's entry under Bugs fixed, DESIGN section 4, `docs/SSH-TROUBLE.md`'s
+`--debug` paragraph), the ROADMAP's item removed, and the `system` item
+added to its Next: `noteSigner` and
+`algorithmSigner` in `internal/transport/native/dial.go`; the fake's
+`PublicKeyAlgorithms`; `sshkeytest.RSA`; the test.
+
+**Not taken.**
+
+- x/crypto's own order, `rsa-sha2-256` first: karvi's lists lead with the
+  strongest, and OpenSSH's client signs with `rsa-sha2-512` on the same
+  server.
+- `ssh-rsa` left out: an older device's RSA user key would log in over
+  neither transport.
+- A signer that takes no algorithm offered as before: it would sign with
+  SHA-1 unseen.
+- A key for the list, beside `ssh-algorithms.host-key`: no site has asked to
+  shape it.
+- A suite case and a `karvi-fake-device` flag for the option: the Go test
+  holds the rule, and the real sshd run shows it once.
+
+**Left open.**
+
+- Over `system` an RSA key does not log in to a device that takes `ssh-rsa`
+  alone: OpenSSH's client leaves `ssh-rsa` out of its
+  `PubkeyAcceptedAlgorithms` and offers the device no key, and karvi's
+  managed configuration writes none. `native` reaches such a device. As
+  before this chapter; shown by the last block above. To the ROADMAP's
+  Next, the operator's word.
+- A server that sends no `server-sig-algs` at all is not executed: x/crypto's
+  server and OpenSSH's both send one. By x/crypto's code the key signs with
+  its format, `ssh-rsa`, as `legacy` shows for a list without the SHA-2
+  names.
+
+**Checks.** `go test ./...`, which found the new helper's uncoded error
+unlisted in the source test's `detailFuncs` (listed); one independent review
+of the code, with overlay mutants of the order: no defect in the change and
+two findings, both applied (a fifth case, `rsa-sha2-256` ahead of `ssh-rsa`,
+which a mutant order had passed; the wording of what x/crypto does for a
+plain signer); the full battery on the tree with the change, taken before
+the ROADMAP's `system` item was written (build, vet, `make generated-clean`,
+`go test` 76 packages, the suites 273 s); `rsa.sh` on a clone of `7afea23`,
+its last line the host after: no lab folder, no `sshd`, no listener. Then
+one independent reading of this chapter against the code and the evidence,
+seven findings, each checked and applied; it ran the new test on the commit
+before by `-overlay` (the table's last paragraph) and the links through
+`tools/md-to-html`. Not shown: a real device that names `rsa-sha2-512` and
+mishandles it, where OpenSSH's client makes the same choice.
+
+The evidence is kept beside the tree
+(`release-design-evidence/rsa-sha2-2026-11/`: `rsa.sh` and `rsa.out`, the
+two reviews, the battery, and this chapter as applied).

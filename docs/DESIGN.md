@@ -1296,7 +1296,7 @@ fingerprint comparison at the connection (`credential_key_changed`).
 An RSA key of the credential signs with `rsa-sha2-512` where the server's list
 (`server-sig-algs`) holds it, with `rsa-sha2-256` where the list holds that and
 not the first, and with `ssh-rsa` (SHA-1) only for a device that names neither;
-an Ed25519 or ECDSA key has one algorithm. Under `--debug` the transport names
+a key of any other type has one algorithm. Under `--debug` the transport names
 the key that signs and its algorithm, `native SSH connection key signs path=…
 algorithm=…`; a key the server refuses signs nothing and writes no line. The
 system transport's choice is OpenSSH's: the same order without `ssh-rsa`, so an
@@ -1312,7 +1312,8 @@ the older device that sends no list, the device the host-key list keeps its
 device's RSA user key would log in over neither transport); a signer that takes
 no algorithm offered as before (it would sign with SHA-1 unseen: it is passed
 over with its `--debug` line, and x/crypto parses none); a key for the list (no
-site has asked to shape it).
+site has asked to shape it) ([`docs/EXAMPLES.md`, chapter
+111](EXAMPLES.md#111-an-rsa-key-over-native-signs-with-sha-2-2026-11-12)).
 
 **The fallback is walked in order; what a source cannot use it passes.**
 `netvars` fills the fields still empty from `NETUSER`, `NETPASS`, and

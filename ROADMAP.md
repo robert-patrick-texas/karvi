@@ -22,11 +22,11 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   damaged file gets. The item: the notice says the key is DSA and no longer
   used, and the code's description lists the reason.
 - **An RSA key over `system` for a device that takes `ssh-rsa` alone.** Over
-  `system` an RSA key of `ssh.identities` is refused by a device whose
+  `system` an RSA key of `ssh.identities` does not log in to a device whose
   public-key algorithms hold `ssh-rsa` (SHA-1) alone, an older device
   (`authentication_failed`: `Permission denied (publickey)`): OpenSSH's
-  client leaves `ssh-rsa` out of its `PubkeyAcceptedAlgorithms`, and karvi's
-  managed configuration writes none. Over `native` the key signs with
+  client leaves `ssh-rsa` out of its `PubkeyAcceptedAlgorithms` and offers
+  the device no key, and karvi's managed configuration writes none. Over `native` the key signs with
   `ssh-rsa` for such a device and logs in. The questions: whether karvi
   writes `PubkeyAcceptedAlgorithms` (the SHA-2 names, then `ssh-rsa` last, as
   `native` signs) or leaves OpenSSH's choice and says so, and whether a site

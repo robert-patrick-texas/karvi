@@ -27,8 +27,8 @@ they were published in.
   with the strongest algorithm the server names, `rsa-sha2-512`, then
   `rsa-sha2-256`, and with `ssh-rsa` only for a device that names neither.
   Under `--debug` the transport names the key that signs and its algorithm,
-  `native SSH connection key signs path=… algorithm=…`. Ed25519 and ECDSA
-  keys, one algorithm each, sign as before.
+  `native SSH connection key signs path=… algorithm=…`. A key of any other
+  type has one algorithm and signs as before.
 
 ## 0.42.0 - 2026-11-12
 
