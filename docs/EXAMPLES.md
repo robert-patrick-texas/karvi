@@ -25228,3 +25228,682 @@ battery (277 s). The evidence is kept beside the tree
 (`release-design-evidence/stop-wait-2026-11/`: `brief.md`, `README.md`,
 `PLAN.md`, `stopwait.sh` and its outputs, `date-3N-check.sh` and its output,
 `battery.sh`, `battery-s3/`, `battery-s4/`, and `S4/`).
+
+## 109. Two bounds: exec on a silent device, a start's one clock (2026-11-12)
+
+Both items were chapter 108's Left open: its S3 reviewer read that native
+exec's `Start` waits on the device with no deadline, and its S4 rerun of
+S1's commit met a start that failed while the daemon it launched went on to
+run. Each was reproduced on a lab build of dev `0a72740`. For the first the
+device, lin01, is `karvi-fake-device`'s Linux persona on the exec channel,
+made silent by `kill -STOP`: its connection up, the kernel still
+acknowledging, nothing answered. Over `native` an exec command waited on
+such a device in two places with no bound: its channel's opening (`Start`,
+called before the command's timer was made and with no context) and its
+give-up (the stop sent, then the reads, which end at the device's close of
+the channel). Only the keepalives ended the connection under either:
+`native-ssh.keepalive-interval` 15 s and `native-ssh.keepalive-count-max` 3,
+at most 60 s from the last output, and never at interval 0. The faults:
+
+1. **A forced stop lost the job's record.** The fake stopped in the
+   `--sleep` before the second command, that command's channel opening in
+   flight, then `daemon stop --force`: `daemon stopped` after 5.0 s, the
+   daemon's bound at the default `daemon.forced-grace-seconds` 5,
+   `shutdown_incomplete` in
+   `daemon.log`, no second record, no final status, no `run.end`.
+2. **A cancel ended 57 s on.** `job cancel` answered in 54 ms; the second
+   command's record ended 57.0 s after it, 60.0 s after the first's.
+3. **The command's timeout did not count.** `--timeout 5s` on the second
+   command: `session_keepalive_timeout` after 57.0 s, no `command_timeout`.
+4. **With keepalives off, no end.** At `native-ssh.keepalive-interval=0s`
+   the job had no final status 90 s after the cancel. Continued 93.3 s after
+   its stop, the fake ran the cancelled job's second command (`exec: both`),
+   and the job ended 168 ms on.
+5. **A command given up waited too.** The fake stopped inside a running
+   `slow`, then the cancel: 60.0 s. The daemon's goroutines at a SIGQUIT 5 s
+   after the cancel (cases 3q and 6aq) put case 3's wait in `Start`, in
+   x/crypto's channel open, and this one's in the give-up's wait for the
+   readers, the KILL and the close already sent: not `Start`'s fault alone.
+6. **A start failed and its daemon then ran.** The client that launches a
+   daemon released the child and counted `daemon.start-timeout` from its
+   spawn; the daemon counts the same time from after its own start-up while
+   it waits for a stopping daemon's lock. With the lock freed as the client
+   gave up: `daemon_start_failed` (exit 112), then the launched daemon
+   answering, in 4 and 8 of 10 lab runs and 20 of 20 of a scratch test.
+
+Not a fault: over `system` case 3's job ended 0.19 s after the cancel, its
+client killed. The operator agreed both fixes and a plan of three sections:
+S1 native exec's bounds (faults 1 to 5), S2 one clock for a start (6), and
+S3 this chapter. S1 as built went past the agreed rules in six points, put
+to the operator before the commit; the operator approved it, the 0.5 s at
+the context's end by name (the agreed rule was a close at once).
+
+**What it gains.** An exec command over `native` ends at its bounds whatever
+the device answers. A forced stop keeps the job's record and answers in 0.6 s,
+where it took 5.0 s and lost it; a cancel ends the job 0.6 to 0.7 s on, not
+57 s; `--timeout 5s` is `command_timeout` at 5.0 s; with keepalives off a
+cancelled job ends, and its next command is not run. `daemon start`, `daemon
+restart`, and a run launching its daemon report a failed start only when no
+daemon is left from it, an interrupt apart. The costs: a connection is closed
+where the earlier tree waited on the device. A cancel, a stop, and
+`execution.device-timeout` close it, 0.5 s on at a silent device; a timeout in
+a channel's opening closes it; and a command's timeout or the output limit
+closes it when the device has not closed the channel 2 s on, the device's
+later commands then not attempted where the earlier tree waited and went on. A
+failed start reports once the launched daemon has ended, at the daemon's count
+and not the client's (1.03 to 1.05 s here, 1.01 to 1.03 s before), and a
+daemon that neither answers nor ends is killed 2 s past
+`daemon.start-timeout`, the client waiting until then.
+
+**The rules, as built** ([`docs/DESIGN.md`, section
+5](DESIGN.md#5-transports-and-the-device-session), the entry "A device that
+stops answering does not hold an exec command", and [section
+8](DESIGN.md#8-rehearsal-follow-cancel-and-the-daemons-lifecycle), the entry
+"A start is decided by the daemon it launched").
+
+- **An exec command's bounds** (S1; its four settle points; the six points
+  past the agreed rules). One rule in the exec session's `Execute`
+  (`internal/devsession/exec.go`) for both transports (settle point 3), no
+  interface changed:
+  - The command's timer is made before `Start`, which runs on a goroutine
+    of its own; `Execute` waits for the first of its answer, the timer, and
+    the context.
+  - The timer before the answer: the connection is closed (`unstarted`), the
+    one release x/crypto gives of an opening the device has not answered.
+    The result is `command_timeout`, `command timed out after 5s (--timeout)
+    before it started; the connection was closed`, without exec fields, as
+    a refused channel's (settle point 1). A start answered with a channel as
+    the time ran out goes on to the give-up, which stops the command (point
+    4).
+  - The context's end (a cancel, a stop, `execution.device-timeout`) before
+    the answer: the opening has 0.5 s (`execCutGrace`) to be answered, since
+    a device that answers has the command, or will have it, and the stop
+    needs its channel (point 1). Answered with a channel, the command is
+    given up as below;
+    not, the connection is closed and the result is the context's error,
+    which the executor classifies, without exec fields.
+  - A start given up is not waited for, since x/crypto can hold an opening
+    that raced the connection's end (point 5); a channel it returns later
+    is stopped.
+  - A command given up is stopped as before: `native` asks the device for
+    `KILL` and closes the channel, `system` kills its client. `end` sends
+    the stop and waits for the readers' end, which for a stream with nothing
+    more to read is the device's close of the channel. At the command's
+    timeout and at the output limit (point 2) the device has 2 s
+    (`execEndGrace`, fixed, as `native`'s `shellEndGrace`; its name is
+    settle point 2): the connection is kept when the device closes the
+    channel, and closed when it does not, the message then ending `; the
+    device did not close the channel in 2s and the connection was closed`,
+    the session unusable and the device's later commands not attempted (a
+    refused spool write has the same 2 s, its message unchanged). At the
+    context's end it has the 0.5 s, and the connection is closed then, or as
+    soon as the channel closes.
+  - Each wait covers the stop itself (point 3), so a stop the device holds
+    is bounded too; an exit status never sent after both streams ended (`…
+    waiting for its exit status`), bounded before, now has the same wait
+    and close.
+  - `ExecConn`'s `Close` ends a `Start`, a `Stop`, a `Wait`, and every read,
+    and is harmless twice (settle point 4, checked on both transports):
+    `fail` closes it and marks the session broken, not closed, so the
+    session's `Close` closes it again.
+  - Over `system` the killed client ends the reads at once, as before; only
+    the close at the context's end is new there. The fake device takes a
+    signal received before the close that follows it (point 6); it could
+    count such a command as left running.
+- **One clock for a start** (S2; its settle point, the messages; the
+  review). `ensureDaemon`, the one launch of `daemon start`, `daemon
+  restart`, and a run, keeps the child it starts and waits (`awaitDaemon`)
+  for the first of three:
+  - A daemon answering a ping: the start. The ping is the answer (the
+    review): a socket that takes a connection is not yet a daemon that
+    answers, since it listens before it accepts, so the ping, 2 s each, is
+    asked again 50 ms on until one answers or the wait ends. Before, one
+    ping failing after the socket's answer could fail a start whose daemon
+    then ran. `daemon started socket=…` is printed, by `daemon start` and a
+    run and not under `--quiet`, when the answering pid is the child's.
+  - The child's end: the failure, its cause in `daemon.log`, unless a
+    daemon answers one more ping, another launcher's, which is a start.
+  - `daemon.start-timeout` plus 2 s (`startBackstop`), counted from the
+    spawn: the child is killed and waited for, and the failure says so. A
+    child that ended as the bound came is not reported killed.
+
+  A start succeeds only on an answer and fails only once the child has ended.
+  An interrupt leaves the child, as before, which starts or fails by itself
+  (an interrupt in the wait after the kill ends that wait, with the same
+  message). Under `daemon.launch = "systemd"` nothing is launched, and `daemon
+  serve` keeps its own bound. The three messages, each `daemon_start_failed`
+  (exit 112), LOG the path of `daemon.log`:
+  - `daemon failed to start; inspect LOG` (the child ended; before, with `:
+    context deadline exceeded`);
+  - `daemon did not start in 7s and was killed; inspect LOG` (the backstop,
+    7 s at the default `daemon.start-timeout` of 5 s);
+  - `start interrupted, the launched daemon left to start; inspect LOG:
+    context canceled` (before, `daemon failed to start; inspect LOG: context
+    canceled`).
+
+**The executed examples.** Lab builds of `0a72740`, the tree both
+reproductions ran on, and of `cee2964`, the built tree, its runs made twice
+(`reruns.sh`). The blocks are the reproduction's runs and the built tree's
+first passes, cut by `trim109.sh`:
+`exstart.sh`'s outputs (`exstart.out`, `exstart-1.out`) to cases 2, 3, and
+4, and the start lab's (`lab.sh`: `lab.out`, `startlab-1.out`) to run 7, the
+first whose daemon ran, with control c1 on the built tree. `$L` is the lab
+folder (`$BASE`, in the scripts, its `basedir`, `$L/base`); every `$ karvi`
+line also names the lab's `--config` files (the places under `$L`, the trust
+store, `ssh.control-path-root`; for the device its port, key, and
+inventory, among them), with `HOME` in the lab, `TMPDIR=/var/tmp`, the
+credentials in the environment (unused: the fake logs in by the key), and
+standard input `/dev/null`.
+
+In `exstart.sh` each case has a fresh fake on one port, `PORT`, and its own
+daemon at the defaults (forced-grace 5; keepalives 15 s, 3), started by
+`daemon start` (exit 0, left out here). The `# the fake:` line gives its pid,
+`$FAKE_PID` below, and its flags; `-user` names the account running the lab,
+which logs in by a key made for the lab. The job is a detached `run` (its job
+lines left out; `$JOB` is its folder): `uname -snrm`, `--sleep 3s`, then
+`both`, which writes to both streams. With record 1 in `commands.jsonl` the
+script sends `kill -STOP` (`Tl` is `ps`'s state of the stopped fake), then
+waits for "the open in flight": bytes queued unread at the stopped fake
+(`ss`'s Recv-Q) with the sleep's 3 s past since record 1's `ended_at`. The 52
+bytes are taken for the opening by size and time, not decrypted; case 3q's
+stack confirmed it on `0a72740`. An `ss` line is Recv-Q, Send-Q, the local
+address, and the peer's; the line with local port `PORT` is the fake's end,
+the other the daemon's (the fake's port there as its number). `(exit N, T ms)`
+is a client's exit and time. Case 2's `# T ms:` lines are a poller's, in ms
+from the stop client's start: the socket file gone, the stopped daemon's pid
+gone. It looks at the socket, then the pid, about every 25 ms, so the socket's
+going can print a look after the pid's, though the daemon removes the file
+before it ends. `pgrep` and the `socket:` and `state:` lines, a second after
+the pid's end, are a lab daemon still running and the files left in those
+folders. `# the job ended` is the script's look at `summary.json` for a final
+status, every 100 ms, timed against each reference set so far: record 1's
+`ended_at`, the `kill -STOP` ("the stop"), the cancel client's start, the
+`kill -CONT` ("the continue"). A record line is its index and command, status
+and code, `ran T ms` (its `command_started_at` to its `ended_at`), and `ended
+T ms after` each reference, negative when before it; a `message` line is its
+error's. `$ daemon-log` prints `daemon.log`'s lines since the case's start but
+its request and credential-frame lines, `$ grep` those of a shutdown; `$
+job-end` the summary's `final_status`, `primary_exit_code`, and
+`terminal_causes` and the audit `run.end` (outcome and reason);
+`jsonl_records` is `scripts/lib/json.sh`'s. At its end a case continues the
+fake and, the daemon and the fake stopped, prints the fake's stderr: each exec
+request taken (`line: "exec: …"`), a signal (`signal: KILL`), and its counts
+(`sessions`, the shells started, none on the exec channel; `channels`, the
+session channels the connection opened); the `key:` line, the login key's
+fingerprint, is left out. Other `#` lines are the script's notes.
+
+In `lab.sh` there is no device. Each run has a holder: `flock` on
+`$BASE/socket/d.lock`, its shell's pid written into the file and no socket
+file, as a daemon still stopping, until `$L/release` appears (it looks every
+10 ms). Then `daemon start` at `daemon.start-timeout=1s`, timed. A run makes
+`$L/release` as soon as the client exits; a control 500 ms after the client
+began. The `# $L/release` line times the release and the holder's sight of
+it, in ms from the client's start and, signed, from its exit. `daemon
+status` is then asked from the release for 1 s: the first answer's time and
+pid, or the tries made. `# daemon serve processes` are the lab's by `pgrep`,
+`after the wait` once they have gone (10 s at most). `$ daemon-log` here is
+every line since the run's start. A daemon found running is stopped and its
+pid's end confirmed.
+
+The reproduction, on `0a72740`:
+
+```text
+== 2. forced stop: native, the fake stopped in the sleep, then daemon stop --force
+# the fake: pid 2423462 (fake), -port PORT -persona linux -user netops -authorized-keys $L/keys/opkey.pub 
+$ karvi run --detach --target lin01 --transport native --cmd 'uname -snrm' --sleep 3s --cmd both
+(exit 0, 97 ms)
+# record 1 in commands.jsonl, seen 87 ms after record 1's ended_at
+$ kill -STOP $FAKE_PID
+# sent 153 ms after record 1's ended_at; the fake: Tl fake, Recv-Q 0
+# the open in flight: 52 bytes queued unread at the stopped fake, first at 3035 ms, condition met at 3035 ms after record 1's ended_at
+$ ss -tn state established '( sport = :PORT or dport = :PORT )'
+52 0 127.0.0.1:PORT 127.0.0.1:51136
+0 0 127.0.0.1:51136 127.0.0.1:37055
+$ karvi daemon stop --force     # the open in flight
+daemon stopped
+(exit 0, 5031 ms)
+# the poll, ms from the stop client's start (daemon pid 2423490):
+# 5035 ms: the socket gone
+# 5035 ms: the stopped daemon's pid gone
+$ pgrep -f 'karvi .*daemon serve'
+(none)
+socket: d.lock
+state: 
+$ grep " msg=shutdown" daemon.log
+time=2026-11-12T03:55:15.290-05:00 level=WARN msg=shutdown code=shutdown_incomplete active_jobs=1 waited=5s
+# the job once the daemon is gone, before the fake is continued:
+$ jsonl_records "$JOB/commands.jsonl" command_index command status error.code timing.command_started_at timing.ended_at
+1 uname -snrm: success (no code); ran 0 ms; ended 0 ms after record 1's ended_at, -153 ms after the stop
+$ job-end
+summary: (no final_status) (no primary_exit_code) (no terminal_causes)
+run.end: (none)
+$ kill -CONT $FAKE_PID
+# sent 9245 ms after the stop
+$ daemon-log
+time=2026-11-12T03:55:15.290-05:00 level=WARN msg=shutdown code=shutdown_incomplete active_jobs=1 waited=5s
+(end)
+$ jsonl_records "$JOB/commands.jsonl" command_index command status error.code timing.command_started_at timing.ended_at
+1 uname -snrm: success (no code); ran 0 ms; ended 0 ms after record 1's ended_at, -153 ms after the stop, -9398 ms after the continue
+$ job-end
+summary: (no final_status) (no primary_exit_code) (no terminal_causes)
+run.end: (none)
+$ cat "$FAKE_ERR"     # the fake's report
+line: "exec: uname -snrm"
+connections=1 sessions=0
+channels=1
+
+== 3. cancel: native, the fake stopped in the sleep, then job cancel
+# the fake: pid 2425864 (fake), -port PORT -persona linux -user netops -authorized-keys $L/keys/opkey.pub 
+$ karvi run --detach --target lin01 --transport native --cmd 'uname -snrm' --sleep 3s --cmd both
+(exit 0, 48 ms)
+# record 1 in commands.jsonl, seen 96 ms after record 1's ended_at
+$ kill -STOP $FAKE_PID
+# sent 152 ms after record 1's ended_at; the fake: Tl fake, Recv-Q 0
+# the open in flight: 52 bytes queued unread at the stopped fake, first at 3010 ms, condition met at 3010 ms after record 1's ended_at
+$ ss -tn state established '( sport = :PORT or dport = :PORT )'
+52 0 127.0.0.1:PORT 127.0.0.1:41260
+0 0 127.0.0.1:41260 127.0.0.1:37055
+$ karvi job cancel 261112-035517-00
+cancel requested: job 261112-035517-00; artifacts $L/base/jobs/261112/261112-035517-00
+(exit 0, 54 ms)
+# the job ended (summary.json names final_status): 60134 ms after record 1's ended_at, 59982 ms after the stop, 57101 ms after the cancel
+$ kill -CONT $FAKE_PID
+# sent 59990 ms after the stop
+$ daemon-log
+time=2026-11-12T03:55:20.137-05:00 level=INFO msg="cancel requested" job_id=261112-035517-00 requester_pid=2426485 request_id=20261112T035520.137108-0500-1ac5grw7afan7q1nykq4 reason=""
+(end)
+$ jsonl_records "$JOB/commands.jsonl" command_index command status error.code timing.command_started_at timing.ended_at
+1 uname -snrm: success (no code); ran 1 ms; ended 0 ms after record 1's ended_at, -152 ms after the stop, -3033 ms after the cancel, -60142 ms after the continue
+2 both: cancel cancelled; ran 56997 ms; ended 60005 ms after record 1's ended_at, 59853 ms after the stop, 56972 ms after the cancel, -137 ms after the continue
+message 2 the job was cancelled by the operator
+$ job-end
+summary: cancel 113 ["halt:cancelled"]
+run.end: cancel cancelled
+$ cat "$FAKE_ERR"     # the fake's report
+line: "exec: uname -snrm"
+connections=1 sessions=0
+channels=1
+
+== 4. command timeout: native, --timeout 5s on the second command, the fake stopped in the sleep, no stop and no cancel
+# the fake: pid 2430521 (fake), -port PORT -persona linux -user netops -authorized-keys $L/keys/opkey.pub 
+$ karvi run --detach --target lin01 --transport native --cmd 'uname -snrm' --sleep 3s --cmd both --timeout 5s
+(exit 0, 95 ms)
+# record 1 in commands.jsonl, seen 63 ms after record 1's ended_at
+$ kill -STOP $FAKE_PID
+# sent 162 ms after record 1's ended_at; the fake: Tl fake, Recv-Q 0
+# the open in flight: 52 bytes queued unread at the stopped fake, first at 3056 ms, condition met at 3056 ms after record 1's ended_at
+$ ss -tn state established '( sport = :PORT or dport = :PORT )'
+52 0 127.0.0.1:PORT 127.0.0.1:55824
+0 0 127.0.0.1:55824 127.0.0.1:37055
+# the job ended (summary.json names final_status): 60145 ms after record 1's ended_at, 59983 ms after the stop
+$ kill -CONT $FAKE_PID
+# sent 59989 ms after the stop
+$ daemon-log
+(end)
+$ jsonl_records "$JOB/commands.jsonl" command_index command status error.code timing.command_started_at timing.ended_at
+1 uname -snrm: success (no code); ran 2 ms; ended 0 ms after record 1's ended_at, -162 ms after the stop, -60151 ms after the continue
+2 both: connection_error session_keepalive_timeout; ran 56984 ms; ended 60002 ms after record 1's ended_at, 59840 ms after the stop, -149 ms after the continue
+message 2 the device answered none of 3 keepalives sent every 15s; the session is closed
+$ job-end
+summary: error 101 ["device_failures"]
+run.end: error 
+$ cat "$FAKE_ERR"     # the fake's report
+line: "exec: uname -snrm"
+connections=1 sessions=0
+channels=1
+```
+
+The built tree, `cee2964`, the same three cases:
+
+```text
+== 2. forced stop: native, the fake stopped in the sleep, then daemon stop --force
+# the fake: pid 2713892 (fake), -port PORT -persona linux -user netops -authorized-keys $L/keys/opkey.pub 
+$ karvi run --detach --target lin01 --transport native --cmd 'uname -snrm' --sleep 3s --cmd both
+(exit 0, 57 ms)
+# record 1 in commands.jsonl, seen 90 ms after record 1's ended_at
+$ kill -STOP $FAKE_PID
+# sent 162 ms after record 1's ended_at; the fake: Tl fake, Recv-Q 0
+# the open in flight: 52 bytes queued unread at the stopped fake, first at 3028 ms, condition met at 3028 ms after record 1's ended_at
+$ ss -tn state established '( sport = :PORT or dport = :PORT )'
+52 0 127.0.0.1:PORT 127.0.0.1:53600
+0 0 127.0.0.1:53600 127.0.0.1:45743
+$ karvi daemon stop --force     # the open in flight
+daemon stopped
+(exit 0, 577 ms)
+# the poll, ms from the stop client's start (daemon pid 2713920):
+# 558 ms: the stopped daemon's pid gone
+# 584 ms: the socket gone
+$ pgrep -f 'karvi .*daemon serve'
+(none)
+socket: d.lock
+state: 
+$ grep " msg=shutdown" daemon.log
+(none)
+# the job once the daemon is gone, before the fake is continued:
+$ jsonl_records "$JOB/commands.jsonl" command_index command status error.code timing.command_started_at timing.ended_at
+1 uname -snrm: success (no code); ran 0 ms; ended 0 ms after record 1's ended_at, -162 ms after the stop
+2 both: incomplete_shutdown shutdown_incomplete; ran 595 ms; ended 3604 ms after record 1's ended_at, 3442 ms after the stop
+message 2 shutdown_forced: the daemon was stopped with --force while the job was running
+$ job-end
+summary: incomplete 106 ["shutdown:shutdown_forced"]
+run.end: incomplete shutdown_forced
+$ kill -CONT $FAKE_PID
+# sent 4802 ms after the stop
+$ daemon-log
+(end)
+$ jsonl_records "$JOB/commands.jsonl" command_index command status error.code timing.command_started_at timing.ended_at
+1 uname -snrm: success (no code); ran 0 ms; ended 0 ms after record 1's ended_at, -162 ms after the stop, -4964 ms after the continue
+2 both: incomplete_shutdown shutdown_incomplete; ran 595 ms; ended 3604 ms after record 1's ended_at, 3442 ms after the stop, -1360 ms after the continue
+message 2 shutdown_forced: the daemon was stopped with --force while the job was running
+$ job-end
+summary: incomplete 106 ["shutdown:shutdown_forced"]
+run.end: incomplete shutdown_forced
+$ cat "$FAKE_ERR"     # the fake's report
+line: "exec: uname -snrm"
+connections=1 sessions=0
+channels=1
+
+== 3. cancel: native, the fake stopped in the sleep, then job cancel
+# the fake: pid 2715096 (fake), -port PORT -persona linux -user netops -authorized-keys $L/keys/opkey.pub 
+$ karvi run --detach --target lin01 --transport native --cmd 'uname -snrm' --sleep 3s --cmd both
+(exit 0, 73 ms)
+# record 1 in commands.jsonl, seen 83 ms after record 1's ended_at
+$ kill -STOP $FAKE_PID
+# sent 140 ms after record 1's ended_at; the fake: Tl fake, Recv-Q 0
+# the open in flight: 52 bytes queued unread at the stopped fake, first at 3005 ms, condition met at 3005 ms after record 1's ended_at
+$ ss -tn state established '( sport = :PORT or dport = :PORT )'
+52 0 127.0.0.1:PORT 127.0.0.1:53610
+0 0 127.0.0.1:53610 127.0.0.1:45743
+$ karvi job cancel 261112-063020-00
+cancel requested: job 261112-063020-00; artifacts $L/base/jobs/261112/261112-063020-00
+(exit 0, 31 ms)
+# the job ended (summary.json names final_status): 3664 ms after record 1's ended_at, 3524 ms after the stop, 634 ms after the cancel
+$ kill -CONT $FAKE_PID
+# sent 3529 ms after the stop
+$ daemon-log
+time=2026-11-12T06:30:23.959-05:00 level=INFO msg="cancel requested" job_id=261112-063020-00 requester_pid=2715761 request_id=20261112T063023.959315-0500-787gdrhhaav4r41w3x24 reason=""
+(end)
+$ jsonl_records "$JOB/commands.jsonl" command_index command status error.code timing.command_started_at timing.ended_at
+1 uname -snrm: success (no code); ran 1 ms; ended 0 ms after record 1's ended_at, -140 ms after the stop, -3030 ms after the cancel, -3669 ms after the continue
+2 both: cancel cancelled; ran 539 ms; ended 3546 ms after record 1's ended_at, 3406 ms after the stop, 516 ms after the cancel, -123 ms after the continue
+message 2 the job was cancelled by the operator
+$ job-end
+summary: cancel 113 ["halt:cancelled"]
+run.end: cancel cancelled
+$ cat "$FAKE_ERR"     # the fake's report
+line: "exec: uname -snrm"
+connections=1 sessions=0
+channels=1
+
+== 4. command timeout: native, --timeout 5s on the second command, the fake stopped in the sleep, no stop and no cancel
+# the fake: pid 2715857 (fake), -port PORT -persona linux -user netops -authorized-keys $L/keys/opkey.pub 
+$ karvi run --detach --target lin01 --transport native --cmd 'uname -snrm' --sleep 3s --cmd both --timeout 5s
+(exit 0, 51 ms)
+# record 1 in commands.jsonl, seen 35 ms after record 1's ended_at
+$ kill -STOP $FAKE_PID
+# sent 95 ms after record 1's ended_at; the fake: Tl fake, Recv-Q 0
+# the open in flight: 52 bytes queued unread at the stopped fake, first at 3034 ms, condition met at 3034 ms after record 1's ended_at
+$ ss -tn state established '( sport = :PORT or dport = :PORT )'
+52 0 127.0.0.1:PORT 127.0.0.1:34950
+0 0 127.0.0.1:34950 127.0.0.1:45743
+# the job ended (summary.json names final_status): 8179 ms after record 1's ended_at, 8084 ms after the stop
+$ kill -CONT $FAKE_PID
+# sent 8090 ms after the stop
+$ daemon-log
+(end)
+$ jsonl_records "$JOB/commands.jsonl" command_index command status error.code timing.command_started_at timing.ended_at
+1 uname -snrm: success (no code); ran 1 ms; ended 0 ms after record 1's ended_at, -95 ms after the stop, -8185 ms after the continue
+2 both: timeout command_timeout; ran 5000 ms; ended 8007 ms after record 1's ended_at, 7912 ms after the stop, -178 ms after the continue
+message 2 command timed out after 5s (--timeout) before it started; the connection was closed
+$ job-end
+summary: error 101 ["device_failures"]
+run.end: error 
+$ cat "$FAKE_ERR"     # the fake's report
+line: "exec: uname -snrm"
+connections=1 sessions=0
+channels=1
+```
+
+A start beside a held lock, run 7 on `0a72740`:
+
+```text
+== run 7: the release as soon as the client exits
+# the holder: flock 2416151, its shell 2416153, d.lock names 2416153; no socket file: yes
+$ karvi --set daemon.start-timeout=1s daemon start
+daemon_start_failed: daemon failed to start; inspect $L/base/logs/daemon.log: context deadline exceeded
+(exit 112, 1015 ms)
+# $L/release made at 1020 ms (+5 ms from the client's exit); the holder saw it at 1028 ms (+13)
+# daemon status: answered at 1075 ms (+60 ms from the client's exit, +55 from the release), pid 2416173, try 1
+# daemon serve processes now: 2416173
+$ daemon-log
+(end)
+$ karvi daemon stop --force
+daemon stopped
+(exit 0)
+# pid 2416173 gone
+```
+
+And on `cee2964`, with control c1:
+
+```text
+== run 7: the release as soon as the client exits
+# the holder: flock 2723822, its shell 2723824, d.lock names 2723824; no socket file: yes
+$ karvi --set daemon.start-timeout=1s daemon start
+daemon_start_failed: daemon failed to start; inspect $L/base/logs/daemon.log
+(exit 112, 1034 ms)
+# $L/release made at 1040 ms (+6 ms from the client's exit); the holder saw it at 1044 ms (+10)
+# daemon status: no answer within 1 s of the release (73 tries)
+# daemon serve processes now: 
+# daemon serve processes after the wait: 
+$ daemon-log
+daemon_already_running: daemon still stopping: pid 2723824
+(end)
+
+== control c1: the release 500 ms after the client began
+# the holder: flock 2727248, its shell 2727250, d.lock names 2727250; no socket file: yes
+$ karvi --set daemon.start-timeout=1s daemon start
+daemon running
+daemon started socket=$L/base/socket/d.sock
+(exit 0, 570 ms)
+# $L/release made at 509 ms (-61 ms from the client's exit); the holder saw it at 520 ms (-50)
+# daemon status: answered at 592 ms (+22 ms from the client's exit, +83 from the release), pid 2727273, try 1
+# daemon serve processes now: 2727273
+$ daemon-log
+(end)
+$ karvi daemon stop --force
+daemon stopped
+(exit 0)
+# pid 2727273 gone
+```
+
+On `0a72740` the block shows faults 1 to 3 as listed, case 2's job the same
+before the fake was continued and after. On `cee2964` the stop answered in
+577 ms with the daemon gone and record 2 kept, `shutdown_incomplete`, the
+job `incomplete` 106 `shutdown:shutdown_forced` with its `run.end`, and no
+shutdown line in the log. Case 3's record 2 ended 516 ms after the cancel,
+the 0.5 s an unanswered opening has, and the job 634 ms after it. Case 4's
+record 2 is `command_timeout` after 5000 ms, counted from before the
+opening, its message saying the command had not started. In all six the
+fake's report has `channels=1`: it never took the second opening.
+
+In the start lab on `0a72740` run 7's client failed at 1015 ms, its own
+count, and 60 ms later `daemon status` answered, the daemon it had launched
+(the one `daemon serve` process), the log empty (a daemon taking the lock
+logs nothing). On `cee2964` run 7's client failed at 1034 ms, once the
+daemon it launched had been refused (`daemon still stopping`, the pid the
+holder's) and had ended; nothing answered in the second after the release,
+and no `daemon serve` was left. By the rule the client now exits after its
+daemon, so a release at its exit can no longer land in the gap. A lock freed
+about where the daemon's count ends is the test's,
+`TestAStartWaitsByItsDaemonsClock`, its releases a second and 0 to 100 ms
+after the start begins: the start succeeds if and only if a daemon then
+answers. Control c1 started in 570 ms, as on `0a72740`.
+
+The other cases, on `0a72740` and then `cee2964`:
+
+- 1, the control, no stop: `complete` 0, both records `success`, on both.
+- 5, case 3 at `native-ssh.keepalive-interval=0s`: no final status 90 s
+  after the cancel, 52 bytes still unread at the fake; continued, the fake
+  reported `exec: both` (`channels=2`), and record 2, `cancelled`, had run
+  90394 ms. On `cee2964` record 2 ended 514 ms after the cancel and the job
+  602 ms after it; continued, the fake reported no `exec: both`
+  (`channels=1`).
+- 6a, the fake stopped inside `slow` (`-slow 60s`), then the cancel: the job
+  ended 59964 ms after the cancel, and 668 ms. On both the fake, continued,
+  reported `signal: KILL`, sent before the connection was closed; on
+  `cee2964` the record ended 514 ms after the cancel, the 0.5 s a stopped
+  command's channel has.
+- 6b, case 3 over `system`: the job ended 194 ms after the cancel, and
+  74 ms; on both record 2 is `cancelled` with the notice
+  `remote_command_not_stopped` (in the kept job files).
+- At the end, after every later daemon's start and stop: on `0a72740` case
+  2's job still had no final status and no `run.end`; on `cee2964` all seven
+  had both.
+- The start lab's other runs. On `0a72740`: 10 of 10 exit 112 at 1014 to
+  1026 ms; in 4 (runs 7 to 10) the launched daemon answered 26 to 60 ms
+  after the client's exit, in 6 it had been refused; a repeat of 10 gave 8,
+  at 25 to 82 ms. On `cee2964`: 10 of 10 exit 112 at 1034 to 1046 ms, each
+  daemon refused, none answering, none left. The controls: 10 of 10 exit 0
+  on both, at 566 to 603 ms and 567 to 635 ms.
+
+The second passes on `cee2964` (`exstart-2.out`, `startlab-2.out`) differ in
+the times, the job IDs, the pids and request IDs, the ports, the key, the
+order and Send-Q of the `ss` lines, and the start lab's counts of tries. The
+forced stop took 621 ms against 577; each given-up record's run is within 7 ms
+of the first pass's (6b's 31 ms) and its end after the cancel within 5 ms;
+each job's end as the script saw it, from record 1's `ended_at`, is within 111
+ms. The start lab's ten runs failed at 1036 to 1040 ms, none answering, and
+its ten controls started at 565 to 578 ms.
+
+The unit reproductions on `0a72740`, scratch tests by `go test -overlay`. A
+fake `ExecConn` whose `Start` blocks until its `Close` (case 7): `Execute`
+had not returned at 5 s in 10 of 10 runs, 5 with the context cancelled at
+100 ms and 5 with a command timeout of 200 ms, the session's `Close` waiting
+behind it. A start with the lock released as `daemon start` returned: exit
+112, then the launched daemon answering 7 to 137 ms after the release, in 20
+of 20; a control releasing 500 ms into the client's wait started in 20 of
+20. The new tests fail on the commit before each section, its file, and the
+    constants the tests name, laid under them by `-overlay`. On `0a72740`
+    (`S1/old`) every new test and case fails but the control `timeout, the
+    channel closed late`, and so does the changed
+    `TestExecTimeoutStopsTheCommand`; `native`'s changed
+    `TestExecTimeoutKillsTheCommand` passes there. On `c6b206e` (`S2/old`)
+    every one fails but the control `freed in time`.
+
+**What changed.** Two commits on dev, each with its texts and its CHANGELOG
+entry (Bugs fixed). No schema counter moved and no error code was added:
+`daemon_start_failed`'s registry text changed, and `command_timeout` and
+`output_limit_exceeded` have the new message endings.
+
+- `c6b206e` (S1): `internal/devsession/exec.go` (`execEndGrace`,
+  `execCutGrace`, `end`, `unstarted`, `gaveUp`; `givenUp` now takes what
+  `end` returned), and `internal/fakedevice/linux.go`. Tests, `devsession`:
+  `TestExecStartIsBounded` (four cases) and `TestExecGivenUpOnASilentDevice`
+  (nine), and `TestExecTimeoutStopsTheCommand`'s cancel now asserting the
+  connection closed. Tests, `native`: `TestExecCancelKillsTheCommand`;
+  `TestExecCancelWhileTheChannelOpens`, through a relay 10 ms away each way
+  (`freezingRelay`); the relay frozen, `TestExecGivenUpOnASilentDevice` and
+  `TestExecStartOnASilentDevice`; and `TestExecTimeoutKillsTheCommand` now
+  asserting nothing left running. DESIGN's entry, TIMEOUTS.md (the
+  silent peer, the fixed waits), COMMAND-SESSION.md, OPERATIONS.md.
+- `cee2964` (S2): `internal/cli/daemon_command.go` (`awaitDaemon`,
+  `startBackstop`; the child no longer released). Tests, the new
+  `daemon_start_test.go`: `TestAStartWaitsByItsDaemonsClock` (freed in time,
+  never freed, freed at the bound),
+  `TestAStartKillsADaemonThatNeitherAnswersNorEnds`, and
+  `TestAnInterruptedStartLeavesItsDaemon`, with a daemon that hangs at its
+  start in the package's `TestMain`. The registry text and ERROR-CODES.md,
+  DESIGN's entry, OPERATIONS.md, and the lock entry's sentence in the
+  CHANGELOG.
+
+S3 is this chapter.
+
+**Not taken.**
+
+- S1: a context handed to the transport's `Start` (the interface, both
+  transports, and two fakes changed, and the release still the connection's
+  close); a connection-life `AfterFunc` shutting the `native` connection at
+  its context's end (it covers a cancel and a stop, not the command's timeout
+  or the device's); the connection closed at the context's end with no wait,
+  as first agreed (a scratch probe, its output not kept, with a cancel landing
+  in the opening on a live fake left the command running with no `KILL` in 22
+  and 32 of 300 runs, none on `0a72740`); 2 s at the context's end (a stopping
+  daemon gives its jobs' records 2 s at the least; the review found a held
+  stop waiting the 2 s at a cancel); a key for the 2 s (fixed, as
+  `shellEndGrace`); waiting for a given-up start's return (x/crypto can hold
+  it).
+- S2: the client's deadline handed to the daemon (it narrows the gap and
+  does not close it, with a new `daemon serve` interface); a kill at the
+  client's bound (the daemon's refusal never reached, so the log names no
+  cause, and a slow healthy start killed); a readiness pipe the daemon
+  closes once bound (the same rule with a daemon change); a kill at an
+  interrupt (left as it was); the socket's answer as the start, one ping
+  after it (the review: that ping could fail a start whose daemon then
+  ran).
+
+**Left open.**
+
+- `execution.device-timeout` on a silent exec device has no lab case. By the
+  code it is the context `Execute` waits on, so the context's rule.
+- The 2 s after a command's timeout or the limit, the backstop's kill, and
+  the interrupted start are shown by their tests alone: the lab's timeout
+  lands in the opening, and its failed starts end by the daemon's refusal.
+- Over `system`, by the code, a command's timeout on a silent device leaves
+  the connection usable, the client killed, so under
+  `--continue-device-on-error` each later command costs its full timeout,
+  until the master's own keepalives end it (never at
+  `ssh.server-alive-interval` 0). Not executed.
+- A root command's password is written to the channel's input inside
+  `Execute`'s loop, outside the timer and the context (by the code; as
+  before).
+- Over `system` the close `Execute` now makes at the device's timeout runs
+  `ssh -O exit`, as the session's close did before, which has no bound (by
+  the code; the local master answers it, so a silent device alone should
+  not hold it, an inference).
+- On a slow link a given-up command with output still in flight can have
+  the device's close arrive past the 2 s, closing a connection the earlier
+  tree kept: x/crypto's window is 2 MiB, about 2 s at 8 Mbit/s. Reasoned,
+  not executed.
+- `KILL` and then the connection's close is shown against the fake alone,
+  not against a real sshd. The device qualification runbook's L4, with a
+  cancel, would show it.
+- A start's backstop counts from the spawn: a daemon that took the lock near
+  its bound has 2 s less its start-up for its sweeps, its bind, and its
+  first answer.
+- An interrupt in the wait after the backstop's kill reports `start
+  interrupted, the launched daemon left to start` for a child already
+  killed (by the code). For the operator to settle.
+- The `native` shell's write on a full channel window
+  (`internal/transport/native/dial.go`, `Write`) waits on a device that has
+  stopped reading: to the keepalives when it answers nothing, without end
+  when it answers them. By the code. To the ROADMAP's Later.
+
+**Checks.** Each code section was built in a clone and applied to the tree
+as its patch: `go test ./...` (76 packages), its new tests failing on the
+commit before by `-overlay`, its lab script on the clone's build, and one
+independent review, every finding checked. S1: the lab's cases 1 to 6b,
+each ending at its bound, the records kept. The review found no concurrency
+defect; applied: three document texts, a held stop's wait at a cancel (2 s,
+now 0.5 s), points 4 and 5 above, two tests (the `native` give-up on the
+frozen relay, the channel returned after the close), and two timing bounds
+loosened. S2: the lab, 10 of 10 failed starts with no daemon after and 10 of
+10 controls started. The review's findings, applied: the ping as the answer,
+the wait after the kill ending at an interrupt, a child that ended as the
+backstop came not reported killed, the registry text's interrupt, and three
+in the tests (the hanging helper's leaked scratch root, "waited for" read in
+`/proc`, a failing test leaving no daemon). Then the full battery on
+`cee2964` (273 s). S3 is this chapter: the runs above, twice on the built
+tree, each script's exit 0, each lab removed with no daemon, socket, or
+holder left; two independent reviews of the chapter, one against the code
+and one against the evidence (17 and 18 findings, every one checked and
+applied); grep checks of every key, code, function, and test named; `make
+generated-clean`; the links through `tools/md-to-html`; and the full battery
+(281 s).
+
+The evidence is kept beside the tree
+(`release-design-evidence/exec-start-2026-11/`: `PLAN.md`, `README.md`,
+`reading.md`, `brief.md`, `exstart.sh` and its outputs, `lab-files/`, the
+scratch test and its overlay, `unit.out`, `S1/`, `battery-s2/`,
+`battery-s3/`, and `S3/`; `release-design-evidence/start-bound-2026-11/`:
+`PLAN.md`, `README.md`, `reading.md`, `brief.md`, `lab.sh`, `unit.sh`, and
+their outputs, the scratch test and its overlay, and `S2/`).

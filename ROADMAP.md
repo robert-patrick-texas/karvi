@@ -309,6 +309,24 @@ None chosen: the operator names the next item, from "Later" or anew.
   The question: whether karvi guards against one, for instance by keeping the
   client's input open so that the master never closes first, and what that costs
   a device that waits for its input to end.
+- **The `native` shell's write on a full channel window.** A shell session
+  writes each command to the device before it reads under the command's
+  timeout, and with no context (`Session.write`,
+  `internal/devsession/session.go`); over `native` the write is x/crypto's
+  channel write (`connection.Write`, `internal/transport/native/dial.go`),
+  which waits while the device's window for the channel is spent. A device
+  that has stopped reading its input, the connection up, would hold the
+  write, and the command's timeout, a cancel, and a stop with it: one that
+  answers nothing until the keepalives close the connection (60 s at the
+  defaults, never at `native-ssh.keepalive-interval = 0`), one that still
+  answers them without end. By the code, not executed: it takes more unread
+  input than the window holds. An exec command's opening, stop, and reads on
+  such a device are bounded, its root password's write not
+  ([`docs/EXAMPLES.md`, chapter
+  109](docs/EXAMPLES.md#109-two-bounds-exec-on-a-silent-device-a-starts-one-clock-2026-11-12)).
+  The question: the shell's write under the command's timeout and the job's
+  context as well, either closing the connection, the one release of a
+  pending write.
 - **Jump hosts over the system transport.** A `ProxyJump` in `~/.ssh/config`
   (`ssh.include-user-config`) makes the hop a child `ssh -W` that inherits the
   askpass environment, so the jump host's prompts reach the broker and are
