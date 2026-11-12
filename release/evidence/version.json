@@ -1,16 +1,16 @@
 {
   "application": "karvi",
-  "version": "0.41.0",
-  "commit": "source-release-v0.41.0",
-  "build": "Wss_lakRGoLdwTmeEfnl",
-  "go_version": "go1.27.3",
+  "version": "0.42.0",
+  "commit": "source-release-v0.42.0",
+  "build": "x5hKubdZrt7zz0uU5WFB",
+  "go_version": "go1.27.4",
   "config_schema_version": 6,
   "command_record_schema_version": 5,
   "scoreboard_schema_version": 5,
   "audit_schema_version": 4,
   "job_schema_version": 5,
   "daemon_ipc_schema_version": 12,
-  "config_registry_schema_version": 34,
+  "config_registry_schema_version": 35,
   "icmp_method": "socket",
   "ssh_transports": [
     {

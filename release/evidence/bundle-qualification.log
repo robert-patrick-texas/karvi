@@ -1,8 +1,8 @@
-karvi v0.41.0 shipped-executable verification (the shipped bytes, not rebuilt; the tests and the suites are release-qualification.log's, on a rebuild to the same checksums)
-2026-11-08T03:53:59Z
+karvi v0.42.0 shipped-executable verification (the shipped bytes, not rebuilt; the tests and the suites are release-qualification.log's, on a rebuild to the same checksums)
+2026-11-12T13:46:53Z
 bin/karvi-linux-amd64: OK
 bin/karvi-askpass-linux-amd64: OK
 bin/karvi-prune-linux-amd64: OK
 bin/karvi-audit-linux-amd64: OK
-shipped executables: pass (bytes, counters, build, transports, helps, examples, removed keys)
+shipped executables: pass (bytes, counters, build, transports, helps, examples, unknown key)
 verify-shipped exit=0
