@@ -1292,6 +1292,28 @@ order fixed in the code; leaving out the `Include` of the operator's
 `~/.ssh/config` for a credential with keys; `ssh-agent` before the files; a
 fingerprint comparison at the connection (`credential_key_changed`).
 
+**Over `native` an RSA key signs with SHA-2, the strongest the server names.**
+An RSA key of the credential signs with `rsa-sha2-512` where the server's list
+(`server-sig-algs`) holds it, with `rsa-sha2-256` where the list holds that and
+not the first, and with `ssh-rsa` (SHA-1) only for a device that names neither;
+an Ed25519 or ECDSA key has one algorithm. Under `--debug` the transport names
+the key that signs and its algorithm, `native SSH connection key signs path=…
+algorithm=…`; a key the server refuses signs nothing and writes no line. The
+system transport's choice is OpenSSH's: the same order without `ssh-rsa`, so an
+RSA key logs in to a device that takes `ssh-rsa` alone over `native` and not
+over `system`. *Why:* karvi hands x/crypto each key in a wrapper that notes the
+method that authenticated, and through a wrapper that offers no choice of
+algorithm x/crypto signs with the key's format alone, `ssh-rsa`, which OpenSSH's
+server has refused by default since 8.8; the wrapper names the key's algorithms.
+The order is OpenSSH's client's and `ssh-algorithms.host-key`'s, strongest
+first, where x/crypto's own leads with `rsa-sha2-256`; `ssh-rsa` stays last for
+the older device that sends no list, the device the host-key list keeps its
+`ssh-rsa` for. *Not taken:* x/crypto's order; `ssh-rsa` left out (an older
+device's RSA user key would log in over neither transport); a signer that takes
+no algorithm offered as before (it would sign with SHA-1 unseen: it is passed
+over with its `--debug` line, and x/crypto parses none); a key for the list (no
+site has asked to shape it).
+
 **The fallback is walked in order; what a source cannot use it passes.**
 `netvars` fills the fields still empty from `NETUSER`, `NETPASS`, and
 `NETENABLE` and ends the walk only when they make a whole credential (a

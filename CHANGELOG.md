@@ -15,6 +15,21 @@ block headed Unreleased takes its table, and "None." under an empty heading,
 when the release is made. The blocks before the first table keep the form
 they were published in.
 
+## Unreleased
+
+### Bugs fixed
+
+- **An RSA key over `native` signs with SHA-2.** Over `native` an RSA key of
+  `ssh.identities` signed with `ssh-rsa` (SHA-1) alone, so a server without
+  `ssh-rsa` among its public-key algorithms, OpenSSH's default since 8.8,
+  refused it (`authentication_failed`: `unable to authenticate, attempted
+  methods [none publickey]`) where `system` logged in. The key now signs
+  with the strongest algorithm the server names, `rsa-sha2-512`, then
+  `rsa-sha2-256`, and with `ssh-rsa` only for a device that names neither.
+  Under `--debug` the transport names the key that signs and its algorithm,
+  `native SSH connection key signs path=… algorithm=…`. Ed25519 and ECDSA
+  keys, one algorithm each, sign as before.
+
 ## 0.42.0 - 2026-11-12
 
 ### New features

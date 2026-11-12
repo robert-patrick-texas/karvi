@@ -216,6 +216,54 @@ func TestProviderOffersKeys(t *testing.T) {
 	bd.Close()
 }
 
+// TestProviderRSAKeySignsWithSHA2: an RSA key signs with the strongest
+// algorithm the server names, rsa-sha2-512 ahead of rsa-sha2-256, so a
+// server that refuses ssh-rsa (SHA-1), OpenSSH's default, takes the key;
+// ssh-rsa is signed with only for a server that names nothing stronger; the
+// debug line names the algorithm.
+func TestProviderRSAKeySignsWithSHA2(t *testing.T) {
+	key, fingerprint := sshkeytest.RSA(t)
+	path := filepath.Join(t.TempDir(), "id_rsa")
+	if err := os.WriteFile(path, key, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name   string
+		server []string
+		want   string
+	}{
+		{"x/crypto's defaults", nil, "rsa-sha2-512"},
+		{"no ssh-rsa, as OpenSSH", []string{"ssh-ed25519", "rsa-sha2-256", "rsa-sha2-512"}, "rsa-sha2-512"},
+		{"rsa-sha2-256 alone", []string{"rsa-sha2-256"}, "rsa-sha2-256"},
+		{"rsa-sha2-256 beside ssh-rsa", []string{"ssh-rsa", "rsa-sha2-256"}, "rsa-sha2-256"},
+		{"ssh-rsa alone, a legacy device", []string{"ssh-rsa"}, "ssh-rsa"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := startFake(t, fakedevice.Options{Enable: "en", AuthorizedKeys: sshkeytest.Authorized(t, key), PublicKeyAlgorithms: tc.server})
+			f, _ := factory(t, "accept-new")
+			var lines []string
+			f.Debug = func(line string) { lines = append(lines, line) }
+			req := request(srv, "cisco_ios", "en")
+			req.Password, req.Keys = nil, []string{path}
+			d := prepared(t, f, req)
+			d.Close()
+			if got := srv.KeyLogins(); len(got) != 1 || got[0] != fingerprint {
+				t.Fatalf("key logins %v, want %s", got, fingerprint)
+			}
+			want := fmt.Sprintf("native SSH connection key signs path=%q algorithm=%s", path, tc.want)
+			var signs []string
+			for _, line := range lines {
+				if strings.Contains(line, "key signs") {
+					signs = append(signs, line)
+				}
+			}
+			if len(signs) != 1 || signs[0] != want {
+				t.Fatalf("signing lines %q, want %q", signs, want)
+			}
+		})
+	}
+}
+
 // TestProviderKeyboardInteractivePrompts: each keyboard-interactive prompt
 // is answered by what it asks for (askpass.Field), as the system
 // transport's askpass broker answers the first: the password, the

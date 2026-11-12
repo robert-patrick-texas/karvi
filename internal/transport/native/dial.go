@@ -168,15 +168,39 @@ func (c *connection) AuthMethod() string {
 	return v
 }
 
-// noteSigner notes a public-key signature when its signer signs.
+// noteSigner notes a public-key signature when its signer signs, with the
+// algorithm x/crypto chose from the signer's and the server's.
 type noteSigner struct {
-	ssh.Signer
-	c *connection
+	ssh.MultiAlgorithmSigner
+	c    *connection
+	path string
 }
 
-func (s noteSigner) Sign(rand io.Reader, data []byte) (*ssh.Signature, error) {
+func (s noteSigner) SignWithAlgorithm(rand io.Reader, data []byte, algorithm string) (*ssh.Signature, error) {
 	s.c.auth.Store(authPublicKey)
-	return s.Signer.Sign(rand, data)
+	s.c.debugf("native SSH connection key signs path=%q algorithm=%s", s.path, algorithm)
+	return s.MultiAlgorithmSigner.SignWithAlgorithm(rand, data, algorithm)
+}
+
+// rsaSigning is the order an RSA key's algorithms are offered in, strongest
+// first, as OpenSSH's client; x/crypto's own order leads with rsa-sha2-256.
+// ssh-rsa (SHA-1) is last, for a device that names nothing stronger.
+var rsaSigning = []string{ssh.KeyAlgoRSASHA512, ssh.KeyAlgoRSASHA256, ssh.KeyAlgoRSA}
+
+// algorithmSigner is signer naming its algorithms, an RSA key's in
+// rsaSigning's order. noteSigner must hold one: through a wrapper that is an
+// ssh.Signer and no more, x/crypto signs with the key's format alone,
+// ssh-rsa for an RSA key.
+func algorithmSigner(signer ssh.Signer) (ssh.MultiAlgorithmSigner, error) {
+	as, ok := signer.(ssh.AlgorithmSigner)
+	if !ok {
+		return nil, fmt.Errorf("its signer (%T) takes no algorithm", signer)
+	}
+	algorithms := []string{signer.PublicKey().Type()}
+	if algorithms[0] == ssh.KeyAlgoRSA {
+		algorithms = rsaSigning
+	}
+	return ssh.NewSignerWithAlgorithms(as, algorithms)
 }
 
 func (c *connection) debugf(format string, args ...any) {
@@ -404,11 +428,15 @@ func (c *connection) signers() ([]ssh.Signer, error) {
 		}
 		signer, err := ssh.ParsePrivateKey(data)
 		clear(data)
+		var named ssh.MultiAlgorithmSigner
+		if err == nil {
+			named, err = algorithmSigner(signer)
+		}
 		if err != nil {
 			c.debugf("native SSH connection key passed over path=%q: %v", path, err)
 			continue
 		}
-		out = append(out, noteSigner{Signer: signer, c: c})
+		out = append(out, noteSigner{MultiAlgorithmSigner: named, c: c, path: path})
 	}
 	return out, nil
 }

@@ -95,6 +95,10 @@ type Options struct {
 	// AuthorizedKeys, in authorized_keys form, are the public keys that log
 	// in as Username beside the password; empty accepts no key.
 	AuthorizedKeys []byte
+	// PublicKeyAlgorithms limits the signature algorithms a key may log in
+	// with, as a server whose PubkeyAcceptedAlgorithms holds only those
+	// (OpenSSH's default leaves out ssh-rsa); empty keeps x/crypto's defaults.
+	PublicKeyAlgorithms []string
 	// NoKeyboardInteractive refuses the keyboard-interactive method, as a
 	// server that takes the password method alone.
 	NoKeyboardInteractive bool
@@ -243,6 +247,7 @@ func Start(opts Options) (*Server, error) {
 	s.config.Config.KeyExchanges = opts.KeyExchanges
 	s.config.Config.Ciphers = opts.Ciphers
 	s.config.Config.MACs = opts.MACs
+	s.config.PublicKeyAuthAlgorithms = opts.PublicKeyAlgorithms
 	signers, err := hostSigners(opts)
 	if err != nil {
 		return nil, err

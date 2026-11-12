@@ -9,17 +9,6 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-- **An RSA key over `native` signs with SHA-2.** Over `native` an RSA key of
-  `ssh.identities` signs with `ssh-rsa` (SHA-1) alone. karvi hands x/crypto
-  each key in a wrapper that notes which method authenticated (`noteSigner`,
-  `internal/transport/native/dial.go`), and the wrapper offers no choice of
-  algorithm, where the key's own signer takes `rsa-sha2-512` or
-  `rsa-sha2-256` from the server's list. A server without `ssh-rsa` among its
-  public-key algorithms, OpenSSH's default since 8.8, refuses the key
-  (`unable to authenticate, attempted methods [none publickey]`); over
-  `system` OpenSSH signs with SHA-2. Ed25519 and ECDSA keys have one
-  algorithm each and are not affected. The item: the wrapper keeps the
-  signer's algorithms, with a test against a server that refuses `ssh-rsa`.
 - **Why a connection ended, in `command_session_lost`.** Since x/crypto
   v0.59.0 a command started over `native` on a connection that has ended
   fails `command_session_lost: the connection ended: EOF`: x/crypto answers
@@ -32,6 +21,16 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   (`operator_key_skipped`) as `not a private key karvi reads`, the reason a
   damaged file gets. The item: the notice says the key is DSA and no longer
   used, and the code's description lists the reason.
+- **An RSA key over `system` for a device that takes `ssh-rsa` alone.** Over
+  `system` an RSA key of `ssh.identities` is refused by a device whose
+  public-key algorithms hold `ssh-rsa` (SHA-1) alone, an older device
+  (`authentication_failed`: `Permission denied (publickey)`): OpenSSH's
+  client leaves `ssh-rsa` out of its `PubkeyAcceptedAlgorithms`, and karvi's
+  managed configuration writes none. Over `native` the key signs with
+  `ssh-rsa` for such a device and logs in. The questions: whether karvi
+  writes `PubkeyAcceptedAlgorithms` (the SHA-2 names, then `ssh-rsa` last, as
+  `native` signs) or leaves OpenSSH's choice and says so, and whether a site
+  shapes the list on both transports.
 
 ## Later
 

@@ -110,7 +110,9 @@ copy of karvi's configuration finds the setting. Under `--debug`, `native` names
 what its handshake chose once it completes: `native SSH connection negotiated
 target=… address=… kex=… hostkey=… cipher=… mac=…`. A handshake that fails
 names none, but a device chooses the same at every connection, so a completed
-one names what a failed one used. `--set 'ssh-algorithms.source="transport"'`
+one names what a failed one used. A key the server takes is named as it signs,
+with its algorithm: `native SSH connection key signs path=…
+algorithm=rsa-sha2-512`; a key the server refuses writes no line. `--set 'ssh-algorithms.source="transport"'`
 takes karvi's key exchange, cipher, and MAC lists out of the comparison: a
 device that connects under it and fails without is refused by karvi's lists,
 and the failure's `karvi offered` against `the device offered` names the list.

@@ -264,6 +264,7 @@ var detailFuncs = map[string]string{
 	"internal/transport/systemssh/command_session.go:startCommandSession": "message begins with the code classified from OpenSSH diagnostics",
 	"internal/transport/systemssh/systemssh.go:Interactive":               "message begins with the code classified from OpenSSH diagnostics",
 	"internal/transport/native/dial.go:password":                          "handshakeError attaches native_session_open_failed; unreached, since a password method comes only with a password",
+	"internal/transport/native/dial.go:algorithmSigner":                   "why a key is passed over at authentication, in its --debug line; unreached, since each signer x/crypto parses takes an algorithm",
 	"internal/sshalgorithms/sshalgorithms.go:CheckList":                   "returns its rule code alongside the message",
 	"internal/sshalgorithms/sshalgorithms.go:CheckProfile":                "returns a ProfileError carrying its rule code",
 	"internal/fakedevice/server.go:*":                                     "the engineering fixture's server-side diagnostics; never an operator error",

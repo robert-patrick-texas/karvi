@@ -1,11 +1,12 @@
 // Package sshkeytest makes private key files for tests: an Ed25519 key with
-// and without a passphrase, and the file of a hardware-backed key, which
-// no transport signs with. Only test binaries import it.
+// and without a passphrase, an RSA key, and the file of a hardware-backed
+// key, which no transport signs with. Only test binaries import it.
 package sshkeytest
 
 import (
 	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/rsa"
 	"encoding/pem"
 	"testing"
 
@@ -30,6 +31,25 @@ func Ed25519(t testing.TB, passphrase string) (file []byte, fingerprint string) 
 	} else {
 		block, err = ssh.MarshalPrivateKeyWithPassphrase(priv, "", []byte(passphrase))
 	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	return pem.EncodeToMemory(block), ssh.FingerprintSHA256(signer.PublicKey())
+}
+
+// RSA returns a new 2048-bit key's file, without a passphrase, and its
+// public key's fingerprint.
+func RSA(t testing.TB) (file []byte, fingerprint string) {
+	t.Helper()
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	signer, err := ssh.NewSignerFromKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	block, err := ssh.MarshalPrivateKey(priv, "")
 	if err != nil {
 		t.Fatal(err)
 	}
