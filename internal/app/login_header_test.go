@@ -31,12 +31,18 @@ func (closedTerminal) Write([]byte) (int, error) {
 // returns the result, the scoreboards folder, and the standard error.
 func fakeLogin(t *testing.T, stdout io.Writer, auditFile string, required bool) (ActivityResult, string, string) {
 	t.Helper()
+	return fakeLoginWith(t, "exit 1\n", stdout, auditFile, required)
+}
+
+// fakeLoginWith is fakeLogin with script as the fake ssh's body (sh).
+func fakeLoginWith(t *testing.T, script string, stdout io.Writer, auditFile string, required bool) (ActivityResult, string, string) {
+	t.Helper()
 	t.Setenv("NETUSER", "jsmith")
 	t.Setenv("NETPASS", "S3cret")
 	t.Setenv("PATH", t.TempDir())
 	dir := t.TempDir()
 	fake := filepath.Join(dir, "fake-ssh")
-	if err := os.WriteFile(fake, []byte("#!/bin/sh\nexit 1\n"), 0o755); err != nil {
+	if err := os.WriteFile(fake, []byte("#!/bin/sh\n"+script), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	base, trust, boards := filepath.Join(dir, "base"), filepath.Join(dir, "trust"), filepath.Join(dir, "scoreboards")

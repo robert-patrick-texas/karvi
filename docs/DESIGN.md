@@ -945,10 +945,12 @@ secret no command uses would only travel to the daemon.
 
 **A prompt gets the username or the password by what it asks for, each at most
 once per connection, on both transports, and a change of a secret ends the
-connection.** Over `system`, OpenSSH's questions reach karvi's askpass broker;
-over `native`, a device's keyboard-interactive prompts reach its callback. Both
-answer by one rule, `askpass.Field`: three lists of RE2 patterns, matched
-case-insensitively, in this order, the first list with a match deciding:
+connection outside a login.** Over `system`, OpenSSH's questions reach karvi's
+askpass broker; over `native`, a device's keyboard-interactive prompts reach its
+callback. Both answer by one rule, `askpass.Field`: three lists of RE2
+patterns, matched case-insensitively, in this order, the first list with a
+match deciding, except that in `karvi login` the operator answers a change
+prompt, a prompt no list matches, and a second ask (below):
 
 - `change`: `new`, `next`, `re-?enter(ed)?`, `re-?typed?`,
   `(re)?confirm(ed)?`, `verify`, `repeat(ed)?`, `again`, `once more`,
@@ -987,20 +989,22 @@ callback returns the error, and its `AuthCallback` ends the handshake. The
 broker serves every request of the session until its login is over, for a
 command session a shell's first prompt or an exec device's master ready and for
 `karvi login` its end, and closes five minutes after its start at the latest;
-each exchange is bounded to ten seconds on both sides; neither bound is a
-setting. A request without the broker's token, a wrong one or one it cannot
-decode (nothing within the ten seconds included), ends the broker: it answers
-nothing more and its hook ends OpenSSH, and the session fails with
+each exchange is bounded to ten seconds on both sides, a login's helper aside
+(below); neither bound is a setting. A request without the
+broker's token, a wrong one or one it cannot decode (nothing within the ten
+seconds included), ends the broker: it answers nothing more and its hook ends
+OpenSSH, and the session fails with
 `askpass_auth_failed` (`a request to the askpass broker bears the wrong token`)
 or `askpass_request_invalid` (`the askpass broker cannot decode a request`),
 exit 108. OpenSSH's own questions, a prompt no list matches, and a field the
 session did not resolve (`askpass_username_unset`, `askpass_password_unset`)
-are refused and the broker serves on, OpenSSH sending an empty answer. With a
-`ProxyJump` the hop's child `ssh -W` reaches the same broker and,
-authenticating first, takes the fields it asks for, so the device's own ask of
-one of them ends the connection as a second ask (not executed: the fake cannot
-be a jump host); the hook ends the device's OpenSSH, not the hop's own process,
-which still answers a change prompt or a second ask at the jump host empty
+are refused and the broker serves on, OpenSSH sending an empty answer. Outside
+a login, with a `ProxyJump` the hop's child
+`ssh -W` reaches the same broker and, authenticating first, takes the fields it
+asks for, so the device's own ask of one of them ends the connection as a second
+ask (not executed: the fake cannot be a jump host); the hook ends the device's
+OpenSSH, not the hop's own process, which still answers a change prompt or a
+second ask at the jump host empty
 ([`ROADMAP.md`](../ROADMAP.md), "Jump hosts over the system transport"). The
 enable secret goes to the device in-band, the command session sending it at the
 escalate prompt, and a login resolves none (above). *Why:* the password goes
@@ -1027,7 +1031,7 @@ lockout. SIGTERM, since a login's OpenSSH then restores the terminal (SIGKILL
 left echo off), and during authentication it ends OpenSSH at once as SIGKILL
 does. A request without the token ends the session, failing closed: only the
 operator's account or root reaches the 0600 socket. A login's broker stays open
-until the login ends, at most its five minutes, with nothing added to the
+until the login ends, at most its five minutes, with no timer added to the
 login: the device's prompts come in its first seconds; the cost is a stray
 request in those minutes ending the login, and only the operator's account or
 root can send one. *Not taken:* the password to every keyboard-interactive
@@ -1042,6 +1046,45 @@ for a second ask (it is a refusal); SIGKILL; a request without the token
 refused, the broker serving on; a login's broker closed by a timer at the
 login's bound, at the first output byte, or by OpenSSH's `LocalCommand`.
 
+**In a login the operator answers a change prompt, a prompt no list matches,
+and a second ask.** In `karvi login` (the system transport; native has no
+login) the broker asks the operator for them at the controlling terminal, with
+the credential prompts' editor (`termline.Prompt`) and echo off, any number of
+them in a round or across rounds, the prompt shown as OpenSSH gives it
+(`(jsmith@router1) Enter new PIN: `); karvi sends its stored username and
+password each at most once. The line typed goes to OpenSSH alone, never stored
+or logged; OpenSSH waits on the helper meanwhile, so nothing else reads the
+terminal. OpenSSH's own questions and a field the session did not resolve stay
+refused. The operator's answer has no askpass bound: the helper, told by its
+environment that it serves a login (`KARVI_ASKPASS_LOGIN=1`), as it is told the
+socket, waits on the broker without the ten seconds, and the broker, idle while
+the operator types, renews its own for the answer. Ctrl-D on an empty line
+sends an empty answer, as plain `ssh` does; Ctrl-C or a signal ends the login
+with `credential_prompt_interrupted` (exit 113), the broker's hook ending
+OpenSSH as at a change prompt, and any other failure at the terminal with
+`credential_prompt_unavailable` (exit 6), as at a credential prompt. The
+device's own limit (IOS XE `ip ssh time-out`) is the bound in practice: a device
+that gives up meanwhile ends the login once the operator answers. The broker
+still closes at its five minutes: a request after them finds no broker, OpenSSH
+sending an empty answer. Without a controlling terminal (`karvi login` requires
+none) nothing is asked, and the login answers as `command` does: a change prompt is `authentication_change_requested`, a second ask
+`authentication_failed: device refused password` (or `username`), and a prompt
+no list matches gets an empty answer. `command`, `run`, `crun`, and `stream`
+keep the ten seconds and the errors above. *Why:* an operator at the terminal
+can answer anything a device asks, as at plain `ssh`: a new PIN often takes two
+or three entries (the PIN, its confirmation, a passcode of the new PIN and the
+next tokencode), and a refused stored password is asked at the terminal, where
+Ctrl-C ends it. Outside a login the exchange is karvi's helper and karvi's
+broker on one host, answered from memory at once, and a slow device is bounded
+by `ssh.connect-timeout` and `execution.prompt-timeout` (system) and
+`native-ssh.handshake-timeout` (native). The costs: OpenSSH killed alone during
+the prompt ends the login at the next Enter, and copies of the typed line stay
+in memory until reused, as a credential prompt's do. *Not taken:* the helper
+reading the terminal itself (Ctrl-C would only blank the answer, the login going on); a
+second ask refused in a login; a setting for the exchange's bound; the
+operator's prompt bounded at the broker's five minutes (a second bound, and an
+error for a case the device has ended).
+
 **Prompting once per invocation, and a prompt left unanswered ends the
 run.** The client's input provider caches by field: the first target
 needing a username, password, or enable secret asks, naming the device or
@@ -1052,7 +1095,10 @@ the line editor stream mode uses. Ctrl-C at it is
 process as the interrupt it would have been outside raw mode, so the run
 stops as at any other moment and a stream ends; an empty answer is the
 field's missing code at once, before any later prompt; Ctrl-D on an empty
-line stays `credential_prompt_unavailable`. *Why:* under the daemon there
+line stays `credential_prompt_unavailable`. A signal ends it too
+(`credential_prompt_interrupted`), by a read deadline: osutil's terminal calls
+go through `SyscallConn`, never `f.Fd()`, which would make the descriptor
+blocking and the deadline void. *Why:* under the daemon there
 is no terminal; under the client, per-target prompting would ask once per
 target; a prompt is asked only for a field the device needs, so no job can
 run past one left unanswered, and the operator who presses Ctrl-C there

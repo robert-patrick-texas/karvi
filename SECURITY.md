@@ -95,9 +95,12 @@ Passwords are resolved per operator and are not put in SSH arguments.
 System OpenSSH receives them through the authenticated `karvi-askpass`
 callback, which answers the username and the password each at most once per
 connection and ends the connection at a second ask, a change prompt, or a
-request without its token. The transport/driver adapter receives short-lived
-copies through karvi-owned secret wrappers. Audit records contain the operator,
-device-facing username, backend, and safe match metadata, never secret values.
+request without its token. In `karvi login` the operator answers a second ask,
+a change prompt, or a device's prompt no list matches at the terminal instead;
+the line typed goes to OpenSSH alone, never stored or logged.
+The transport/driver adapter receives short-lived copies through karvi-owned
+secret wrappers. Audit records contain the operator, device-facing username,
+backend, and safe match metadata, never secret values.
 
 A credential helper (`creds.helper`) runs as the operator in the client. Its
 file is checked as a credential file is (the owner, no write by group or

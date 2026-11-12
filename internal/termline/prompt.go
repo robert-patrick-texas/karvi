@@ -9,6 +9,14 @@ import (
 	"time"
 )
 
+// ErrNoTerminal is Prompt's error where the process has no controlling
+// terminal.
+var ErrNoTerminal error = noTerminal{}
+
+type noTerminal struct{}
+
+func (noTerminal) Error() string { return "no controlling terminal" }
+
 // prompter is the controlling terminal's editor for the credential prompts,
 // opened at the first and kept for the process, so a line typed or pasted
 // ahead of the next prompt (a password after the username's Enter) is that
@@ -20,7 +28,8 @@ var prompter struct {
 }
 
 // Prompt asks on the controlling terminal and reads the answer with the
-// editor, without echo when masked. Ctrl-C ends it with ErrInterrupt,
+// editor, without echo when masked. No controlling terminal is
+// ErrNoTerminal; Ctrl-C ends it with ErrInterrupt,
 // Ctrl-D on an empty line and the terminal's end with io.EOF, and the
 // context's end (a signal: in raw mode Ctrl-C is a key, not a signal) with
 // the context's error; the cursor is then put on a new line, so what the
@@ -31,8 +40,8 @@ func Prompt(ctx context.Context, prompt string, masked bool) (string, error) {
 	if prompter.tty == nil {
 		tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
 		if err != nil {
-			// The caller attaches credential_prompt_unavailable.
-			return "", fmt.Errorf("no controlling terminal: %w", err)
+			// The caller attaches its code (credential_prompt_unavailable).
+			return "", fmt.Errorf("%w: %w", ErrNoTerminal, err)
 		}
 		prompter.tty, prompter.line = tty, New(tty, tty)
 	}

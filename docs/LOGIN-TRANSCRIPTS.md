@@ -94,8 +94,10 @@ of the transcript.
 The transcript holds only the stream the device returns, as the terminal
 showed it: device output, echoed characters, and prompts, which show the
 commands sent. Operator keystrokes are not recorded, so a password typed at a
-prompt that does not echo is not written. Karvi's own header, footer, and
-warnings go to the terminal, not the transcript.
+prompt that does not echo is not written. A device's prompt karvi asks the
+operator (a new PIN) is recorded too, as OpenSSH gives it; the answer, not
+echoed, is not. Karvi's own header, footer, and warnings go to the terminal,
+not the transcript.
 
 When the session ends, karvi rewrites the file once, before taking its SHA-256
 for the metadata. It removes the `Script started` and `Script done` lines

@@ -29,6 +29,8 @@ func (interrupted) Error() string { return "interrupted (Ctrl-C)" }
 // line; the editing is echoed on out.
 type Line struct {
 	in   *os.File // nil under test: no raw mode, no size
+	r    io.Reader
+	out  io.Writer
 	keys *keyReader
 	t    *term.Terminal
 }
@@ -43,12 +45,21 @@ func New(in *os.File, out io.Writer) *Line {
 // FromReader is New without a terminal to set, for a test: r is read as
 // typed, with no raw mode and no window size.
 func FromReader(r io.Reader, out io.Writer) *Line {
-	k := &keyReader{r: r}
-	t := term.NewTerminal(struct {
+	l := &Line{r: r, out: out}
+	l.fresh()
+	return l
+}
+
+// fresh starts the editor anew on the same input and output, its history
+// dropped. A read that ends without a line leaves the editor so: x/term
+// keeps the key that ended it (Ctrl-D, Ctrl-C) unread, and every later read
+// would end at that key at once, its prompt unshown.
+func (l *Line) fresh() {
+	l.keys = &keyReader{r: l.r}
+	l.t = term.NewTerminal(struct {
 		io.Reader
 		io.Writer
-	}{k, out}, "")
-	return &Line{keys: k, t: t}
+	}{l.keys, l.out}, "")
 }
 
 // ReadLine reads one line after prompt, echoed and kept in the history.
@@ -66,7 +77,8 @@ func (l *Line) ReadPassword(prompt string) (string, error) {
 }
 
 // read runs one line's read with the terminal in raw mode, sized to the
-// window, and tells Ctrl-C from the input's end.
+// window, and tells Ctrl-C from the input's end; after a read that ends
+// without a line the next starts with a fresh editor.
 func (l *Line) read(fn func() (string, error)) (string, error) {
 	if l.in != nil {
 		if rows, columns := osutil.TerminalSize(l.in); columns > 0 {
@@ -85,6 +97,9 @@ func (l *Line) read(fn func() (string, error)) (string, error) {
 	if err == io.EOF && l.keys.interrupts > 0 {
 		l.keys.interrupts--
 		err = ErrInterrupt
+	}
+	if err != nil {
+		l.fresh()
 	}
 	return line, err
 }

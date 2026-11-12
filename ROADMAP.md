@@ -314,15 +314,18 @@ None chosen: the operator names the next item, from "Later" or anew.
   askpass environment, so the jump host's prompts reach the broker and are
   answered from the device's credential; the hop authenticates first, so it
   takes the fields it asks for, and the device's own ask of one of them then
-  ends the connection as a second ask (`authentication_failed`; such a bastion
-  works today only where the device then takes a key). To decide: whether a
+  ends the connection as a second ask (`authentication_failed`; outside a login
+  such a bastion works today only where the device then takes a key). To
+  decide: whether a
   hop's prompts are answered at all (the broker could require the device's own
   HostKeyAlias in OpenSSH's `user@host`, refusing the jump host's, which would
   end a bastion that shares the device's credential today) or from a credential
   of the hop's own; and a change prompt or a second ask at the jump host ending
   the hop's process: the broker's hook ends the device's OpenSSH, and the hop's
-  own process still sends the jump host OpenSSH's empty answer. The fake device
-  cannot yet be a jump host.
+  own process still sends the jump host OpenSSH's empty answer. In `karvi login`
+  the operator answers a second ask, a change prompt, and a prompt no list
+  matches at the terminal instead, the jump host's and the device's alike
+  (reasoned, not executed). The fake device cannot yet be a jump host.
 - **A suite's failure that names its call.** A suite under `set -eu` that runs
   karvi with its output redirected into the work directory dies at a refused
   call with karvi's exit status and prints nothing, and its cleanup removes the

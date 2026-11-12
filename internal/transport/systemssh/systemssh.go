@@ -48,6 +48,11 @@ type Factory struct {
 	// Effective is the job's evaluation of OpenSSH's own lists, shared by
 	// its devices; nil evaluates for each failure.
 	Effective *EffectiveLists
+	// Operator asks the operator of a login (Interactive) a device's prompt
+	// the broker does not answer itself (askpass.Hooks.Operator):
+	// TerminalOperator, or nil, a login then answering as a command
+	// session does.
+	Operator func(ctx context.Context, prompt string) ([]byte, error)
 	// hostKeyIdentity is the device's host-key identity, passed to OpenSSH
 	// as HostKeyAlias; it filters the offered
 	// host-key algorithms.
@@ -354,7 +359,8 @@ func (d *Driver) Execute(ctx context.Context, c platform.Command) platform.Resul
 }
 
 // Interactive attaches the actual terminal to an OpenSSH process. Askpass is
-// still forced, so password input never competes with device stdin.
+// still forced, so password input never competes with device stdin; a
+// prompt the broker does not answer itself goes to the Factory's Operator.
 func (d *Driver) Interactive(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) error {
 	args := d.baseArgs()
 	args = append(args, "-tt", "--", d.req.Address)
@@ -362,7 +368,11 @@ func (d *Driver) Interactive(ctx context.Context, stdin io.Reader, stdout, stder
 	material := callbackMaterial{username: d.req.Username, password: d.req.Password}
 	firstContact := d.firstContact()
 	end := newProcessEnd()
-	broker, err := askpass.Start(d.f.ScratchDir, material, askpass.Hooks{Requested: firstContact, End: end.end})
+	hooks := askpass.Hooks{Requested: firstContact, End: end.end}
+	if d.f.Operator != nil {
+		hooks.Operator = func(prompt string) ([]byte, error) { return d.f.Operator(ctx, prompt) }
+	}
+	broker, err := askpass.Start(d.f.ScratchDir, material, hooks)
 	if err != nil {
 		return errorcodes.Ensure(err, "askpass_start_failed")
 	}

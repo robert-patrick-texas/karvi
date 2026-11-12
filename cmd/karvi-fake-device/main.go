@@ -47,7 +47,7 @@ func main() {
 	sudoAsks := flag.Bool("sudo-asks", false, "the Linux persona's sudo needs a password (-enable): 'sudo -n' is refused, 'sudo -S' prompts on stderr")
 	sudoRS := flag.Bool("sudo-rs", false, "the Linux persona's sudo writes sudo-rs's prompt and messages (Ubuntu 26.04's sudo), not classic sudo's")
 	decorations := flag.Bool("decorations", false, "the Linux persona's shell writes bash's decorations (bracketed paste, title, colours)")
-	kbdPrompts := flag.String("kbd-prompts", "", "the keyboard-interactive prompts, PROMPT=FIELD separated by |, a new round after ||, FIELD password, username, or empty; each answer, and each password-method attempt, is reported by what it held")
+	kbdPrompts := flag.String("kbd-prompts", "", "the keyboard-interactive prompts, PROMPT=FIELD separated by |, a new round after ||, FIELD password, username, empty, or other; each answer, and each password-method attempt, is reported by what it held")
 	flag.Parse()
 	opts := fakedevice.Options{Persona: *persona, SudoAsks: *sudoAsks, SudoRS: *sudoRS, Decorations: *decorations, Port: *port, Hostname: *hostname, Username: *user, Password: *password, Enable: *enable, Delay: map[string]time.Duration{"show slow": *slow, "slow": *slow, "enable": *enableDelay}, LoginDelay: *loginDelay, SecretDelay: *secretDelay, DripInterval: *drip, EchoSecret: *echoSecret, BigLines: *big, RSASHA1Only: *rsaSHA1Only, StartPrivileged: *startPrivileged, Unsaved: *unsaved, NoKeyboardInteractive: *noKbd}
 	split := func(v string) []string {

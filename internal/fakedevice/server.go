@@ -125,7 +125,8 @@ type PTYRequest struct {
 }
 
 // KbdPrompt is a keyboard-interactive prompt and the field it takes:
-// "password", "username", or "empty", an empty answer. NewRound begins a
+// "password", "username", "empty", an empty answer, or "other", an answer
+// none of those (one an operator typed). NewRound begins a
 // round after the one before it has passed, as a SecurID server asks for a
 // new PIN once the passcode is taken.
 type KbdPrompt struct {
@@ -169,9 +170,9 @@ func Start(opts Options) (*Server, error) {
 	}
 	for _, p := range opts.KbdPrompts {
 		switch p.Want {
-		case "password", "username", "empty":
+		case "password", "username", "empty", "other":
 		default:
-			return nil, fmt.Errorf("keyboard-interactive prompt %q: field %q is not password, username, or empty", p.Prompt, p.Want)
+			return nil, fmt.Errorf("keyboard-interactive prompt %q: field %q is not password, username, empty, or other", p.Prompt, p.Want)
 		}
 	}
 	if opts.Hostname == "" {

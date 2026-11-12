@@ -37,7 +37,9 @@ import (
 
 // ExecuteLogin opens a real interactive OpenSSH terminal. The process-level
 // wrapper in cmd/karvi supplies the controlling PTY when transcript recording
-// is requested; askpass remains outside the recorded terminal data path.
+// is requested. Askpass answers stay outside the recorded data: a device's
+// prompt the operator answers (systemssh.TerminalOperator) is shown on that
+// terminal and so recorded, and the line typed, not echoed, is not.
 func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityResult {
 	cfg, operator := opts.Config, opts.Operator
 	debug := jobexec.DebugLogger(opts.CommonOptions.Debug, cfg, streams.Stderr)
@@ -223,7 +225,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 		return failedResult(errorcodes.Of(err), err)
 	}
 	debug(fmt.Sprintf("login ssh algorithms target=%q %s", d.CanonicalName, algorithms.Describe()))
-	factory := systemssh.Factory{Binary: selection.Binary, Config: cfg, ScratchDir: scratch, ControlRoot: controlRoot, Home: operator.Home, BaseDir: base, MaxOutputBytes: cfg.Int64("output.max-command-bytes"), Debug: debug, Algorithms: algorithms.Lists}
+	factory := systemssh.Factory{Binary: selection.Binary, Config: cfg, ScratchDir: scratch, ControlRoot: controlRoot, Home: operator.Home, BaseDir: base, MaxOutputBytes: cfg.Int64("output.max-command-bytes"), Debug: debug, Algorithms: algorithms.Lists, Operator: systemssh.TerminalOperator}
 	// Under insecure the policy's two lines, once, before any contact; what
 	// the transport finds of the device's key (a key differing from the
 	// stored one, or one not compared) on the terminal as it is found.

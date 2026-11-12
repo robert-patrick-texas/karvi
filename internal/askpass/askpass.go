@@ -1,6 +1,7 @@
 // Package askpass implements the authenticated local callback that delivers
 // the session's already-resolved username and password to OpenSSH, each at
-// most once.
+// most once, and in a login the operator's answer to a prompt it does not
+// answer itself.
 package askpass
 
 import (
@@ -9,6 +10,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"net"
 	"os"
@@ -25,7 +27,23 @@ import (
 const (
 	SocketEnv = "KARVI_ASKPASS_SOCKET"
 	TokenEnv  = "KARVI_ASKPASS_TOKEN"
+	// LoginEnv, set to 1, tells the helper it serves a login, where an
+	// operator may be typing the answer: it waits on the broker without the
+	// exchange's bound.
+	LoginEnv = "KARVI_ASKPASS_LOGIN"
 )
+
+// exchangeTimeout bounds one exchange on both sides, except an operator's
+// answer in a login; a variable the tests shorten.
+var exchangeTimeout = 10 * time.Second
+
+// ErrNoOperator is an Operator hook's answer where there is no terminal to
+// ask: the prompt is answered as in a command session.
+var ErrNoOperator error = noOperator{}
+
+type noOperator struct{}
+
+func (noOperator) Error() string { return "no terminal to ask the operator" }
 
 type request struct {
 	Token  string `json:"token"`
@@ -58,6 +76,14 @@ type Hooks struct {
 	// on the helper: refused, OpenSSH would send the device an empty answer
 	// and go on to the password method. End must not call Close.
 	End func()
+	// Operator, set in a login, asks the operator at the terminal OpenSSH's
+	// prompt as it was given and returns the line typed, which goes to
+	// OpenSSH and is then wiped: a change prompt, a prompt no list matches,
+	// and a field already answered go to it, the operator taking as long as
+	// the operator takes.
+	// ErrNoOperator answers the prompt as a command session does; another
+	// error ends the connection (Err).
+	Operator func(prompt string) ([]byte, error)
 }
 
 type Broker struct {
@@ -82,7 +108,8 @@ type Broker struct {
 // five minutes at most, calling hooks as it goes: the username and the
 // password each at most once, and a request that would have either a second
 // time, a change prompt, or a request without the token ends the connection
-// (Err).
+// (Err), except that in a login (Hooks.Operator) the operator answers a
+// second ask, a change prompt, and a prompt no list matches.
 func Start(dir string, material Material, hooks Hooks) (*Broker, error) {
 	if material == nil {
 		return nil, errorcodes.Errorf("askpass_material_missing", "credential material is nil")
@@ -114,7 +141,11 @@ func Start(dir string, material Material, hooks Hooks) (*Broker, error) {
 	return b, nil
 }
 func (b *Broker) Environment() []string {
-	return []string{SocketEnv + "=" + b.socket, TokenEnv + "=" + b.token}
+	env := []string{SocketEnv + "=" + b.socket, TokenEnv + "=" + b.token}
+	if b.hooks.Operator != nil {
+		env = append(env, LoginEnv+"=1")
+	}
+	return env
 }
 func (b *Broker) Close() {
 	b.once.Do(func() {
@@ -154,10 +185,11 @@ func (b *Broker) serve() {
 	}
 }
 
-// answer serves one request on conn, within ten seconds, and reports
-// whether it ended the connection.
+// answer serves one request on conn, within the exchange's ten seconds
+// (an operator's answer aside), and reports whether it ended the
+// connection.
 func (b *Broker) answer(conn net.Conn) bool {
-	_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
+	_ = conn.SetDeadline(time.Now().Add(exchangeTimeout))
 	var req request
 	if err := json.NewDecoder(io.LimitReader(bufio.NewReader(conn), 64*1024)).Decode(&req); err != nil {
 		return b.end(conn, errorcodes.Errorf("askpass_request_invalid", "the askpass broker cannot decode a request"))
@@ -175,15 +207,21 @@ func (b *Broker) answer(conn net.Conn) bool {
 		return refuse(conn, "askpass_prompt_unrecognized")
 	}
 	field := Field(words)
-	switch field {
-	case FieldChange:
-		return b.end(conn, ChangeRequested(words))
-	case FieldUsername, FieldPassword:
-		if b.answered[field] {
-			return b.end(conn, AskedAgain(field))
+	stored := field == FieldUsername || field == FieldPassword
+	if !stored || b.answered[field] {
+		// A change prompt, one no list matches, or a field already
+		// answered: the operator's in a login.
+		if ended, asked := b.operator(conn, req.Prompt); asked {
+			return ended
 		}
-	default:
-		return refuse(conn, "askpass_prompt_unrecognized")
+		switch {
+		case field == FieldChange:
+			return b.end(conn, ChangeRequested(words))
+		case stored:
+			return b.end(conn, AskedAgain(field))
+		default:
+			return refuse(conn, "askpass_prompt_unrecognized")
+		}
 	}
 	var secret []byte
 	collect := func(v []byte) error { secret = append(secret, v...); return nil }
@@ -204,6 +242,28 @@ func (b *Broker) answer(conn net.Conn) bool {
 	_ = json.NewEncoder(conn).Encode(response{Secret: secret})
 	wipe(secret)
 	return false
+}
+
+// operator asks the Operator hook for prompt and sends the line typed, the
+// exchange's bound, which passes while the operator types (the connection
+// idle), renewed for the answer; asked is false where there is no operator
+// (no hook, or no terminal), the prompt then answered as in a command
+// session.
+func (b *Broker) operator(conn net.Conn, prompt string) (ended, asked bool) {
+	if b.hooks.Operator == nil {
+		return false, false
+	}
+	typed, err := b.hooks.Operator(prompt)
+	defer wipe(typed)
+	_ = conn.SetDeadline(time.Now().Add(exchangeTimeout))
+	if errors.Is(err, ErrNoOperator) {
+		return false, false
+	}
+	if err != nil {
+		return b.end(conn, err), true
+	}
+	_ = json.NewEncoder(conn).Encode(response{Secret: typed})
+	return false, true
 }
 
 // refuse sends code as the request's refusal, OpenSSH then sending the
@@ -233,8 +293,8 @@ func (b *Broker) end(conn net.Conn, err error) bool {
 
 // Err returns why the broker ended the connection it serves, once it has: a
 // change prompt (ChangeRequested), a field asked a second time
-// (AskedAgain), or a request without the token (askpass_auth_failed,
-// askpass_request_invalid); or nil.
+// (AskedAgain), a request without the token (askpass_auth_failed,
+// askpass_request_invalid), or the Operator hook's error; or nil.
 func (b *Broker) Err() error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -325,8 +385,9 @@ var promptLists = func() []promptList {
 
 // Field names what a device's prompt asks for, by the first of
 // promptPatterns' lists to match it: FieldChange, a change of a secret,
-// which karvi does not answer; FieldUsername; FieldPassword; or "" for no
-// list, an empty answer. Both SSH transports answer by it, the broker here
+// which karvi does not answer (in a login the operator does);
+// FieldUsername; FieldPassword; or "" for no list, an empty answer (in a
+// login the operator's). Both SSH transports answer by it, the broker here
 // (the prompt's words, OpenSSH's user@host cut) and the native transport's
 // keyboard-interactive. The enable secret is never an answer: a command
 // session sends it in-band, and a login leaves it to the operator.
@@ -347,20 +408,28 @@ func wipe(b []byte) {
 
 // HelperMain is the complete karvi-askpass process implementation.
 func HelperMain(args []string) int {
-	socket, token := os.Getenv(SocketEnv), os.Getenv(TokenEnv)
-	if socket == "" || token == "" {
-		return 2
-	}
 	prompt := ""
 	if len(args) > 0 {
 		prompt = args[0]
+	}
+	return helper(os.Getenv(SocketEnv), os.Getenv(TokenEnv), os.Getenv(LoginEnv) == "1", prompt, os.Stdout)
+}
+
+// helper asks the broker at socket for prompt and writes its answer and a
+// newline to out, the exit status 0; in a login it waits on the broker
+// without the exchange's bound, an operator perhaps typing.
+func helper(socket, token string, login bool, prompt string, out io.Writer) int {
+	if socket == "" || token == "" {
+		return 2
 	}
 	conn, err := net.DialTimeout("unix", socket, 5*time.Second)
 	if err != nil {
 		return 3
 	}
 	defer conn.Close()
-	_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
+	if !login {
+		_ = conn.SetDeadline(time.Now().Add(exchangeTimeout))
+	}
 	if err := json.NewEncoder(conn).Encode(request{Token: token, Prompt: prompt}); err != nil {
 		return 4
 	}
@@ -369,10 +438,10 @@ func HelperMain(args []string) int {
 		return 5
 	}
 	defer wipe(resp.Secret)
-	if _, err := os.Stdout.Write(resp.Secret); err != nil {
+	if _, err := out.Write(resp.Secret); err != nil {
 		return 6
 	}
-	if _, err := os.Stdout.Write([]byte{'\n'}); err != nil {
+	if _, err := out.Write([]byte{'\n'}); err != nil {
 		return 6
 	}
 	return 0

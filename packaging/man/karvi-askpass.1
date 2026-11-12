@@ -77,6 +77,21 @@ ask.
 It never answers with the enable secret, which a command session sends
 to the device itself and a login leaves to the operator.
 .PP
+In a login, karvi asks the operator instead, at the controlling terminal
+with echo off, each change prompt, second ask, and device's prompt no
+list matches, as
+.B ssh
+gives it; the helper writes the line typed, which is never stored or
+logged.
+The credential's username and password are still each sent at most once.
+Ctrl\-C or a signal ends the login with
+.BR credential_prompt_interrupted ,
+another failure of the prompt with
+.BR credential_prompt_unavailable ;
+Ctrl\-D on an empty line sends an empty answer.
+Without a controlling terminal nothing is asked, and the prompt is
+answered as in a command session.
+.PP
 Run by hand, without the two variables, the helper prints nothing and
 exits 2.
 .PP
@@ -98,17 +113,25 @@ the one
 .B ssh
 process.
 .TP
+.B KARVI_ASKPASS_LOGIN
+Set to 1 by karvi for a login's
+.BR ssh :
+the helper then waits on the broker without the ten\-second bound, the
+operator perhaps typing.
+.TP
 .B KARVI_ASKPASS_PATH
 The helper's path; karvi reads it, and the daemon's launcher passes it
 through the environment filter that keeps an operator's shell secrets out
 of the daemon.
 .SH SECURITY
-The broker answers the session's requests until its login is over, at
-most five minutes; each exchange is bounded to ten seconds.
+The broker takes the session's requests until its login is over, at
+most five minutes; each exchange is bounded to ten seconds, an
+operator's answer in a login aside.
 It answers the username at most once and the password at most once.
 A second ask, a change prompt, a wrong token, or a request it cannot
 decode ends
-.BR ssh .
+.BR ssh ;
+in a login at a terminal the operator answers the first two.
 The token is 32 random bytes, compared in constant time.
 The socket is mode 0600 in the operator's scratch directory, removed
 when the broker closes.
@@ -123,7 +146,11 @@ The broker refuses with
 .B authentication_change_requested
 (a change prompt),
 .B authentication_failed
-(a second ask), and
+(a second ask),
+.B credential_prompt_interrupted
+(Ctrl\-C or a signal at the operator's prompt),
+.B credential_prompt_unavailable
+(the operator's prompt failing otherwise), and
 .B askpass_username_unset
 or
 .B askpass_password_unset

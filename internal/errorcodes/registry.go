@@ -246,8 +246,8 @@ var entries = []Entry{
 	failure("credential_material_error", "credential", exitCred, false, "A formula backend cannot read its password source's credential material."),
 	failure("credential_operator_keys_missing", "credential", exitCred, false, "The platform's fallback reached the operator's keys and none of `ssh.identities` is usable: each file is absent or was skipped (`operator_key_skipped`); the message lists the files examined."),
 	failure("credential_password_missing", "credential", exitCred, false, "The credential has no key and no password was resolved, or the target is reached over telnet, which takes no key."),
-	failure("credential_prompt_unavailable", "credential", exitCred, false, "An interactive credential prompt is needed but no controlling terminal is available, or the operator ended the prompt with Ctrl-D on an empty line."),
-	failure("credential_prompt_interrupted", "credential", exitCancel, false, "The operator pressed Ctrl-C at a credential prompt, or a signal ended it; no job runs without the credential, so karvi exits."),
+	failure("credential_prompt_unavailable", "credential", exitCred, false, "An interactive credential prompt is needed but no controlling terminal is available, or the operator ended the prompt with Ctrl-D on an empty line. In a login, a device's prompt that cannot be read at the terminal ends the login."),
+	failure("credential_prompt_interrupted", "credential", exitCancel, false, "The operator pressed Ctrl-C at a credential prompt, or a signal ended it; no job runs without the credential, so karvi exits. In a login, Ctrl-C or a signal at a device's prompt (a new PIN, a prompt karvi does not answer itself) ends the login."),
 	failure("credential_transform_error", "credential", exitCred, false, "A credential transform cannot be applied to the username."),
 	failure("credential_username_missing", "credential", exitCred, false, "No backend answered and the platform's fallback (`NETUSER`, the terminal prompt, or the operator's keys, as its list says) supplied no username."),
 	failure("cloginrc_malformed", "credential", exitCred, false, "The `.cloginrc` file cannot be read or has invalid syntax: a line of 1 MiB or more, unsupported statements, wrong value counts, unterminated braces or quotes, text after a closing brace or quote, a pattern that cannot match, or a password or enable password that is not a Tcl list."),
@@ -273,8 +273,8 @@ var entries = []Entry{
 	failure("askpass_request_invalid", "authentication", exitAuth, false, "A request to the askpass broker cannot be decoded, or none arrives within ten seconds: the broker answers nothing more and ends the SSH connection."),
 	failure("askpass_start_failed", "internal", exitGen, false, "The askpass broker cannot be started."),
 	failure("askpass_username_unset", "authentication", none, false, "OpenSSH asks the broker for a username that was not resolved."),
-	failure("authentication_change_requested", "authentication", exitAuth, false, "The device asks to change a secret (a new, next, or confirmed PIN or password), which karvi does not answer."),
-	failure("authentication_failed", "authentication", exitAuth, false, "The device rejects the supplied credentials, or asks for one again."),
+	failure("authentication_change_requested", "authentication", exitAuth, false, "The device asks to change a secret (a new, next, or confirmed PIN or password), which karvi does not answer outside a login."),
+	failure("authentication_failed", "authentication", exitAuth, false, "The device rejects the supplied credentials, or, outside a login, asks for one again."),
 
 	// Host keys.
 	failure("host_key_changed", "connection", exitHost, false, "The presented host key differs from the enrolled key."),

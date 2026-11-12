@@ -126,6 +126,24 @@ they were published in.
   `--format jsonl` or `json`, `--border`, and `--noborder`. Line mode needs
   no file, so `--prefix` is taken beside `--nof`, and beside `--echo` its
   line prefixed; the key set true is never refused.
+- **`karvi login` asks the operator a device's prompt karvi does not answer.**
+  A change prompt, a prompt no list matches, and a second ask of the username
+  or the password (the prompt rule, Bugs fixed) are asked at the terminal, not
+  echoed, with the credential prompts' editor, any number in a round or across
+  rounds, each shown as OpenSSH gives it (`(jsmith@router1) Enter new PIN: `);
+  the line typed goes to OpenSSH alone, never stored or logged. So a new PIN
+  (the PIN, its confirmation, a passcode of the new PIN) or an expired
+  password's change over keyboard-interactive is typed at the login, and a
+  refused password is asked again at the terminal, as at plain `ssh`; karvi
+  sends the credential's username and password each at most once. Ctrl-C or
+  a signal ends the login with `credential_prompt_interrupted` (exit 113),
+  another failure of the prompt with `credential_prompt_unavailable` (exit
+  6), whose descriptions say so; Ctrl-D on an empty line sends an empty
+  answer, as plain `ssh` does. The answer has no askpass bound
+  (`KARVI_ASKPASS_LOGIN=1` tells the helper it serves a login); the device's
+  own limit applies. OpenSSH's own questions stay
+  refused. Without a controlling terminal, and in `command`, `run`, `crun`,
+  and `stream`, a prompt is answered by the rule alone.
 
 ### Bugs fixed
 
@@ -211,8 +229,8 @@ they were published in.
   of "At least one auth mechanism must remain." and "Supports network-device
   challenge prompts."
 - **A prompt gets the username or the password only where it asks for one,
-  each once per connection, on both SSH transports; a change of a secret
-  ends the connection.** The native transport answered every
+  each once per connection, on both SSH transports; a change of a secret ends
+  the connection outside a login.** The native transport answered every
   keyboard-interactive prompt with the password, a `Username:` prompt among
   them; the system
   transport's askpass broker answered any prompt naming a password or
@@ -254,7 +272,19 @@ they were published in.
   cannot decode (`askpass_request_invalid`) ends OpenSSH, and the session
   fails with that code (exit 108, record `authentication_error`); neither code
   reached a session before. A `karvi login`'s broker serves until the login
-  ends, five minutes at most, so a stray request in that time ends it.
+  ends, five minutes at most, so a stray request in that time ends it. In a
+  login the operator answers a change prompt, a prompt no list matches, and a
+  second ask instead (New features).
+- **A signal ends a credential prompt at once.** A SIGTERM or SIGINT sent to
+  karvi at a credential prompt ended the prompt only at the next key typed:
+  karvi's terminal calls had put the terminal in blocking mode, where the
+  prompt's read deadline does nothing. The prompt now ends at the signal,
+  `credential_prompt_interrupted` (exit 113).
+- **In a stream, a credential prompt after a Ctrl-D is shown and read.**
+  After Ctrl-D on an empty line at one job's credential prompt
+  (`credential_prompt_unavailable`), each later job's prompt ended at once,
+  not shown, with the same code: the line editor kept the Ctrl-D unread. The
+  editor now starts afresh after it.
 
 ### Breaking changes
 

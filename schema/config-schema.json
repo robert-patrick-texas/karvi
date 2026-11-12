@@ -407,7 +407,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__PASSWORD_AUTHENTICATION",
       "cli_flags": null,
-      "documentation": "Offer SSH `password` authentication, answered with the credential's password, after the keys and keyboard-interactive, on both SSH transports; where keyboard-interactive sent the password, the method ends the connection with `authentication_failed` instead. A credential with keys and no password offers neither password method; with both password methods off, the keys alone are offered."
+      "documentation": "Offer SSH `password` authentication, answered with the credential's password, after the keys and keyboard-interactive, on both SSH transports; where keyboard-interactive sent the password, the method ends the connection with `authentication_failed` instead, or in `karvi login` the operator answers it at the terminal. A credential with keys and no password offers neither password method; with both password methods off, the keys alone are offered."
     },
     {
       "path": "ssh.keyboard-interactive-authentication",
@@ -418,7 +418,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__KEYBOARD_INTERACTIVE_AUTHENTICATION",
       "cli_flags": null,
-      "documentation": "Offer SSH `keyboard-interactive` authentication, before the `password` method, on both SSH transports. A prompt asking to change a secret (a new, next, or confirmed PIN or password) ends the connection with `authentication_change_requested`; any other prompt naming a user, login, or name gets the credential's username, one naming a password, passcode, passphrase, `pass:`, PIN, token, code, or OTP its password, and the rest an empty answer. The username and the password are each answered at most once per connection: a prompt asking for either a second time ends the connection with `authentication_failed`. A device may allow it and refuse `password`."
+      "documentation": "Offer SSH `keyboard-interactive` authentication, before the `password` method, on both SSH transports. A prompt asking to change a secret (a new, next, or confirmed PIN or password) ends the connection with `authentication_change_requested`; any other prompt naming a user, login, or name gets the credential's username, one naming a password, passcode, passphrase, `pass:`, PIN, token, code, or OTP its password, and the rest an empty answer. The username and the password are each answered at most once per connection: a prompt asking for either a second time ends the connection with `authentication_failed`. In `karvi login` the operator answers a change prompt, a second ask, and the rest at the terminal. A device may allow it and refuse `password`."
     },
     {
       "path": "ssh.connect-timeout",

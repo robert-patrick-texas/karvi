@@ -21,8 +21,20 @@ type windowSize struct {
 	YPixel  uint16
 }
 
-func ioctlTermios(fd uintptr, req uintptr, t *syscall.Termios) error {
-	_, _, errno := syscall.Syscall6(syscall.SYS_IOCTL, fd, req, uintptr(unsafe.Pointer(t)), 0, 0, 0)
+// ioctl runs one ioctl on f's descriptor through f.SyscallConn, never
+// f.Fd(), which would put f into blocking mode for good and so end its read
+// deadlines: termline's prompt ends at its context's end (a signal) by one.
+func ioctl(f *os.File, req uintptr, arg unsafe.Pointer) error {
+	rc, err := f.SyscallConn()
+	if err != nil {
+		return err
+	}
+	var errno syscall.Errno
+	if err := rc.Control(func(fd uintptr) {
+		_, _, errno = syscall.Syscall(syscall.SYS_IOCTL, fd, req, uintptr(arg))
+	}); err != nil {
+		return err
+	}
 	if errno != 0 {
 		return errno
 	}
@@ -30,7 +42,7 @@ func ioctlTermios(fd uintptr, req uintptr, t *syscall.Termios) error {
 }
 func IsTerminal(f *os.File) bool {
 	var t syscall.Termios
-	return ioctlTermios(f.Fd(), tcgets, &t) == nil
+	return ioctl(f, tcgets, unsafe.Pointer(&t)) == nil
 }
 
 // IsRegularFile reports whether f is a regular file, as a stream redirected
@@ -55,8 +67,7 @@ func TerminalWidth(f *os.File) int {
 		return 0
 	}
 	var size windowSize
-	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, f.Fd(), tiocgwinsz, uintptr(unsafe.Pointer(&size)))
-	if errno != 0 || size.Columns == 0 {
+	if ioctl(f, tiocgwinsz, unsafe.Pointer(&size)) != nil || size.Columns == 0 {
 		return 0
 	}
 	return int(size.Columns)
@@ -72,7 +83,7 @@ func ForegroundGroup(f *os.File) (foreground, known bool) {
 		return false, false
 	}
 	var group int32
-	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, f.Fd(), syscall.TIOCGPGRP, uintptr(unsafe.Pointer(&group))); errno != 0 {
+	if ioctl(f, syscall.TIOCGPGRP, unsafe.Pointer(&group)) != nil {
 		return false, false
 	}
 	return int(group) == syscall.Getpgrp(), true
@@ -85,8 +96,7 @@ func TerminalSize(f *os.File) (rows, columns int) {
 		return 0, 0
 	}
 	var size windowSize
-	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, f.Fd(), tiocgwinsz, uintptr(unsafe.Pointer(&size)))
-	if errno != 0 {
+	if ioctl(f, tiocgwinsz, unsafe.Pointer(&size)) != nil {
 		return 0, 0
 	}
 	return int(size.Rows), int(size.Columns)
@@ -102,7 +112,7 @@ func TerminalSize(f *os.File) (rows, columns int) {
 // mode's lines and the credential prompts) borrows it too.
 func RawMode(f *os.File) (restore func() error, err error) {
 	var old syscall.Termios
-	if err := ioctlTermios(f.Fd(), tcgets, &old); err != nil {
+	if err := ioctl(f, tcgets, unsafe.Pointer(&old)); err != nil {
 		return nil, err
 	}
 	next := old
@@ -110,10 +120,10 @@ func RawMode(f *os.File) (restore func() error, err error) {
 	next.Lflag &^= syscall.ICANON | syscall.ECHO | syscall.ISIG | syscall.IEXTEN
 	next.Cc[syscall.VMIN] = 1
 	next.Cc[syscall.VTIME] = 0
-	if err := ioctlTermios(f.Fd(), tcsets, &next); err != nil {
+	if err := ioctl(f, tcsets, unsafe.Pointer(&next)); err != nil {
 		return nil, err
 	}
-	return func() error { return ioctlTermios(f.Fd(), tcsets, &old) }, nil
+	return func() error { return ioctl(f, tcsets, unsafe.Pointer(&old)) }, nil
 }
 
 // NotifyResize delivers one value per change of the terminal's size

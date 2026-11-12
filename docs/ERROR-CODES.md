@@ -72,8 +72,8 @@ Active failure causes.
 | `audit_sensitive_property_rejected` | internal | 1 | no | An audit record contains a property name reserved for secrets. |
 | `audit_sink_open_failed` | permission | 9 | no | Unclassified. The audit sinks cannot be opened. |
 | `audit_write_failed` | output | 111 | no | An audit record cannot be written to a required journald or file sink. |
-| `authentication_change_requested` | authentication | 108 | no | The device asks to change a secret (a new, next, or confirmed PIN or password), which karvi does not answer. |
-| `authentication_failed` | authentication | 108 | no | The device rejects the supplied credentials, or asks for one again. |
+| `authentication_change_requested` | authentication | 108 | no | The device asks to change a secret (a new, next, or confirmed PIN or password), which karvi does not answer outside a login. |
+| `authentication_failed` | authentication | 108 | no | The device rejects the supplied credentials, or, outside a login, asks for one again. |
 | `base_directory_unavailable` | permission | 9 | no | Unclassified. The karvi base directory cannot be resolved or created. |
 | `blind_return_conflict` | usage | 4 | no | One command both ends in `\r` sequences and is given `--blind-return`, or is given `--blind-return` more than once; the two counts contradict, and one form is written. |
 | `blind_return_out_of_range` | usage | 4 | no | `--blind-return` is outside 0..20, or a command ends in more than twenty `\r` sequences. |
@@ -290,8 +290,8 @@ Active failure causes.
 | `credential_password_missing` | credential | 6 | no | The credential has no key and no password was resolved, or the target is reached over telnet, which takes no key. |
 | `credential_policy_prefix_ambiguous` | credential | 6 | no | Two CIDR credential policy rules match the device with the same prefix length. |
 | `credential_policy_unmatched` | credential | 6 | no | No credential policy rule matches the device. |
-| `credential_prompt_interrupted` | credential | 113 | no | The operator pressed Ctrl-C at a credential prompt, or a signal ended it; no job runs without the credential, so karvi exits. |
-| `credential_prompt_unavailable` | credential | 6 | no | An interactive credential prompt is needed but no controlling terminal is available, or the operator ended the prompt with Ctrl-D on an empty line. |
+| `credential_prompt_interrupted` | credential | 113 | no | The operator pressed Ctrl-C at a credential prompt, or a signal ended it; no job runs without the credential, so karvi exits. In a login, Ctrl-C or a signal at a device's prompt (a new PIN, a prompt karvi does not answer itself) ends the login. |
+| `credential_prompt_unavailable` | credential | 6 | no | An interactive credential prompt is needed but no controlling terminal is available, or the operator ended the prompt with Ctrl-D on an empty line. In a login, a device's prompt that cannot be read at the terminal ends the login. |
 | `credential_resolution_failed` | credential | 6 | no | Unclassified. Credential resolution failed with an error that carries no specific code. |
 | `credential_transform_error` | credential | 6 | no | A credential transform cannot be applied to the username. |
 | `credential_transform_operation_not_table` | config | 2 | no | A `credential-transform` operation is not an inline table. |

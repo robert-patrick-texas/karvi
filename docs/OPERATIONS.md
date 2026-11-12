@@ -993,10 +993,11 @@ Both transports try the methods in one order: `publickey`, then
 keyboard-interactive and refuse password.
 `ssh.keyboard-interactive-authentication` and `ssh.password-authentication`
 (true by default) each, set false, leaves its method out on both transports;
-with both false the keys alone are offered. Each keyboard-interactive prompt
-is answered by what it asks for, matched case-insensitively against three
-lists of RE2 patterns in this order, the first with a match deciding (over
-`system` the prompt's words after the `(user@host) ` OpenSSH puts first):
+with both false the keys alone are offered. Each keyboard-interactive prompt is
+answered by what it asks for, matched case-insensitively against three lists of
+RE2 patterns in this order, the first with a match deciding (over `system` the
+prompt's words after the `(user@host) ` OpenSSH puts first), except where
+`karvi login` asks the operator (below):
 
 - a change of a secret, `new`, `next`, `re-?enter(ed)?`, `re-?typed?`,
   `(re)?confirm(ed)?`, `verify`, `repeat(ed)?`, `again`, `once more`,
@@ -1019,16 +1020,31 @@ hyphen beside it joins it to a longer word, so a device named in a prompt
 even beside a password (`Password for user jsmith:`). Over `system` the
 askpass broker answers only a prompt beginning with OpenSSH's `user@host`, a
 device's; OpenSSH's own questions (a key's passphrase, a security key's PIN,
-user presence, a password change) are refused. On both transports each
-field is answered at most once per connection: `Username:` then `Password:`
-logs in, and a second ask of either (after a
-refusal, or for a second factor) ends the connection, the device getting
-nothing in that round, with `authentication_failed: device refused password`
-(or `username`, exit 108). Over `system` a request to the broker without its
-token ends the session too (`askpass_auth_failed`, `askpass_request_invalid`,
-exit 108); the broker serves until the login is over (a command session's
-first prompt or exec master ready, a `karvi login`'s end), five minutes at
-most, each exchange within ten seconds.
+user presence, a password change) are refused. On both transports each field is
+answered at most once per connection: `Username:` then `Password:` logs in, and
+outside a login a second ask of either (after a refusal, or for a second
+factor) ends the connection, the device getting nothing in that round, with
+`authentication_failed: device refused password` (or `username`, exit 108).
+Over `system` a request to the broker without its token ends the session too
+(`askpass_auth_failed`, `askpass_request_invalid`, exit 108); the broker serves
+until the login is over (a command session's first prompt or exec master ready,
+a `karvi login`'s end), five minutes at most, each exchange within ten seconds,
+an operator's answer in a login aside.
+
+In `karvi login` the operator answers at the terminal what karvi does not: a
+change prompt, a prompt no list matches, and a second ask, any number of them,
+each shown as OpenSSH gives it (`(jsmith@router1) Enter new PIN: `), not
+echoed, and edited as at [the credential prompts](#the-credential-prompts).
+karvi still sends the stored username and password each at most once, so a
+refused password is asked at the terminal, as at plain `ssh`. The line typed
+goes to OpenSSH alone, never stored or logged. OpenSSH's own questions stay
+refused, and a server's keyboard-interactive instruction is not shown, as at
+plain `ssh`. The prompt waits without the ten seconds, the device's own limit
+applying (IOS XE `ip ssh time-out`). Ctrl-C or a signal ends the login with
+`credential_prompt_interrupted` (exit 113), another failure at the terminal
+with `credential_prompt_unavailable` (exit 6); Ctrl-D on an empty line sends an
+empty answer, as plain `ssh` does. Without a controlling terminal nothing is
+asked; each prompt is answered as at `command`.
 
 Each record's `credential.auth` names the method that authenticated the
 session (`publickey`, `keyboard-interactive`, or `password`; absent where the
