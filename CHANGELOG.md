@@ -298,8 +298,8 @@ they were published in.
   A start that finds it held by a daemon still stopping waits for it, up to
   `daemon.start-timeout`, then `daemon serve` exits `daemon_already_running:
   daemon still stopping: pid N` (exit 1); a signal ends the wait. A
-  launching client waits as long for the socket, so it fails first,
-  `daemon_start_failed` (exit 112), the refusal following in `daemon.log`.
+  launching client then fails, `daemon_start_failed` (exit 112), the refusal
+  in `daemon.log`.
   One beside a running daemon is refused at once, as before. `daemon stop`
   and `daemon restart` wait for the stopped daemon's pid to end or its socket
   file to go, not for the socket file alone, which a daemon started meanwhile
@@ -329,6 +329,23 @@ they were published in.
   at once: OpenSSH killed and waited for 0.5 s at most, the native
   connection shut, the master sent SIGTERM without `ssh -O exit` and SIGKILL
   0.5 s on.
+- **A failed start leaves no daemon.** A launching client (`daemon start`,
+  `daemon restart`, a run launching its daemon) counted
+  `daemon.start-timeout` from its spawn, then failed and left the daemon it
+  had launched; the daemon counts the same time from after its own start-up
+  while it waits for a stopping daemon's lock. A lock freed just past the
+  client's bound gave `daemon_start_failed` (exit 112) and then a daemon
+  running, 20 of 20 times in a test and 4 and 8 of 10 in a lab. The client
+  now keeps the daemon it launched and waits for the first of three: a
+  daemon answering its ping, the start; the launched daemon's end, the
+  failure, `daemon failed to start; inspect LOG`, the cause in the log
+  (another launcher's daemon answering then is a start); and
+  `daemon.start-timeout` plus 2 s, when it is killed and waited for, `daemon
+  did not start in 7s and was killed; inspect LOG`. A socket that took a
+  connection before its daemon answered no longer fails a start after 2 s.
+  An interrupt leaves the launched daemon, as before, and says so: `start
+  interrupted, the launched daemon left to start; inspect LOG`. Nothing
+  changes under `daemon.launch = "systemd"` or for `daemon serve`.
 - **An exec command over `native` ends at its bounds on a device that stops
   answering.** A device whose connection stayed up while it answered nothing
   held the next command's channel opening, and a command given up, until the

@@ -92,8 +92,11 @@ the connection: `daemon restart` finds nothing to stop there and starts a
 daemon, as `daemon start` does. A daemon started while another is still
 stopping, its jobs' records still being written, waits for that one to exit
 (its lock, `d.lock` beside the socket), up to `daemon.start-timeout`; past it
-the start fails, `daemon_start_failed`, and `daemon.log` then names
-`daemon_already_running: daemon still stopping: pid N`.
+the launched daemon is refused, `daemon.log` naming `daemon_already_running:
+daemon still stopping: pid N`, and the start fails, `daemon_start_failed`,
+leaving no daemon. A launched daemon that neither answers nor ends within
+`daemon.start-timeout` plus 2 seconds is killed, and the start fails the
+same.
 
 An older karvi beside a newer daemon is refused, `daemon_incompatible`, the
 schemas stacked: the older client cannot speak the newer schema, so it neither

@@ -316,7 +316,7 @@ Active failure causes.
 | `daemon_socket_too_long` | config | 2 | no | `daemon.sockets` is a directory too long for the daemon's sockets: a path socket holds 107 bytes, and the daemon binds `d.sock` and `c.sock` there, so the directory may be at most 100 bytes (under `auto`, `<basedir>/socket`, a `basedir` of at most 93); refused where the directory is resolved, before the daemon is reached or started and before anything is made, naming the directory, its length, and under `auto` the `basedir`. |
 | `daemon_socket_uninspectable` | permission | 9 | no | The daemon socket path cannot be inspected. |
 | `daemon_spawn_failed` | dependency | 8 | no | The background daemon process cannot be started. |
-| `daemon_start_failed` | dependency | 112 | no | A daemon was launched but did not become ready. |
+| `daemon_start_failed` | dependency | 112 | no | A launched daemon ended without answering, its cause in `daemon.log`, or neither answered nor ended within `daemon.start-timeout` plus 2 seconds and was killed: no daemon is left from the start. An interrupted start has the code too, and leaves its daemon to start by itself. |
 | `daemon_status_schema_mismatch` | dependency | 112 | no | A daemon status reports an IPC schema different from its response envelope. |
 | `daemon_stop_after_not_positive` | usage | 4 | no | `--after` is zero or negative. |
 | `daemon_stop_failed` | dependency | 110 | no | Unclassified. The daemon does not accept the stop request. |

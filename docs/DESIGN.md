@@ -2473,6 +2473,27 @@ leaving it running unreachable. *Not taken:* removing the lock file at exit
 passes it); the dial alone (a stopping daemon's closed socket refuses as a
 dead one's does).
 
+**A start is decided by the daemon it launched.** The client that launches a
+daemon (`daemon start`, `daemon restart`, a run) keeps the child and waits for
+the first of three: a daemon answering a ping, the start (a socket that takes
+a connection is not yet an answer: the daemon listens before it accepts);
+the child's end, the failure, `daemon_start_failed`, its cause in
+`daemon.log`, unless a daemon answers one more ping, another launcher's,
+which is a start; and `daemon.start-timeout` plus 2 seconds, when the child is
+killed and waited for, the failure saying so. A start succeeds only on an
+answer and fails only once the child has ended, so a failed start leaves no
+daemon. An interrupt leaves the child, which starts or fails by itself, and
+the message says so. Under `daemon.launch =
+"systemd"` nothing is launched, and `daemon serve` keeps its own bound. *Why:*
+the client counted `daemon.start-timeout` from its spawn and the daemon from
+after its start-up, so a lock freed between the two ends gave exit 112 and
+then a running daemon (executed: 20 of 20 in a test, 4 and 8 of 10 in a lab),
+and a released child could be neither waited for nor safely killed. *Not
+taken:* the client's deadline handed to the daemon (it narrows the gap, with a
+new `daemon serve` interface); a kill at the client's bound (the daemon's
+refusal never reached, a slow healthy start killed); a readiness pipe (the
+same rule with a daemon change).
+
 **A stop waits as long as the daemon may.** The daemon's answer to a stop it
 takes names its wait, `wait` in milliseconds: its accounting bound, its
 start's `daemon.forced-grace-seconds` with the two-second floor. The daemon

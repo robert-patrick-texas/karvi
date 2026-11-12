@@ -430,8 +430,9 @@ func stopTimeout(rt app.DaemonRuntime) time.Duration {
 	return startTimeout(rt) + time.Duration(rt.Config.Int("daemon.forced-grace-seconds"))*time.Second
 }
 
-// startTimeout is daemon.start-timeout, 5 s when unset: the wait for a
-// launched daemon's socket and for a drained one to exit.
+// startTimeout is daemon.start-timeout, 5 s when unset: a launched daemon's
+// wait for a stopping one's lock, with startBackstop the client's wait for
+// the daemon it launched, and the wait for a drained one to exit.
 func startTimeout(rt app.DaemonRuntime) time.Duration {
 	if timeout := rt.Config.Duration("daemon.start-timeout"); timeout > 0 {
 		return timeout
@@ -518,30 +519,112 @@ func ensureDaemon(ctx context.Context, rt app.DaemonRuntime, g globalOptions, st
 		log.Close()
 		return errorcodes.Errorf("daemon_spawn_failed", "start daemon: %w", err)
 	}
-	childPID := cmd.Process.Pid // Release clears it
-	_ = cmd.Process.Release()
 	_ = log.Close()
-	wctx, wcancel := context.WithTimeout(ctx, startTimeout(rt))
-	defer wcancel()
-	if err := ipc.Wait(wctx, rt.Socket); err != nil {
-		return fmt.Errorf("daemon_start_failed: daemon failed to start; inspect %s: %w", rt.LogPath, err)
-	}
-	// The daemon's first answer after its socket appeared: two seconds,
-	// since one second lapsed once under a full parallel `go test ./...`
-	// on a four-CPU host.
-	pctx, pcancel := context.WithTimeout(ctx, 2*time.Second)
-	defer pcancel()
-	status, err := daemon.Ping(pctx, rt.Socket, rt.MaxFrame)
+	answering, err := awaitDaemon(ctx, rt, cmd.Process)
 	if err != nil {
-		return errorcodes.Ensure(err, "daemon_start_failed")
+		return err
 	}
 	// Two clients launching at once each start a child; the second child
 	// finds the socket taken and exits, and the daemon answering is the
 	// other client's. Only the client whose own child answers says so.
-	if !g.quiet && status.PID == childPID {
+	if !g.quiet && answering == cmd.Process.Pid {
 		fmt.Fprintf(stderr, "daemon started socket=%s\n", rt.Socket)
 	}
 	return nil
+}
+
+// startBackstop is how long past daemon.start-timeout a launched daemon
+// that has neither answered nor ended is left before it is killed.
+var startBackstop = 2 * time.Second
+
+// awaitDaemon waits for the daemon this client launched, by the daemon's
+// own clock: its wait for a stopping daemon's lock counts
+// daemon.start-timeout from after its start-up, so a second count here
+// would fail a start the daemon then makes. The start is made once a daemon
+// answers a ping, whose pid is returned, and has failed once the child has
+// ended with none answering, the cause in the log; another launcher's
+// daemon answering then is a start. A child that has done neither
+// startBackstop past the timeout is killed and waited for. An interrupt
+// leaves the child, which goes on to start or to fail by itself.
+func awaitDaemon(ctx context.Context, rt app.DaemonRuntime, child *os.Process) (int, error) {
+	ended := make(chan struct{})
+	go func() {
+		_, _ = child.Wait()
+		close(ended)
+	}()
+	bound := startTimeout(rt) + startBackstop
+	wctx, cancel := context.WithTimeout(ctx, bound)
+	defer cancel()
+	type answer struct {
+		pid int
+		err error
+	}
+	// A socket that takes a dial is not yet a daemon that answers: it
+	// listens before it accepts, so the ping is asked again until one
+	// answers or the wait ends. A ping has two seconds, since one lapsed
+	// once under a full parallel `go test ./...` on a four-CPU host.
+	answered := make(chan answer, 1)
+	go func() {
+		for {
+			if err := ipc.Wait(wctx, rt.Socket); err != nil {
+				answered <- answer{err: err}
+				return
+			}
+			pctx, pcancel := context.WithTimeout(wctx, 2*time.Second)
+			status, err := daemon.Ping(pctx, rt.Socket, rt.MaxFrame)
+			pcancel()
+			if err == nil {
+				answered <- answer{pid: status.PID}
+				return
+			}
+			select {
+			case <-wctx.Done():
+			case <-time.After(50 * time.Millisecond):
+			}
+		}
+	}()
+	interrupted := func() (int, error) {
+		return 0, errorcodes.Errorf("daemon_start_failed", "start interrupted, the launched daemon left to start; inspect %s: %w", rt.LogPath, ctx.Err())
+	}
+	// childEnded is the start once the child has ended: one more ping,
+	// since a child that found another daemon's socket answering ended at
+	// once, perhaps between two asks here.
+	childEnded := func() (int, error) {
+		pctx, pcancel := context.WithTimeout(ctx, 2*time.Second)
+		defer pcancel()
+		if status, err := daemon.Ping(pctx, rt.Socket, rt.MaxFrame); err == nil {
+			return status.PID, nil
+		}
+		return 0, errorcodes.Errorf("daemon_start_failed", "daemon failed to start; inspect %s", rt.LogPath)
+	}
+	select {
+	case a := <-answered:
+		if a.err == nil {
+			return a.pid, nil
+		}
+	case <-ended:
+		cancel()
+		if a := <-answered; a.err == nil {
+			return a.pid, nil
+		}
+		return childEnded()
+	}
+	if ctx.Err() != nil {
+		return interrupted()
+	}
+	// The backstop: a child that ended as it came is not killed.
+	select {
+	case <-ended:
+		return childEnded()
+	default:
+	}
+	_ = child.Kill()
+	select {
+	case <-ended:
+	case <-ctx.Done():
+		return interrupted()
+	}
+	return 0, errorcodes.Errorf("daemon_start_failed", "daemon did not start in %s and was killed; inspect %s", bound, rt.LogPath)
 }
 
 // systemdDaemon is ensureDaemon under daemon.launch = "systemd" (EXAMPLES

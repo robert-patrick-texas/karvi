@@ -5,6 +5,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -16,6 +17,10 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/osutil/osutiltest"
 )
 
+// hangingDaemonMarker is a file in the daemon's TMPDIR that makes the daemon
+// TestMain serves hang at its start.
+const hangingDaemonMarker = "karvi-test-daemon-hangs"
+
 // TestMain lets the test binary serve as the daemon the launcher spawns:
 // ensureDaemon starts os.Executable() with "daemon serve" last on the
 // command line, and this binary then runs the real command.
@@ -26,8 +31,18 @@ func TestMain(m *testing.M) {
 	// inherits the variable and the
 	// same guard, since it runs this TestMain too, and removes the scratch
 	// root its guard made when it ends.
+	serving := len(os.Args) >= 3 && os.Args[len(os.Args)-2] == "daemon" && os.Args[len(os.Args)-1] == "serve"
+	if serving {
+		if _, err := os.Stat(filepath.Join(os.TempDir(), hangingDaemonMarker)); err == nil {
+			// A daemon that neither answers nor ends, until its launcher
+			// kills it; a minute at the most. Before the guard below, whose
+			// scratch root a killed process would leave.
+			time.Sleep(time.Minute)
+			os.Exit(1)
+		}
+	}
 	done := osutiltest.Isolate()
-	if n := len(os.Args); n >= 3 && os.Args[n-2] == "daemon" && os.Args[n-1] == "serve" {
+	if serving {
 		code := Main(os.Args[1:], os.Stdin, os.Stdout, os.Stderr)
 		done()
 		os.Exit(code)
