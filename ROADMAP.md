@@ -339,6 +339,17 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   the operator answers a second ask, a change prompt, and a prompt no list
   matches at the terminal instead, the jump host's and the device's alike
   (reasoned, not executed). The fake device cannot yet be a jump host.
+- **One message for a refused authentication on both SSH transports.** A
+  refused key, or a password credential with both password methods off, fails
+  `authentication_failed` (exit 108) on both transports, each in its own words:
+  over `system` OpenSSH's
+  `Permission denied (password,publickey,keyboard-interactive).`, over `native`
+  x/crypto's `attempted methods [none publickey], no supported methods remain`
+  for the key (the parity suite's S13c), `[none]` with both methods off
+  ([`docs/EXAMPLES.md`, chapter
+  107](docs/EXAMPLES.md#107-prompt-answers-on-both-ssh-transports-2026-11-11),
+  case 1). A refused password already reads alike, `device refused password`.
+  The question: one short message for both, OpenSSH the benchmark.
 - **A suite's failure that names its call.** A suite under `set -eu` that runs
   karvi with its output redirected into the work directory dies at a refused
   call with karvi's exit status and prints nothing, and its cleanup removes the
