@@ -26424,3 +26424,149 @@ mishandles it, where OpenSSH's client makes the same choice.
 The evidence is kept beside the tree
 (`release-design-evidence/rsa-sha2-2026-11/`: `rsa.sh` and `rsa.out`, the
 two reviews, the battery, and this chapter as applied).
+
+## 112. A DSA key's own reason (2026-11-12)
+
+The second taken up of the three Next items from [chapter
+110](#110-the-release-0420-2026-11-12), the third as listed, on the
+operator's word. Since
+x/crypto v0.59.0 neither transport signs with a DSA key, and a DSA key of
+`ssh.identities` is skipped at planning with the notice
+`operator_key_skipped`. The item named one misleading reason, an
+unencrypted PEM file's `not a private key karvi reads`, the reason a damaged
+file gets. A reading of the judge (`sshkey.Inspect`,
+`internal/adapters/sshkey`) found the reason turned on the file's form, and
+named DSA in none: the judge maps x/crypto's refusal to a reason, and
+x/crypto refuses the forms at five different steps.
+
+The reason before, by the DSA key's file:
+
+- PEM: `not a private key karvi reads`.
+- PEM under a passphrase: `protected by a passphrase`.
+- OpenSSH's format: `a key type neither transport signs with (a
+  hardware-backed key)`.
+- OpenSSH's format under a passphrase, PKCS#8, PKCS#8 under a passphrase,
+  and a PEM file with the key's parameters in a block ahead of the key
+  (`openssl dsaparam -genkey`): `not a private key karvi reads`.
+
+The second sends the operator to remove a passphrase from a key that is
+then still not used; the third names a hardware key.
+
+**What it gains.** An operator whose `ssh.identities` names a DSA key reads
+that the key is DSA, in the warning line, the dry run's finding, and each
+device's first record, and replaces the key rather than repairing a file.
+It waits on nothing.
+
+**The operator's decisions**, in simple terms:
+
+- The reason's wording stands: `a DSA key, no longer used`.
+- A PKCS#8 key under a passphrase, of any type, read as `not a private key
+  karvi reads` (Left open) goes to the ROADMAP.
+- No further effort on DSA. Support for legacy cryptography is not an
+  objective of this project, and we celebrate when outdated math is
+  retired: onward to post-quantum cryptography (PQC) and the strongest math
+  available. DESIGN section 6 says so.
+
+**The rule, as built** ([`docs/DESIGN.md`, section
+4](DESIGN.md#4-credentials)):
+
+- A key file x/crypto refuses is first asked whether it names a DSA key
+  (`isDSA`), each PEM block of it: by the block's type, `DSA PRIVATE KEY`;
+  by the public key's type, `ssh-dss`, in an OpenSSH block's header, which
+  a passphrase leaves readable; or by a PKCS#8 block's algorithm.
+- The reason is `a DSA key, no longer used`, ahead of the passphrase's:
+  without the passphrase the key is still not used.
+- A PKCS#8 file under a passphrase names no key type and stays `not a
+  private key karvi reads`.
+- A file x/crypto reads is never asked, and every other reason is as it
+  was.
+- `operator_key_skipped`'s description lists the reason, and
+  `ssh.identities`'s own names a DSA key among the files skipped.
+
+**The executed example.** `dsa.sh`: a dry run on the built-in `linux`,
+whose fallback reaches the operator's keys, with `ssh.identities` seven
+throwaway DSA key files, one per form above, and a new Ed25519 key, by the
+released 0.42.0 and by the tree's build. Six files were made by
+python3-cryptography, since this host's OpenSSH 10.2 `ssh-keygen` makes no
+DSA key, and the seventh by OpenSSL. Nothing is contacted. The warning
+lines (`$LAB` the lab's folder; the dry run's findings repeat them):
+
+```text
+== karvi 0.42.0
+warning: operator_key_skipped: operator key $LAB/dsa_legacy_plain skipped: not a private key karvi reads
+warning: operator_key_skipped: operator key $LAB/dsa_legacy_locked skipped: protected by a passphrase
+warning: operator_key_skipped: operator key $LAB/dsa_openssh_plain skipped: a key type neither transport signs with (a hardware-backed key)
+warning: operator_key_skipped: operator key $LAB/dsa_openssh_locked skipped: not a private key karvi reads
+warning: operator_key_skipped: operator key $LAB/dsa_pkcs8_plain skipped: not a private key karvi reads
+warning: operator_key_skipped: operator key $LAB/dsa_pkcs8_locked skipped: not a private key karvi reads
+warning: operator_key_skipped: operator key $LAB/dsa_params_first skipped: not a private key karvi reads
+== karvi 0.42.0, the tree's build (0a7f2ba)
+warning: operator_key_skipped: operator key $LAB/dsa_legacy_plain skipped: a DSA key, no longer used
+warning: operator_key_skipped: operator key $LAB/dsa_legacy_locked skipped: a DSA key, no longer used
+warning: operator_key_skipped: operator key $LAB/dsa_openssh_plain skipped: a DSA key, no longer used
+warning: operator_key_skipped: operator key $LAB/dsa_openssh_locked skipped: a DSA key, no longer used
+warning: operator_key_skipped: operator key $LAB/dsa_pkcs8_plain skipped: a DSA key, no longer used
+warning: operator_key_skipped: operator key $LAB/dsa_pkcs8_locked skipped: not a private key karvi reads
+warning: operator_key_skipped: operator key $LAB/dsa_params_first skipped: a DSA key, no longer used
+```
+
+`TestInspect` holds the six forms `sshkeytest.DSA` makes, the five that
+name the type and PKCS#8 under a passphrase (the unencrypted three from a
+key `crypto/dsa` generates), and a parameters-first file; and four files that are no DSA
+key: two with the type's name outside a key file's own places, an OpenSSH
+header that ends before its key, and an X25519 PKCS#8 key. The
+operator-keys test has a DSA file among its ten.
+
+**What changed.** One commit on dev, `0a7f2ba`, with its texts (the
+CHANGELOG's entry under Bugs fixed, DESIGN section 4,
+`docs/OPERATIONS.md`, the code's description and the generated
+`docs/ERROR-CODES.md`, `ssh.identities`'s description and the generated
+reference and schema), DESIGN section 6's entry on legacy cryptography, the
+ROADMAP's item removed, and the PKCS#8 item added to its Next: `ReasonDSA` and
+`isDSA` in `internal/adapters/sshkey/sshkey.go`; `sshkeytest.DSA`; the
+tests.
+
+**Not taken.**
+
+- The reason for the unencrypted PEM file alone, as the item read: the
+  other forms kept reasons as misleading.
+- The passphrase's reason ahead of DSA's: the operator would remove the
+  passphrase and meet the DSA reason at the next run.
+- PKCS#8 left out (a rare form, eight lines): a DSA key whose file names
+  its type gets the reason, with no exception to explain.
+- The key files parsed by karvi in place of x/crypto's error text for the
+  hardware-backed reason too: not this item.
+
+**Left open.**
+
+- A PKCS#8 key under a passphrase, of any type x/crypto reads without one,
+  is skipped as `not a private key karvi reads`, not `protected by a
+  passphrase`: x/crypto looks for a PEM file's passphrase header, which
+  PKCS#8 has none of, then refuses the block's type. Found by the
+  reading, shown by the review with RSA, ECDSA, and Ed25519 files. To the
+  ROADMAP's Next, the operator's word.
+- `operator_key_skipped`'s description lists neither `not a private key
+  karvi reads` nor `unreadable`. As before; left.
+- The hardware-backed reason is still read from x/crypto's error text, not
+  from the key file's header.
+- No DSA key written by `ssh-keygen` was judged: this host's makes none.
+  The OpenSSH-format files are python3-cryptography's and the helper's.
+
+**Checks.** The reading's scratch test of six forms, on the judge as it
+was; the tests; one independent review of the section, with overlay mutants and
+261,493 mutated inputs (no panic, no non-DSA key given the reason, no
+control's reason changed): nine findings, six applied (the parameters-first
+file, the exception and the algorithm comparison held by tests, DESIGN's
+"whatever its file's form", a test comment, `ssh.identities`'s
+description) and three left (`review.md`); the full battery on the tree
+with them (build, vet, `make generated-clean`, `go test` 76 packages, the
+suites 290 s); DESIGN section 6's entry and the ROADMAP's PKCS#8 item were
+written after its copy, and `make generated-clean` and the links through
+`tools/md-to-html` run again with them, their output not kept; `dsa.sh` on
+`0a7f2ba`, its last line the host after; one independent reading of this
+chapter against the code and the evidence, seven findings, each applied.
+
+The evidence is kept beside the tree
+(`release-design-evidence/dsa-reason-2026-11/`: the reading and its scratch
+test and key files, `dsa.sh` and `dsa.out`, the review, the battery, and
+this chapter as applied).

@@ -30,8 +30,9 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   a passphrase (`BEGIN ENCRYPTED PRIVATE KEY`) in `ssh.identities` is skipped
   (`operator_key_skipped`) as `not a private key karvi reads`, where a PEM
   or OpenSSH-format key under a passphrase reads `protected by a
-  passphrase`: x/crypto refuses the block's type before it looks for a
-  passphrase. The item: the block's type gives the passphrase's reason.
+  passphrase`: x/crypto looks for a PEM file's passphrase header, which
+  PKCS#8 has none of, then refuses the block's type. The item: the block's
+  type gives the passphrase's reason.
 
 ## Later
 

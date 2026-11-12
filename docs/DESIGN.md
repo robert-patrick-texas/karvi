@@ -1965,7 +1965,9 @@ no path kept for it: a DSA key in `ssh.identities` is named and skipped. What
 an older device still needs stays last in its list, or in a profile the
 operator configured, while the transports carry it and no longer. *Why:* the
 operator's word: onward to post-quantum cryptography (PQC) and the strongest
-math available. *Not taken:* effort to keep a retired algorithm working.
+math available. *Not taken:* effort to keep a retired algorithm working
+([`docs/EXAMPLES.md`, chapter
+112](EXAMPLES.md#112-a-dsa-keys-own-reason-2026-11-12)).
 
 **No FIPS 140-3 mode until Go's module performs AES-256-GCM for SSH.** karvi
 leads with the strongest algorithms its transports implement, and has no mode
