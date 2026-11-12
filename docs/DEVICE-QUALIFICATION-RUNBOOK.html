@@ -67,8 +67,8 @@
 <li><a href="#9-a-production-server">9. A production server</a></li>
 <li><a href="#10-on-the-production-network-the-run-at-a-glance">10. On the production network: the run at a glance</a></li>
 </ul></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -137,8 +137,8 @@
 <li><a href="#9-a-production-server">9. A production server</a></li>
 <li><a href="#10-on-the-production-network-the-run-at-a-glance">10. On the production network: the run at a glance</a></li>
 </ul></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -249,7 +249,7 @@ operator's own trust store, configuration, or state (all under the
 evidence directory's <code>work/</code> while the run lasts), or a credential on a
 command line or in a file.</p>
 <h2 id="2-before-the-laboratory-the-script-against-the-fake">2. Before the laboratory: the script against the fake <a class="anchor" href="#2-before-the-laboratory-the-script-against-the-fake" aria-label="Link to this section">#</a></h2>
-<pre><code class="language-bash">cd karvi-v0.41.0
+<pre><code class="language-bash">cd karvi-v0.42.0
 sha256sum -c CHECKSUMS.sha256          # the released executables
 make tools-build                       # bin/secret-scan
 FAKE=1 CONFIG_ROW=1 RELOAD=&quot;system native&quot; scripts/device-qualification.sh
@@ -445,11 +445,6 @@ device.</p>
 <p><strong>Cancellation at the device</strong>: during D9's <code>BIG_COMMAND</code> press Ctrl-C
 in a hand-run <code>karvi command</code>, then run <code>ROWS=D14</code>: the vty line must be
 free.</p>
-</li>
-<li>
-<p><strong>An entry left from an earlier release for a non-22 port</strong>: only where
-<code>PORT</code> is not 22; write <code>ADDRESS ssh-ed25519 KEY</code> (the old form) into a
-scratch store and run D7 d's command: <code>host_key_not_enrolled</code>.</p>
 </li>
 <li>
 <p><strong>D15, how a login ends.</strong> Whether the device sends an exit status when
@@ -845,7 +840,7 @@ otherwise and why, and the account's privilege at login.</li>
 (section 5); the network operations and security owners review it before it
 leaves the production network.</p>
 
-<footer>Generated from <code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>karvi v0.41.0 build and qualification result — karvi</title>
+<title>karvi v0.42.0 build and qualification result — karvi</title>
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
@@ -55,7 +55,7 @@
 <li><a href="../docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="../docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="../docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="BUILD-RESULT.html" aria-current="page">karvi v0.41.0 build and qualification result</a>
+<li><a href="BUILD-RESULT.html" aria-current="page">karvi v0.42.0 build and qualification result</a>
 <ul class="sections">
 <li><a href="#result">Result</a></li>
 <li><a href="#build-identity">Build identity</a></li>
@@ -64,7 +64,7 @@
 <li><a href="#operational-upgrade-sequence">Operational upgrade sequence</a></li>
 <li><a href="#remaining-boundary">Remaining boundary</a></li>
 </ul></li>
-<li><a href="DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -121,7 +121,7 @@
 <li><a href="../docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="../docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="../docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="BUILD-RESULT.html" aria-current="page">karvi v0.41.0 build and qualification result</a>
+<li><a href="BUILD-RESULT.html" aria-current="page">karvi v0.42.0 build and qualification result</a>
 <ul class="sections">
 <li><a href="#result">Result</a></li>
 <li><a href="#build-identity">Build identity</a></li>
@@ -130,7 +130,7 @@
 <li><a href="#operational-upgrade-sequence">Operational upgrade sequence</a></li>
 <li><a href="#remaining-boundary">Remaining boundary</a></li>
 </ul></li>
-<li><a href="DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -141,49 +141,136 @@
 </ul>
 </nav>
 <main>
-<h1 id="karvi-v0410-build-and-qualification-result">karvi v0.41.0 build and qualification result <a class="anchor" href="#karvi-v0410-build-and-qualification-result" aria-label="Link to this section">#</a></h1>
+<h1 id="karvi-v0420-build-and-qualification-result">karvi v0.42.0 build and qualification result <a class="anchor" href="#karvi-v0420-build-and-qualification-result" aria-label="Link to this section">#</a></h1>
 <h2 id="result">Result <a class="anchor" href="#result" aria-label="Link to this section">#</a></h2>
 <p>The build, with the native transport compiled in beside the external <code>system</code>
-transport, is <strong>qualified as an engineering candidate</strong>. v0.41.0 (2026-11-08) is
-a minor release on 0.40.0 for numeric ranges in every selector
-(<code>router[10-12]</code>), targets that create the names a range spells, runs limited
-to the inventory's devices (<code>targets.inventory-only</code>, and <code>--inventory</code>,
-<code>--inv</code>, or <code>--i</code>), the removal of <code>security.require-fips</code> and of <code>karvi version</code>'s <code>fips_mode</code>, a <code>karvi-sysutil</code> that never acts as root on what the
-service account owns, the release's number written once in <code>VERSION</code>, and the
-shell-script review's fixes to the suites and scripts; four of the changes are
-Breaking. The configuration registry moves to 34 and the audit to 4, every
-other counter is 0.40.0's; Go and every module are 0.40.0's; and the first
-submission after the upgrade drains a 0.40.0 daemon. The changes are in
-<a href="../CHANGELOG.html"><code>CHANGELOG.md</code></a>. It is not a production claim and not a
-real-device qualification: the native transport is proven against the fake
-device built from the tree, its IOS XE and Linux personas.</p>
+transport, is <strong>qualified as an engineering candidate</strong>. What v0.42.0
+(2026-11-12) adds, fixes, and breaks is in <a href="../CHANGELOG.html"><code>CHANGELOG.md</code></a>,
+under New features, Bugs fixed, and Breaking changes. It is not a production
+claim and not a real-device qualification: the native transport is proven
+against the fake device built from the tree, its IOS XE and Linux personas.</p>
 <h2 id="build-identity">Build identity <a class="anchor" href="#build-identity" aria-label="Link to this section">#</a></h2>
-<pre><code class="language-text">version:                  0.41.0
-commit:                   source-release-v0.41.0
-build:                    Wss_lakRGoLdwTmeEfnl
-Go toolchain:             go1.27.3
+<pre><code class="language-text">version:                  0.42.0
+commit:                   source-release-v0.42.0
+build:                    x5hKubdZrt7zz0uU5WFB
 dependencies:             vendored (go.mod, go.sum, vendor/); no network
 native:                   compiled-in
-configuration schema:    6
-configuration registry:  34
-command record schema:   5
-daemon IPC schema:       12
-job manifest/summary:    5
-execution plan:          17
-scoreboard:              5
-credential package:      2
-plan report:             4
-audit:                   4
 CGO:                      disabled
 </code></pre>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>0.41.0</th>
+<th>0.42.0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Go</td>
+<td>1.27.3</td>
+<td><strong>1.27.4</strong></td>
+</tr>
+<tr>
+<td><code>github.com/yuin/goldmark</code></td>
+<td>v1.8.7</td>
+<td>v1.8.7</td>
+</tr>
+<tr>
+<td><code>golang.org/x/crypto</code></td>
+<td>v0.58.0</td>
+<td><strong>v0.59.0</strong></td>
+</tr>
+<tr>
+<td><code>golang.org/x/sys</code></td>
+<td>v0.49.0</td>
+<td><strong>v0.50.0</strong></td>
+</tr>
+<tr>
+<td><code>golang.org/x/term</code></td>
+<td>v0.47.0</td>
+<td><strong>v0.48.0</strong></td>
+</tr>
+<tr>
+<td>configuration schema</td>
+<td>6</td>
+<td>6</td>
+</tr>
+<tr>
+<td>configuration registry</td>
+<td>34</td>
+<td><strong>35</strong></td>
+</tr>
+<tr>
+<td>execution plan</td>
+<td>17</td>
+<td>17</td>
+</tr>
+<tr>
+<td>command record</td>
+<td>5</td>
+<td>5</td>
+</tr>
+<tr>
+<td>plan report</td>
+<td>4</td>
+<td>4</td>
+</tr>
+<tr>
+<td>scoreboard</td>
+<td>5</td>
+<td>5</td>
+</tr>
+<tr>
+<td>audit</td>
+<td>4</td>
+<td>4</td>
+</tr>
+<tr>
+<td>job manifest and summary</td>
+<td>5</td>
+<td>5</td>
+</tr>
+<tr>
+<td>metrics</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td>daemon IPC</td>
+<td>12</td>
+<td>12</td>
+</tr>
+<tr>
+<td>credential package</td>
+<td>2</td>
+<td>2</td>
+</tr>
+<tr>
+<td>inventory</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Lines of Code: Go</td>
+<td>128,401</td>
+<td>144,528</td>
+</tr>
+<tr>
+<td>Lines of Code: Other</td>
+<td>9,694</td>
+<td>9,995</td>
+</tr>
+</tbody>
+</table>
 <p>The authoritative <code>go.mod</code> names the Go 1.27 floor and requires goldmark,
 <code>x/crypto</code>, <code>x/sys</code>, and <code>x/term</code>; <code>evidence/go-version-m.txt</code> shows the
 modules the shipped executables link, and <code>evidence/version.txt</code> lists both
 transports.</p>
 <h2 id="qualification-performed">Qualification performed <a class="anchor" href="#qualification-performed" aria-label="Link to this section">#</a></h2>
-<p>The release source passed, with Go 1.27.3:</p>
+<p>The release source passed, with Go 1.27.4:</p>
 <ul>
-<li>1,340 top-level named Go tests across 94 packages in vendor mode, 0
+<li>1,560 top-level named Go tests across 98 packages in vendor mode, 0
 failures (<code>evidence/core-qualification.log</code>);</li>
 <li><code>go vet</code> across all packages, and the Go race detector across all
 packages in the release verifier's run
@@ -194,7 +281,7 @@ packages in the release verifier's run
 <li>deterministic regeneration of <code>schema/config-schema.json</code>,
 <code>configs/reference.toml</code>, <a href="../docs/ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a>,
 and the manual pages under <code>packaging/man</code>;</li>
-<li>example configuration validation and removed-key rejection;</li>
+<li>example configuration validation and an unknown key's rejection;</li>
 <li>all nineteen executable suites against the native executable, in three lanes
 (<code>scripts/lib/suites.sh</code>): the parity suite (<code>command</code> and <code>run</code> over <code>system</code>
 and <code>native</code> against the fake device's IOS XE and Linux personas, the
@@ -212,7 +299,7 @@ checked against the event <code>audit.file</code> holds);</li>
 <li><code>scripts/verify-shipped.sh</code> on the executables as shipped: the version
 against <code>VERSION</code>, the checksums, the ELF format, the links, every schema counter the executable
 reports against <code>release-manifest.json</code>, both transports, the helps, the
-configuration examples, the removed keys refused
+configuration examples, an unknown key refused
 (<code>evidence/bundle-qualification.log</code>);</li>
 <li><code>scripts/verify-release.sh</code> end to end, rebuilding with the release
 identity to unchanged checksums, so that its battery ran against the
@@ -224,7 +311,7 @@ from this client's (12) is v0.29.0, whose daemon predates the drain that exits
 and listens on <code>daemon.sock</code>, which this client never reaches; the drain is
 the daemon-upgrade suite's, against a fixture daemon of an older schema and of
 another build. The compatibility example ran before the number was committed,
-beside the released v0.40.0 daemon, started from the released executable of
+beside the released v0.41.0 daemon, started from the released executable of
 the tree's <code>bin/</code> before the rebuild, at this client's IPC schema and of
 another build: the client's <code>daemon status</code> stacked the two builds
 (<code>compatible: false</code>); its run's exercise drained the idle daemon and started
@@ -258,7 +345,7 @@ same bytes, its executables the bundle's <code>CHECKSUMS.sha256</code>, and chec
 <code>scripts/check-deb.sh</code> against it.</li>
 </ul>
 <p>The release verifier had first passed on a clean clone of <code>dev</code> at
-<code>7dfcf45</code> before the number was assigned (the maintainer's release tools
+<code>623fe17</code> before the number was assigned (the maintainer's release tools
 run it there, since a clone has no shipped bytes to check; the logs are kept
 with the maintainer's release evidence). The must-not-appear checks of the
 suites ran enforced throughout.</p>
@@ -275,23 +362,23 @@ suites ran enforced throughout.</p>
 <tbody>
 <tr>
 <td><code>bin/karvi-linux-amd64</code></td>
-<td style="text-align:right">13,025,440</td>
-<td><code>c450be378cd8a999129aa46148d2275145528b96f201027f0cf72930830a4d7c</code></td>
+<td style="text-align:right">13,263,008</td>
+<td><code>d69ff0398676fb9b4fa28749141ff0f4fb2dc881b05fcc9cf9ffafac1d55dfcc</code></td>
 </tr>
 <tr>
 <td><code>bin/karvi-askpass-linux-amd64</code></td>
-<td style="text-align:right">3,924,128</td>
-<td><code>374729cd705955c752d5c783361bc324c43c7dc115cc5e4c61f6984b6fe409cf</code></td>
+<td style="text-align:right">3,932,320</td>
+<td><code>1f22f2938e6b251052acfc36f115d72f0f3db0d7a9d29a8da366cff08f9c58e2</code></td>
 </tr>
 <tr>
 <td><code>bin/karvi-prune-linux-amd64</code></td>
-<td style="text-align:right">3,817,632</td>
-<td><code>20eb5a5891fa334f3ed7771dd97b0cd01a87339f09cd77b6b5ccd35267ab215a</code></td>
+<td style="text-align:right">3,821,728</td>
+<td><code>748f7dacdc72c0051f730ddade7c8795a693ff21d50dd9e00534c0b6fb1c3af5</code></td>
 </tr>
 <tr>
 <td><code>bin/karvi-audit-linux-amd64</code></td>
-<td style="text-align:right">3,973,280</td>
-<td><code>9cfdb01e8434537ccc17d024558abfa6d7104c672d4810d08e491c7261d8c53e</code></td>
+<td style="text-align:right">3,981,472</td>
+<td><code>dc1a7347ea53683b3a2f682949c7cda89dffb1127cc16d4a8937daacd1e02273</code></td>
 </tr>
 </tbody>
 </table>
@@ -322,7 +409,7 @@ release claims. Cisco IOS XE laboratory qualification on real devices was not
 performed and follows on this executable
 (<a href="../docs/DEVICE-QUALIFICATION-RUNBOOK.html"><code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code></a>).</p>
 
-<footer>Generated from <code>release/BUILD-RESULT.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>release/BUILD-RESULT.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

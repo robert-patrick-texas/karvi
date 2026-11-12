@@ -60,8 +60,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -123,8 +123,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -137,8 +137,7 @@
 <main>
 <h1 id="login-transcript-behavior">Login transcript behavior <a class="anchor" href="#login-transcript-behavior" aria-label="Link to this section">#</a></h1>
 <p><code>karvi login --record HOST</code> and <code>karvi login HOST --record</code> are equivalent, and
-<code>--rec</code> is an alias. PATH is given only with <code>=</code>, so <code>karvi login --rec router01</code> records a session with <code>router01</code>. The v0.9.1 spellings
-<code>--record-file</code> and <code>--record-path</code> are not accepted.</p>
+<code>--rec</code> is an alias. PATH is given only with <code>=</code>, so <code>karvi login --rec router01</code> records a session with <code>router01</code>.</p>
 <p>A recorded login runs through a real pseudo-terminal owned by a small parent
 karvi process, the recording wrapper, which uses util-linux <code>script(1)</code>. The
 child login performs configuration, inventory, credential resolution, auditing,
@@ -237,8 +236,10 @@ of the transcript.</p>
 <p>The transcript holds only the stream the device returns, as the terminal
 showed it: device output, echoed characters, and prompts, which show the
 commands sent. Operator keystrokes are not recorded, so a password typed at a
-prompt that does not echo is not written. Karvi's own header, footer, and
-warnings go to the terminal, not the transcript.</p>
+prompt that does not echo is not written. A device's prompt karvi asks the
+operator (a new PIN) is recorded too, as OpenSSH gives it; the answer, not
+echoed, is not. Karvi's own header, footer, and warnings go to the terminal,
+not the transcript.</p>
 <p>When the session ends, karvi rewrites the file once, before taking its SHA-256
 for the metadata. It removes the <code>Script started</code> and <code>Script done</code> lines
 <code>script(1)</code> writes into the file, and renders the bytes between them as the
@@ -273,7 +274,7 @@ day folders of the transcript trees alone: what a session recorded into a
 destination, the names, the two lines, and what the transcript holds for
 the terminal; a change to one changes both.</p>
 
-<footer>Generated from <code>docs/LOGIN-TRANSCRIPTS.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>docs/LOGIN-TRANSCRIPTS.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

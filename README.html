@@ -76,8 +76,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -155,8 +155,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -185,27 +185,26 @@ karvi's own connection, and platform names and their resolution.
 Items still open are listed in <a href="ROADMAP.html"><code>ROADMAP.md</code></a>. The sections below
 describe the behavior of the code as it exists; <code>VERSION</code> names the release.</p>
 <h2 id="release-status">Release status <a class="anchor" href="#release-status" aria-label="Link to this section">#</a></h2>
-<p><a href="CHANGELOG.html"><code>CHANGELOG.md</code></a> lists every release's changes, the breaking ones
-first in each release's block. A daemon serves a client only when its IPC
-schema and its build, the Go build ID of its executable, equal the client's:
+<p><a href="CHANGELOG.html"><code>CHANGELOG.md</code></a> lists each release's new features, bugs fixed,
+and breaking changes, and its numbers. A daemon serves a client only when its
+IPC schema and its build, the Go build ID of its executable, equal the client's:
 after an upgrade the next submission drains an operator's daemon of the older
 build, replacing an idle one in the same invocation and refusing new jobs while
 a busy one finishes its own and exits
-(<a href="docs/OPERATIONS.html#upgrade"><code>docs/OPERATIONS.md</code>, &quot;Upgrade&quot;</a>); since v0.14.0
-the records of a run travel over the socket, the invocation decides the job's
-files on every path, and the configuration keys nothing read are refused. The
-breaking changes of v0.10.0 from v0.9.2 remain in force:</p>
+(<a href="docs/OPERATIONS.html#upgrade"><code>docs/OPERATIONS.md</code>, &quot;Upgrade&quot;</a>). The records
+of a run travel over the socket, the invocation decides the job's files on
+every path, and a configuration key karvi does not know is refused.
+Standing rules:</p>
 <ol>
 <li><code>ssh.host-key-policy</code> accepts <code>accept-new</code> (the default), <code>secure</code>, and
-<code>insecure</code>; <code>auto</code> and <code>default</code> are rejected.</li>
+<code>insecure</code>.</li>
 <li>No OpenSSH connection outlives a device's session: nothing is reused across
 devices or jobs.</li>
 <li><code>karvi daemon stop</code> and <code>karvi daemon restart</code> refuse while jobs are active
 unless <code>--grace</code>, <code>--after=DURATION</code>, or <code>--force</code> is given.</li>
 <li>Every error carries one registered code, listed in
 <a href="docs/ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a>.</li>
-<li>Configuration schema 6; <code>karvi version</code> reports this tree's other schema
-counters.</li>
+<li><code>karvi version</code> reports this tree's schema counters.</li>
 </ol>
 <p>A client drains a daemon of another build at that daemon's own IPC schema and
 kills nothing; job submission stays exact-schema, and a daemon of a newer
@@ -341,6 +340,8 @@ border = &quot;\n&quot;
 dynamic-border-length = 72
 last-border = false
 echo = false
+gather = false
+prefix = false
 
 [display.run]
 header = &quot;! &lt;target&gt; [&lt;address&gt;] platform=&lt;platform&gt; user=&lt;user&gt; backend=&lt;auth-backend&gt; transport=&lt;transport&gt;&quot;
@@ -348,6 +349,11 @@ border = &quot;\n&quot;
 dynamic-border-length = 72
 last-border = false
 echo = false
+gather = false
+prefix = false
+
+[display.gather]
+header = &quot;! &lt;targets&gt; (&lt;count&gt;)&quot;
 
 [display.json]
 indent = 2
@@ -380,10 +386,11 @@ are never cropped or rewritten.</p>
 <p>Generated headers and footers measure visible columns without counting ANSI
 escape sequences. When a generated line exceeds terminal width, karvi first
 moves a trailing <code>artifacts=&lt;artifacts&gt;</code> element to a new line; otherwise it
-splits only between complete template elements. A single element value is never
-cut to fit. <code>--quiet</code> suppresses generated headers, footers, and borders but not
-device output, mandatory warnings, errors, or explicitly requested debug
-messages.</p>
+splits only between complete template elements, and the gathered display's
+group header is never split: the terminal wraps it. A single element value is
+never cut to fit. <code>--quiet</code> suppresses generated headers, footers, and borders
+but not device output, mandatory warnings, errors, or explicitly requested
+debug messages.</p>
 <h2 id="safe-debug-diagnostics">Safe debug diagnostics <a class="anchor" href="#safe-debug-diagnostics" aria-label="Link to this section">#</a></h2>
 <p><code>--debug</code> can appear globally or in login, command/cmd, and run:</p>
 <pre><code class="language-bash">karvi command --debug --host router1 --cmd 'show clock' \
@@ -667,14 +674,14 @@ from source.</li>
 </ul>
 <h2 id="repository-map">Repository map <a class="anchor" href="#repository-map" aria-label="Link to this section">#</a></h2>
 <p>Reusable public packages are <code>inventory</code>, <code>credentials</code>, <code>transform</code>,
-<code>tabular</code>, <code>dispatch</code>, <code>platform</code>, <code>records</code>, and <code>configschema</code>
-(an earlier public <code>transport</code> package was removed). Concrete runtime,
-operating-system, secret, and third-party adapters remain under
-<code>internal/</code>.</p>
+<code>tabular</code>, <code>dispatch</code>, <code>platform</code>, <code>records</code>, <code>configschema</code>,
+<code>credentialpackage</code>, and <code>executionplan</code>.
+Concrete runtime, operating-system, secret, and third-party adapters remain
+under <code>internal/</code>.</p>
 <h2 id="license">License <a class="anchor" href="#license" aria-label="Link to this section">#</a></h2>
 <p>MIT. See <a href="LICENSE.html"><code>LICENSE.md</code></a>.</p>
 
-<footer>Generated from <code>README.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>README.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

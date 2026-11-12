@@ -65,8 +65,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -133,8 +133,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -180,9 +180,7 @@ exec channel a command already sent may still run on the device
 <code>ssh</code> configuration, the askpass socket, and a recorded login's timing log,
 stay until the next admission, daemon start, or login removes them, logged
 <code>scratch_abandoned_removed</code> (in <code>daemon.log</code>, or under <code>--debug</code>); a recorded
-login's transcript keeps the bytes <code>script(1)</code> wrote. An <code>ssh</code> still holding
-a device's session under init after an earlier release was killed is that
-release's; end it by its pid.</p>
+login's transcript keeps the bytes <code>script(1)</code> wrote.</p>
 <h2 id="master-refused-session-request-permission-denied"><code>Master refused session request: Permission denied</code> <a class="anchor" href="#master-refused-session-request-permission-denied" aria-label="Link to this section">#</a></h2>
 <p>This diagnostic indicates that an already authenticated OpenSSH master could
 not open an additional session channel. It is not evidence that the password
@@ -223,7 +221,7 @@ timeout appropriate for the device, inspect the retained command record, and
 avoid enabling paging. The production large-output spooling gate remains open
 in this engineering candidate.</p>
 
-<footer>Generated from <code>docs/COMMAND-TROUBLESHOOTING.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>docs/COMMAND-TROUBLESHOOTING.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

@@ -55,8 +55,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -119,8 +119,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -187,8 +187,8 @@ it gains, the rule, the executed example, what was not taken.</p>
 <p>Every distinct error cause has its own registered code in
 <code>internal/errorcodes</code>; a test fails the build when a code is emitted but not
 registered or registered but not emitted. A configuration key is a row of
-the registry in <code>configschema</code>, with its range on the row; a removed key is
-a row of the removed-keys table and is refused from every layer.</p>
+the registry in <code>configschema</code>, with its range on the row; a key that leaves
+the registry is refused as any unknown key.</p>
 <p>A script reads JSON through <code>scripts/lib/json.sh</code> (<code>json_get</code>, <code>json_has</code>,
 <code>json_is</code> for one document; <code>jsonl_records</code> for a <code>.jsonl</code> stream's command
 records, one line each, the values asked for tab-separated) and never by
@@ -232,7 +232,7 @@ anything git does not track. Breaking changes are accepted before 1.0: a
 renamed option or removed key is not aliased, and every build replaces the
 daemon. <a href="ROADMAP.html"><code>ROADMAP.md</code></a> lists what is open, in order.</p>
 
-<footer>Generated from <code>CONTRIBUTING.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>CONTRIBUTING.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

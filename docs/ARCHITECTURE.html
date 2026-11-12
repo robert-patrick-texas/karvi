@@ -67,8 +67,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -137,8 +137,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -271,14 +271,6 @@ transform. The loader may not import a backend package (the job runner's and
 the daemon's boundary tests), so the portable-name rule the loader, the <code>env:</code>
 references, and the credential helper's parser share is <code>internal/envname</code>
 (<code>Portable</code>).</p>
-<p>A key the registry once held and has since dropped is refused at load from
-every layer: <code>configload/removed.go</code> is the one table of removed keys
-(path, environment name, release, code, hint), consulted by the file and
-<code>--set</code> path through <code>removedKeyByPath</code> and by the environment path through
-<code>removedKeyByEnvironment</code>, before the registry index would call the name
-unknown. The removed content itself, with diff blocks and the commit that
-still holds it, is logged in the archived <code>REMOVED-LOG.md</code>; nothing else in the
-tree names a removed key.</p>
 <p>A registry row's range is data on the row: <code>Min</code> and <code>Max</code> literals in
 the row's syntax (a leading <code>&gt;</code> or <code>&lt;</code> for an exclusive bound) and
 <code>ZeroDisables</code> where 0 means off. <code>configload.validateRanges</code>
@@ -286,9 +278,9 @@ the row's syntax (a leading <code>&gt;</code> or <code>&lt;</code> for an exclus
 <code>config_value_out_of_range</code>; the rules that relate two keys stay
 hand-written after it. The artifact and the reference carry the bounds,
 so a document that states a range copies the row.</p>
-<p>Configuration schema 6 retains <code>name.address-family-preference</code> as the one
-resolver mechanism. CLI family flags are represented as high-precedence
-configuration writes, so locks and provenance apply identically:</p>
+<p><code>name.address-family-preference</code> is the resolver's one address-family
+setting. CLI family flags are represented as high-precedence configuration
+writes, so locks and provenance apply identically:</p>
 <pre><code class="language-text">--ipv4 / --4 -&gt; name.address-family-preference=ipv4
 --ipv6 / --6 -&gt; name.address-family-preference=ipv6
 </code></pre>
@@ -382,31 +374,24 @@ slot's executable. The executor sees only a <code>platform.Driver</code>.
 <p>The native transport admits every built-in platform; admission does not
 constitute platform qualification.</p>
 <h3 id="one-shape-of-the-source">One shape of the source <a class="anchor" href="#one-shape-of-the-source" aria-label="Link to this section">#</a></h3>
-<p>Every build carries the native transport: <code>internal/transport/native</code> is
-karvi's own <code>x/crypto/ssh</code> connection, <code>internal/buildinfo</code> lists it, and
-<code>command</code> and <code>run</code> resolve their default to it. Earlier a build tag,
-<code>scrapligo_v1</code>, selected between this shape and a dependency-free one
-(<code>build/go.preview.mod</code>) whose executable reported only <code>system</code>; releases
-through v0.11.0 shipped that preview, v0.12.0 shipped the native executable
-with the tag still in place, and the tag and the preview module were then
-removed. Through v0.36.0 the connection passed through scrapligo's transport
-wrapper, behind an import boundary <code>scripts/verify-release.sh</code> checked; the
-wrapper, the module, the boundary, and the registry keyed by implementation
-ID then went (<a href="EXAMPLES.html#82-the-native-transport-without-scrapligo-2026-10-27"><code>docs/EXAMPLES.md</code>, chapter
-82</a>). A
+<p>Every build carries the native transport: <code>internal/transport/native</code> is karvi's
+own <code>x/crypto/ssh</code> connection (<a href="EXAMPLES.html#82-the-native-transport-without-scrapligo-2026-10-27"><code>docs/EXAMPLES.md</code>, chapter
+82</a>),
+<code>internal/buildinfo</code> lists it, and <code>command</code> and <code>run</code> resolve their default to
+it. No build tag selects a transport, so every build has this one shape. A
 device that selects <code>native</code> never falls back to OpenSSH.</p>
 <h2 id="daemon-and-storage">Daemon and storage <a class="anchor" href="#daemon-and-storage" aria-label="Link to this section">#</a></h2>
 <p>The daemon is per effective UID, uses two owner-only Unix sockets in the
-<code>socket</code> subtree, and checks peer credentials on both. IPC schema 12 carries
+<code>socket</code> subtree, and checks peer credentials on both. The IPC carries
 <code>prepare_job</code>, <code>commit_job</code>, <code>follow_job</code>, and <code>cancel_job</code> on <code>d.sock</code> beside
 the lifecycle operations <code>ping</code>, <code>status</code>, <code>drain</code>, and <code>stop</code>, and the
 credential package crosses <code>c.sock</code> as one length-prefixed frame per connection
-under a one-use token; <code>submit_job</code> is gone. The daemon holds at most 128
-preparations for ten minutes each, retains 1,024 commit receipts for idempotent
-replay, logs one <code>slog</code> line per request outcome to <code>logs/daemon.log</code> with the
-token redacted, and runs every job under its own configuration and operator, but
-for what the plan carries from the invocation (the job's files, the ICMP gate,
-the timeouts and the command byte limit, each command's own among them, and the
+under a one-use token. The daemon holds at most 128 preparations for ten
+minutes each, retains 1,024 commit receipts for idempotent replay, logs one
+<code>slog</code> line per request outcome to <code>logs/daemon.log</code> with the token redacted,
+and runs every job under its own configuration and operator, but for what
+the plan carries from the invocation (the job's files, the ICMP gate, the
+timeouts and the command byte limit, each command's own among them, and the
 halt rule). It stops itself after <code>daemon.shutdown-idle-timer</code> (default ten
 minutes; <code>Server.IdleTimeout</code>) with no active job, no live preparation, and no
 request but <code>ping</code> and <code>status</code>: the check <code>stopIfIdle</code> runs on the minute
@@ -510,21 +495,18 @@ writes under its own lock, uses the same constant. The layout is for the
 operator who opens the file; no reader may depend on it, which is why the
 scripts parse (<code>scripts/lib/json.sh</code>) and nothing digests a <code>.json</code>
 file's bytes.</p>
-<p><strong>Permissions are set only on what karvi creates.</strong> karvi gives a mode to
-the files, directories, and
-sockets it makes and never changes the mode of anything that already
-exists; where an existing file's mode is unacceptable it refuses with a
-registered code and changes nothing. A survey of every <code>Chmod</code> on that
-date found two exceptions, both since removed: the trust store under
-<code>accept-new</code> with an explicit path (<code>internal/hostkey/policy.go</code>,
-<code>ensureTrustFile</code>, which now creates with <code>O_EXCL</code> and sets the mode
-through the new file's handle, and otherwise only validates), and the
-password helper's directory (<code>internal/askpass/askpass.go</code>), which is the
-scratch directory and so, with <code>tempdir</code> set, the operator's own. The
-pattern for a directory is <code>osutil.MakeDirectories</code>: <code>Mkdir</code>, then <code>Chmod</code>
-on what that <code>Mkdir</code> made, existing components untouched. A new <code>Chmod</code>
-on a path, as opposed to a handle karvi has just created, is a review
-question.</p>
+<p><strong>Permissions are set only on what karvi creates.</strong> karvi gives a mode to the
+files, directories, and sockets it makes and never changes the mode of anything
+that already exists; where an existing file's mode is unacceptable it refuses
+with a registered code and changes nothing. The trust store under <code>accept-new</code>
+(<code>internal/hostkey/policy.go</code>, <code>ensureTrustFile</code>) is created with <code>O_EXCL</code> and
+its mode set through the new file's handle; a store that exists is only
+validated. The password helper's directory (<code>internal/askpass/askpass.go</code>) is
+the scratch directory, with <code>tempdir</code> naming a path one of the operator's
+choosing: a missing one is made 0700 and an existing one is left as it is. The
+pattern for a directory is <code>osutil.MakeDirectories</code>: <code>Mkdir</code>, then <code>Chmod</code> on
+what that <code>Mkdir</code> made, existing components untouched. A new <code>Chmod</code> on a path,
+as opposed to a handle karvi has just created, is a review question.</p>
 <p>Retention is outside the daemon: <code>karvi-prune</code> (<code>cmd/karvi-prune</code>,
 <code>internal/prune</code>) is one executable behind the per-operator timer, the site's
 root timer, the cron script, and the hand run, and it reads no configuration. It
@@ -698,9 +680,7 @@ places: the target's <code>source_digest</code>, which is the source file's own,
 and the plan's <code>DeviceProjection</code> (<code>excludedDeviceFields</code> in
 <code>executionplan/projection_test.go</code>), because credentials are resolved on
 the client and the daemon has no use for the pin; the key a pinned device
-took is the grant's <code>matched_on.credkey</code>. (An inventory digest over every
-loaded device was recorded and never read until plan schema 4 removed it;
-the archived <code>REMOVED-LOG.md</code>.) The planner's device view
+took is the grant's <code>matched_on.credkey</code>. The planner's device view
 (<code>CredentialPlanner.deviceView</code>) starts from the inventory device, so the
 pin reaches the resolver without passing through the plan.</p>
 <p>The pin itself is two small things. <code>credentials.Keyed</code>
@@ -754,8 +734,8 @@ commit answers with the receipt the moment the job is accepted (<code>jobexec.Ru
 written), and the job runs on its own goroutine. The daemon keeps a bounded job
 table (<code>internal/daemon/jobs.go</code>): the receipt, the path of the canonical
 <code>commands.jsonl</code>, the durable edge, the outcome when done, and the live
-subscribers. It holds no record history. <strong>Since daemon IPC schema 8 the records
-themselves travel in the follow stream</strong>: <code>follow_job</code> validates the cursor, a
+subscribers. It holds no record history. <strong>The records themselves travel in
+the follow stream</strong>: <code>follow_job</code> validates the cursor, a
 sequence, sends <code>FollowStart</code> (the job's folder, the edge, and the first
 sequence the stream carries), subscribes the follower, catches it up from the
 daemon's own file to the edge at subscription by reading each line and sending
@@ -779,11 +759,13 @@ that writes no <code>commands.jsonl</code> (<code>job.open</code> keeps no path)
 start's <code>first_sequence</code> is the edge plus one, the follower that started with
 the job had every record live, and a later or resumed follower prints one line
 naming the records that were before it and are not kept (<code>app.NotKeptLine</code>). The
-client (<code>internal/app/follow.go</code>) opens no file: it checks each frame's
-continuity and renders its record through <code>jobexec.RunRenderer</code>. <code>--detach</code>
-returns at acceptance with the receipt; <code>--follow=false</code> follows for the
-terminal only. <code>karvi job follow JOB-ID</code> runs the same follow loop from the zero
-cursor for a job named by its ID, so the daemon catches it up from the file and
+client (<code>internal/app/follow.go</code>) opens no file while it follows: it checks each
+frame's continuity and renders its record through <code>jobexec.RunRenderer</code>; a
+gathered display reads its groups' answers back at the job's end from
+<code>commands.jsonl</code>, opened with the folder follow's checks. <code>--detach</code> returns at
+acceptance with the receipt; <code>--follow=false</code> follows for the terminal only.
+<code>karvi job follow JOB-ID</code> runs the same follow loop from the zero cursor for a
+job named by its ID, so the daemon catches it up from the file and
 feeds it live. A job no daemon of the caller's holds is followed from its
 directory, located by the unique ID under the output root
 (<code>internal/app/jobdir.go</code>, <code>FollowJobDirectory</code>), through the same renderer:
@@ -851,7 +833,7 @@ rehearsals detect the capability without probing and report it as
 device from the <code>display.ping.header</code> template, with details and the notice
 under <code>--debug</code>.</p>
 
-<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

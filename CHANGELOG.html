@@ -47,6 +47,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0420---2026-11-12">0.42.0 - 2026-11-12</a></li>
 <li><a href="#0410---2026-11-08">0.41.0 - 2026-11-08</a></li>
 <li><a href="#0400---2026-11-05">0.40.0 - 2026-11-05</a></li>
 <li><a href="#0390---2026-11-02">0.39.0 - 2026-11-02</a></li>
@@ -81,8 +82,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -131,6 +132,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0420---2026-11-12">0.42.0 - 2026-11-12</a></li>
 <li><a href="#0410---2026-11-08">0.41.0 - 2026-11-08</a></li>
 <li><a href="#0400---2026-11-05">0.40.0 - 2026-11-05</a></li>
 <li><a href="#0390---2026-11-02">0.39.0 - 2026-11-02</a></li>
@@ -165,8 +167,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -178,6 +180,554 @@
 </nav>
 <main>
 <h1 id="changelog">Changelog <a class="anchor" href="#changelog" aria-label="Link to this section">#</a></h1>
+<p>A release's block holds its entries under New features, Bugs fixed, and
+Breaking changes, each heading there with &quot;None.&quot; when it has no entry, and
+under Other notes, when there is one, the changes to the suites, the tests,
+and the build's tooling that reach no site. A table of the release's numbers
+ends the block: each value that moved since the release before (Go, a module
+<code>go.mod</code> requires, a schema counter), and two counts, &quot;Lines of Code: Go&quot;,
+the lines of the tracked <code>.go</code> files outside <code>vendor/</code>, tests included, and
+&quot;Lines of Code: Other&quot;, the lines of the other tracked programs outside
+<code>vendor/</code> (a file whose first line starts <code>#!</code>, or one named <code>Makefile</code>).
+Every value the table does not show is the previous release's; the release
+notes and the release's <code>release/BUILD-RESULT.md</code> show every value. The
+block headed Unreleased takes its table, and &quot;None.&quot; under an empty heading,
+when the release is made. The blocks before the first table keep the form
+they were published in.</p>
+<h2 id="0420---2026-11-12">0.42.0 - 2026-11-12 <a class="anchor" href="#0420---2026-11-12" aria-label="Link to this section">#</a></h2>
+<h3 id="new-features">New features <a class="anchor" href="#new-features" aria-label="Link to this section">#</a></h3>
+<ul>
+<li><strong>A run's text display can be gathered: <code>--gather</code>,
+<code>display.run.gather</code>.</strong> Set true (false by default), a run's text display
+is shown at the job's end, every block at once: a block per requested
+command, headed by its marker line (<code>! show version</code>, <code>! --sudo COMMAND</code>),
+and in it a group per answer, the devices whose records have the same
+status, error code, and output (on the exec channel the same exit status,
+signal, and stderr too) under one header, <code>display.gather.header</code>, by
+default <code>! &lt;targets&gt; (&lt;count&gt;)</code> with the devices folded into one <code>--tl</code>
+value (<code>! router[01-04,10] (5)</code>), the succeeded groups first, the largest
+first. A failed group shows its output, then its failure line, the message
+too when the group is one device; a failed session-init command is a block
+of its own ahead of the others, <code>! session_init=PROFILE: COMMAND</code>. While
+the job runs the client holds no output, each group's place in the job's
+<code>commands.jsonl</code> and each device's name; at the end it reads each group's
+answer back from that file, streamed as today's display streams a spooled
+answer. It applies to <code>run</code> and its stream lines and <code>crun</code>, in process
+and through the daemon, and to <code>job follow</code> through the daemon or from the
+job's folder, each by the configuration of the invocation showing it, so
+<code>job follow</code> with the key set gathers a job run without it. <code>command</code>
+gathers under its own key, <code>display.command.gather</code>, as
+<code>display.command.echo</code> mirrors <code>display.run.echo</code>; <code>job follow</code> shows any
+job, a command's too, by the <code>display.run</code> keys. Under <code>--format jsonl</code> or
+<code>json</code>, under <code>--live</code>, under <code>--nof</code>, and where <code>output.persist-command</code>
+or <code>output.files.commands-jsonl</code> is false the display is the ordinary one;
+under <code>--follow=false</code> nothing is shown and nothing is read back.
+<code>--gather</code> sets the key for the invocation, and <code>--gather=false</code> turns a
+site's true off, as <code>--order</code> sets <code>dispatch.order</code> (a site's lock on the
+key refuses either form, and <code>--set</code> beats it): on <code>run</code>, <code>crun</code>, a
+stream's lines, and <code>job follow</code> (any job, a command's too), and on
+<code>command</code> its own key. On a stream line a word alone that begins a
+directive is never an option's abbreviation: <code>--ga</code>, <code>--gather</code>, and
+<code>--g=true</code> are the option, and a <code>--g</code> line, perhaps a mistyped <code>--go</code>, is
+dropped as <code>cli_option_ambiguous: --g is ambiguous in stream: --gather, --go</code> (a bare <code>--se</code> names <code>--select-platform, --sendit</code>). The option is
+refused, <code>gather_option_conflict</code> (exit 4), beside what leaves the gathered display nowhere to show it or
+nothing to read back: <code>--format jsonl</code> or <code>json</code>, <code>--echo</code>, <code>--detach</code>,
+<code>--follow=false</code>, and <code>--nof</code>, and a configuration that keeps no
+<code>commands.jsonl</code>, the key named with where it was set (<code>--gather and output.persist-command = false at /etc/karvi/config.toml:12 are mutually exclusive; --of</code>, or <code>output.files.commands-jsonl = false</code>), <code>; --of</code> only
+where <code>--of</code> would take effect (not after a <code>--set</code> of the key, which
+beats it, nor under a site's lock); beside <code>--live</code> it is
+<code>live_option_conflict</code>. <code>--dry-run</code> and <code>--exercise</code> take it, a rehearsal
+of the real line, and the key set true is never refused. On <code>job follow</code>
+it is refused beside <code>--format jsonl</code> or <code>json</code> and <code>--echo</code>, and for a
+job that kept no <code>commands.jsonl</code>, before anything is shown, the job
+untouched: <code>gather_option_conflict: --gather needs the job's commands.jsonl; job ID kept none (output.files.commands-jsonl was false)</code>,
+<code>(output.persist-command was false)</code> for a job without a folder; the key
+set true shows such a job as before. A <code>commands.jsonl</code> that cannot be
+read at the end, or whose line is no longer the answer the job recorded
+(its device, command, status, error, output digest, or an exec command's
+exit and stderr digest differ), is <code>run_output_records_unreadable</code>, exit
+111, and an answer whose bytes do not match the record's digest, short or
+long (a long one read through once for the check before it is streamed),
+<code>run_output_digest_mismatch</code>, exit 111, the two digests stacked, found
+before any of its group is shown: through the daemon the job is unaffected,
+and the line before the error says so, <code>job ID ended exit=N; artifacts DIR</code>;
+under <code>--no-daemon</code> the job's summary and scoreboard carry the exit, as a
+footer that cannot be written does. While it waits, when standard error is a
+terminal (judged by itself, as colour is), one line there, <code>gather: done=N/M fail=F</code>, job list's DONE and FAIL over the job's devices, is drawn as the
+display starts, rewritten as each device ends, other lines on standard error
+written above it, and cleared before the blocks; none is written to a pipe
+or a file, or under <code>--quiet</code>, and it is drawn only while karvi is the
+terminal's foreground job and the terminal is wider than the line (a job
+sent to the background writes none over the shell). A Ctrl-C stops the
+display at once: while the job runs nothing gathered is shown (in process
+the job is cancelled and its footer follows; through the daemon the job
+continues, as before, and the line that says so names <code>karvi job follow --gather JOB-ID</code>, on <code>job follow</code>'s own interrupt too, plain under a site's
+lock on the key), and during the read-back at the end the blocks stop
+between pieces, in process (<code>--no-daemon</code>, <code>command</code>) the footer after with
+exit 113, through the daemon the line <code>job ID ended exit=N; artifacts DIR</code>
+and then <code>cancelled: the display of job ID was interrupted</code>, exit 113;
+<code>karvi job follow --gather JOB-ID</code> shows the job whole later.</li>
+<li><strong>Line mode: <code>--prefix</code>, <code>display.run.prefix</code>.</strong> Set true (false by
+default), a run's text display writes every line as <code>NAME: line</code>, the
+device's name first, as pdsh and clush write it, an empty line <code>NAME: </code>
+too, so <code>grep</code> and <code>sort</code> read a fleet's answers by device: the answer
+(stdout then stderr on the exec channel), the <code>--echo</code> line, and the
+failure and not-attempted lines without the <code>target=</code> the name repeats
+(<code>router09: karvi: status=connection_error error=...</code>, <code>router09: karvi: status=not_attempted_prior_command_failure command=2/2</code>). No device
+header, no border, and no ICMP gate's line (nor its <code>--debug</code> lines), as
+the gathered display: a skipped device shows by its failure line. The
+records stream as written, nothing held; an answer is prefixed as it
+streams, a long one never held whole. With <code>display.run.gather</code> each line
+of a group is under the group's folded names, <code>edge[1-2],router[01-04,10]: line</code>, the block's marker unprefixed, no group header. karvi's own lines
+(the marker, and by the default templates the footer and a <code>crun</code>'s
+collection line after it) begin with <code>!</code>. At a terminal the name is in the
+target colour, <code>: </code> in the label colour, a failure line in the error
+colour, the device's output uncoloured. It reaches the paths
+<code>display.run.gather</code> reaches, each by the configuration of the invocation
+showing it; <code>command</code> has its own key, <code>display.command.prefix</code>, and <code>job follow</code> shows any job by <code>display.run.prefix</code>. Under <code>--format jsonl</code> or
+<code>json</code>, and under <code>--live</code>, it has no effect. <code>--prefix</code> sets the key for
+the invocation, and <code>--prefix=false</code> turns a site's true off, on the words
+<code>--gather</code> reaches, <code>command</code> under its own key; it is refused,
+<code>prefix_option_conflict</code> (exit 4), beside what line mode cannot take:
+<code>--format jsonl</code> or <code>json</code>, <code>--border</code>, <code>--noborder</code>, <code>--detach</code>, and
+<code>--follow=false</code>; beside <code>--live</code> it is <code>live_option_conflict</code>. <code>job follow --prefix</code> shows any job so, a command's too, refused beside
+<code>--format jsonl</code> or <code>json</code>, <code>--border</code>, and <code>--noborder</code>. Line mode needs
+no file, so <code>--prefix</code> is taken beside <code>--nof</code>, and beside <code>--echo</code> its
+line prefixed; the key set true is never refused.</li>
+<li><strong><code>karvi login</code> asks the operator a device's prompt karvi does not answer.</strong>
+A change prompt, a prompt no list matches, and a second ask of the username
+or the password (the prompt rule, Bugs fixed) are asked at the terminal, not
+echoed, with the credential prompts' editor, any number in a round or across
+rounds, each shown as OpenSSH gives it (<code>(jsmith@router1) Enter new PIN: </code>);
+the line typed goes to OpenSSH alone, never stored or logged. So a new PIN
+(the PIN, its confirmation, a passcode of the new PIN) or an expired
+password's change over keyboard-interactive is typed at the login, and a
+refused password is asked again at the terminal, as at plain <code>ssh</code>; karvi
+sends the credential's username and password each at most once. Ctrl-C or
+a signal ends the login with <code>credential_prompt_interrupted</code> (exit 113),
+another failure of the prompt with <code>credential_prompt_unavailable</code> (exit
+6), whose descriptions say so; Ctrl-D on an empty line sends an empty
+answer, as plain <code>ssh</code> does. The answer has no askpass bound
+(<code>KARVI_ASKPASS_LOGIN=1</code> tells the helper it serves a login); the device's
+own limit applies. OpenSSH's own questions stay
+refused. Without a controlling terminal, and in <code>command</code>, <code>run</code>, <code>crun</code>,
+and <code>stream</code>, a prompt is answered by the rule alone.</li>
+</ul>
+<h3 id="bugs-fixed">Bugs fixed <a class="anchor" href="#bugs-fixed" aria-label="Link to this section">#</a></h3>
+<ul>
+<li>
+<p><strong>A followed job's display failing at its end no longer says the job
+continues.</strong> Through the daemon (<code>run</code>, <code>crun</code>, <code>job follow</code>), a display
+that failed once the job had ended, its footer or summary line not written
+to a closed standard output, printed <code>job ID continues in the daemon; artifacts DIR</code> before the error; it now prints <code>job ID ended exit=N; artifacts DIR</code> with the job's exit. <code>job follow</code> from the job's folder,
+which printed no line before the same failure, prints it too.</p>
+</li>
+<li>
+<p><strong><code>crun.after</code> runs when a <code>crun</code>'s display fails at the job's end
+through the daemon.</strong> A <code>crun</code> followed through the daemon whose display
+failed once the job had ended (its footer, or now its gathered blocks,
+not written to a closed standard output, as under <code>karvi crun … | head</code>)
+skipped the site's <code>crun.after</code> program, though the collection was
+complete; it now runs, told the invocation's exit (<code>KARVI_EXIT=111</code>), as
+under <code>--no-daemon</code>. A standard output closed while the job still runs
+ends the follow as before: the job continues in the daemon, and no
+program runs.</p>
+</li>
+<li>
+<p><strong>A job whose <code>failed-devices.txt</code> cannot be written no longer leaves its
+record files open.</strong> At the job's end the store returned at that failure
+without closing <code>commands.jsonl</code> and <code>errors.jsonl</code>, so the daemon kept two
+descriptors open for each such job until it ended. It now closes every
+file and reports the first failure, as before (<code>output_store_close_failed</code>).</p>
+</li>
+<li>
+<p><strong><code>job follow</code> from a job's folder names a gone <code>commands.jsonl</code> once.</strong>
+The error read <code>open PATH: open PATH: no such file or directory</code>; it reads
+<code>open PATH: no such file or directory</code>.</p>
+</li>
+<li>
+<p><strong>A failed command's record names its error code once.</strong> A command
+whose own run failed with a coded cause (its session lost, among others)
+kept the code at the head of its record's message, so the display's
+failure line read <code>error=command_session_lost: command_session_lost: the device session ended</code>; the message is now the cause alone, as every
+other failure record's is: <code>error=command_session_lost: the device session ended</code>.</p>
+</li>
+<li>
+<p><strong><code>job follow</code> from a job's folder names a <code>summary.json</code> it cannot open
+once.</strong> The error read <code>read PATH: open PATH: permission denied</code>; it reads
+<code>open PATH: permission denied</code>.</p>
+</li>
+<li>
+<p><strong><code>job follow</code> refuses <code>--border</code> and <code>--noborder</code> together.</strong> It took
+both, <code>--noborder</code> silently winning, where <code>run</code> and <code>command</code> refuse
+the pair; it now refuses it as they do, <code>border_options_conflict: --border and --noborder are mutually exclusive</code> (exit 4), before any other check.</p>
+</li>
+<li>
+<p><strong>A followed job without a folder names <code>output.persist-command</code> in its
+not-kept warning.</strong> Through the daemon, a follow of a job run with <code>--nof</code>
+(or under <code>output.persist-command = false</code>), which keeps no folder, warned
+<code>records 1 to N were before this follow and are not kept (output.files.commands-jsonl is false)</code>, naming a key the job did not
+set; it now ends <code>(output.persist-command is false)</code>. A job with a folder
+that kept no <code>commands.jsonl</code> keeps the first wording.</p>
+</li>
+<li>
+<p><strong>An interrupted <code>crun</code> no longer warns that its <code>crun.after</code> &quot;was
+interrupted after 0s&quot;.</strong> A <code>crun</code> run in process (<code>--no-daemon</code>) and
+interrupted before its hook started, while the job ran or during its
+display, kept its collection summary, so the hook was asked for under the
+interrupted invocation, where it could not start: karvi warned
+<code>crun_after_failed: PATH was interrupted after 0s</code>, and the audit held a
+<code>crun.after</code> event, outcome <code>fail</code>, <code>exit_code</code> 0, for a hook that never
+ran. An interrupt that comes before the hook starts now runs none, with no
+warning and no audit event, on either path, as through the daemon. A
+Ctrl-C while the hook runs still ends it (<code>was interrupted after Ns</code>), and
+a hook that cannot start still warns.</p>
+</li>
+<li>
+<p><strong><code>run --exercise</code> under <code>output.persist-command = false</code> names where the
+key was set, and offers <code>--of</code> only where it works.</strong> The refusal always
+read <code>run_mode_conflict: --exercise with output.persist-command = false: the exercise report is a file in the job folder; --of</code>, so after a <code>--set</code>
+of the key, which beats <code>--of</code>, <code>--of</code> gave the same line again, and under
+a site's lock on the key <code>--of</code> was refused itself (exit 3). It now names
+the key's source as <code>--gather</code>'s refusal does, <code>... = false at SOURCE: the exercise report is a file in the job folder</code> (a file's line, a <code>KARVI__</code>
+variable, <code>--set[N]</code>), and ends <code>; --of</code> only for a file or a <code>KARVI__</code>
+variable with the key not locked.</p>
+</li>
+<li>
+<p><strong><code>karvi-command(1)</code> names <code>command</code>'s footer key.</strong> Its OUTPUT section
+said the display ends with <code>display.run.footer</code>; it ends with
+<code>display.command.footer</code> (a <code>job follow</code> of a command job ends with
+<code>display.run.footer</code>).</p>
+</li>
+<li>
+<p><strong>The native transport reads <code>ssh.keyboard-interactive-authentication</code>
+and <code>ssh.password-authentication</code>.</strong> Set false, either left its method out
+on the system transport alone: the native transport, the default for
+<code>command</code> and <code>run</code>, offered both beside a password, so a site with both
+off still sent the password. Each now leaves its method out on both SSH
+transports: with keyboard-interactive off the session logs in by
+<code>password</code>, and with both off the keys alone are offered, so a credential
+with a password and no key fails with <code>authentication_failed</code> (exit 108).
+Their documentation (<code>config show --explain</code>) says what each does in place
+of &quot;At least one auth mechanism must remain.&quot; and &quot;Supports network-device
+challenge prompts.&quot;</p>
+</li>
+<li>
+<p><strong>A prompt gets the username or the password only where it asks for one,
+each once per connection, on both SSH transports; a change of a secret ends
+the connection outside a login.</strong> The native transport answered every
+keyboard-interactive prompt with the password, a <code>Username:</code> prompt among
+them; the system
+transport's askpass broker answered any prompt naming a password or
+passcode with the password, a device's <code>New password:</code> among them. Both
+now answer by one rule, three lists of patterns matched case-insensitively
+in order:</p>
+<ul>
+<li>a prompt asking to change a secret (<code>new</code>, <code>next</code>, <code>re-?enter(ed)?</code>,
+<code>re-?typed?</code>, <code>(re)?confirm(ed)?</code>, <code>verify</code>, <code>repeat(ed)?</code>, <code>again</code>,
+<code>once more</code>, <code>chang(e|ed|es|ing)</code>, <code>renew(ed)?</code>,
+<code>generat(e|es|ed|ing)</code>, <code>creat(e|ed)</code>, <code>\(y/n\)</code>, <code>\[y/n\]</code>,
+<code>yes/no</code>) ends the connection before any answer in its round with the
+new code <code>authentication_change_requested</code> (exit 108), which quotes the
+prompt; no other method is tried after it (the system transport ends
+OpenSSH at the prompt, which would otherwise send an empty answer, then
+an empty password);</li>
+<li>a prompt naming <code>user</code> (<code>[\w-]*user[\w-]*</code>), a login (<code>log ?[io]n</code>),
+or a name (<code>name\s*:</code>) gets the username;</li>
+<li>one naming a password (<code>passw\w*</code>), passcode, passphrase, <code>pass\s*:</code>,
+PIN, token(code), code, or OTP gets the password (<code>PIN:</code> and <code>Token:</code>
+among them);</li>
+<li>any other an empty answer.</li>
+</ul>
+<p>Each pattern is a word of its own, so a device named in a prompt
+(<code>Password for repeater1:</code>, <code>pin-gw1</code>) is not a field's word; <code>user</code> alone
+is found inside a word. The askpass broker answers only a prompt beginning
+with OpenSSH's <code>user@host</code>, a device's, and refuses OpenSSH's own questions
+(a key's passphrase, a FIDO or PKCS#11 PIN, user presence, a password
+change). Each field is answered at most once per connection on both SSH
+transports (the broker answered only the first prompt OpenSSH asked,
+OpenSSH every later one empty): <code>Username:</code> then <code>Password:</code> logs in, and a
+second ask of either ends the connection, the device getting nothing in
+that round, with <code>authentication_failed: device refused password</code> (or
+<code>username</code>, exit 108). So a refused <code>Password:</code> sends
+the password once, the password method not tried with it (the native
+transport sent it twice), and a change prompt at any position, a later
+round's included, ends the connection over the system transport too. A
+request to the broker without its token (<code>askpass_auth_failed</code>) or one it
+cannot decode (<code>askpass_request_invalid</code>) ends OpenSSH, and the session
+fails with that code (exit 108, record <code>authentication_error</code>); neither code
+reached a session before. A <code>karvi login</code>'s broker serves until the login
+ends, five minutes at most, so a stray request in that time ends it. In a
+login the operator answers a change prompt, a prompt no list matches, and a
+second ask instead (New features).</p>
+</li>
+<li>
+<p><strong>A signal ends a credential prompt at once.</strong> A SIGTERM or SIGINT sent to
+karvi at a credential prompt ended the prompt only at the next key typed:
+karvi's terminal calls had put the terminal in blocking mode, where the
+prompt's read deadline does nothing. The prompt now ends at the signal,
+<code>credential_prompt_interrupted</code> (exit 113).</p>
+</li>
+<li>
+<p><strong>In a stream, a credential prompt after a Ctrl-D is shown and read.</strong>
+After Ctrl-D on an empty line at one job's credential prompt
+(<code>credential_prompt_unavailable</code>), each later job's prompt ended at once,
+not shown, with the same code: the line editor kept the Ctrl-D unread. The
+editor now starts afresh after it.</p>
+</li>
+<li>
+<p><strong>A daemon started while another stops keeps its socket.</strong> A daemon
+stopping closes its listeners at once but removes its sockets and state
+file only after its jobs' records are written, up to
+<code>daemon.forced-grace-seconds</code> (two seconds at least). A start in that
+window (<code>daemon start</code>, a run launching its daemon, <code>daemon restart</code>)
+removed the stopping daemon's socket as stale and bound its own, and the
+stopping daemon's exit then removed the new daemon's sockets and state
+file: the new daemon ran unreachable, ended only by its pid. Each daemon now
+holds a lock for its life, <code>d.lock</code> beside its socket, taken before its
+start's sweeps and its sockets and released at its exit, a kill included.
+A start that finds it held by a daemon still stopping waits for it, up to
+<code>daemon.start-timeout</code>, then <code>daemon serve</code> exits <code>daemon_already_running: daemon still stopping: pid N</code> (exit 1); a signal ends the wait. A
+launching client then fails, <code>daemon_start_failed</code> (exit 112), the refusal
+in <code>daemon.log</code>.
+One beside a running daemon is refused at once, as before. <code>daemon stop</code>
+and <code>daemon restart</code> wait for the stopped daemon's pid to end or its socket
+file to go, not for the socket file alone, which a daemon started meanwhile
+now takes at once.</p>
+</li>
+<li>
+<p><strong><code>daemon stop</code> waits as long as the daemon may.</strong> The client waited
+<code>daemon.start-timeout</code> plus its own <code>daemon.forced-grace-seconds</code> for the
+daemon to exit, while the daemon waits for its jobs' records up to its
+start's forced-grace, two seconds at least: at <code>start-timeout = &quot;1s&quot;</code> and
+forced-grace 0 a <code>daemon stop --force</code> exited <code>daemon_stop_timeout</code> (exit
+106) after 1 s with the daemon still writing, and so did a stop whose
+forced-grace was shorter than the daemon's start's. The stop's answer now
+names the daemon's wait (<code>wait</code>, in milliseconds), and the client waits
+<code>daemon.start-timeout</code> plus it; from a daemon naming none, a build from
+before it, as before. <code>daemon restart</code> and <code>--after</code>'s forced stop wait
+the same. The daemon keeps to the wait it names: a job followed by its
+client no longer doubles it, the follower's wait for the job's terminal
+and the wait for its records ending at one deadline.</p>
+</li>
+<li>
+<p><strong>A job forced while its device session closes keeps its record.</strong> A
+<code>daemon stop --force</code>, or a stop whose grace ended, landing as a device
+session closed waited out the close: over <code>system</code> up to 2.5 s for
+OpenSSH's end, which a ProxyCommand's child holding OpenSSH's stderr kept
+from coming; over <code>native</code> 2 s for a shell the device did not end; on the
+exec channel over <code>system</code> up to 4.5 s for the ControlMaster. Past the
+daemon's two-second floor for its jobs' records the job's record was lost:
+no final status, no <code>run.end</code>, <code>shutdown_incomplete</code> in <code>daemon.log</code>. Once
+the job has ended, by a stop or a cancel, a close now ends its transport
+at once: OpenSSH killed and waited for 0.5 s at most, the native
+connection shut, the master sent SIGTERM without <code>ssh -O exit</code> and SIGKILL
+0.5 s on.</p>
+</li>
+<li>
+<p><strong>A failed start leaves no daemon.</strong> A launching client (<code>daemon start</code>,
+<code>daemon restart</code>, a run launching its daemon) counted
+<code>daemon.start-timeout</code> from its spawn, then failed and left the daemon it
+had launched; the daemon counts the same time from after its own start-up
+while it waits for a stopping daemon's lock. A lock freed just past the
+client's bound gave <code>daemon_start_failed</code> (exit 112) and then a daemon
+running, 20 of 20 times in a test and 4 and 8 of 10 in a lab. The client
+now keeps the daemon it launched and waits for the first of three: a
+daemon answering its ping, the start; the launched daemon's end, the
+failure, <code>daemon failed to start; inspect LOG</code>, the cause in the log
+(another launcher's daemon answering then is a start); and
+<code>daemon.start-timeout</code> plus 2 s, when it is killed and waited for, <code>daemon did not start in 7s and was killed; inspect LOG</code>. A socket that took a
+connection before its daemon answered no longer fails a start after 2 s.
+An interrupt leaves the launched daemon, as before, and says so: <code>start interrupted, the launched daemon left to start; inspect LOG</code>. An
+interrupt after the kill only ends the wait; the failure is still <code>… was killed</code>. Nothing changes under <code>daemon.launch = &quot;systemd&quot;</code> or for <code>daemon serve</code>.</p>
+</li>
+<li>
+<p><strong>An exec command over <code>native</code> ends at its bounds on a device that stops
+answering.</strong> A device whose connection stayed up while it answered nothing
+held the next command's channel opening, and a command given up, until the
+keepalives ended the connection: 60 s at the defaults, and without end at
+<code>native-ssh.keepalive-interval = 0</code>. A <code>daemon stop --force</code> in that wait
+lost the job's record (no final status, no <code>run.end</code>); a cancel ended 57 s
+on; a <code>--timeout 5s</code> command was <code>session_keepalive_timeout</code> at 57 s; with
+keepalives off the device, answering again, ran the cancelled job's next
+command. The command's timeout now counts from before the channel's
+opening, and it and the context's end (a cancel, a stop,
+<code>execution.device-timeout</code>) each end an opening the device has not
+answered by closing the connection: a timeout there is <code>command_timeout</code>,
+<code>command timed out after 5s (--timeout) before it started; the connection was closed</code>, its record without exec fields. A command given up is stopped
+as before; then the command's timeout and the output limit give the device
+2 s to close the channel: the connection serves the next command when it
+does, and is closed when it does not (<code>…; the device did not close the channel in 2s and the connection was closed</code>), the device's later commands
+not attempted. A cancel, a stop, and the device's timeout give it 0.5 s,
+for an opening in flight to be answered and for the stopped command's
+channel to close, and close the connection then, or as soon as the channel
+closes. Over <code>system</code> a command given up ended at once, and still does.</p>
+</li>
+<li>
+<p><strong>The newest x/crypto, x/sys, and x/term.</strong> <code>golang.org/x/crypto</code> v0.59.0
+(from v0.58.0), <code>golang.org/x/sys</code> v0.50.0 (v0.49.0), and
+<code>golang.org/x/term</code> v0.48.0 (v0.47.0, its sources unchanged); goldmark
+v1.8.7 was the newest already. <code>karvi</code> links all three and <code>karvi-audit</code>
+x/sys; <code>karvi-askpass</code> and <code>karvi-prune</code> link none. x/crypto's SSH client
+is the <code>native</code> transport's, and three of its changes reach it. A channel
+opened on a connection that has ended returns <code>EOF</code> at once, where it
+could wait without end; it more often returned why the connection ended,
+so a command started on a lost connection is now <code>command_session_lost: the connection ended: EOF</code>, where the message named a reset or the
+device's disconnect. A packet whose write fails reports the failure at
+that write, where the next write reported it. A device's banner message
+carrying bytes after its language tag is read, where it ended the
+handshake (<code>native_session_open_failed</code>). The package no longer
+implements DSA: karvi refuses <code>ssh-dss</code> in every host-key list
+(<code>config_ssh_algorithm_forbidden</code>), and a DSA key among the operator's
+identities is no longer used (Breaking changes). Its stricter certificate
+checks are on paths karvi does not take, and x/sys's changes on Linux are
+in functions karvi does not call. <code>govulncheck</code> finds no advisory against
+the three modules on karvi's call paths, before or after the move.</p>
+</li>
+<li>
+<p><strong>Go 1.27.4.</strong> The executables are built with Go 1.27.4, where 0.41.0's
+were built with Go 1.27.3. Go 1.27.4 carries security fixes to cgo, the
+<code>go</code> command, the compiler, the linker, and <code>net/http</code>, and bug fixes to
+the assembler, the compiler, the runtime, and <code>crypto/fips140</code>,
+<code>crypto/hkdf</code>, <code>crypto/rsa</code>, <code>crypto/tls</code>, and <code>net</code>. <code>karvi</code> links
+<code>net/http</code>, for the Vault credential backend's client, and the three
+helpers do not; <code>govulncheck</code> named one advisory on karvi's call paths at
+Go 1.27.3, GO-2026-6859 (an HTTP/1 server's crash in <code>net/http</code>), and
+names none at Go 1.27.4.</p>
+</li>
+</ul>
+<h3 id="breaking-changes">Breaking changes <a class="anchor" href="#breaking-changes" aria-label="Link to this section">#</a></h3>
+<ul>
+<li><strong>The registry artifact's keys no longer carry <code>since</code>.</strong> Each key in
+<code>schema/config-schema.json</code> carried a <code>since</code>, meant as the release it first
+shipped in; nothing in karvi read it, and a key whose row set none said
+<code>0.2.0</code>: 101 of 0.41.0's 179, every key added since 0.33.0 among them. The
+field and its default are removed.</li>
+<li><strong>A <code>[platform.NAME]</code> table takes no <code>default-transport</code>.</strong> The field was
+accepted, validated, and shown by <code>karvi config show</code>, and no transport
+choice read it: <code>--transport</code>, the inventory's <code>transport</code> (a row's, or a
+source's <code>defaults.transport</code>; <code>login</code> reads neither), and the activity's
+key (<code>ssh.command.transport</code>, <code>ssh.run.transport</code>, <code>ssh.login.transport</code>)
+choose a device's transport, so a platform set to <code>system</code> ran <code>command</code>
+native. A table that names it is now refused as an unknown key,
+<code>config_unknown_key</code>, and <code>platform_default_transport_invalid</code>, its
+validation's code, is retired.</li>
+<li><strong><code>dispatch.order</code>'s <code>inventory</code> and <code>random-seeded</code> are refused as any
+value the key does not take.</strong> Each had a code of its own,
+<code>config_dispatch_order_inventory_removed</code> and
+<code>config_dispatch_order_random_seeded_removed</code>, its message naming the
+value to use (<code>default</code>, <code>shuffle</code>); both are now
+<code>config_enum_value_invalid</code>, and the two codes are retired. The key's
+documentation (<code>karvi config show --explain dispatch.order</code>,
+<code>configs/reference.toml</code>) says what each value does in place of the
+removed values' names, and <code>--order</code>'s help says it too.</li>
+<li><strong>A key karvi removed is refused as any key it does not have.</strong> A
+key of the removed-key table (34 keys removed from v0.12.0 to v0.30.0,
+<code>ssh.legacy-hosts</code> and <code>metrics.enabled</code> among them, the
+<code>sessions.platform-caps.</code> table, and a credential backend's sqlite and
+<code>env-indirection</code> fields) was refused by a message naming the release
+that removed it and what replaces it, as <code>config_key_removed</code> or
+<code>config_ssh_legacy_hosts_removed</code>. The table is gone: from a file or
+<code>--set</code> such a key is <code>config_unknown_key</code>, and its <code>KARVI__</code> variable
+<code>config_unknown_environment</code>, or under <code>config.reject-unknown-env = false</code> the warning any unknown variable gives. Both codes are retired.</li>
+<li><strong><code>--order sorted</code> orders names as a gathered header's fold does: a run
+of digits by value.</strong> <code>sorted</code> (<code>dispatch.order</code>, alias <code>name</code>) compared
+lowercase names in byte order, which takes digits as characters
+(<code>router10</code> before <code>router2</code>, <code>edge01</code> before <code>edge1</code>), where the fold
+lists <code>router2</code> and <code>edge1</code> first. It compares them by the fold's
+comparison, one for both: a run of digits by value and then the fewer
+digits first, any other character lowercase, a name that is the start of
+another first. A sorted run's device order changes where names hold
+numbers of different widths: <code>router1 router10 router2</code> becomes
+<code>router1 router2 router10</code>, and <code>edge01 edge1 edge3</code> becomes
+<code>edge1 edge01 edge3</code>. A job's <code>failed-devices.txt</code> lists its devices in
+the same order (it sorted them by byte, capitals first), so a rerun from
+it with <code>--tf</code> goes as a sorted run went, and <code>karvi watch</code>'s <code>target</code>
+sort key orders the jobs' first targets by it. The shuffle's rank and its
+tie by name are unchanged.</li>
+<li><strong>A DSA key in <code>ssh.identities</code> is no longer used.</strong> x/crypto, which
+reads the operator's keys for both SSH transports, no longer implements
+DSA at v0.59.0 (Bugs fixed, the newest modules). An unencrypted PEM DSA
+key (<code>-----BEGIN DSA PRIVATE KEY-----</code>) a site listed in <code>ssh.identities</code>
+was read and, over <code>native</code>, offered as <code>ssh-dss</code>; it is now skipped,
+<code>operator_key_skipped</code> with the reason <code>not a private key karvi reads</code>,
+and a credential with no other key fails with
+<code>credential_operator_keys_missing</code> (exit 6). The default list names no
+DSA file; a DSA key in OpenSSH's own format, or under a passphrase, was
+skipped before and still is.</li>
+</ul>
+<h3 id="other-notes">Other notes <a class="anchor" href="#other-notes" aria-label="Link to this section">#</a></h3>
+<ul>
+<li><strong><code>tools/release-numbers</code> prints the release's numbers and checks the
+documents that carry them.</strong> <code>go run ./tools/release-numbers</code> prints a
+table of every number a release carries, the previous release's value
+beside this one's: Go, each module <code>go.mod</code> requires (the indirect ones
+included), the twelve schema counters, each read from its owner's
+constant, and two counts, &quot;Lines of Code: Go&quot; (the tracked <code>.go</code> files
+outside <code>vendor/</code>, tests included) and &quot;Lines of Code: Other&quot; (the other
+tracked programs outside <code>vendor/</code>: a file whose first line starts <code>#!</code>,
+or a file named <code>Makefile</code>). A moved version or counter is bold, the two
+counts never; a module one release lacks is &quot;—&quot; there. <code>-changelog</code>
+prints what moved and the two counts, then the line saying every other
+value is the previous release's. <code>-check</code> compares, for the release
+<code>VERSION</code> names, the CHANGELOG's block, <code>release/BUILD-RESULT.md</code>'s table,
+and the release manifest's counters, Go, modules, and Go lines, and a
+notes draft's table when one is named; the first difference stops it,
+the row named and the two values stacked. This release is <code>VERSION</code>, read
+from the working tree; the previous one is the highest <code>karvi-v</code> tag below
+it (<code>-previous TAG</code>), read from the tag through git. It needs git and the
+tags, so it runs in the release tree, not in a bundle; its tests, which
+run everywhere, check the counter list against the constants karvi
+imports and that the tree holds no <code>SchemaVersion</code> constant the list
+lacks.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>0.41.0</th>
+<th>0.42.0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Go</td>
+<td>1.27.3</td>
+<td>1.27.4</td>
+</tr>
+<tr>
+<td><code>golang.org/x/crypto</code></td>
+<td>v0.58.0</td>
+<td>v0.59.0</td>
+</tr>
+<tr>
+<td><code>golang.org/x/sys</code></td>
+<td>v0.49.0</td>
+<td>v0.50.0</td>
+</tr>
+<tr>
+<td><code>golang.org/x/term</code></td>
+<td>v0.47.0</td>
+<td>v0.48.0</td>
+</tr>
+<tr>
+<td>configuration registry</td>
+<td>34</td>
+<td>35</td>
+</tr>
+<tr>
+<td>Lines of Code: Go</td>
+<td>128,401</td>
+<td>144,528</td>
+</tr>
+<tr>
+<td>Lines of Code: Other</td>
+<td>9,694</td>
+<td>9,995</td>
+</tr>
+</tbody>
+</table>
+<p>Every other value is 0.41.0's.</p>
 <h2 id="0410---2026-11-08">0.41.0 - 2026-11-08 <a class="anchor" href="#0410---2026-11-08" aria-label="Link to this section">#</a></h2>
 <p>A minor release on 0.40.0 for numeric ranges in every selector
 (<code>router[10-12]</code>), targets that create the names a range spells, runs limited
@@ -3115,7 +3665,7 @@ operator's private archive. Their executables are not installed anywhere
 outside the operator's own environment, and every release is installed as
 new.</p>
 
-<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

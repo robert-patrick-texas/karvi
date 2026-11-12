@@ -49,6 +49,7 @@
 <li><a href="#address-family-troubleshooting">Address-family troubleshooting</a></li>
 <li><a href="#border-operation">Border operation</a></li>
 <li><a href="#device-error-echo">Device-error echo</a></li>
+<li><a href="#gathered-output-and-line-mode">Gathered output and line mode</a></li>
 <li><a href="#start-statements-for-generic-devices">Start statements for generic devices</a></li>
 <li><a href="#long-commands-a-copy-and-a-show-tech">Long commands: a copy and a show tech</a></li>
 <li><a href="#a-command-list-per-device">A command list per device</a></li>
@@ -96,8 +97,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -148,6 +149,7 @@
 <li><a href="#address-family-troubleshooting">Address-family troubleshooting</a></li>
 <li><a href="#border-operation">Border operation</a></li>
 <li><a href="#device-error-echo">Device-error echo</a></li>
+<li><a href="#gathered-output-and-line-mode">Gathered output and line mode</a></li>
 <li><a href="#start-statements-for-generic-devices">Start statements for generic devices</a></li>
 <li><a href="#long-commands-a-copy-and-a-show-tech">Long commands: a copy and a show tech</a></li>
 <li><a href="#a-command-list-per-device">A command list per device</a></li>
@@ -195,8 +197,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -247,15 +249,15 @@ of its executable, equal the client's. The next submission (<code>run</code>, <c
 <code>--exercise</code>, <code>--detach</code>, a stream's job, or <code>daemon start</code>) drains a daemon of
 another build. Holding no job, it exits at once, and the client starts one of
 its own build in the same invocation:</p>
-<pre><code>daemon drained version=0.40.0 build=C71lyQOLd6sV4H1SEuL0
+<pre><code>daemon drained version=0.41.0 build=Wss_lakRGoLdwTmeEfnl
 daemon started socket=/home/netops/.local/share/karvi/socket/d.sock
 </code></pre>
 <p>Holding jobs, the drained daemon finishes them and exits after the last,
 killing nothing. Until then every submission is refused, the daemon's build
 over the client's:</p>
 <pre><code>daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
-  daemon build C71lyQOLd6sV4H1SEuL0 0.40.0
-  client build Wss_lakRGoLdwTmeEfnl 0.41.0
+  daemon build Wss_lakRGoLdwTmeEfnl 0.41.0
+  client build x5hKubdZrt7zz0uU5WFB 0.42.0
 </code></pre>
 <p>Meanwhile <code>karvi run --no-daemon</code> runs in the foreground, and <code>karvi job follow</code> and <code>karvi job cancel</code> reach the draining daemon's jobs, as a client of
 any build does at the same IPC schema. <code>karvi daemon status</code> stacks each of the
@@ -269,10 +271,18 @@ and waits up to the limit, then forces; <code>--force</code> stops it at once, f
 still receiving terminal records. A wait begins with a line naming the jobs
 (<code>daemon draining: 1 job running; waiting for it to exit</code>), which <code>--quiet</code>
 leaves out; interrupted, the wait ends and the daemon still finishes its jobs
-and exits. With no option, <code>daemon stop</code> and <code>daemon restart</code> are refused while
-the daemon runs a job, which it alone counts. A socket a daemon killed outright
-left refuses the connection: <code>daemon restart</code> finds nothing to stop there and
-starts a daemon, as <code>daemon start</code> does.</p>
+and exits. A forced stop waits for the daemon's exit up to
+<code>daemon.start-timeout</code> plus the time the daemon names for those records. With
+no option, <code>daemon stop</code> and <code>daemon restart</code> are refused while the daemon runs
+a job, which it alone counts. A socket a daemon killed outright left refuses
+the connection: <code>daemon restart</code> finds nothing to stop there and starts a
+daemon, as <code>daemon start</code> does. A daemon started while another is still
+stopping, its jobs' records still being written, waits for that one to exit
+(its lock, <code>d.lock</code> beside the socket), up to <code>daemon.start-timeout</code>; past it
+the launched daemon is refused, <code>daemon.log</code> naming <code>daemon_already_running: daemon still stopping: pid N</code>, and the start fails, <code>daemon_start_failed</code>,
+leaving no daemon. A launched daemon that neither answers nor ends within
+<code>daemon.start-timeout</code> plus 2 seconds is killed, and the start fails the
+same.</p>
 <p>An older karvi beside a newer daemon is refused, <code>daemon_incompatible</code>, the
 schemas stacked: the older client cannot speak the newer schema, so it neither
 drains nor stops that daemon. A downgrade is the administrator's, who ends the
@@ -300,8 +310,10 @@ means accepted; follow the job with <code>karvi job follow</code>, watch it with
 <code>karvi watch</code>, or find it with <code>karvi job list</code> and read its <code>summary.json</code>
 when it ends). <code>--follow=false</code> waits for the result without rendering.
 Ctrl-C during a run stops the client's follow only: it names the job that
-continues and its artifact directory and exits 113; the daemon finishes the
-job and writes its records. A closed stdout does the same with exit 111.</p>
+continues, its artifact directory, and <code>karvi job follow JOB-ID</code>
+(<code>karvi job follow --gather JOB-ID</code> after a gathered display, the key not
+locked) and exits 113; the daemon finishes the job and writes its records. A
+closed stdout does the same with exit 111.</p>
 <p>To stop one accepted job without stopping the daemon:</p>
 <pre><code class="language-bash">karvi job cancel JOB-ID --reason 'wrong change window'
 </code></pre>
@@ -320,7 +332,7 @@ carries the <code>cancellation</code> block under its own final status (<code>ex
 <code>complete</code>), the audit trail holds the <code>&lt;kind&gt;.cancel</code> event, and no
 cancelled line is printed.
 To see a detached or interrupted job again, from any later invocation:</p>
-<pre><code class="language-bash">karvi job follow JOB-ID [--format text|jsonl|json] [--echo] [--border|--noborder]
+<pre><code class="language-bash">karvi job follow JOB-ID [--format text|jsonl|json] [--echo] [--border|--noborder] [--gather] [--prefix]
 </code></pre>
 <p>It renders the job from its beginning as the foreground run would have, live
 until the job ends or at once for a job that has ended, ends the display as a
@@ -342,8 +354,10 @@ long ago, is <code>job_orphaned</code>, the process that ran it gone. A site tha
 daemon. A job run with <code>output.files.commands-jsonl</code> false is followed live by
 the client that started it; a later <code>job follow</code> through the daemon starts at
 the edge and says which records are not kept, and one from the directory says
-the job's records are not kept and shows its end alone. Ctrl-C stops only the
-follow. Neither <code>job</code> verb launches a daemon.</p>
+the job's records are not kept and shows its end alone; <code>job follow --gather</code>
+of such a job is refused instead, <code>gather_option_conflict</code> (exit 4), before
+anything is shown. Ctrl-C stops only the follow. Neither <code>job</code> verb launches a
+daemon.</p>
 <p><code>karvi-run(1)</code> (<code>man karvi run</code>), REHEARSAL, restates the dry run, the
 exercise, <code>--detach</code>, and Ctrl-C for the terminal; a change to one changes
 both.</p>
@@ -847,8 +861,10 @@ password</a>).</p>
 <code>native</code> asks the server to end the command before closing its channel.
 The system transport's OpenSSH client cannot ask, so the record carries the
 notice <code>remote_command_not_stopped</code> and the command may still be running on
-the server, its parent pid 1; a later command finds it (<code>ps -eo pid,etime,args</code>) if it matters. In both cases the connection serves the next
-command.</p>
+the server, its parent pid 1; a later command finds it (<code>ps -eo pid,etime,args</code>) if it matters. After a command timeout or the output limit
+the connection serves the next command on both. Over <code>native</code> a server that
+does not close the channel within 2 seconds has its connection closed, and
+its later commands are not attempted. A cancel closes the connection.</p>
 <p><strong>The control sockets.</strong> Over <code>system</code> each <code>linux</code> server's connection is an
 OpenSSH ControlMaster, the client's child for <code>command</code> and the daemon's for
 <code>run</code>, with a socket in <code>ssh.control-path-root</code>:
@@ -1059,12 +1075,65 @@ no prompt. Under <code>ssh.include-user-config</code> (the default) the operator
 <code>IdentityFile</code> lines after karvi's keys even under <code>IdentitiesOnly</code>: the system
 transport may offer such a key once karvi's are refused.</p>
 <p>Both transports try the methods in one order: <code>publickey</code>, then
-<code>keyboard-interactive</code>, then <code>password</code>, the last two answered with the
-password, since some servers allow keyboard-interactive and refuse password.
-Each record's <code>credential.auth</code> names the method that authenticated the session
-(<code>publickey</code>, <code>keyboard-interactive</code>, or <code>password</code>; absent where the session
-never authenticated), and every <code>&lt;kind&gt;.command</code> audit event names it in
-<code>device_identity</code> beside <code>device_username</code> and <code>backend</code>:</p>
+<code>keyboard-interactive</code>, then <code>password</code>, since some servers allow
+keyboard-interactive and refuse password.
+<code>ssh.keyboard-interactive-authentication</code> and <code>ssh.password-authentication</code>
+(true by default) each, set false, leaves its method out on both transports;
+with both false the keys alone are offered. Each keyboard-interactive prompt is
+answered by what it asks for, matched case-insensitively against three lists of
+RE2 patterns in this order, the first with a match deciding (over <code>system</code> the
+prompt's words after the <code>(user@host) </code> OpenSSH puts first), except where
+<code>karvi login</code> asks the operator (below):</p>
+<ul>
+<li>a change of a secret, <code>new</code>, <code>next</code>, <code>re-?enter(ed)?</code>, <code>re-?typed?</code>,
+<code>(re)?confirm(ed)?</code>, <code>verify</code>, <code>repeat(ed)?</code>, <code>again</code>, <code>once more</code>,
+<code>chang(e|ed|es|ing)</code>, <code>renew(ed)?</code>, <code>generat(e|es|ed|ing)</code>, <code>creat(e|ed)</code>,
+<code>\(y/n\)</code>, <code>\[y/n\]</code>, <code>yes/no</code> (<code>Enter new PIN:</code>, <code>Re-enter PIN:</code>,
+<code>Password again:</code>, <code>Confirmed PIN:</code>): no answer; the connection ends with
+<code>authentication_change_requested</code> (exit 108), which quotes the prompt, and
+no other method is tried;</li>
+<li>the username, <code>[\w-]*user[\w-]*</code>, <code>log ?[io]n</code>, <code>name\s*:</code> (<code>Username:</code>,
+<code>login as:</code>, <code>Login for pin-gw1:</code>);</li>
+<li>the password, <code>passw\w*</code>, <code>passcode</code>, <code>passphrase</code>, <code>pass\s*:</code>, <code>pin</code>,
+<code>token(code)?</code>, <code>code</code>, <code>otp</code> (<code>Password:</code>, <code>Enter PASSCODE:</code>, <code>PIN:</code>,
+<code>Token:</code>, <code>Verification code:</code>);</li>
+<li>any other prompt: an empty answer.</li>
+</ul>
+<p>Each pattern is a word of its own: an ASCII letter, digit, underscore, or
+hyphen beside it joins it to a longer word, so a device named in a prompt
+(<code>Password for new-rtr1:</code>, <code>Password for repeater1:</code>) is not a field's word;
+<code>user</code> alone is found inside a word, so a prompt naming it gets the username
+even beside a password (<code>Password for user jsmith:</code>). Over <code>system</code> the
+askpass broker answers only a prompt beginning with OpenSSH's <code>user@host</code>, a
+device's; OpenSSH's own questions (a key's passphrase, a security key's PIN,
+user presence, a password change) are refused. On both transports each field is
+answered at most once per connection: <code>Username:</code> then <code>Password:</code> logs in, and
+outside a login a second ask of either (after a refusal, or for a second
+factor) ends the connection, the device getting nothing in that round, with
+<code>authentication_failed: device refused password</code> (or <code>username</code>, exit 108).
+Over <code>system</code> a request to the broker without its token ends the session too
+(<code>askpass_auth_failed</code>, <code>askpass_request_invalid</code>, exit 108); the broker serves
+until the login is over (a command session's first prompt or exec master ready,
+a <code>karvi login</code>'s end), five minutes at most, each exchange within ten seconds,
+an operator's answer in a login aside.</p>
+<p>In <code>karvi login</code> the operator answers at the terminal what karvi does not: a
+change prompt, a prompt no list matches, and a second ask, any number of them,
+each shown as OpenSSH gives it (<code>(jsmith@router1) Enter new PIN: </code>), not
+echoed, and edited as at <a href="#the-credential-prompts">the credential prompts</a>.
+karvi still sends the stored username and password each at most once, so a
+refused password is asked at the terminal, as at plain <code>ssh</code>. The line typed
+goes to OpenSSH alone, never stored or logged. OpenSSH's own questions stay
+refused, and a server's keyboard-interactive instruction is not shown, as at
+plain <code>ssh</code>. The prompt waits without the ten seconds, the device's own limit
+applying (IOS XE <code>ip ssh time-out</code>). Ctrl-C or a signal ends the login with
+<code>credential_prompt_interrupted</code> (exit 113), another failure at the terminal
+with <code>credential_prompt_unavailable</code> (exit 6); Ctrl-D on an empty line sends an
+empty answer, as plain <code>ssh</code> does. Without a controlling terminal nothing is
+asked; each prompt is answered as at <code>command</code>.</p>
+<p>Each record's <code>credential.auth</code> names the method that authenticated the
+session (<code>publickey</code>, <code>keyboard-interactive</code>, or <code>password</code>; absent where the
+session never authenticated), and every <code>&lt;kind&gt;.command</code> audit event names it
+in <code>device_identity</code> beside <code>device_username</code> and <code>backend</code>:</p>
 <pre><code class="language-text">1 {&quot;auth&quot;: &quot;publickey&quot;, &quot;backend&quot;: &quot;builtin-operator-keys&quot;, &quot;device_username&quot;: &quot;netops&quot;, &quot;selected_address&quot;: &quot;127.0.0.1&quot;}
 2 {&quot;auth&quot;: &quot;publickey&quot;, &quot;backend&quot;: &quot;builtin-operator-keys&quot;, &quot;device_username&quot;: &quot;netops&quot;, &quot;selected_address&quot;: &quot;127.0.0.1&quot;}
 </code></pre>
@@ -1169,9 +1238,7 @@ for a password), and no later backend, variable, or prompt is asked.</p>
 </li>
 <li>
 <p><strong>A variable's value is the value.</strong> <code>env:X</code> in a variable is the text
-<code>env:X</code>; a template names the variable to read. <code>env-indirection.username</code>,
-<code>.password</code>, and <code>.enable-password</code> are refused as removed,
-<code>config_key_removed</code> (exit 2).</p>
+<code>env:X</code>; a template names the variable to read.</p>
 </li>
 <li>
 <p><strong>Asked once.</strong> The backend asks the same of every device, so it is asked
@@ -1643,9 +1710,7 @@ and mode rule, its message naming <code>credential helper PATH</code> (<a href="
 helper</a>).</p>
 <p>karvi opens the file first and checks the file it opened, so the file that
 passed the checks is the file that is read. A file that is present but cannot be
-opened (mode <code>0000</code>, say) is reported by its check and is not treated as absent.
-These codes replaced the <code>cloginrc_*</code> check codes of v0.10.0 and v0.11.0;
-<a href="ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a> lists the retired names.</p>
+opened (mode <code>0000</code>, say) is reported by its check and is not treated as absent.</p>
 <h3 id="the-credential-csv">The credential CSV <a class="anchor" href="#the-credential-csv" aria-label="Link to this section">#</a></h3>
 <p>A <code>csv</code> backend is the second file backend: device-keyed rows of username,
 password, and enable password under the file rules above.
@@ -1693,12 +1758,11 @@ says where to look in it:</p>
 </tr>
 </tbody>
 </table>
-<p>Two things to know at an upgrade. An inventory file with a column named
-like a secret (<code>password</code>, <code>enable-password</code>, <code>api_token</code>) no longer loads
-(exit 5): move the secrets into a credential CSV and delete the column. And
-a pinned device never falls to a general row, to <code>NETUSER</code>/<code>NETPASS</code>, or to
-a prompt: a mistyped <code>credkeyref</code> stops that device with
-<code>credkeyref_unresolved</code>, naming the device and the key.</p>
+<p>An inventory file with a column named like a secret (<code>password</code>,
+<code>enable-password</code>, <code>api_token</code>) does not load (exit 5): the secrets belong in a
+credential CSV. A pinned device never falls to a general row, to
+<code>NETUSER</code>/<code>NETPASS</code>, or to a prompt: a mistyped <code>credkeyref</code> stops that device
+with <code>credkeyref_unresolved</code>, naming the device and the key.</p>
 <h2 id="the-operators-name-and-the-credential-transforms">The operator's name and the credential transforms <a class="anchor" href="#the-operators-name-and-the-credential-transforms" aria-label="Link to this section">#</a></h2>
 <p>A backend reads the operator's login name where a credential is the
 operator's: the <code>%operator%</code> of the <code>env</code> backend's templates, the Redis key,
@@ -1758,15 +1822,267 @@ mutually exclusive. A literal <code>--address</code> bypasses DNS.</p>
 <p>The DNS timeout default is 2 seconds. Resolver failures retain distinct stable
 codes such as <code>dns_nxdomain</code>, <code>dns_timeout</code>, and <code>dns_servfail</code>.</p>
 <h2 id="border-operation">Border operation <a class="anchor" href="#border-operation" aria-label="Link to this section">#</a></h2>
-<p>Default text output places one blank line between records and none at the end.
-Use <code>--border</code> for a dynamic dash separator, <code>--noborder</code> for no separator, or
-configure static values separately for command and run. Set <code>last-border=true</code>
-only when a terminal trailing separator is operationally useful.</p>
+<p>Default text output places one blank line between records (in the gathered
+display between groups and blocks; line mode writes none, and <code>--prefix</code>
+refuses <code>--border</code> and <code>--noborder</code>) and none at the end. Use <code>--border</code> for
+a dynamic dash separator, <code>--noborder</code> for no separator, or configure static
+values separately for command and run. Set <code>last-border=true</code> only when a
+terminal trailing separator is operationally useful.</p>
 <h2 id="device-error-echo">Device-error echo <a class="anchor" href="#device-error-echo" aria-label="Link to this section">#</a></h2>
 <p>When investigating CLI syntax or privilege errors, enable <code>--echo</code>. The prompt
-and command are displayed for success and device-reported errors. Debug output
-holds no secret and no device output, and shows each command once, as the plan
-holds it; capture stdout and stderr separately when opening a support issue.</p>
+and command are displayed for success and device-reported errors, in line mode
+after the device's name; <code>--echo</code> is refused beside <code>--gather</code>
+(<code>gather_option_conflict</code>). Debug output holds no secret and no device output,
+and shows each command once, as the plan holds it; capture stdout and stderr
+separately when opening a support issue.</p>
+<h2 id="gathered-output-and-line-mode">Gathered output and line mode <a class="anchor" href="#gathered-output-and-line-mode" aria-label="Link to this section">#</a></h2>
+<p>The ordinary text display shows each device's answer under its own header,
+one device after another; across a fleet most answers are alike, and the few
+that differ are found by reading every block. Two options show a run another
+way, each the text display alone (the records, the job's files, and
+<code>--format jsonl</code> are unchanged): <code>--gather</code> shows each command's answer once
+per group of devices that answered alike, at the job's end, and <code>--prefix</code>,
+line mode, begins every line with its device's name, for <code>grep</code> and <code>sort</code>.</p>
+<pre><code class="language-text">$ karvi run --all --dp --gather -c 'show version'
+! show version
+! edge[1-2],router[01-04,10] (7)
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+
+! router09 (1)
+karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused
+! exit=101 elapsed=1.35s artifacts=/srv/karvi/jobs/261110/261110-173110-00
+</code></pre>
+<ul>
+<li><strong>A block per command.</strong> Each requested command is a block headed by its
+marker as a collection file writes it (<code>! show version</code>, a root command
+<code>! --sudo COMMAND</code>; <a href="COLLECTION.html"><code>docs/COLLECTION.md</code></a>), the blocks in
+the order the commands first appear in the plan. A command is one across
+the devices by its text, its privilege, and its occurrence in the device's
+list, so per-device lists (<code>--cf DIR</code>) meet in one block where one device
+sends <code>show version</code> first and another second, and a list's two <code>show clock</code> are two blocks.</li>
+<li><strong>A group per answer.</strong> In a block the devices whose records have the same
+status, error code, and output (on the exec channel the same exit status,
+signal, and stderr too) are one group under one header,
+<code>display.gather.header</code> (<a href="DISPLAY-CONFIGURATION.html#the-gathered-displays-header"><code>docs/DISPLAY-CONFIGURATION.md</code>, &quot;The gathered
+display's header&quot;</a>):
+the devices' names folded, and their count. The succeeded groups come
+first, then the failures, each the largest first, a tie by the first name;
+a group shows its first device's answer, stdout then stderr.</li>
+<li><strong>A failed group</strong> shows its output first when it has some, then the
+failure line without the <code>target=</code> its header names: <code>karvi: status=S error=CODE</code>, with <code>: MESSAGE</code> when the group is one device; for several the
+messages are in <code>errors.jsonl</code> and each device's <code>output.NAME.txt</code>. A
+device's commands not sent after its failure are a group of their own,
+their status alone. A session-init statement that failed is a block ahead
+of the rest, <code>! session_init=PROFILE: COMMAND</code>; one that succeeded is
+hidden, as in the ordinary display.</li>
+<li><strong>Left out and kept.</strong> No device header, no echo, and no ICMP gate's line:
+a device the gate skipped is a failure group, <code>icmp_unreachable</code>. The
+run's border stands between groups and between blocks, <code>--border</code> and
+<code>--noborder</code> as in the ordinary display; the footer follows the last
+group, and a <code>crun</code>'s collection line follows the footer. The host-key
+lines and the other warnings are written to standard error as before.
+Under <code>--quiet</code> the blocks are their answers and failure lines alone, with
+no marker, header, border, or footer.</li>
+</ul>
+<p>A rejected command, a device not reached, and the commands not sent after
+them:</p>
+<pre><code class="language-text">$ karvi run --all --gather -c 'show bogus' -c 'show clock'
+! show bogus
+! edge[1-2],router[01-04,10] (7)
+     ^
+% Invalid input detected at '^' marker.
+karvi: status=device_error error=device_command_error
+
+! router09 (1)
+karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused
+
+! show clock
+! edge[1-2],router[01-04,09-10] (8)
+karvi: status=not_attempted_prior_command_failure
+! exit=101 elapsed=4.62s artifacts=/srv/karvi/jobs/261110/261110-173113-00
+</code></pre>
+<p><strong>The header is a <code>--tl</code> value.</strong> Names alike but for their digits fold
+into ranges written at the names' width (<code>router[01-04,10]</code>), an address the
+same way (<code>192.0.2.[11-12]</code>), the items in natural order, one line however
+long. A character the target grammar or <code>--tl</code>'s split reads (<code>*</code>, <code>?</code>, <code>,</code>,
+a bracket, <code>^</code>, <code>$</code>, a backslash, white space), a <code>!</code> that begins an item,
+and an item that is <code>-</code> alone are written after a backslash. A group's
+header, copied, selects exactly its
+devices (under <code>--i</code>, from the inventory alone: <a href="#target-ranges-and-the-inventory">Target ranges and the
+inventory</a>); the five routers of
+<code>! router[01-04,10] (5)</code>:</p>
+<pre><code class="language-text">$ karvi run --tl 'router[01-04,10]' --dry-run -c 'show running-config' | grep -e '^targets:' -e '^- name:'
+targets: 5 (client 5, daemon 0)
+- name:router01: planned
+- name:router02: planned
+- name:router03: planned
+- name:router04: planned
+- name:router10: planned
+</code></pre>
+<p><strong>Raw bytes make the group.</strong> Two answers are alike when their bytes are: no
+line is dropped and no white space ignored, and the header's values, the
+prompt, the timings, the notices, and the error's message take no part (the
+client hashes nothing; the record's <code>output_sha256</code> is the key). An answer
+holding a value of its own is a group per device: a real <code>show clock</code>, which
+differs every second, and a <code>show version</code>, whose uptime differs. The
+device's own filter (<code>| include</code>, <code>| exclude</code>) makes the answers alike. Four
+devices answering for themselves:</p>
+<pre><code class="language-text">$ karvi run --tl '192.0.2.[11-14]' --gather -c 'show clock' -c 'show version' -c 'show version | include Version'
+! show clock
+! 192.0.2.11 (1)
+*22:31:58.636 UTC Tue Nov 10 2026
+
+! 192.0.2.12 (1)
+*22:31:59.511 UTC Tue Nov 10 2026
+…
+
+! show version
+! 192.0.2.11 (1)
+Cisco IOS XE Software, Version 17.09.04a
+fleet uptime is 12 weeks, 3 days, 4 hours, 2 minutes
+System image file is &quot;bootflash:packages.conf&quot;
+…
+
+! show version | include Version
+! 192.0.2.[11-14] (4)
+Cisco IOS XE Software, Version 17.09.04a
+! exit=0 elapsed=2.7s artifacts=/srv/karvi/jobs/261110/261110-173158-00
+</code></pre>
+<p><strong>The wait.</strong> Nothing is shown before the job's end: every block prints at
+once, then the footer. While the job runs, one line on standard error counts
+its devices, <code>gather: done=3/4 fail=0</code> (the devices ended, and those of them
+with a requested command that did not succeed, as <code>job list</code>'s DONE and
+FAIL, over the job's devices): drawn as the display starts, rewritten as each
+device ends, every other line on standard error written above it, and
+cleared before the blocks; <code>command</code>'s reads <code>gather: done=0/1 fail=0</code> until
+its device answers. It is drawn when standard error is a terminal, whatever
+standard output is (<code>&gt; out.txt</code> shows it, the blocks going to the file; <code>2&gt; err.log</code> none), never to a pipe or a file, never under <code>--quiet</code>, and only
+while karvi is the terminal's foreground job and the terminal is wider than
+the line, so a job sent to the background writes none over the shell.</p>
+<p><strong>A Ctrl-C stops the display at once.</strong> While the job runs nothing gathered
+is shown: through the daemon the job continues and the line that says so
+names <code>karvi job follow --gather JOB-ID</code> (<code>karvi job follow JOB-ID</code> under a
+site's lock on the key), exit 113; in process (<code>run --no-daemon</code>, <code>command</code>)
+the job is cancelled and its footer follows, exit 113. During the read-back
+at the end the blocks stop between pieces: through the daemon, where the job
+has ended, the line <code>job ID ended exit=N; artifacts DIR</code> and then
+<code>cancelled: the display of job ID was interrupted</code>, exit 113; in process the
+footer after, exit 113. <code>karvi job follow --gather JOB-ID</code> shows the job
+whole later. A daemon's job cancelled from elsewhere (<code>karvi job cancel</code>) is
+shown at its end, its cancelled commands a group of their own, then the
+cancelled line.</p>
+<pre><code class="language-text">$ karvi run --tl 'router0[1-3]' --gather -c 'show slow'      # Ctrl-C while it runs
+interrupted: job 261110-173236-00 continues in the daemon; artifacts /srv/karvi/jobs/261110/261110-173236-00; run &quot;karvi job follow --gather 261110-173236-00&quot; again or read /srv/karvi/jobs/261110/261110-173236-00/summary.json when it ends
+cancelled: the follow of job 261110-173236-00 was interrupted; the job continues
+$ karvi job follow --gather 261110-173236-00
+! show slow
+! router[01-03] (3)
+slow output
+! exit=0 elapsed=10.92s artifacts=/srv/karvi/jobs/261110/261110-173236-00
+</code></pre>
+<p><strong>The answers are read back from <code>commands.jsonl</code>.</strong> While it waits the
+client holds no answer: per group its key, the place of its first record in
+the job's <code>commands.jsonl</code>, and for a failure that record's error message,
+and per device its name (<a href="SCALE.html#the-memory-budget"><code>docs/SCALE.md</code>, &quot;The memory
+budget&quot;</a>). At the end it reads back the record
+of each group that has output, checks it against the record the job's
+stream carried and the answer against the record's digest, and streams the
+answer as the ordinary display streams a spooled one, so an answer the
+follow stream left out (<code>follow_output_omitted</code>) is shown whole. A file that
+cannot be read then, or a line that is no longer that record, is
+<code>run_output_records_unreadable</code> (exit 111), and an answer that does not
+match its digest <code>run_output_digest_mismatch</code> (exit 111), found before any
+of its group is shown; the blocks written stand and no footer follows:
+through the daemon the job is unaffected, <code>job ID ended exit=N; artifacts DIR</code> says so first, and <code>karvi job follow --gather JOB-ID</code> shows it again
+once the file reads; in process (<code>run --no-daemon</code>, <code>command</code>) the job's
+summary and scoreboard carry the exit.</p>
+<p><strong><code>--gather</code> needs a display followed to the job's end, and the job's
+<code>commands.jsonl</code>.</strong> It is refused, <code>gather_option_conflict</code> (exit 4), before
+any device is contacted, each where the word has the option (<code>command</code> has
+no <code>--detach</code> or <code>--follow</code>):</p>
+<ul>
+<li>beside <code>--format jsonl</code> or <code>json</code>, <code>--echo</code>, <code>--detach</code>,
+<code>--follow=false</code>, and <code>--nof</code> (<code>gather_option_conflict: --gather and --echo are mutually exclusive</code>); beside <code>--live</code> it is <code>live_option_conflict</code>;</li>
+<li>under a configuration that keeps no <code>commands.jsonl</code>, the key named with
+where it was set (<code>--gather and output.persist-command = false at FILE:LINE are mutually exclusive; --of</code>), <code>; --of</code> only where <code>--of</code> would
+take effect, not after a <code>--set</code> of the key, which beats it, nor under a
+site's lock;</li>
+<li>on <code>job follow</code>, beside <code>--format jsonl</code> or <code>json</code> and <code>--echo</code>, and for a
+job that kept no <code>commands.jsonl</code>, judged by its <code>summary.json</code> before
+anything is shown, the job untouched (<code>(output.persist-command was false)</code>
+for a job without a folder):</li>
+</ul>
+<pre><code class="language-text">$ karvi job follow --gather 261110-173202-00
+gather_option_conflict: --gather needs the job's commands.jsonl; job 261110-173202-00 kept none (output.files.commands-jsonl was false)
+</code></pre>
+<p><code>--dry-run</code> and <code>--exercise</code> take <code>--gather</code> and <code>--prefix</code>, a rehearsal of
+the real line in which nothing is gathered or prefixed; a line the real run
+refuses is refused rehearsed.</p>
+<p><strong>Line mode: <code>--prefix</code>.</strong> Every line of the display is <code>NAME: line</code>, the
+device's name first, as pdsh and clush write it, an empty line <code>NAME: </code> too:
+the answer (stdout then stderr), the <code>--echo</code> line, and the failure and
+not-attempted lines without the <code>target=</code> the name repeats (<code>router09: karvi: status=not_attempted_prior_command_failure command=2/2</code>). The records
+stream as written, nothing held, so a long answer is prefixed as it streams;
+no device header, no ICMP gate's line, and no border. Gathered as well, each
+line of a group begins with the group's folded names, the block's marker
+unprefixed, no group header or border, the progress line as before. karvi's
+own lines begin with <code>!</code> (the marker, and by the default templates the
+footer and a <code>crun</code>'s collection line), so <code>grep -v '^! '</code> leaves the
+devices' lines:</p>
+<pre><code class="language-text">$ karvi run --all --prefix -c 'show version' | grep uptime
+router01: fake-iosxe uptime is 1 day
+router02: fake-iosxe uptime is 1 day
+router03: fake-iosxe uptime is 1 day
+router04: fake-iosxe uptime is 1 day
+router10: fake-iosxe uptime is 1 day
+edge1: fake-iosxe uptime is 1 day
+edge2: fake-iosxe uptime is 1 day
+$ karvi run --all --gather --prefix -c 'show version' -c 'show clock'
+! show version
+edge[1-2],router[01-04,10]: Cisco IOS XE Software, Version 17.09.04a
+edge[1-2],router[01-04,10]: fake-iosxe uptime is 1 day
+router09: karvi: status=connection_error error=native_session_open_failed: dial tcp 127.0.0.9:42165: connect: connection refused
+! show clock
+edge[1-2],router[01-04,10]: *10:00:00.000 UTC Tue Sep 15 2026
+router09: karvi: status=not_attempted_prior_command_failure
+! exit=101 elapsed=5.27s artifacts=/srv/karvi/jobs/261110/261110-173144-00
+</code></pre>
+<p>A device's name normally holds no white space (karvi refuses one when it
+derives the device's ID from the name), so a line splits at its first <code>: </code>,
+never at its first colon: an IPv6 name holds colons.</p>
+<pre><code class="language-text">$ karvi run --tl '2001:db8::[1-2]' --prefix -c 'show version' | grep -v '^! ' | sed 's/: .*//' | sort | uniq -c
+      3 2001:db8::1
+      3 2001:db8::2
+$ karvi run --tl '2001:db8::[1-2]' --prefix -c 'show version' | grep -v '^! ' | cut -d: -f1 | sort | uniq -c
+      6 2001
+</code></pre>
+<p><code>--prefix</code> is refused, <code>prefix_option_conflict</code> (exit 4), beside what line
+mode cannot take: <code>--format jsonl</code> or <code>json</code>, <code>--border</code>, <code>--noborder</code>,
+<code>--detach</code>, and <code>--follow=false</code> (on <code>job follow</code> the first three); beside
+<code>--live</code> it is <code>live_option_conflict</code>. Line mode needs no file, so <code>--nof</code>
+takes it, and beside <code>--echo</code> the echo line is prefixed. At a terminal the
+name is in the target colour, <code>: </code> in the label colour, and a failure line in
+the error colour, the device's output uncoloured
+(<a href="DISPLAY-CONFIGURATION.html#line-mode"><code>docs/DISPLAY-CONFIGURATION.md</code>, &quot;Line
+mode&quot;</a>).</p>
+<p><strong>The keys a site sets.</strong> <code>display.run.gather</code> and <code>display.run.prefix</code>
+(false) shape <code>run</code>, <code>crun</code>, a stream's lines, and <code>job follow</code>;
+<code>display.command.gather</code> and <code>display.command.prefix</code> shape <code>command</code>, a test
+on one device that shows the fleet run's shape. <code>job follow</code> shows every job,
+a command's too, by the <code>display.run</code> keys of the follower's own
+configuration, so <code>job follow --gather</code> gathers a job run without it.
+<code>--gather</code> and <code>--prefix</code> set the key for the invocation, and <code>--gather=false</code>
+and <code>--prefix=false</code> turn a site's true off; a site's lock on the key refuses
+either form, and <code>--set</code> beats them. The key set true is never refused, so a
+site's true never breaks a script: under <code>--format jsonl</code> or <code>json</code> the format
+is written and under <code>--live</code> the live view, as without the key; the gathered
+display falls back to the ordinary one for a job that keeps no
+<code>commands.jsonl</code> (<code>--nof</code>, <code>output.persist-command</code> or
+<code>output.files.commands-jsonl</code> false); and under <code>--detach</code> or
+<code>--follow=false</code> nothing is shown. Beside the key, <code>--echo</code> and
+<code>display.run.echo</code> show no echo line in the gathered display, and <code>--border</code>
+draws none in line mode.</p>
 <h2 id="start-statements-for-generic-devices">Start statements for generic devices <a class="anchor" href="#start-statements-for-generic-devices" aria-label="Link to this section">#</a></h2>
 <p>A device that runs as <code>generic</code> (a row set to <code>generic</code>, any device under
 <code>--pg</code>, and a row with no platform or a target outside the inventory
@@ -1919,7 +2235,7 @@ is what reads it.</p>
 <td><code>commands-jsonl</code></td>
 <td><code>commands.jsonl</code></td>
 <td>every record, one JSON object per line: the authority</td>
-<td><code>karvi job follow</code> cannot replay the job; a device's text cannot be derived again; tools that read records</td>
+<td><code>karvi job follow</code> cannot replay the job; a device's text cannot be derived again; tools that read records; the gathered display (<code>--gather</code> refused, the key set true showing the ordinary display)</td>
 </tr>
 <tr>
 <td><code>errors-jsonl</code></td>
@@ -2092,7 +2408,8 @@ processes end with it, so no device session is held. A followed record
 whose line is larger than <code>daemon.max-ipc-frame-bytes</code> allows, or one
 spooled in a job that keeps no <code>commands.jsonl</code>, reaches the follower with
 its output left out and the notice <code>follow_output_omitted</code> saying where
-the output is.</p>
+the output is; a gathered display reads the answer back from <code>commands.jsonl</code>
+at the job's end and shows it whole.</p>
 <h2 id="the-shared-trees">The shared trees <a class="anchor" href="#the-shared-trees" aria-label="Link to this section">#</a></h2>
 <p>A team keeps one job tree, one collection directory, and one transcript
 tree. The site makes them once, as root (<a href="FILES.html"><code>docs/FILES.md</code></a> lists
@@ -2154,8 +2471,8 @@ naming it and the private place taken, as <code>config show --explain</code> lis
 <code>shared capacity root unavailable</code>, whose message names its cause: the
 shape it needs, a link in it to remove, a server ledger that does not
 decode, no free inodes, or the folder it could not make. A scratch
-root an earlier release left behind (0700, the first operator's) is set
-right by <code>sudo karvi setup shared</code>, which reports it <code>repaired</code>.</p>
+root of another group or mode is set right by <code>sudo karvi setup shared</code>,
+which reports it <code>repaired</code>.</p>
 <p><strong>The operators' roots.</strong> Once <code>/opt/karvi/users</code> exists, an operator's
 first activity that needs the private root creates
 <code>/opt/karvi/users/&lt;username&gt;</code> (0750) and every later one uses it: the
@@ -2399,9 +2716,9 @@ section 1.1</a>.</p>
 <li>
 <p><strong>The hook.</strong> <code>crun.after</code> names an executable the client runs once the
 collection has ended and its display is printed, on the in-process path and
-through the daemon alike, never for <code>--detach</code>: in the collection directory,
-the replaced files' names on stdin one per line, and <code>KARVI_JOB_ID</code>,
-<code>KARVI_JOB_DIR</code>, <code>KARVI_CRUN_DIRECTORY</code>, <code>KARVI_CRUN_REPLACE</code>,
+through the daemon alike, never for <code>--detach</code> nor after an interrupt: in the
+collection directory, the replaced files' names on stdin one per line, and
+<code>KARVI_JOB_ID</code>, <code>KARVI_JOB_DIR</code>, <code>KARVI_CRUN_DIRECTORY</code>, <code>KARVI_CRUN_REPLACE</code>,
 <code>KARVI_CRUN_KEEP</code>, and <code>KARVI_EXIT</code> in its environment; its output follows the
 display on stderr. A hook that fails, cannot start, or runs past
 <code>crun.after-timeout</code> (<code>5m</code>) is the warning <code>crun_after_failed</code>, the run's exit
@@ -2479,9 +2796,13 @@ spelling) stay from one job to the next; a command given as a bare
 line is the job's alone; a job's commands go in the order typed.
 <code>--expect</code>, <code>--blind</code>, <code>--blind-return</code>, <code>--timeout</code>, and <code>--maxbytes</code>
 lines attach to the command before them and stay or clear with it; one
-after a <code>--cf</code> line is dropped. The
-option words mean what they mean on a <code>run</code> command line,
-abbreviations and the <code>=</code> spelling included. An option whose value
+after a <code>--cf</code> line is dropped. The option words mean what they mean
+on a <code>run</code> command line, abbreviations and the <code>=</code> spelling included,
+but for a line of one word that begins a directive, which is never an
+option's abbreviation: a line <code>--g</code>, perhaps a mistyped <code>--go</code>, is
+dropped with its number as <code>cli_option_ambiguous: --g is ambiguous in stream: --gather, --go</code>, and a bare <code>--se</code> as ambiguous between
+<code>--select-platform</code> and <code>--sendit</code>; <code>--ga</code>, <code>--gather</code>, <code>--g=true</code>,
+and <code>--se cisco_ios</code> are the options as before. An option whose value
 attaches with <code>=</code> alone takes it that way here too: a line <code>--of /tmp/x</code> is dropped with its number as <code>cli_option_value_detached</code>, and
 <code>--of=/tmp/x</code> is the line. A line that would leave text no option
 takes is dropped as <code>cli_positional_unexpected</code>: <code>--no-daemon yes</code>,
@@ -2638,7 +2959,7 @@ journald's and the forwarder's; <code>karvi-prune</code> never touches it (&quot
 records, and scoreboards as authoritative. Human headers, borders, and footers
 are projections only.</p>
 
-<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

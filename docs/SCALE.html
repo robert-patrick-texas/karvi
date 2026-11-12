@@ -63,8 +63,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -129,8 +129,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -653,6 +653,33 @@ first byte); one that wants less disk raises it, up to 1 GiB. The spool
 directory must be a disk: <code>tempdir</code>'s chain prefers <code>/dev/shm</code> by design
 for small scratch files, and a spool on a tmpfs would cost the memory the
 threshold saved.</p>
+<p>The client's gathered display (<code>--gather</code>, <code>display.run.gather</code>;
+<a href="OPERATIONS.html#gathered-output-and-line-mode"><code>docs/OPERATIONS.md</code>, &quot;Gathered output and line
+mode&quot;</a>) holds no answer while it
+waits for the job's end: per group of devices that answered alike, its key
+(the status, the error code, the digests, and on the exec channel the exit
+status and signal), the line of its first record in the job's
+<code>commands.jsonl</code> and, for a failure, that record's error message, and per
+device its name. At the end it reads back from that file the record of each
+group that has output and streams the answer as the text display streams a
+spooled one, none held whole and no copy written; the daemon formats nothing
+for a display, so its memory is the budget above.
+Measured with <code>scripts/output-scale-run.sh</code> (<code>FORMAT=text</code>, <code>GATHER=1</code> for
+the gathered display, the default <code>FORMAT=jsonl</code> for <code>--format jsonl</code>)
+through one daemon on the native transport, the client's peak resident set
+by <code>/usr/bin/time</code>'s <code>%M</code>:</p>
+<ul>
+<li>32 devices answering <code>show big</code> at once, 5,256,000 bytes each, six runs of
+each display: 48,868 to 58,896 kB gathered (one group of 32, the answer
+shown once), against 52,832 to 63,004 kB for the text display, and 47,184
+kB for <code>--format jsonl</code> (one run). The runs spread over about 10 MB, more
+than the two displays differ.</li>
+<li>One device answering 52,560,000 bytes, four runs of each: 15,780 to 16,804
+kB gathered, the answer shown whole, against 15,712 to 16,036 kB for the
+text display, which leaves the answer out (its <code>commands.jsonl</code> line is
+more than <code>daemon.max-ipc-frame-bytes</code> allows in a frame,
+<code>follow_output_omitted</code>).</li>
+</ul>
 <h2 id="storage-layout">Storage layout <a class="anchor" href="#storage-layout" aria-label="Link to this section">#</a></h2>
 <ul>
 <li>Put <code>spooldir</code> on the volume with the room, not under <code>basedir</code> if the
@@ -677,7 +704,7 @@ trees&quot;</a>,
 check per volume); <a href="PRUNE.html"><code>docs/PRUNE.md</code></a>. <code>karvi-run(1)</code> (<code>man karvi run</code>), DISPATCH, restates &quot;The width&quot; for the terminal (the modes, the widths at
 0, the cap, the halts, and the gates); a change to one changes both.</p>
 
-<footer>Generated from <code>docs/SCALE.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>docs/SCALE.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

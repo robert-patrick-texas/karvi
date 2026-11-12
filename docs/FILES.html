@@ -62,8 +62,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -127,8 +127,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -759,6 +759,14 @@ in a shared place and the operator's primary group in a private one.</p>
 <td>the credential package, one frame per connection under a one-use token</td>
 </tr>
 <tr>
+<td><code>d.lock</code></td>
+<td><code>&lt;basedir&gt;/socket/</code> (<code>daemon.sockets</code>)</td>
+<td><code>0600</code>, the holder's pid</td>
+<td><code>0600</code>, the holder's pid</td>
+<td>kept; held while the daemon runs</td>
+<td>the daemon's lifetime lock: a daemon starting while one still stopping holds it waits for it, up to <code>daemon.start-timeout</code></td>
+</tr>
+<tr>
 <td><code>daemon.json</code></td>
 <td><code>&lt;basedir&gt;/state/</code></td>
 <td><code>0600</code></td>
@@ -795,7 +803,7 @@ in a shared place and the operator's primary group in a private one.</p>
 <td>the scratch</td>
 <td><code>0600</code> socket</td>
 <td><code>0600</code> socket</td>
-<td>one authentication; one a karvi killed outright left is swept as above</td>
+<td>the session's login, five minutes at most; one a karvi killed outright left is swept as above</td>
 <td>where <code>karvi-askpass</code> fetches the secret <code>ssh</code> asks for, named by its maker's pid</td>
 </tr>
 <tr>
@@ -1212,7 +1220,7 @@ the home from the password database, so a run under another <code>HOME</code> st
 writes to the account's own.</li>
 </ul>
 
-<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

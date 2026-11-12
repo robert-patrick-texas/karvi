@@ -74,8 +74,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -151,8 +151,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -184,14 +184,14 @@ excluded from the error count. <em>Why:</em> an operator reading a summary must 
 able to trust that <code>fail</code> means the device said no and <code>complete</code> means every
 command was answered. <em>Not taken:</em> letting the driver's error stand for
 a command the cancel interrupted; counting an unfinished device as failed.</p>
-<p><strong>No silent policy bypass.</strong> A configuration value the reader cannot honour
-is refused at load, never ignored. A removed key is refused from every layer
-with a code naming the key, the release that removed it, and the replacement.
-A malformed selector pattern is refused, never an empty selection. A
+<p><strong>No silent policy bypass.</strong> A configuration value the reader cannot honour is
+refused at load, never ignored. A key karvi does not have is refused, and a
+<code>KARVI__</code> variable naming none unless <code>config.reject-unknown-env</code> is false (then
+a warning). A malformed selector pattern is refused, never an empty selection. A
 credential file that fails its permission check fails the run even when the
 backend is optional. <em>Why:</em> dropping a site's intent silently is worse than
-stopping; the fault is found where it was made. <em>Not taken:</em> warnings for
-removed keys; documented no-op keys; an empty match for a bad pattern.</p>
+stopping; the fault is found where it was made. <em>Not taken:</em> documented no-op
+keys; an empty match for a bad pattern.</p>
 <p><strong>One mechanism per concern.</strong> One host-key policy for every mode and
 transport; one selector grammar for the command line and every map; one
 session engine over two byte streams; one record writer that every consumer
@@ -364,9 +364,18 @@ dropped, as <code>run</code> refuses the declaration there. An option line's wor
 resolved through run's own table, so <code>--cmd</code> and its aliases, <code>--cf</code>, and the
 <code>--expect</code>/<code>--blind</code>/<code>--blind-return</code> declarations belong to the commands, each
 declaration with the command before it, an abbreviation or an <code>=</code> spelling means
-what it means on a command line, and an <code>=</code> value runs to the end of the line. A
-value wholly wrapped in one pair of quotes, double or single, with no other of
-that quote inside, loses them as a shell would remove them; every other quote is
+what it means on a command line, and an <code>=</code> value runs to the end of the line.
+The one exception is a line of one word that begins a directive, never an
+option's abbreviation: a directive is always one word, so <code>--g</code> may be a
+mistyped <code>--go</code>, and taken as <code>--gather</code> it would stay in the draft unsaid; the
+line is dropped as <code>cli_option_ambiguous: --g is ambiguous in stream: --gather, --go</code>, the options and the directives the word begins in one sorted list, as
+<code>--purge</code>'s refusal names both purges, and a bare <code>--se</code> names
+<code>--select-platform</code> and <code>--sendit</code>. Full names and aliases match as before
+(<code>--gather</code>, <code>--c</code>, <code>--pr</code>), as do a word no directive begins (<code>--ga</code>), a word
+with <code>=</code> (<code>--g=true</code>), and a line of two words (<code>--se cisco_ios</code>); <code>run</code> and
+<code>command</code> keep the prefix rule, having no directive. A value wholly wrapped in
+one pair of quotes, double or single, with no other of that quote inside, loses
+them as a shell would remove them; every other quote is
 sent as written. A line leaving text no option takes (<code>- foo</code>, <code>-- foo</code>,
 <code>--no-daemon yes</code>), which <code>run</code> would read as freeform command text taking every
 command after it, is dropped as <code>cli_positional_unexpected</code>. The directives are
@@ -407,15 +416,20 @@ table parser and the run path so no rule lives twice; a typo must not cost the
 draft; a command the operator gives in option form is a standing part of the
 draft, sent by every job until purged, and a bare line is the job's alone; one
 dash and quotes mean on a line what they mean to <code>run</code> and the shell, so an
-operator's command-line habits carry over; and a line <code>run</code> would read as
-freeform text must never take the commands after it. <em>Not taken:</em> directives as
-table options; shell-style splitting of an option line (<code>--tl r1 r2</code> gives the
+operator's command-line habits carry over; a line <code>run</code> would read as
+freeform text must never take the commands after it; and a one-word line that
+begins a directive may be a mistyped one, so it never quietly becomes an option
+for the rest of the stream. <em>Not taken:</em> directives as table options; shell-style splitting of an option line (<code>--tl r1 r2</code> gives the
 case, and a command's own quotes would be lost); a <code>- foo</code> or <code>-- foo</code> line sent
 as a command; <code>--purge</code> as both purges; every command cleared by <code>--go</code>; a
 prompt; raw mode held across a job (the job's Ctrl-C would become a byte to
 read), which a reader reading ahead had done until the credential prompts showed
 it; GNU readline (not reachable without cgo; <code>rlwrap</code> remains an operator's
-choice); a generic error for the read failure (every path carries its own code).</p>
+choice); a generic error for the read failure (every path carries its own
+code); the prefix rule for a one-word line that begins a directive (<code>--g</code> taken
+as <code>--gather</code>, unsaid); the exception on every line (<code>--se VALUE</code>, two words, can
+be no directive); a minimum prefix length per option (it changes <code>run</code> and
+<code>command</code>, which have no directive).</p>
 <p><strong>A stream's restart.</strong> <code>--restart</code>, a directive of its own (the word whole),
 empties the draft, its commands and its targets, as <code>--reset</code> does, and reads
 the configuration again as the stream's start does: the files with their
@@ -612,13 +626,17 @@ written: blank and comment lines are sent, only the line terminator is
 removed, and a zero-byte file is an error. <em>Why:</em> karvi does not alter device
 text.</p>
 <p><strong>Dispatch order is reproducible from the record.</strong> <code>dispatch.order</code> is
-<code>default</code> (as encountered), <code>sorted</code>, <code>shuffle</code> (each device ranked by
-SHA-256 of <code>dispatch.shuffle-key</code>, a NUL, and the lowercase name, a permanent
-contract), or <code>random</code> (<code>shuffle</code> with epoch seconds as the key). The order and
-the key are recorded in the manifest, the command record, and the login
-metadata, so <code>shuffle</code> with the recorded key reproduces a <code>random</code> run.
-<em>Why:</em> the previous manifest recorded neither order nor seed. <em>Not taken:</em> a
-date in the shuffle.</p>
+<code>default</code> (as encountered), <code>sorted</code> (by name in natural order, as a gathered
+header's fold lists names: <code>router2</code> before <code>router10</code>, <code>edge1</code> before
+<code>edge01</code>), <code>shuffle</code> (each device ranked by SHA-256 of <code>dispatch.shuffle-key</code>,
+a NUL, and the lowercase name, a permanent contract), or <code>random</code> (<code>shuffle</code>
+with epoch seconds as the key). The order and the key are recorded in the
+manifest, the command record, and the login metadata, so <code>shuffle</code> with the
+recorded key reproduces a <code>random</code> run. <em>Why:</em> the previous manifest recorded
+neither order nor seed; <code>sorted</code> orders a name's numbers as an operator reads
+them, by the one comparison the fold uses. <em>Not taken:</em> a date in the shuffle;
+lowercase byte order for <code>sorted</code>, which takes digits as characters
+(<code>router10</code> before <code>router2</code>).</p>
 <p><strong>Alternates are recorded, never retried.</strong> karvi probes only the selected
 address; inventory alternates exist for audit, exercise, and a future explicit
 failover. <em>Why:</em> implicit failover would repeat a non-idempotent command on a
@@ -682,14 +700,13 @@ the plan and the manifest, shown on a dry run's <code>intended:</code> line; the
 does not re-evaluate it, and no option sets it for one run (<code>--platform NAME</code>
 does). A target planned over telnet whose platform says <code>exec</code> is refused at
 planning, naming both. <code>login</code> is always interactive; <code>crun</code> follows the
-platform. The platform field <code>control-master</code>, read by nothing, is removed.
-<em>Why:</em> whether a device takes an exec channel is the device's nature, which is
-what the platform carries, while the transport is only the SSH implementation
-and either can open both; one job mixes routers, servers, and servers that
-refuse exec, so the choice is per target, and an inventory row naming
-<code>linux_shell</code> makes it without a table; what a vendor's later releases accept
-is the operator's to decide, not a list karvi keeps; telnet has no exec in any
-version, and a shell run in its place would record no exit status while
+platform. <em>Why:</em> whether a device takes an exec channel is the device's nature,
+which is what the platform carries, while the transport is only the SSH
+implementation and either can open both; one job mixes routers, servers, and
+servers that refuse exec, so the choice is per target, and an inventory row
+naming <code>linux_shell</code> makes it without a table; what a vendor's later releases
+accept is the operator's to decide, not a list karvi keeps; telnet has no exec
+in any version, and a shell run in its place would record no exit status while
 looking like a record with one. <em>Not taken:</em> exec as a transport or an
 implementation ID; a per-run <code>--exec</code>; an admission list limiting <code>exec</code> to
 <code>linux</code>; <code>session</code> as the field's name (<code>session-cap</code> and <code>session-init</code> use
@@ -733,10 +750,11 @@ that record's status; a dry run shows them as findings. <em>Why:</em> the operat
 must see, before and after the fact, why a device ran as a platform its row
 did not name, and a connection failure must not lose that explanation.</p>
 <p><strong>An unknown name never reaches a session.</strong> The executor, <code>login</code>, and the
-exercise look a platform up with a function that says whether the name is
-known and refuse an unknown one before any connection. <em>Why:</em> a daemon whose
-configuration lacks the client's alias table used to run the alias as
-<code>generic</code> under the alias's name.</p>
+exercise look a platform up with a function that says whether the name is known
+and refuse an unknown one before any connection. <em>Why:</em> the lookup answers an
+unknown name with <code>generic</code>'s definition under that name, so without the refusal
+a daemon whose configuration lacks the client's alias table would run the alias
+as <code>generic</code> under the alias's name.</p>
 <p><strong>An inventory file holds no secret column.</strong> A header that is or ends with
 <code>password</code>, <code>passwd</code>, <code>secret</code>, <code>token</code>, <code>private_key</code>, or <code>passphrase</code> is
 refused, naming the column number and the word and never the header text; an
@@ -813,16 +831,16 @@ name, a portable variable name, is checked when the file loads, and its value is
 read when a device selects the row. An unset or empty variable is
 <code>credential_env_missing</code> at planning, naming the file, the line, the column, and
 the variable, and the device moves on to no later row, backend, or fallback.
-Every other cell is a literal, and no backend takes an <code>env-indirection</code> key
-(below). <em>Why:</em> under the flags a cell naming an unset variable was sent as the
-password, failed logins and, on some devices, lockouts, with nothing naming the
-cause; a reference marked as one fails before any device is reached, and its
-name may be said, the prefix marking it as a name. <em>Not taken:</em> the flags kept
-beside the cell (a file under two rules); an escape for a literal that begins
-with <code>env:</code> (a variable carries it); a reference only when its rest is a valid
-name (a typo sent as a password); an empty variable taken as set (a blank enable
-secret reaching the device); every row's variables read at load (a run on one
-site's devices needing every site's variables).</p>
+Every other cell is a literal. <em>Why:</em> a cell read as a name where its variable
+is set and as a literal where it is not sends the name as the password: failed
+logins and, on some devices, lockouts, with nothing naming the cause; a
+reference marked as one fails before any device is reached, and its name may be
+said, the prefix marking it as a name. <em>Not taken:</em> a flag making a column's
+cells names, beside the prefix (a file under two rules); an escape for a literal
+that begins with <code>env:</code> (a variable carries it); a reference only when its rest
+is a valid name (a typo sent as a password); an empty variable taken as set (a
+blank enable secret reaching the device); every row's variables read at load (a
+run on one site's devices needing every site's variables).</p>
 <p><strong>Every credential reader reads the environment through the resolver's one
 lookup.</strong> The resolver's lookup is its input provider's, the client's, the
 credential helper's values ahead of the process environment, and reaches every
@@ -833,12 +851,12 @@ Vault record's <code>env:</code> fields. No backend calls <code>os.LookupEnv</co
 without a provider reads no variable. A variable a Redis or Vault backend's
 configuration names, unset or empty, is <code>credential_env_missing</code> (exit 6), read
 before any connection, naming the backend, the key, and the variable
-(<code>credential backend v: token-env: VAULT_TOKEN not set</code>); <code>redis_auth_missing</code>
-and <code>vault_token_missing</code> are retired into it. <em>Why:</em> the credential helper's
-values are held as secrets and never put into the process environment a child
-such as <code>ssh</code> inherits, so a reader of the process environment could not see
-them; one door gives them to each reader; Redis sent an empty <code>AUTH</code> for an
-empty variable where Vault called it missing. <em>Not taken:</em> the helper's values
+(<code>credential backend v: token-env: VAULT_TOKEN not set</code>). <em>Why:</em> the credential
+helper's values are held as secrets and never put into the process environment a
+child such as <code>ssh</code> inherits, so a reader of the process environment could not
+see them; one door gives them to each reader; one reading treats an empty
+variable alike in both stores, where a reading per store can send Redis an empty
+<code>AUTH</code> for a variable Vault refuses as missing. <em>Not taken:</em> the helper's values
 put into the process environment; a lookup given to each backend as it is built
 (the backends are built before the planner sets the provider).</p>
 <p><strong><code>%operator%</code> is the operator's name in a template, and <code>%s</code> is text.</strong>
@@ -865,33 +883,31 @@ key (a backend's transform no longer reaching its templates); a placeholder
 outside the macro syntax, <code>{operator}</code>; <code>%user%</code> (the device's username
 everywhere else); <code>%s</code> refused in the seven keys (a guard for an upgrade); a
 store's answer expanded (a password holding <code>%operator%</code> changed).</p>
-<p><strong>A store names a variable as <code>env:NAME</code>; no backend takes <code>env-indirection</code>.</strong>
-A Redis or Vault record's username, password, or enable field whose value,
-trimmed, begins with <code>env:</code>, the prefix's case ignored, names a variable, read
-through the one lookup by the credential CSV's own functions
-(<code>envindirect.Reference</code>, <code>Read</code>); unset or empty, it is
+<p><strong>A store names a variable as <code>env:NAME</code>.</strong> A Redis or Vault record's username,
+password, or enable field whose value, trimmed, begins with <code>env:</code>, the prefix's
+case ignored, names a variable, read through the one lookup by the credential
+CSV's own functions (<code>envindirect.Reference</code>, <code>Read</code>); unset or empty, it is
 <code>credential_env_missing</code>, naming the backend, the record, the field, and the
 variable; a rest that is no variable name is the store's code for a malformed
 record (<code>redis_malformed</code>, <code>vault_response_malformed</code>), naming the field and
 never the value. Any other value is a literal. An env backend's variable's value
-is the value, its template naming the variable. <code>env-indirection.username</code>,
-<code>.password</code>, and <code>.enable-password</code> are removed from every type,
-<code>config_key_removed</code>. <em>Why:</em> under a flag a field was a name or a value as the
-environment happened to say: a name whose variable was unset was sent as the
-password (exit 108), and a real password that named a variable was replaced by
-its value; without one a store could not name <code>NETENABLE</code>. <em>Not taken:</em> the
-flags kept; the flags kept with an unset name failing (every field of the
-column a name); no reference in a store; <code>env:</code> in the env backend's values (a
-variable naming a variable, which its template does); a new code for a bad
-reference.</p>
+is the value, its template naming the variable. <em>Why:</em> a field that is a name or
+a value as the environment happens to say sends a name whose variable is unset
+as the password (exit 108) and replaces a real password that names a variable by
+its value; without a reference a store cannot name <code>NETENABLE</code>. <em>Not taken:</em> a
+per-field flag making the field a name; such a flag with an unset name failing
+(every field of the column a name); no reference in a store; <code>env:</code> in the env
+backend's values (a variable naming a variable, which its template does); a new
+code for a bad reference.</p>
 <p><strong>A credential backend takes its type's keys alone.</strong> The registry holds one key
 list per backend type, and any other key on a table of that type is
-<code>config_credential_backend_key_unsupported</code>, naming the types that read it. The
-<code>sqlite</code> type, which had no driver, is refused, and its keys as removed. <em>Why:</em>
-a key its type ignores is a setting the operator takes to be in force that is
-not (a Redis backend's <code>mount</code>, a CSV's <code>token-env</code>); a type no build can read
-validates and never answers. <em>Not taken:</em> a warning (the setting left in the
-file); a code per family of keys (the scope code, retired into the one).</p>
+<code>config_credential_backend_key_unsupported</code>, naming the types that read it. A
+named type the registry does not list is
+<code>config_credential_backend_type_unsupported</code>. <em>Why:</em> a key its type ignores is a
+setting the operator takes to be in force that is not (a Redis backend's
+<code>mount</code>, a CSV's <code>token-env</code>); a type no build can read validates and never
+answers. <em>Not taken:</em> a warning (the setting left in the file); a code per
+family of keys.</p>
 <p><strong>A store backend's keys are judged at load.</strong> Each key of the env, Redis, and
 Vault types has a kind, a string but Redis's <code>tls</code> and both stores' <code>tls-verify</code>
 (booleans), Redis's <code>database</code> (an integer of 0 or more), and <code>connect-timeout</code>
@@ -911,18 +927,17 @@ none where a key's default is none (the env templates, <code>ca-file</code>, the
 pair, Redis's login variables, Vault's <code>namespace</code>), and refused, <code>must not be empty</code>, where the default is a value; a written value, the default's included,
 is judged as any other, so <code>tls-verify = true</code> beside plain text is refused. The
 defaults are set once, where the resolver builds the backend, and <code>Resolve</code>
-never writes its backend. <code>redis_address_missing</code>, <code>vault_address</code>,
-<code>redis_client_cert_key_unpaired</code>, and <code>vault_client_cert_key_unpaired</code> are
-retired into these. <em>Why:</em> each of these validated and was silently a default, a
-key not in force, or a name no shell can export (<code>tls = &quot;false&quot;</code> sent a TLS
-hello to a plain server, <code>token-env = &quot;VAULT TOKEN&quot;</code> was missing with
-<code>VAULT_TOKEN</code> exported); Vault's <code>Resolve</code> wrote its defaults into the backend
-every device shares, a data race under the planning pool; layers merge a
-backend's table key by key, so <code>&quot;&quot;</code> is the one way a later layer says none over
-an earlier one's value. <em>Not taken:</em> a warning (the setting left in the file);
-the race fixed alone (the silent defaults kept); a code per key; the operator's
-name checked at load (a shared configuration refused for <code>j.smith</code>, whose runs
-never reach the env backend); <code>&quot;&quot;</code> refused on every key; a word <code>none</code>.</p>
+never writes its backend. <em>Why:</em> a value not judged at load validates and is
+silently a default, a key not in force, or a name no shell can export
+(<code>tls = &quot;false&quot;</code> would send a TLS hello to a plain server, and
+<code>token-env = &quot;VAULT TOKEN&quot;</code> would be missing with <code>VAULT_TOKEN</code> exported); a
+<code>Resolve</code> that writes its defaults into the backend every device shares is a
+data race under the planning pool; layers merge a backend's table key by key,
+so <code>&quot;&quot;</code> is the one way a later layer says none over an earlier one's value.
+<em>Not taken:</em> a warning (the setting left in the file); the race fixed alone
+(the defaults still silent); a code per key; the operator's name checked at
+load (a shared configuration refused for <code>j.smith</code>, whose runs never reach the
+env backend); <code>&quot;&quot;</code> refused on every key; a word <code>none</code>.</p>
 <p><strong>An operator-keyed store is asked once per resolver.</strong> The env, Redis, and
 Vault backends declare <code>credentials.OperatorKeyed</code>: their request is the
 operator's name after the backend's transform, the same for every device. Such a
@@ -956,12 +971,13 @@ permission check on the client key.</p>
 table with the one builder every reader at the run uses (<code>transform.Names</code>,
 <code>transform.Credentials</code>), whether or not anything names the table, and refuses a
 credential backend's <code>transform</code> or an inventory source's <code>name-transform</code> that
-names none. <code>name.default-transform</code>, which nothing read, is removed: a device
-that names no transform takes <code>[name-transform.default]</code>. <em>Why:</em> the run builds
-every table, so a typo in a table nothing names stopped every run while <code>config validate</code> passed it, and the builder's three copies had drifted (one refused a
-list that was no array, two read it as none). <em>Not taken:</em> the run building only
-the tables named (a typo hidden until the day the table is used); the key made
-to work (two ways to name one default).</p>
+names none. A device that names no transform takes <code>[name-transform.default]</code>.
+<em>Why:</em> the run builds every table, so a typo in a table nothing names stops
+every run, and a <code>config validate</code> that passed it would not say so; copies of
+the builder drift apart (one refusing a list that is no array, another reading
+it as none). <em>Not taken:</em> the run building only the tables named (a typo hidden
+until the day the table is used); a key naming the default table (two ways to
+name one default).</p>
 <p><strong>A pin is a pin.</strong> A device with <code>credkeyref</code> matches only rows whose key
 equals it, walks its policy's sequence asking only backends that declare the
 keyed capability, skips a formula whatever its source, and never falls to a
@@ -1001,15 +1017,142 @@ organisations deliver privilege 15 at login or configure enable without a
 secret; a login's operator types <code>enable</code> at the device, so nothing of the
 login would send the secret; on exec nothing but <code>sudo</code> sends it, and a
 secret no command uses would only travel to the daemon.</p>
-<p><strong>The askpass broker answers the username and the password alone.</strong> Over
-<code>system</code>, OpenSSH's questions reach karvi's askpass broker, which answers the
-login's username and password, judging a prompt by its own words with
-OpenSSH's <code>user@host</code> part cut, and refuses every other question, the host-key
-one included (<code>askpass_prompt_unrecognized</code>). The enable secret goes to the
-device in-band, the command session sending it at the escalate prompt, and a
-login resolves none (above). <em>Why:</em> OpenSSH's prompt carries the device's name
-and the username, so a device or user named with <code>enable</code> drew the enable
-secret where the password was asked.</p>
+<p><strong>A prompt gets the username or the password by what it asks for, each at most
+once per connection, on both transports, and a change of a secret ends the
+connection outside a login.</strong> Over <code>system</code>, OpenSSH's questions reach karvi's
+askpass broker; over <code>native</code>, a device's keyboard-interactive prompts reach its
+callback. Both answer by one rule, <code>askpass.Field</code>: three lists of RE2
+patterns, matched case-insensitively, in this order, the first list with a
+match deciding, except that in <code>karvi login</code> the operator answers a change
+prompt, a prompt no list matches, and a second ask (below):</p>
+<ul>
+<li><code>change</code>: <code>new</code>, <code>next</code>, <code>re-?enter(ed)?</code>, <code>re-?typed?</code>,
+<code>(re)?confirm(ed)?</code>, <code>verify</code>, <code>repeat(ed)?</code>, <code>again</code>, <code>once more</code>,
+<code>chang(e|ed|es|ing)</code>, <code>renew(ed)?</code>, <code>generat(e|es|ed|ing)</code>, <code>creat(e|ed)</code>,
+<code>\(y/n\)</code>, <code>\[y/n\]</code>, <code>yes/no</code>: the device asks to change a secret.
+Nothing is answered: the connection ends with
+<code>authentication_change_requested</code> (exit 108), naming the prompt;</li>
+<li><code>username</code>: <code>[\w-]*user[\w-]*</code>, <code>log ?[io]n</code>, <code>name\s*:</code>;</li>
+<li><code>password</code>: <code>passw\w*</code>, <code>passcode</code>, <code>passphrase</code>, <code>pass\s*:</code>, <code>pin</code>,
+<code>token(code)?</code>, <code>code</code>, <code>otp</code>;</li>
+<li>no list: an empty answer (native sends it; the broker refuses, and OpenSSH
+sends it).</li>
+</ul>
+<p>Each pattern is a word of its own: where its match's own first or last
+character is an ASCII letter, digit, or underscore, the character beside it is
+none of those and no hyphen, so <code>pin</code> matches <code>PIN:</code>, <code>PIN?</code>, and <code>Enter your PIN.</code> but not <code>pin-gw1</code>, and <code>\(y/n\)</code> matches <code>Accept PIN(y/n)?</code>. The broker
+answers only a prompt that begins with OpenSSH's <code>user@host</code> (<code>user@host's password: </code> before its password method's prompt, <code>(user@host) </code> before a
+keyboard-interactive server's) and judges the words after it; every other
+prompt is OpenSSH's own question (a key's passphrase, a FIDO or PKCS#11 PIN,
+user presence, the host key, a password change), refused
+(<code>askpass_prompt_unrecognized</code>). The username is answered at most once and the
+password at most once per connection: a prompt asking for a field already
+answered ends the connection at that prompt, the device getting nothing in its
+round, with <code>authentication_failed: device refused password</code> (or <code>username</code>,
+exit 108); the password method after keyboard-interactive sent the password is
+such an ask. So <code>Username:</code> then <code>Password:</code> logs in; a refused <code>Password:</code>
+sends the password once; <code>Password:</code> twice in one round sends nothing, since
+OpenSSH reads every prompt of a round before it sends any answer and the native
+transport judges a round whole, in order, before answering; and a change prompt
+at any position, a later round's included, ends the connection. At a change
+prompt or a second ask the broker's hook ends OpenSSH (SIGTERM) before the
+refusal goes back, while OpenSSH waits on the helper; the native transport's
+callback returns the error, and its <code>AuthCallback</code> ends the handshake. The
+broker serves every request of the session until its login is over, for a
+command session a shell's first prompt or an exec device's master ready and for
+<code>karvi login</code> its end, and closes five minutes after its start at the latest;
+each exchange is bounded to ten seconds on both sides, a login's helper aside
+(below); neither bound is a setting. A request without the
+broker's token, a wrong one or one it cannot decode (nothing within the ten
+seconds included), ends the broker: it answers nothing more and its hook ends
+OpenSSH, and the session fails with
+<code>askpass_auth_failed</code> (<code>a request to the askpass broker bears the wrong token</code>)
+or <code>askpass_request_invalid</code> (<code>the askpass broker cannot decode a request</code>),
+exit 108. OpenSSH's own questions, a prompt no list matches, and a field the
+session did not resolve (<code>askpass_username_unset</code>, <code>askpass_password_unset</code>)
+are refused and the broker serves on, OpenSSH sending an empty answer. Outside
+a login, with a <code>ProxyJump</code> the hop's child
+<code>ssh -W</code> reaches the same broker and, authenticating first, takes the fields it
+asks for, so the device's own ask of one of them ends the connection as a second
+ask (not executed: the fake cannot be a jump host); the hook ends the device's
+OpenSSH, not the hop's own process, which still answers a change prompt or a
+second ask at the jump host empty
+(<a href="../ROADMAP.html"><code>ROADMAP.md</code></a>, &quot;Jump hosts over the system transport&quot;). The
+enable secret goes to the device in-band, the command session sending it at the
+escalate prompt, and a login resolves none (above). <em>Why:</em> the password goes
+only where a prompt asks for it: a device asking for the username in
+keyboard-interactive would otherwise have the password in a field it logs, and
+a prompt to set a new PIN or password would set the stored one. Any prompt
+naming <code>user</code> gets the username, so <code>Password for user jsmith:</code> gets it too
+(the login fails; nothing leaks). A word of its own, since a device named in a
+prompt (<code>Password for repeater1:</code>, <code>Username for pin-gw1:</code>) would otherwise end
+the connection or draw the password. A change prompt is not answered empty:
+OpenSSH would send the empty answer and go on to the password method, and
+x/crypto to the next method after a callback's error, two failed attempts a
+SecurID or RADIUS server counts. The yes/no questions are in <code>change</code>, since
+SecurID's <code>Do you want to enter your own pin (y/n)</code> names a PIN, and <code>again</code>,
+the confirm word (<code>Password again:</code>); an unrelated yes/no question is then
+<code>authentication_change_requested</code>, not <code>authentication_failed</code>. OpenSSH's
+<code>user@host</code> is cut and required, since it carries the device's name and the
+username, and a device or user named with <code>enable</code> drew the enable secret where
+the password was asked. A field is answered once: a second ask means the device
+refused the answer, or wants a second factor karvi does not hold (a Duo-style
+<code>Passcode or option (1-3):</code> matches <code>passcode</code>), and an empty answer or the
+password again is one more failed attempt counted against the account's
+lockout. SIGTERM, since a login's OpenSSH then restores the terminal (SIGKILL
+left echo off), and during authentication it ends OpenSSH at once as SIGKILL
+does. A request without the token ends the session, failing closed: only the
+operator's account or root reaches the 0600 socket. A login's broker stays open
+until the login ends, at most its five minutes, with no timer added to the
+login: the device's prompts come in its first seconds; the cost is a stray
+request in those minutes ending the login, and only the operator's account or
+root can send one. <em>Not taken:</em> the password to every keyboard-interactive
+prompt; the prompt's runs of letters as its words, the first rule (<code>Login for pin-gw1:</code> drew the password, <code>pin</code> a word of its own); patterns bounded at
+their start alone (<code>Password for repeater1:</code> was a change); <code>confirmation</code> in
+<code>change</code> (<code>Enter confirmation code:</code> is a code); <code>.</code> as a joiner too (<code>Enter your PIN.</code> would match nothing); a change prompt answered empty; the yes/no
+questions only where they name a secret; a second ask refused, the broker
+serving on (OpenSSH then sends an empty answer); a code or message of its own
+for a second ask (it is a refusal); SIGKILL; a request without the token
+refused, the broker serving on; a login's broker closed by a timer at the
+login's bound, at the first output byte, or by OpenSSH's <code>LocalCommand</code>.</p>
+<p><strong>In a login the operator answers a change prompt, a prompt no list matches,
+and a second ask.</strong> In <code>karvi login</code> (the system transport; native has no
+login) the broker asks the operator for them at the controlling terminal, with
+the credential prompts' editor (<code>termline.Prompt</code>) and echo off, any number of
+them in a round or across rounds, the prompt shown as OpenSSH gives it
+(<code>(jsmith@router1) Enter new PIN: </code>); karvi sends its stored username and
+password each at most once. The line typed goes to OpenSSH alone, never stored
+or logged; OpenSSH waits on the helper meanwhile, so nothing else reads the
+terminal. OpenSSH's own questions and a field the session did not resolve stay
+refused. The operator's answer has no askpass bound: the helper, told by its
+environment that it serves a login (<code>KARVI_ASKPASS_LOGIN=1</code>), as it is told the
+socket, waits on the broker without the ten seconds, and the broker, idle while
+the operator types, renews its own for the answer. Ctrl-D on an empty line
+sends an empty answer, as plain <code>ssh</code> does; Ctrl-C or a signal ends the login
+with <code>credential_prompt_interrupted</code> (exit 113), the broker's hook ending
+OpenSSH as at a change prompt, and any other failure at the terminal with
+<code>credential_prompt_unavailable</code> (exit 6), as at a credential prompt. The
+device's own limit (IOS XE <code>ip ssh time-out</code>) is the bound in practice: a device
+that gives up meanwhile ends the login once the operator answers. The broker
+still closes at its five minutes: a request after them finds no broker, OpenSSH
+sending an empty answer. Without a controlling terminal (<code>karvi login</code> requires
+none) nothing is asked, and the login answers as <code>command</code> does: a change prompt is <code>authentication_change_requested</code>, a second ask
+<code>authentication_failed: device refused password</code> (or <code>username</code>), and a prompt
+no list matches gets an empty answer. <code>command</code>, <code>run</code>, <code>crun</code>, and <code>stream</code>
+keep the ten seconds and the errors above. <em>Why:</em> an operator at the terminal
+can answer anything a device asks, as at plain <code>ssh</code>: a new PIN often takes two
+or three entries (the PIN, its confirmation, a passcode of the new PIN and the
+next tokencode), and a refused stored password is asked at the terminal, where
+Ctrl-C ends it. Outside a login the exchange is karvi's helper and karvi's
+broker on one host, answered from memory at once, and a slow device is bounded
+by <code>ssh.connect-timeout</code> and <code>execution.prompt-timeout</code> (system) and
+<code>native-ssh.handshake-timeout</code> (native). The costs: OpenSSH killed alone during
+the prompt ends the login at the next Enter, and copies of the typed line stay
+in memory until reused, as a credential prompt's do. <em>Not taken:</em> the helper
+reading the terminal itself (Ctrl-C would only blank the answer, the login going on); a
+second ask refused in a login; a setting for the exchange's bound; the
+operator's prompt bounded at the broker's five minutes (a second bound, and an
+error for a case the device has ended).</p>
 <p><strong>Prompting once per invocation, and a prompt left unanswered ends the
 run.</strong> The client's input provider caches by field: the first target
 needing a username, password, or enable secret asks, naming the device or
@@ -1020,7 +1163,10 @@ the line editor stream mode uses. Ctrl-C at it is
 process as the interrupt it would have been outside raw mode, so the run
 stops as at any other moment and a stream ends; an empty answer is the
 field's missing code at once, before any later prompt; Ctrl-D on an empty
-line stays <code>credential_prompt_unavailable</code>. <em>Why:</em> under the daemon there
+line stays <code>credential_prompt_unavailable</code>. A signal ends it too
+(<code>credential_prompt_interrupted</code>), by a read deadline: osutil's terminal calls
+go through <code>SyscallConn</code>, never <code>f.Fd()</code>, which would make the descriptor
+blocking and the deadline void. <em>Why:</em> under the daemon there
 is no terminal; under the client, per-target prompting would ask once per
 target; a prompt is asked only for a field the device needs, so no job can
 run past one left unanswered, and the operator who presses Ctrl-C there
@@ -1127,26 +1273,26 @@ connects (<code>ssh</code>, or the native transport, both the operator's) reads 
 the connection, and a <code>keyfile</code> passes the credential file checks (the owner,
 <code>0600</code>, no symlink). A key protected by a passphrase is skipped with a notice,
 never prompted for and never offered to the askpass helper; passphrases are
-later work. What follows the policy's backends is the platform's <code>fallback</code>,
-an ordered list of <code>netvars</code> (<code>NETUSER</code>, <code>NETPASS</code>, <code>NETENABLE</code>), <code>keys</code> (the
-operator's username and keys), and <code>prompt</code> (the terminal prompts): the
-network built-ins and <code>generic</code> are <code>[&quot;netvars&quot;, &quot;prompt&quot;]</code>, <code>linux</code> and
-<code>linux_shell</code> <code>[&quot;keys&quot;]</code>, a platform that leaves the field unset <code>[&quot;netvars&quot;, &quot;prompt&quot;]</code>, and an empty list no fallback; a site that lets the variables serve
-its servers writes <code>[platform.linux] fallback = [&quot;netvars&quot;, &quot;keys&quot;]</code>. For a
-server on the exec channel the enable field is a <code>--sudo</code> command's password;
-a fallback that answered, by whichever word, reads <code>NETSUDO</code> for it, then
-<code>NETENABLE</code> where the list holds <code>netvars</code>. Whether keys are offered is the
-credential's, and <code>ssh.pubkey-authentication</code> is removed: a credential
-with a key offers it, one without offers none, and a server whose credential
-has no password needs none. <em>Why:</em> the production fleet needs all four forms,
-and a backend's rows already map a credential to devices; a key's bytes copied
-into a package would be one more copy of the most valuable secret, while the
-daemon runs as the operator and reads the file itself; the variables an
-operator exports for routers must not reach servers unasked, and a platform
-table already holds a class of devices' settings. <em>Not taken:</em> a key's bytes
-in the credential package; two boolean fields in place of <code>fallback</code>; the map
+later work. What follows the policy's backends is the platform's <code>fallback</code>, an
+ordered list of <code>netvars</code> (<code>NETUSER</code>, <code>NETPASS</code>, <code>NETENABLE</code>), <code>keys</code> (the
+operator's username and keys), and <code>prompt</code> (the terminal prompts): the network
+built-ins and <code>generic</code> are <code>[&quot;netvars&quot;, &quot;prompt&quot;]</code>, <code>linux</code> and <code>linux_shell</code>
+<code>[&quot;keys&quot;]</code>, a platform that leaves the field unset <code>[&quot;netvars&quot;, &quot;prompt&quot;]</code>, and
+an empty list no fallback; a site that lets the variables serve its servers
+writes <code>[platform.linux] fallback = [&quot;netvars&quot;, &quot;keys&quot;]</code>. For a server on the
+exec channel the enable field is a <code>--sudo</code> command's password; a fallback that
+answered, by whichever word, reads <code>NETSUDO</code> for it, then <code>NETENABLE</code> where the
+list holds <code>netvars</code>. Whether keys are offered is the credential's alone: a
+credential with a key offers it, one without offers none, and a server whose
+credential has no password needs none. <em>Why:</em> the production fleet needs all
+four forms, and a backend's rows already map a credential to devices; a key's
+bytes copied into a package would be one more copy of the most valuable secret,
+while the daemon runs as the operator and reads the file itself; the variables
+an operator exports for routers must not reach servers unasked, and a platform
+table already holds a class of devices' settings. <em>Not taken:</em> a key's bytes in
+the credential package; two boolean fields in place of <code>fallback</code>; the map
 matching base drivers (every existing alias would change policy); <code>ssh-agent</code>
-in the first build (it follows the key files as a <code>keys</code> source).</p>
+ahead of the key files (it follows them as a <code>keys</code> source).</p>
 <p><strong>The operator's keys are a list in order, judged at planning, and the record
 names the method that authenticated.</strong> <code>ssh.identities</code> names the files, offered
 in its order: by default <code>~/.ssh/id_ed25519</code>, <code>~/.ssh/id_ecdsa</code>,
@@ -1167,9 +1313,11 @@ the system transport's managed configuration sets <code>PubkeyAuthentication yes
 <code>IdentitiesOnly yes</code>, <code>IdentityAgent none</code>, and one <code>IdentityFile</code> per key, with
 password and keyboard-interactive off when the credential has no password; the
 native transport offers the keys as signers, the password methods only beside a
-password. Both transports try the methods in one order, <code>publickey</code>,
-<code>keyboard-interactive</code>, then <code>password</code>, the last two answered with the
-password, since some servers allow keyboard-interactive and refuse password
+password. On both, <code>ssh.keyboard-interactive-authentication</code> and
+<code>ssh.password-authentication</code> each, set false, leaves its method out. Both
+transports try the methods in one order, <code>publickey</code>, <code>keyboard-interactive</code>
+(a prompt answered by what it asks for, above), then <code>password</code>, since some
+servers allow keyboard-interactive and refuse password
 (<code>PreferredAuthentications</code> in the managed configuration). The record's
 credential projection names the method that authenticated, <code>auth</code> (<code>publickey</code>,
 <code>keyboard-interactive</code>, or <code>password</code>, absent where the session never
@@ -1215,21 +1363,21 @@ code), no key usable (<code>credential_operator_keys_missing</code>), or telnet
 (<code>credential_password_missing</code>); with nothing found, no username was supplied
 (<code>credential_username_missing</code>). A backend's credential holds no key until the
 credential CSV's <code>keyfile</code> column is built, so it needs a password whatever the
-settings, and <code>config_ssh_auth_mechanisms_disabled</code> is retired: both password
-methods off is a key-only site, where a password credential is refused by the
-device. A skipped key is a warning line once at planning, as a platform not set
-is, beside its notice in the dry run and on each device's first record. The key
-files are parsed in an adapter of their own, <code>internal/adapters/sshkey</code>, so
-x/crypto stays out of the credential code as it stays out of <code>hostkey</code>. <em>Why:</em>
-the order is the operator's, so a later source is reached only when an earlier
-one gives nothing whole, and the error names the last thing tried; the variables
-an operator exports for routers are often a username alone, which must not stop
-a server that has a key; a key is judged once per invocation, so the operator
-sees it once at the terminal and again on every record it touches; the import
-boundary keeps the SSH library behind adapters. <em>Not taken:</em> a partial <code>netvars</code>
-credential failing at once under <code>[&quot;netvars&quot;, &quot;keys&quot;]</code>; the keys offered over
-telnet; the mechanisms check kept as &quot;a password method must remain&quot; (it would
-refuse a key-only site); key parsing in the credential package itself.</p>
+settings; both password methods off is a key-only site, where a password
+credential is refused by the device. A skipped key is a warning line once at
+planning, as a platform not set is, beside its notice in the dry run and on each
+device's first record. The key files are parsed in an adapter of their own,
+<code>internal/adapters/sshkey</code>, so x/crypto stays out of the credential code as it
+stays out of <code>hostkey</code>. <em>Why:</em> the order is the operator's, so a later source is
+reached only when an earlier one gives nothing whole, and the error names the
+last thing tried; the variables an operator exports for routers are often a
+username alone, which must not stop a server that has a key; a key is judged
+once per invocation, so the operator sees it once at the terminal and again on
+every record it touches; the import boundary keeps the SSH library behind
+adapters. <em>Not taken:</em> a partial <code>netvars</code> credential failing at once under
+<code>[&quot;netvars&quot;, &quot;keys&quot;]</code>; the keys offered over telnet; a check that a password
+method remains on (it would refuse a key-only site); key parsing in the
+credential package itself.</p>
 <p><strong>The credential CSV has its own guide.</strong>
 <a href="CREDENTIAL-CSV.html"><code>docs/CREDENTIAL-CSV.md</code></a> is the text an operator works from
 with the file open; the shared file rules stay in OPERATIONS with a table saying
@@ -1271,9 +1419,9 @@ the connection is an OpenSSH ControlMaster: one <code>ssh -M -N</code> per devic
 with the managed configuration, host-key policy, and algorithms of the shell,
 karvi's own child (never backgrounded by <code>-f</code>) set to die with its parent; one
 <code>ssh -S SOCKET -n</code> client per command at <code>LogLevel QUIET</code> with <code>ProxyCommand false</code>, so that it reaches the device only through the master and its stderr
-holds only the command's; <code>ssh -O exit</code> at the end, and the master killed on an
-abort. Its socket is in <code>ssh.control-path-root</code> under a 16-hex-character name
-karvi picks (<code>/dev/shm/karvi/&lt;user&gt;/sockets/NAME</code> in shared mode,
+holds only the command's; <code>ssh -O exit</code> at the end (none for a job stopped or
+cancelled), and the master killed on an abort. Its socket is in
+<code>ssh.control-path-root</code> under a 16-hex-character name karvi picks (<code>/dev/shm/karvi/&lt;user&gt;/sockets/NAME</code> in shared mode,
 <code>&lt;basedir&gt;/socket/ssh/NAME</code> in individual), a root too long for the 108-byte
 limit with OpenSSH's 17-character binding suffix refused at planning
 (<code>control_path_root_too_long</code>, a root of at most 73 bytes passing), naming the
@@ -1329,7 +1477,8 @@ signal, kills the client and records the notice <code>remote_command_not_stopped
 command timeout falls under the device-error policy, the connection being
 usable: the rest stop unless <code>--continue-device-on-error</code>.
 <code>execution.device-timeout</code>, the keepalives, and a cancel are as for the shell
-(<code>native</code> asking for <code>KILL</code> on the channel in flight);
+(<code>native</code> asking for <code>KILL</code> on the channel in flight), each closing the
+connection (the next decision);
 <code>execution.blind-wait</code> is not used. The output limit counts stdout and stderr
 together, and each stream is spooled past the threshold on its own; at the limit
 the command is stopped as at a timeout, the record is <code>output_limit_exceeded</code>
@@ -1348,6 +1497,38 @@ server's command running unless a signal is asked for (<code>sleep 31</code> sta
 timeout ending the device under every setting; a pty so that closing it hangs up
 the command; a remote watchdog (<code>timeout N …</code>) wrapped around each command on
 <code>system</code>.</p>
+<p><strong>A device that stops answering does not hold an exec command.</strong> The command's
+timeout counts from before its channel's opening, and it and the context's end
+(a cancel, a stop, <code>execution.device-timeout</code>) each end an opening the device
+has not answered by closing the connection: a timeout there is
+<code>command_timeout</code>, its message saying the command had not started and the
+connection was closed, its record without exec fields, as a refused channel's.
+A command given up is stopped first, as above. Then the command's timeout and
+the output limit give the device 2 seconds to close the channel (fixed, as the
+2 seconds <code>native</code> gives a shell to end), the connection serving the next
+command when it does, and closed when it does not, the message saying so and
+the device's later commands not attempted. The context's end gives the device
+0.5 seconds (fixed): for an opening in flight to be answered, since a device
+that answers has taken the command, or is about to, and the stop needs its
+channel; and for the stopped command's channel to close, which shows the stop
+was taken. The connection is closed then, or as soon as the channel closes.
+Each wait covers the sending of the stop. The rule is the exec session's, one
+for both transports: on <code>system</code> the killed client ends the reads at once, so
+there only the close at the context's end is new, where the session was
+ending. <em>Why:</em> on <code>native</code> a channel's opening, its close, and its
+reads end at the device's answer or the connection's close, so a device with
+its connection up and nothing answered (executed: the fake stopped by
+<code>SIGSTOP</code>) held the command until the keepalives, 57 to 60 s at the defaults
+and without end with them off: a forced stop lost the job's record, a cancel
+and a <code>--timeout 5s</code> each ended 57 s on, and the device, answering again, ran
+the cancelled job's next command. Closing the connection is the one release of
+an opening x/crypto gives, and after the context's end no command follows on
+it. <em>Not taken:</em> a context handed to the transport's <code>Start</code> (both transports
+changed, and the release still the connection's close); a key for the 2
+seconds; the connection closed at the context's end with no wait (executed
+against the fake with a cancel in the opening: 22 and 32 of 300 commands left
+running with no <code>KILL</code>, none before); 2 seconds at the context's end (a
+stopping daemon gives its jobs' records 2 seconds at the least).</p>
 <p><strong>The platform definition is the authority for privilege and paging.</strong> Every
 built-in carries its privilege levels, prompt pattern, failure patterns, paging
 commands, and exit commands as compiled data; the session validates the
@@ -1513,15 +1694,15 @@ authentication callbacks at authentication time. No subprocess, no
 <code>ssh-keyscan</code>, one TCP connection per open, and no SSH library beyond x/crypto.
 <code>native</code> and <code>telnet</code> are selected by name; an <code>ssh.transports</code> slot maps a
 name to an executable (<code>system</code>'s path, another slot's <code>exec:PATH</code>) and
-nothing else. <em>Why:</em> scrapligo's standard transport checks a known-hosts file
-strictly or not at all and cannot enroll a first-seen key; the earlier pre-scan
-made every open six connections; and once karvi's connection was all
-scrapligo-v1 carried, its wrapper passed each read, write, and close through and
-moved with every scrapligo release (<a href="EXAMPLES.html#82-the-native-transport-without-scrapligo-2026-10-27"><code>docs/EXAMPLES.md</code>, chapter
+nothing else. <em>Why:</em> a library's transport that checks a known-hosts file
+strictly or not at all cannot enroll a first-seen key; a host-key pre-scan
+makes every open more than one connection; and a wrapper that passes each read,
+write, and close through to another library's connection moves with every
+release of that library (<a href="EXAMPLES.html#82-the-native-transport-without-scrapligo-2026-10-27"><code>docs/EXAMPLES.md</code>, chapter
 82</a>). <em>Not
-taken:</em> a new implementation ID such as <code>karvi-v1</code>; <code>ssh.transports.native</code> kept
-with one legal value; a ScrapliGo v2 behind <code>native</code>, which would be a transport
-with its own selector.</p>
+taken:</em> a new implementation ID such as <code>karvi-v1</code>; an <code>ssh.transports.native</code>
+slot with one legal value; a ScrapliGo v2 behind <code>native</code>, which would be a
+transport with its own selector.</p>
 <p><strong>Platform admission is the native transport's table; every built-in is
 admitted.</strong> The native transport lists what it admits by the definition's
 base driver, never a table's label; a platform not admitted is
@@ -1529,20 +1710,19 @@ base driver, never a table's label; a platform not admitted is
 serves a later connector with its own admission list; with every built-in's
 patterns compiled in and one session layer, nothing holds a built-in back.</p>
 <p><strong>The fake device is the engineering fixture.</strong> One SSH server,
-<code>karvi-fake-device</code> (<code>internal/fakedevice</code>, renamed from the IOS XE fake in a
-section of its own), with two personas sharing its host keys, algorithms,
-keepalives, and recording. The IOS XE persona, the default, models what the
-session layer sees (prompts, enable, paging, confirm and value prompts, a slow
-command, a large one, silence, reload, configuration mode, a syntax error). The
-Linux persona (<code>-persona linux</code>) answers exec channels from a fixed table (the
-collection list; <code>fail N</code> on stderr with exit N; <code>both</code> on each stream; <code>big</code>
-and <code>bigerr</code> for the two spools; <code>slow</code>, ended by a <code>KILL</code> request and recorded
-as left running when its channel closes; <code>signal TERM</code>; <code>nostatus</code>; <code>whoami</code>
-and <code>id -u</code>, the login user's, uid 1000; an unknown command <code>sh: 1: NAME: not found</code>, exit 127) and a <code>sudo</code> before any of them: every root command run as
-under <code>NOPASSWD</code>, or under <code>-sudo-asks</code> a password wanted (<code>-enable</code>, else the
-login password), <code>sudo -n</code> refused and <code>sudo -S</code> prompting on stderr, in
-classic <code>sudo</code>'s words or, under <code>-sudo-rs</code>, sudo-rs's, by the bytes both write
-on Ubuntu 26.04 (<a href="EXAMPLES.html#96-root-commands-on-the-exec-channel-2026-11-04"><code>docs/EXAMPLES.md</code>, chapter
+<code>karvi-fake-device</code> (<code>internal/fakedevice</code>), with two personas sharing its host
+keys, algorithms, keepalives, and recording. The IOS XE persona, the default,
+models what the session layer sees (prompts, enable, paging, confirm and value
+prompts, a slow command, a large one, silence, reload, configuration mode, a
+syntax error). The Linux persona (<code>-persona linux</code>) answers exec channels from a
+fixed table (the collection list; <code>fail N</code> on stderr with exit N; <code>both</code> on each
+stream; <code>big</code> and <code>bigerr</code> for the two spools; <code>slow</code>, ended by a <code>KILL</code> request
+and recorded as left running when its channel closes; <code>signal TERM</code>; <code>nostatus</code>;
+<code>whoami</code> and <code>id -u</code>, the login user's, uid 1000; an unknown command <code>sh: 1: NAME: not found</code>, exit 127) and a <code>sudo</code> before any of them: every root command
+run as under <code>NOPASSWD</code>, or under <code>-sudo-asks</code> a password wanted (<code>-enable</code>,
+else the login password), <code>sudo -n</code> refused and <code>sudo -S</code> prompting on stderr,
+in classic <code>sudo</code>'s words or, under <code>-sudo-rs</code>, sudo-rs's, by the bytes both
+write on Ubuntu 26.04 (<a href="EXAMPLES.html#96-root-commands-on-the-exec-channel-2026-11-04"><code>docs/EXAMPLES.md</code>, chapter
 96</a>); it sends a
 command's status or signal before its end of output (OpenSSH's client closes a
 channel as soon as its output ends, and x/crypto answers that close at once
@@ -1597,10 +1777,10 @@ connection is 255 as well); the fake changed now.</p>
 transport translates the one enum into its own options. Failures are per
 device, not per run. A site locks the key in the global configuration where
 weakening is not allowed; the global file is the only place a lock may be
-declared. <em>Why:</em> separate system and native settings caused policy drift; the
-three approaches serve organisations with different risk tolerances behind a
-safe default that cannot be weakened silently. <em>Not taken:</em> aliases <code>auto</code> and
-<code>default</code> (removed outright).</p>
+declared. <em>Why:</em> separate system and native settings drift apart; the three
+approaches serve organisations with different risk tolerances behind a safe
+default that cannot be weakened silently. <em>Not taken:</em> a second name for a
+policy, such as <code>auto</code> or <code>default</code>.</p>
 <p><strong>What a policy accepts unchecked is said on every path.</strong> Under <code>accept-new</code>
 a session that stores a key, unknown until then, is the notice
 <code>host_key_enrolled</code> on the device's first record; under <code>insecure</code> a key
@@ -1655,15 +1835,13 @@ not make: a wrong mode halts <code>accept-new</code> and <code>secure</code> wit
 message. <em>Why:</em> the store is the operator's private state and lives with the
 rest of it, so in shared mode the site sees, backs up, and for <code>secure</code>
 provisions every operator's store under <code>users</code>, and the home holds nothing of
-karvi's but the configuration; <code>accept-new</code> used to repair a 0644 store
-silently while <code>insecure</code> under an explicit path refused it, so the paths
-disagreed; a legacy <code>~/karvi</code> candidate once won the chain by accident and
-split the operator's state. <em>Not taken:</em> repairing with a warning; a shared
-trust store (the owner checks refuse one); the home under <code>auto</code> whatever
-<code>basedir</code> is, which left the store alone in the home on a shared host; a
-<code>&lt;user&gt;</code> placeholder in the key, which would leave each site to write the rule
-<code>basedir</code> already applies; a refusal or a move for a store left in the home by
-an earlier release (the operator re-enrolls under <code>accept-new</code>).</p>
+karvi's but the configuration; a store one path repairs in silence and another
+refuses makes the paths disagree; a chain of the store's own beside <code>basedir</code>'s
+can pick another place by accident and split the operator's state. <em>Not
+taken:</em> repairing with a warning; a shared trust store (the owner checks refuse
+one); the home under <code>auto</code> whatever <code>basedir</code> is, which leaves the store alone
+in the home on a shared host; a <code>&lt;user&gt;</code> placeholder in the key, which would
+leave each site to write the rule <code>basedir</code> already applies.</p>
 <p><strong><code>config show --explain</code> names the resolved path of every place.</strong> Every key
 whose value is a place karvi writes or reads has a <code>resolved: PATH</code> line, the
 path the operator's next activity would use: <code>basedir</code>, the trust store, the
@@ -1690,14 +1868,14 @@ encodes the full view alone, the values as TOML lines or a JSON object; beside
 keys or <code>--explain</code>, whose view is text, it is refused,
 <code>config_show_format_conflict</code>. The whole table is a recipe over it
 (<a href="FILES.html"><code>docs/FILES.md</code></a>). A controlled enrollment takes the store's path
-from the line. <em>Why:</em> under <code>auto</code> a place depends on what the host holds, and
-the view printed none but two, so the two modes looked alike and a literal
-default named a place the activity did not use; a key the view could not show
-was an <code>error: not found</code> block, exit 0, so a script took a misspelt key for one
-shown (<a href="EXAMPLES.html#83-config-show-refuses-a-key-it-cannot-show-2026-10-27"><code>docs/EXAMPLES.md</code>, chapter
+from the line. <em>Why:</em> under <code>auto</code> a place depends on what the host holds, so a
+view of the values alone makes the two modes look alike, and a literal default
+names a place the activity may not use; a key the view cannot show, answered
+with exit 0, lets a script take a misspelt key for one shown
+(<a href="EXAMPLES.html#83-config-show-refuses-a-key-it-cannot-show-2026-10-27"><code>docs/EXAMPLES.md</code>, chapter
 83</a>), and
-<code>--format json</code> beside a key printed text a JSON reader could not read
-(<a href="EXAMPLES.html#84-config-show-refuses---format-beside-keys-2026-10-27"><code>docs/EXAMPLES.md</code>, chapter
+text printed for <code>--format json</code> beside a key is output a JSON reader cannot
+read (<a href="EXAMPLES.html#84-config-show-refuses---format-beside-keys-2026-10-27"><code>docs/EXAMPLES.md</code>, chapter
 84</a>). <em>Not
 taken:</em> a new command word or option for paths; the rule repeated in shell in
 each site's scripts; a probe file written by the view (it moves the shared
@@ -1727,8 +1905,8 @@ the operator configured, which is itself the record of the exception. Each
 transport offers the names it implements, in the configured order, and a list
 with none is refused before connecting. <em>Why:</em> the operator's order, and the
 exception's record in configuration rather than a per-device audit field.
-<em>Not taken:</em> the removed <code>ssh.legacy-hosts</code> classes with fixed algorithm
-blocks; a <code>crypto_exception</code> field on every record.</p>
+<em>Not taken:</em> fixed classes of legacy hosts, each with its own algorithm block;
+a <code>crypto_exception</code> field on every record.</p>
 <p><strong>A device's key exchange, cipher, and MAC lists may be its transport's own.</strong>
 <code>ssh-algorithms.source</code> is <code>karvi</code> (alias <code>auto</code>), the lists above, or
 <code>transport</code>: karvi writes no key exchange, cipher, or MAC line into the
@@ -2019,12 +2197,12 @@ shell for good, and a killed login's <code>ssh</code> fought the shell for the t
 stayed. <em>Not taken:</em> a sweep of orphaned <code>ssh</code> processes (the session held
 until karvi next runs); <code>ServerAlive</code> (the device answers it); a sweep by age (a
 recorded login runs for hours); <code>karvi-prune</code> (no configuration, no judgement
-of an owner alive); an askpass socket judged by connecting to it (the broker
-serves one connection, so a probe took a live job's and its authentication
-failed, executed); a broker that waits past a connection that sends nothing
-(its one-use rule changed, and a probe still races the helper); the owner
-judged by its <code>argv[0]</code> (the name it was started by: a login started through a
-site's link <code>k</code> had its timing log swept by its own child, executed).</p>
+of an owner alive); an askpass socket judged by connecting to it (a probe is a
+request without the broker's token, which ends the live session it serves); a
+broker that serves on past a connection that sends nothing (it fails closed at
+a request without its token, and a probe would still race the helper); the
+owner judged by its <code>argv[0]</code> (the name it was started by: a login started
+through a site's link <code>k</code> had its timing log swept by its own child, executed).</p>
 <p><strong>The scratch is bounded for the askpass socket.</strong> A path socket holds 107
 bytes, and the askpass socket's name, <code>askpass-&lt;pid&gt;-&lt;16 hex&gt;.sock</code>, is up to 37
 with a seven-digit pid (Linux's <code>PID_MAX_LIMIT</code>, 4194304), so the scratch
@@ -2112,16 +2290,15 @@ manifest names it once a job).</p>
 <p><strong>The client judges the daemon; the daemon checks nothing of the client's.</strong>
 Whether a daemon is acceptable is the client's judgment alone: the daemon takes
 a job from a client of any version or build. The client reports neither its
-version nor its build: a request carries no <code>client_version</code> or <code>client_pid</code>
-(IPC schema 12), and the job header's <code>client</code> holds the client's pid and
-hostname alone (execution plan 13). The daemon reports its own, and the prepare
-answer's <code>daemon</code> block names its <code>build</code> and <code>commit</code>, so a client that finds
-the preparing daemon unacceptable, one replaced between the probe and the
-request, abandons the preparation before any credential is sent and runs its
-sequence once more; a second such answer is refused, <code>daemon_incompatible</code>.
-<em>Why:</em> a later client may accept a daemon of another build without the daemon
-changing, and the moment between the probe and the submission is closed.
-<em>Not taken:</em> the daemon checking the client's build; the moment left open.</p>
+version nor its build, and the job header's <code>client</code> holds the client's pid and
+hostname alone. The daemon reports its own, and the prepare answer's <code>daemon</code>
+block names its <code>build</code> and <code>commit</code>, so a client that finds the preparing
+daemon unacceptable, one replaced between the probe and the request, abandons
+the preparation before any credential is sent and runs its sequence once more; a
+second such answer is refused, <code>daemon_incompatible</code>. <em>Why:</em> a later client may
+accept a daemon of another build without the daemon changing, and the moment
+between the probe and the submission is closed. <em>Not taken:</em> the daemon checking
+the client's build; the moment left open.</p>
 <h2 id="8-rehearsal-follow-cancel-and-the-daemons-lifecycle">8. Rehearsal, follow, cancel, and the daemon's lifecycle <a class="anchor" href="#8-rehearsal-follow-cancel-and-the-daemons-lifecycle" aria-label="Link to this section">#</a></h2>
 <p><strong><code>--dry-run</code> shares the live run's first half and calls only the probe.</strong> The
 inspection drafts the plan exactly as a live run does, binds client-selected
@@ -2146,7 +2323,10 @@ run, a detached run, and an exercise.</p>
 <p><strong>The follow stream carries the records themselves.</strong> <code>follow_job</code> answers one
 request with a start, zero or more <code>record</code> frames each holding the record's
 <code>commands.jsonl</code> line without its LF, and a terminal with the whole summary;
-the cursor is the sequence alone. The client opens no file, and <code>--format jsonl</code> output equals the file byte for byte. A record whose frame would pass
+the cursor is the sequence alone. The client opens no file for the records (a
+gathered display reads its groups' answers back from the job's <code>commands.jsonl</code>
+at the end, <a href="#12-display-and-help">section 12</a>), and <code>--format jsonl</code> output
+equals the file byte for byte. A record whose frame would pass
 <code>daemon.max-ipc-frame-bytes</code> (default 8 MiB) is sent without its output and
 with the notice <code>follow_output_omitted</code> naming where the output is. Followers
 are subscribed first and then caught up from the daemon's own reading of the
@@ -2159,11 +2339,17 @@ frames; backpressure on the executor (a paused terminal would hold device
 sessions open).</p>
 <p><strong><code>--detach</code> returns at acceptance; <code>--follow=false</code> waits and renders nothing;
 an interrupted client never cancels the job.</strong> Ctrl-C during a follow ends the
-client's follow alone with a line naming the job, the folder, and <code>karvi job follow</code>; from the frame through the commit the client runs without
-cancellation so a package is never left without a decision. A broken stdout
-ends the follow with <code>terminal_write_failed</code> (exit 111) and the job continues.
-<em>Why:</em> cancellation proper is <code>cancel_job</code>; a client's disappearance must not
-change the job; the job still produces output the client would lose.</p>
+client's follow alone with a line naming the job, the folder, and
+<code>karvi job follow</code> (<code>karvi job follow --gather</code> where the display was gathering
+and <code>display.run.gather</code> is not locked, <a href="#12-display-and-help">section 12</a>);
+from the frame through the commit the client runs without cancellation so a
+package is never left without a decision. A broken stdout while the job runs
+ends the follow with <code>terminal_write_failed</code> (exit 111) and the job continues;
+once the job has ended (its footer, or a gathered display's blocks, not
+written), the line before the error is <code>job ID ended exit=N; artifacts DIR</code>,
+and a <code>crun</code>'s <code>crun.after</code> runs, told exit 111. <em>Why:</em> cancellation proper is
+<code>cancel_job</code>; a client's disappearance must not change the job; the job still
+produces output the client would lose.</p>
 <p><strong><code>job follow</code> renders the whole job as the foreground run would have.</strong> It
 follows from the zero cursor; the daemon catches it up and feeds it live; the
 display ends with the footer or the jsonl summary line, and the exit is the
@@ -2190,14 +2376,16 @@ group stacked over the tree's. A job's scoreboard is the one sign that it runs:
 with none (<code>watch.enabled = false</code>) the follow of a summary not final answers
 <code>job_orphaned</code> at once. A summary naming no <code>commands_jsonl</code> is followed with
 one warning that the job's records are not kept, then the job's end, live or
-finished. <em>Why:</em> <code>job list</code> shows another member's running jobs, and following
-one is the next thing an operator does; the summary at acceptance says the job
-runs, and every member reads the tree's files through the group. <em>Not taken:</em> a
-daemon serving followers of another UID (the daemon's one boundary crossed);
-following on without a scoreboard (a dead job's follow never ends); no warning
-where the records are not kept (the follower may not be the one who chose it,
-and the daemon's follow warns); the file's absence alone for that (a lost file
-and one never written alike).</p>
+finished; under <code>job follow --gather</code> it is refused instead,
+<code>gather_option_conflict</code>, before the warning (<a href="#12-display-and-help">section
+12</a>). <em>Why:</em> <code>job list</code> shows another member's running
+jobs, and following one is the next thing an operator does; the summary at
+acceptance says the job runs, and every member reads the tree's files through
+the group. <em>Not taken:</em> a daemon serving followers of another UID (the daemon's
+one boundary crossed); following on without a scoreboard (a dead job's follow
+never ends); no warning where the records are not kept (the follower may not be
+the one who chose it, and the daemon's follow warns); the file's absence alone
+for that (a lost file and one never written alike).</p>
 <p><strong><code>job list</code> lists the output root's jobs from their summaries.</strong> It reads the
 day folders newest first and each one's job folders newest first by job ID, and
 stops at <code>--last</code> (20 by default, 0 every job kept), every filter judging a job
@@ -2240,6 +2428,79 @@ drains and waits <code>daemon.shutdown-grace-seconds</code>, a second shortens t
 <em>Why:</em> before this the job goroutine was never awaited and units owed a
 terminal record received none; a forced stop must be distinguishable from a
 device failure and an operator cancel.</p>
+<p><strong>A daemon holds a lock for its life.</strong> <code>daemon serve</code> first takes an
+exclusive <code>flock</code> on <code>d.lock</code> beside its socket, before its start's sweeps
+and before it judges a socket file stale, and holds it until its sockets and
+state file are removed; its exit releases it, a kill included. Held by a
+daemon whose socket answers, a start is refused at once,
+<code>daemon_already_running</code>; held by one whose socket does not answer, a daemon
+still stopping, the start waits for it up to <code>daemon.start-timeout</code>, then is
+refused, <code>daemon still stopping: pid N</code>, the pid the holder wrote into the
+file; a signal ends the wait. With the lock taken, a socket file present is
+stale and is removed; one that still answers, a running daemon whose lock
+file was removed under it, is refused, <code>daemon_already_running</code>, not taken.
+The file stays at exit. <code>daemon stop</code>
+and <code>daemon restart</code> wait for the stopped pid's end or its socket's removal,
+not the socket alone, since a daemon waiting for the lock binds the path at
+once. <em>Why:</em> a stopping daemon keeps its
+files until its jobs' records are written, and a start in that window
+removed its socket as stale and bound its own, which the stopping daemon's
+exit then removed with the new daemon's credential socket and state file,
+leaving it running unreachable. <em>Not taken:</em> removing the lock file at exit
+(it races its next taker); a pid file (a kill leaves it, and a reused pid
+passes it); the dial alone (a stopping daemon's closed socket refuses as a
+dead one's does).</p>
+<p><strong>A start is decided by the daemon it launched.</strong> The client that launches a
+daemon (<code>daemon start</code>, <code>daemon restart</code>, a run) keeps the child and waits for
+the first of three: a daemon answering a ping, the start (a socket that takes
+a connection is not yet an answer: the daemon listens before it accepts);
+the child's end, the failure, <code>daemon_start_failed</code>, its cause in
+<code>daemon.log</code>, unless a daemon answers one more ping, another launcher's,
+which is a start; and <code>daemon.start-timeout</code> plus 2 seconds, when the child is
+killed and waited for, the failure saying so. A start succeeds only on an
+answer and fails only once the child has ended, so a failed start leaves no
+daemon. An interrupt leaves the child, which starts or fails by itself, and
+the message says so; one after the kill only ends the wait, the failure
+still the kill's. Under <code>daemon.launch = &quot;systemd&quot;</code> nothing is launched, and
+<code>daemon serve</code> keeps its own bound. <em>Why:</em>
+the client counted <code>daemon.start-timeout</code> from its spawn and the daemon from
+after its start-up, so a lock freed between the two ends gave exit 112 and
+then a running daemon (executed: 20 of 20 in a test, 4 and 8 of 10 in a lab),
+and a released child could be neither waited for nor safely killed. <em>Not
+taken:</em> the client's deadline handed to the daemon (it narrows the gap, with a
+new <code>daemon serve</code> interface); a kill at the client's bound (the daemon's
+refusal never reached, a slow healthy start killed); a readiness pipe (the
+same rule with a daemon change).</p>
+<p><strong>A stop waits as long as the daemon may.</strong> The daemon's answer to a stop it
+takes names its wait, <code>wait</code> in milliseconds: its accounting bound, its
+start's <code>daemon.forced-grace-seconds</code> with the two-second floor. The daemon
+sets one deadline as it answers, the wait from then, at which a follower's
+wait for its job's terminal, the wait for the connections, and the wait for
+the jobs' records all end. The client waits <code>daemon.start-timeout</code> plus the
+wait for the stopped daemon to exit, its socket gone or its pid ended; an
+answer naming none, a build's from before it, keeps <code>daemon.start-timeout</code>
+plus the client's own forced-grace. The IPC schema stays: no schema names the
+stop's answer, and the client reads it from any build. <em>Why:</em> the daemon
+reads forced-grace at its start and alone applies the floor, so the client's
+own value fell short, <code>daemon_stop_timeout</code> with the daemon still accounting.
+<em>Not taken:</em> the client applying the floor itself (the daemon's value still
+unknown to it); moving the IPC schema for an answer's field; a wait per
+stage (a followed job's stop took twice the wait).</p>
+<p><strong>A stopped or cancelled job's close does not wait.</strong> A device session's
+close waits for the device's logout: the system shell up to 2 s for
+OpenSSH's end, then kills it and waits 0.5 s; the native shell up to 2 s for
+the shell's end; the system exec master up to 2 s after <code>ssh -O exit</code> and
+2 s after SIGTERM. Each wait also ends with the job's context, the one the
+session was prepared under, which a stop or a cancel ends and a normal
+finish does not: the shell's OpenSSH is killed and waited for 0.5 s at most,
+the native connection shut at once, the master sent SIGTERM without <code>ssh -O exit</code>, then SIGKILL 0.5 s on. The exit commands are still written. <em>Why:</em> a
+forced stop landing as a session closed held its job past the daemon's
+two-second floor (over system a ProxyCommand's child holding OpenSSH's
+stderr kept its end from coming), and the job's record was lost. <em>Not
+taken:</em> an abort the executor sends on a cancel during the close (a driver
+interface down through the session engine to each stream, the streams' once
+guards reworked so an abort cuts a close already running): the same result
+in five packages.</p>
 <p><strong><code>daemon stop</code> and <code>daemon restart</code> refuse an active daemon without an
 option.</strong> Every stop names its mode, and the daemon alone counts its jobs,
 under the lock that admits them. Without an option the mode is <code>if_idle</code>,
@@ -2373,12 +2634,13 @@ the capability; a setuid helper is forbidden; per-job detection lets a sysctl
 change apply without a daemon restart. <em>Not taken:</em> the adapter alone; caching
 detection for the daemon's lifetime.</p>
 <p><strong>The gate's line is a template.</strong> <code>display.ping.header</code> renders once per
-gated device before its first record, <code>! &lt;target&gt; [&lt;address&gt;] ping(1) &lt;rtt1&gt;, ping(2) &lt;rtt2&gt;, &lt;result&gt;</code> by default; an empty template prints no line. The
-record carries a <code>ping</code> object with both outcomes, and the summary a <code>ping</code>
-block. <em>Why:</em> the line printed plain above a header carrying the <code>! </code> prefix
-and the roles' colours; as a template it reads as the header it precedes and a
-site can reorder it. <em>Not taken:</em> a boolean beside a header key (TOML cannot
-hold both spellings).</p>
+gated device before its first record, <code>! &lt;target&gt; [&lt;address&gt;] ping(1) &lt;rtt1&gt;, ping(2) &lt;rtt2&gt;, &lt;result&gt;</code> by default; an empty template prints no line, and the
+gathered display and line mode print none, a skipped device shown by its
+failure line (<a href="#12-display-and-help">section 12</a>). The record carries a <code>ping</code>
+object with both outcomes, and the summary a <code>ping</code> block. <em>Why:</em> the line
+printed plain above a header carrying the <code>! </code> prefix and the roles' colours;
+as a template it reads as the header it precedes and a site can reorder it.
+<em>Not taken:</em> a boolean beside a header key (TOML cannot hold both spellings).</p>
 <h2 id="10-output-records-files-and-the-spool">10. Output: records, files, and the spool <a class="anchor" href="#10-output-records-files-and-the-spool" aria-label="Link to this section">#</a></h2>
 <p><strong>Every activity's artifacts live below <code>&lt;output root&gt;/YYMMDD/&lt;id&gt;/</code>.</strong> The
 job ID is the client's clock to the second in the effective timezone plus a
@@ -2647,10 +2909,11 @@ message alone still links each line; a digest answers only someone who guesses
 it; the audit is read more widely than a job's folder (the journal's readers,
 syslog, and whatever it forwards to), and a statement can carry a secret in
 clear; a device's events masked by its own platform's list alone would leave
-in clear what another platform's list hides. <em>Not taken:</em> <code>command_completed</code>
-with no mode, and the past-tense names; <code>KARVI_ACTIVITY_ID</code> as the link;
-journald's <code>_UID</code> alone (a host's number); the digests beside the statements;
-each device's events masked by its own list (<a href="EXAMPLES.html#63-the-audit-trails-names-and-fields-2026-10-17"><code>docs/EXAMPLES.md</code>, chapter
+in clear what another platform's list hides. <em>Not taken:</em> an event named
+without its kind, or in the past tense; one activity ID for jobs and logins
+alike as the link; journald's <code>_UID</code> alone (a host's number); the digests beside
+the statements; each device's events masked by its own list
+(<a href="EXAMPLES.html#63-the-audit-trails-names-and-fields-2026-10-17"><code>docs/EXAMPLES.md</code>, chapter
 63</a>).</p>
 <p><strong>A sink that is not required only warns, and an event of any size reaches
 journald.</strong> A write that fails on a sink not required (<code>audit.journald-required</code>
@@ -2860,14 +3123,21 @@ the file; tolerating the sticky bit.</p>
 executable run once when the summary is written, in the collection directory,
 with the replaced files' names on stdin and the counts in its environment,
 bounded by <code>crun.after-timeout</code>; two example hooks ship (a git commit and a
-diff mail). The hook has the operator's shell environment without the device
-credentials <code>NETUSER</code>, <code>NETPASS</code>, <code>NETENABLE</code>, and <code>NETSUDO</code>. <em>Why:</em> the client has the
+diff mail). An interrupt that comes before the hook starts runs none, with no
+warning and no audit event, on either path: an interrupted follow through the
+daemon has no summary to hand it, and an interrupted in-process <code>crun</code>, which
+keeps its summary, starts none as well. The hook has the operator's shell
+environment without the device credentials <code>NETUSER</code>, <code>NETPASS</code>, <code>NETENABLE</code>,
+and <code>NETSUDO</code>. <em>Why:</em> the client has the
 operator's shell environment (git identity, mail transport) while the daemon
 has the user manager's; git and mail are a site's choices; a device password
 the hook has no use for would reach every process it starts. <em>Not taken:</em> a
 built-in <code>crun.git</code>; the daemon running the hook; mail sent by karvi; the
 allow-list filter of ssh and the daemon, which drops the shell environment the
-client runs the hook for.</p>
+client runs the hook for; after an interrupt before the hook starts, a warning
+that it did not start (the in-process path speaking where the daemon's is
+silent) or the hook run anyway (against the operator's Ctrl-C, which a second
+could not stop).</p>
 <p><strong>A hook's process group is gone when the client returns.</strong> The hook leads a
 process group of its own. At <code>crun.after-timeout</code>, or at the invocation's
 interrupt, the client sends the group SIGTERM, SIGKILL to what is left of it
@@ -2897,7 +3167,7 @@ told. Twelve colour roles under a dark and a light theme, <code>display.theme</c
 <code>auto</code> resolved by the terminal, <code>karvi config colors</code> showing each role in its
 colour under both themes. <em>Why:</em> one display mechanism rather than parallel
 banner switches; a site that wants another mark writes its templates. <em>Not
-taken:</em> <code>--command-headers</code>; a key for the prefix.</p>
+taken:</em> a header option of its own beside <code>--quiet</code>; a key for the prefix.</p>
 <p><strong>Every run ends with the footer; jsonl ends with the summary document.</strong> Text
 mode ends with <code>display.run.footer</code> on every run path, rendered from the job's
 summary, with no result line on standard error; <code>--format jsonl</code> ends with the
@@ -2917,6 +3187,422 @@ styled nor set; on the footer's stream the line cannot part from it. <em>Not
 taken:</em> the result line beside the footer; a plain counts line on standard
 error under json and jsonl (the unstyled line replaced); a <code>&lt;collection&gt;</code>
 placeholder in the run footer (empty for every run without one).</p>
+<p><strong><code>--gather</code> shows a run's text display gathered at the job's end.</strong> The key
+<code>display.run.gather</code> (false by default), beside <code>display.run.echo</code>, gathers the
+text display of <code>run</code>, its stream's lines, and <code>crun</code>, in process and through
+the daemon, and of <code>job follow</code>, through the daemon or from the job's folder;
+<code>command</code> gathers under its own key, <code>display.command.gather</code>, as
+<code>display.command.echo</code> mirrors <code>display.run.echo</code>, and <code>job follow</code> shows every
+job, a command's too, by the <code>display.run</code> keys; <code>login</code> never gathers.
+<code>--gather</code> sets the word's key true for the invocation in the options layer,
+and <code>--gather=false</code> sets it false, turning a site's true off, as <code>--order</code>
+sets <code>dispatch.order</code>: a site's lock on the key refuses either form
+(<code>config_lock_violation</code>, exit 3), and <code>--set</code> beats it. Each display reads the
+key, as it reads <code>display.run.header</code> and the borders, from the configuration
+of the invocation showing it: the in-process run's, the daemon follow's (the
+submitting client's), and <code>job follow</code>'s (the follower's own), so
+<code>job follow --gather</code> gathers a job run without it, and a command's job,
+followed, gathers by <code>display.run.gather</code>, the two displays alike where a site
+sets the two keys alike and always under <code>--gather</code> on both. The plan holds no
+field for it: its configuration block, every key's value set and default, holds
+the value the run used, as for every key (<code>TestDraftCarriesNoCopyOfAKey</code>). The
+key shapes the text display alone: under <code>--format jsonl</code> or <code>json</code> the format
+is written, under <code>--live</code> the live view, and under <code>--detach</code> or
+<code>--follow=false</code> nothing is shown and nothing is read back. The option is
+refused, <code>gather_option_conflict</code> (exit 4), beside what leaves the gathered
+display nowhere to show it, in this order: <code>--format jsonl</code> or <code>json</code>,
+<code>--echo</code>, <code>--detach</code>, and <code>--follow=false</code>, each as far as the word has it
+(<code>command</code> has neither of the last two; <code>job follow</code> has <code>--format</code> and
+<code>--echo</code> alone); and beside what leaves it nothing to read back (below). Beside
+<code>--live</code> it is <code>live_option_conflict</code>: <code>--live</code>'s check is the first of the
+display checks after the <code>--border</code> and <code>--noborder</code> pair, so
+<code>--live --gather --nof</code> names <code>--live</code>, the mode chosen. <code>--dry-run</code> and
+<code>--exercise</code> take it, a rehearsal of the real line, nothing gathered and the
+text report unchanged, and every other refusal applies rehearsed as without
+them. On a stream's lines it is an option line as any other (<a href="#2-the-command-line">section
+2</a>: a one-word <code>--g</code> is never it), judged when <code>--go</code> runs
+the job through <code>run</code>'s handler. <code>--gather=false</code> and the key set true are
+never refused beside any of these. <em>Why:</em> across a fleet most answers are
+alike, and the text display shows each under its own device's header, so the
+few that differ are found by reading them all; a key, so that a site can make
+gathering its default, and an option that sets it as <code>--order</code> sets its key, so
+that <code>--gather=false</code> turns a site's true off (an option ORed with its key, as
+<code>--echo</code> is, could not); the key shapes the text display alone, so a site's
+true never breaks a script's <code>--format jsonl</code>; <code>command</code> gathers so that a test
+on one device before the fleet shows the fleet run's shape, under its own key
+so that a site gathering its runs keeps a single device's full header; each
+display read by the invocation showing it, so the follower chooses how a job is
+shown; a gathered JSON has no reader (a script groups by <code>output_sha256</code>), and
+<code>--detach</code> and <code>--follow=false</code> show nothing (<code>job follow --gather</code> shows the
+job later). <em>Not taken:</em> a valued option (<code>--display gather|lines</code>); gathering
+by default (the live display is what an operator watching a change wants); a
+plan field copying the key, or one holding the decided value (derived from the
+plan's format and configuration block); one key for <code>run</code> and <code>command</code> (always
+alike, but a run's key ruling <code>command</code>); <code>gather_option_conflict</code> beside
+<code>--live</code> (two codes for one conflict across the two options); the option
+refused beside <code>--dry-run</code> and <code>--exercise</code> as <code>--live</code> is (its reasons are its
+own: a serial run displayed in the client's process), or as beside
+<code>--follow=false</code> (a real run's display discarded, where a rehearsal promises
+the same line run for real) (<a href="EXAMPLES.html#106-gathered-output-folded-names-and-line-mode-2026-11-08"><code>docs/EXAMPLES.md</code>, chapter
+106</a>).</p>
+<p><strong>A gathered block is one requested command, and a group the devices whose
+records answered it alike.</strong> A block per requested command, identified across
+devices by its text, its privilege (a <code>--sudo</code> command apart from the same text
+without), and its occurrence in the device's list (the first <code>show clock</code>, the
+second), so that <code>--cf DIR</code> lists giving <code>show version</code> at index 1 on one
+device and 2 on another give one block; the blocks in the order the commands
+first appear in the plan. Session-init records are setup, hidden as the text
+display hides them: a succeeded, stopped, or not-attempted one is not shown,
+and a failed one, which the text display shows with its cause (where the
+failure ends the device, its requested records are
+<code>not_attempted_session_init_failure</code> without one), is gathered as a requested
+record is, in a block of its own ahead of the requested ones (setup runs first
+on every device), identified by its profile, its command, and its index in the
+profile. In a block the devices answered alike when their records have the same
+status, error code (where there is one), and <code>output_sha256</code>, and on the exec
+channel the same <code>exit_status</code>, <code>exit_signal</code>, and <code>stderr_sha256</code>. Left out:
+the header's values (name, address, platform, user, backend, transport), the
+prompt, the timings, the notices (a host-key notice is first contact, not the
+answer), and the error message (it names the device's address and port). The
+bytes are the device's, with no drop list and no white-space rule: the client
+hashes nothing, the record's digest being the key, and the device's <code>| include</code>
+or <code>| exclude</code> is the filter, so a real <code>show clock</code>, which differs every
+second, is a group per device, as a raw <code>show version</code> is until <code>| include</code>
+keeps the lines alike. <em>Why:</em> text and occurrence line up per-device lists by
+what was asked, where a position would not, and keep a before-and-after
+<code>show clock</code> two blocks; the digest the job records already says whether two
+answers are the same, so the client reads no answer while the job runs; a
+failed setup command is the cause of its device's not-attempted records, which
+carry none. <em>Not taken:</em> by position (splits per-device lists); by text alone
+(merges a before-and-after <code>show clock</code>); after <code>crun-filters</code>, or with white
+space ignored (the client would read and hash every output; the device's filter
+or a post-processing does it); notices in the key; every session-init record
+shown (the text display hides a succeeded one); the cause in the not-attempted
+group's line (another record's).</p>
+<p><strong>A block opens with its marker, then each group under its header, the
+succeeded groups first.</strong> A block's first line is the collection file's marker,
+<code>! COMMAND</code>, a root command's <code>! --sudo COMMAND</code>, a failed session-init
+command's <code>! session_init=PROFILE: COMMAND</code>, its words in the label colour and
+the profile and the command in the value colour. Each group follows under its
+header, the template <code>display.gather.header</code> (default <code>! &lt;targets&gt; (&lt;count&gt;)</code>,
+<code>&lt;targets&gt;</code> the group's devices folded into one <code>--tl</code> value, <code>&lt;count&gt;</code> how
+many), styled by role as <code>display.run.header</code> is, the names in the target
+colour, one line however long (the fold, below); an empty template leaves the
+groups apart by the border alone. In a block the succeeded groups come first,
+the largest first, then the others, the largest first, a tie by the first name
+in natural order. A succeeded group shows its first device's answer (stdout
+then stderr on the exec channel, under <code>output.ansi</code> as the text display's); a
+group that failed shows its answer first when it has one, then one line in the
+error colour, the text display's failure line without what the header and the
+marker name (<code>target=</code>, and for a session-init command
+<code>session_init=PROFILE command=i/n</code>), <code>karvi: status=S error=CODE</code>, with
+<code>: MESSAGE</code> when the group is one device (for several the messages stay in
+<code>errors.jsonl</code> and each device's <code>output.NAME.txt</code>); a group whose record
+carries no error (a command not sent) is <code>karvi: status=S</code>. The run's border (a
+blank line by default) comes between groups and between blocks, <code>--border</code>
+dashes as wide as the header before it (with no header,
+<code>display.run.dynamic-border-length</code>, a <code>command</code>'s
+<code>display.command.dynamic-border-length</code>; never wider than the terminal),
+<code>--noborder</code> none, a last border only where the mode's <code>last-border</code> asks; the
+footer follows the last group, a <code>crun</code>'s collection line after it, and
+<code>command</code>'s exit and error report are unchanged. Left out: each device's
+header, the ICMP gate's line and its <code>--debug</code> lines (a skipped device is a
+failed group, <code>icmp_unreachable</code>), and the echo line: <code>--echo</code> is refused
+beside <code>--gather</code>, and an echo asked for otherwise, by <code>display.run.echo</code>
+(<code>display.command.echo</code>) or by <code>--echo</code> beside the key alone, is not applied.
+Kept as on the text display: the lines on standard error, the host-key lines
+and the warnings among them. Under <code>--quiet</code> no marker, header, border, or
+footer, the answers and the failure lines kept. The job's files are unchanged.
+<em>Why:</em> the marker is the collection file's, one form for a command's block
+wherever karvi writes one; the header a template as karvi's other lines are,
+its names a value an operator gives back to <code>--tl</code>; a failed group's output is
+in its key, so it is every device's in the group, and where the message is
+generic (&quot;device reported a command error&quot;) the output is the device's
+explanation (<code>% Invalid input detected at '^' marker.</code>); a failure message
+names its device's address and port, so a group of several shows none. <em>Not
+taken:</em> <code>! command: TEXT</code> (a second form for the marker); the command in each
+group header; groups in the plan order of their first device; the first
+device's message on a group of several; a failed group's output in its line's
+message (device text over lines); the output for <code>device_error</code> alone (a rule
+by status, not by output).</p>
+<p><strong>The gathered display prints at the job's end, each group's answer read back
+from the job's <code>commands.jsonl</code>; the client holds no output while it waits.</strong>
+While the job runs no block is printed, and the client holds, per group, its
+key and the line of its first device's record in <code>commands.jsonl</code> (the follow's
+<code>sequence</code>), and per device its name. When every record is in, it finds the
+groups' lines in one pass and reads each back in block order, an answer
+streamed as the text display streams a spooled one: none held whole, no copy
+written, the free-space check unchanged, and an answer the follow stream left
+out (<code>follow_output_omitted</code>) shown whole. In process the file is the one the
+store holds open, checked at its creation as the store's own
+(<code>store.CommandsReader()</code>), never opened by name, where a member of a group's
+0770 job folder may put another entry; the blocks are written once every record
+is in it, before the store's close, where the text display has shown its last
+record, so the job's own failures found after (the store's close,
+<code>output.max-job-bytes</code>, a full disk) follow the blocks as they follow the text
+display's records, the summary's output bytes count the blocks, and a read-back
+failure decides the exit before the summary, scoreboard, and audit end are
+written. The follow paths open it by name with the folder follow's checks
+(<code>openChecked</code>: a regular file, no link followed or FIFO waited on, mode 0640
+or stricter, the operator's own or, from the shared tree, standing in its
+group). Each line read back must be the record the job's stream carried (its
+sequence, device, command, and answer), and each answer must match its
+record's digest before any of its group is written: a short one is checked as
+its line is read, a long one, streamed from the file in pieces (from about
+64 KiB), is read through once for the check and then streamed, that pass
+checked again at its end. A file that cannot be read, or a line that is not that
+record, is <code>run_output_records_unreadable</code> (exit 111, the two records
+stacked), an answer that does not match its digest
+<code>run_output_digest_mismatch</code> (exit 111, the record's digest and the one read
+stacked), a line that does not decode <code>run_output_record_decode_failed</code> (exit
+111): the blocks written stand, no footer follows, and the error is on
+standard error in the error colour. On the follow paths (<code>run</code> and <code>crun</code>
+through the daemon, <code>job follow</code> through the daemon or from the folder) the
+job is unaffected and its summary keeps its exit: the line before the error is
+<code>job ID ended exit=N; artifacts DIR</code>, <code>karvi job follow --gather ID</code> shows the
+job again once the file reads, and a <code>crun</code>'s <code>crun.after</code> runs, told the
+invocation's exit (<code>KARVI_EXIT=111</code>), as under <code>--no-daemon</code>. In process (<code>run</code>
+and <code>crun</code> under <code>--no-daemon</code>, and <code>command</code>) the display is the job's own, as
+a footer that cannot be written is: exit 111, in the summary, the scoreboard,
+and the audit's end. <em>Why:</em> the job's file already holds every answer, so the
+client neither holds them (2,500 configurations of 100 KB are 250 MB, and no
+input may size memory) nor copies them; in process the file is the store's own,
+and a name in a group's folder any member's; at the footer, a job whose own
+failure came after its records would show nothing and then its error; a failure
+is a hard stop, and a followed job has ended by then, so the line says so; the
+display groups devices by the digest and shows one device's bytes for the
+group, so it shows no answer before checking it against the digest, a long
+one read twice. <em>Not taken:</em> each distinct answer in memory; a client spool of the
+first answers (a second copy on disk, a new free-space term); blocks printed
+as each completes; a new code for a file that cannot be read; a long answer
+checked only as its one pass ends, its bytes already written; the job's exit
+with a warning; the footer after the error.</p>
+<p><strong><code>--gather</code> needs the job's <code>commands.jsonl</code>; whether a job kept one is judged
+by its <code>summary.json</code>.</strong> <code>--gather</code> is refused, <code>gather_option_conflict</code>,
+beside <code>--nof</code> before the configuration is read, and after the read where the
+configuration keeps no <code>commands.jsonl</code> (<code>output.SkippedFiles</code>, the one rule
+for a job's files), on <code>run</code>, <code>crun</code>, a stream's lines, and <code>command</code>,
+rehearsed or not, before a credential is asked for or a daemon reached:
+<code>--gather and output.persist-command = false at SOURCE are mutually exclusive</code>,
+or the same of <code>output.files.commands-jsonl</code>, the key named with where it was
+set (a file's line, a <code>KARVI__</code> variable, <code>--set[N]</code>); under <code>--exercise</code> the
+exercise's own refusal of <code>output.persist-command = false</code>
+(<code>run_mode_conflict</code>) comes first. The first ends <code>; --of</code> only where <code>--of</code>
+would take effect, the key false from a file or a <code>KARVI__</code> variable and not
+locked: after a <code>--set</code> of the key, which beats <code>--of</code>, or under a site's lock,
+which refuses it (exit 3), the message names the key and its source alone, and
+<code>output.files.commands-jsonl</code> takes no hint (<code>--of</code> does not set it); the
+<code>--exercise</code> refusal's hint follows the same rule (<code>ofRemedy</code>).
+<code>job follow --gather</code> of a job that kept none is refused when the follow learns
+it, before any record, warning, or footer: one line on standard error, nothing
+on standard output, exit 4, <code>gather_option_conflict: --gather needs the job's commands.jsonl; job ID kept none (output.files.commands-jsonl was false)</code>,
+<code>(output.persist-command was false)</code> for a job without a folder, with no
+&quot;continues in the daemon&quot; line before it, the job untouched and a running one
+continuing in the daemon; through the daemon the code ends the follow at once,
+never retried. It answers <code>--gather</code> as given: the key set true by a file or
+<code>--set</code>, and <code>--gather=false</code>, show such a job as before, the not-kept warning
+and the job's end; the follower's own <code>output.*</code> keys play no part. Whether a
+job kept the file is judged on every follow path by the folder follow's rule,
+from the job's <code>summary.json</code>: no folder, none (<code>output.persist-command</code> was
+false); a summary naming no <code>commands_jsonl</code>, none
+(<code>output.files.commands-jsonl</code> was false); one naming it, kept, and a file gone
+since is <code>run_output_records_unreadable</code>, the gone file named: through the
+daemon at the read-back at the end; from the folder at the follow's own open
+when it starts, or at the read-back when the file goes after. From the folder
+it is judged at the first readable summary; through the daemon once, at the
+follow's first start, from the folder the start names, the one judgement
+deciding the refusal and the gathering. The summary is read there only where
+the display gathers (<code>run</code> and <code>crun</code> through the daemon too, never under
+<code>--format jsonl</code> or <code>json</code>), or under <code>job follow --gather</code> for its refusal
+whatever the key; one that cannot be read is <code>run_output_records_unreadable</code>
+(one that does not decode <code>run_output_record_decode_failed</code>), the follow ended
+and the job unaffected.
+The key set true where no <code>commands.jsonl</code> is kept (<code>--nof</code>,
+<code>output.files.commands-jsonl = false</code>) shows the text display, unrefused.
+<em>Why:</em> the answers are read back from the file at the end; a failure is a hard
+stop, so a <code>--gather</code> that cannot gather is refused, never shown otherwise; a
+hint pointing at a remedy that fails (<code>--of</code> after a <code>--set</code> gives the same
+line again) is worse than none; the command line is refused, not a follow lost;
+the summary records what the job kept, where a file's absence does not (a lost
+file and one never written alike). <em>Not taken:</em> <code>; --of</code> every time (it can
+point at a remedy that fails); no hint (it loses the common case, a site's file
+turning the job files off); today's display with a warning under
+<code>job follow --gather</code>; the follow's &quot;continues in the daemon&quot; line first; the
+file's presence at the name (<code>os.Lstat</code>: a removed file, or a folder the
+follower cannot search, blamed on a key that was true, and the key alone
+showing the text display unsaid).</p>
+<p><strong>While a gathered display waits, one line on a terminal's standard error
+counts the devices: <code>gather: done=N/M fail=F</code>.</strong> It is drawn when the display
+starts, <code>gather: done=0/M fail=0</code>: in process before the devices start, after
+the admission warnings; through the daemon (<code>run</code>, <code>crun</code>, <code>job follow</code>) when
+the follow's start comes, after the receipt's warnings (<code>job follow</code>: the
+start's); on <code>job follow</code> from the folder when it opens <code>commands.jsonl</code>. It is
+rewritten in place as each device ends, its words in the label colour and its
+counts in the value colour, as the footer's; any line written to standard error
+after it (a host-key line, a warning, a debug line, the follow's own) erases it
+first and draws it again after, so nothing is written after a half line; it is
+erased before the blocks print, at an interrupt, and at an error. It is shown
+when standard error is itself a terminal, judged as the colour policy judges
+that stream (<code>DisplayDestination</code>), whatever standard output is and never by
+whether colour is on: <code>karvi run … &gt; out.txt</code> shows it, <code>2&gt; err.log</code> none,
+<code>--nocolor</code> at a terminal a plain one, <code>display.color = always</code> into a pipe
+colours the pipe and writes no line there; <code>--quiet</code> none. It is drawn only
+where it renders, checked before each draw: karvi's process group the
+terminal's foreground group (<code>tcgetpgrp</code>) and the terminal wider than the line;
+otherwise the draw is skipped and the counts kept, so the line comes back at
+the next record, or the next line on standard error, once the job is in the
+foreground or the terminal wide enough, and a terminal that cannot say (not the
+controlling terminal) is drawn on. <code>N</code> and <code>F</code> are <code>job list</code>'s DONE and FAIL
+counted from the records the renderer is given: a device is done when its last
+record comes (the requested record whose index is the command count) and failed
+when one of its requested records is not <code>success</code> (a cancelled device among
+them; a session-init profile failing under <code>continue</code> leaves its device a
+success, one under <code>fail-device</code> makes its requested records not attempted),
+and a device dispatch never started (a halt, a wave gate, a cancel or a
+shutdown before its start) is neither, as <code>job list</code> counts the devices
+dispatch ran. <code>M</code> is the plan's targets where the client holds the plan (in
+process; <code>run</code> and <code>crun</code> through the daemon, the submitting client's) and, on
+<code>job follow</code>, the devices the job's <code>summary.json</code> names. Every gathered
+display at a terminal shows it, <code>command</code>'s too: <code>gather: done=0/1 fail=0</code>
+through its one device's wait. <em>Why:</em> the gathered display shows nothing until
+the job's end, and the line says it is held back, not hung; standard error is
+the stream it is drawn on, so <code>&gt; out.txt</code> still shows the wait and <code>2&gt; err.log</code>
+takes no line; drawn as the display starts, because a device is done at its
+last record and a one-command <code>command</code>'s first record is its end; the records
+give the counts on every path; a backgrounded job's draw would write over the
+shell's line or, under <code>tostop</code>, stop the job, and at exactly the terminal's
+width the clear to the line's end erases its last character on xterm-class
+terminals, so the line is drawn where it renders, as <code>wget</code> and <code>pv</code> draw
+theirs, one column spare. <em>Not taken:</em> the line judged by standard output (a
+line written into <code>2&gt; err.log</code>); both streams at a terminal (none for
+<code>&gt; out.txt</code>, where a long wait shows nothing at all); the line drawn at the
+first record; the scoreboard file, <code>job list</code>'s own source (a ticker and file
+reads on every follow path for what the records give); a total in the follow's
+start (an IPC schema change, a daemon change for one number); no total
+(<code>done=N fail=F</code>: how far along a run is unknown); the line drawn whatever the
+job's place; a line cut to the width (a cut count reads wrong); the clear
+written before the text (a terminal that wraps at once leaves a row behind); no
+line for <code>command</code> (a case by activity, and <code>command</code> and <code>job follow</code> of its
+job two different waits).</p>
+<p><strong>A Ctrl-C stops the gathered display at once, on every path.</strong> The progress
+line is erased first. While the job runs nothing gathered is printed: through
+the daemon the follow ends as it does without gathering, the job continuing,
+and its line names <code>run &quot;karvi job follow --gather ID&quot; again</code> where the display
+was gathering and the option would take effect, the key not locked, on <code>run</code>
+and <code>crun</code> and on <code>job follow</code>'s own interrupt; under a site's lock on
+<code>display.run.gather</code> the line stays plain (a locked true gathers a plain
+follow, and the lock refuses the option, exit 3), as does
+<code>job cancel --follow</code>'s, which shows no display. In process the Ctrl-C cancels
+the job as it does without gathering, its end written (summary, scoreboard,
+audit), no blocks, and the footer the in-process display writes
+(<code>! exit=113 elapsed=… artifacts=DIR</code>). During the read-back the display stops
+between groups and between a streamed answer's pieces, what is written standing
+and a cut line ended with its line break: through the daemon the job has ended,
+so the line <code>job ID ended exit=N; artifacts DIR</code>, then <code>cancelled: the display of job ID was interrupted</code>, exit 113, no footer, and no <code>crun.after</code> (an
+interrupt before the hook starts runs none, <a href="#11-the-collection-run">section
+11</a>); in process the job's end goes on, exit 113, the
+footer after. <code>karvi job follow --gather ID</code> shows the job whole later. A job
+cancelled from elsewhere (<code>karvi job cancel</code>, a daemon's job alone) ends with
+its <code>cancel</code> groups, then the cancelled line: the follow ends at the job's
+terminal, and the display watches the follower's own interrupt; in process the
+job's context is the invocation's, ended by its signals alone. <em>Why:</em> the wait
+is what a Ctrl-C answers, so it never waits on a read-back, however large the
+answer or slow the reader; a follow's interrupt never cancels a daemon's job;
+the line names the one command that shows what the gathered display held back,
+where that command works. <em>Not taken:</em> the in-process blocks kept after a
+Ctrl-C (a partial view, its read-back unstoppable); a first Ctrl-C cancelling
+the job and a second stopping the display (one key, two meanings); the
+read-back finished without the footer (the wait is the problem); every display
+option repeated in the line (<code>--echo</code>, the borders, <code>--prefix</code>: those displays
+were shown live, nothing lost); the line unchanged (a gathered run never told
+the one command that shows what it missed).</p>
+<p><strong>A group's header folds its devices' names into one <code>--tl</code> value that selects
+exactly them (<code>matching.Condense</code>).</strong> <code>edge1</code>, <code>edge2</code>, <code>router01</code> to
+<code>router04</code>, and <code>router10</code> are <code>edge[1-2],router[01-04,10]</code>, which
+<code>karvi run --tl</code> selects again (under <code>--i</code>, from the inventory alone). Names
+alike but for their runs of ASCII digits, a shape (<code>pod#-sw#</code>), fold on the run
+that gives the fewest items, the last run on a tie (<code>pod1-sw1,pod2-sw1</code> is
+<code>pod[1-2]-sw1</code>); a name of no other's shape, or with no digits, is its own
+item. A range is the grammar's: consecutive numbers written at the start's
+width make one item (<code>[01-04]</code>, <code>[9-10]</code>, <code>[099-100]</code>), and a number written at
+another width is an item of its own (<code>[08,9]</code>, <code>[1,01,001]</code>), as karvi's
+expansion pads a range to its lower bound's width and takes a list item as
+written; a run of one number is written bare. Items are joined by <code>,</code> with no
+space, in natural order of the first name each covers, the order
+<code>--order sorted</code> dispatches in (<code>natural.Compare</code>): character by character,
+a run of digits by value (<code>router2</code> before <code>router10</code>, then the fewer digits
+first, <code>edge1</code> before <code>edge01</code>), any other character lowercase, a name that
+is the start of another first, names alike but for case as written
+(<code>austin1,Boston[1-2],dallas1</code>; <code>core1,EDGE-CORE1,edge[1-2]</code>, <code>-</code> before
+<code>1</code>); names alike but for case are never folded together
+(<code>Austin-rtr1,austin-rtr2</code>). Every name folds the same way, an address too
+(<code>192.0.2.[1-3,10]</code>, <code>2001:db8::[1-2]</code>). A name may hold the grammar's
+characters, so a backslash goes before each of <code>\ * ? [ ] , ^ $</code>
+and white space, before a <code>!</code> that begins an item, and before an item that is
+<code>-</code>: an ordinary name is unchanged, and every header reads back as exactly its
+devices (the round trip, every fold expanding back to its names,
+<code>TestCondenseReadsBackAsOneTl</code>). The header is never cut: one line however
+long, the terminal wrapping it, rendered once per group with no layout at the
+terminal's width, and the rendered-line limit (<code>display_line_too_long</code>, 256
+KiB, the styled renderer's, colour on or off) counts what the template adds,
+never the first <code>&lt;targets&gt;</code> value (a second counts), the template itself
+bounded at load (<code>display_template_too_long</code>); <code>&lt;targets&gt;</code> is empty outside the
+group header, and line mode's gathered names have no template and no limit.
+<em>Why:</em> a header the operator can give back to <code>--tl</code>, to run the group again or
+the odd device alone; one rule for names and addresses; the names are the job's
+own, so a limit on them would refuse or cut a large group's header (6,000
+unalike names of up to 12 characters are 77,271 bytes), and a cut header no
+longer selects its devices. <em>Not taken:</em> the last run alone; two runs at once
+(<code>pod[1-2]-sw[1-2]</code>, later if long headers show the need); a space after the
+comma; addresses unfolded; a header cut at the terminal's width with <code>+N</code>
+(<code>job list</code>'s way); a higher limit (a cut at a larger size); the display
+refused; names written as they are (<code>lab*[1-2]</code> also selects <code>labx1</code>), or such
+names left out of the fold; case as written in the order
+(<code>Boston[1-2],austin1,dallas1</code>); the text between digits compared whole
+(<code>core1,edge[1-2],EDGE-CORE1</code>); the fold in <code>job list</code>'s TARGET column and on
+the watch screen (later); the names <code>Fold</code> (the package's <code>FoldKey</code> is case
+folding), <code>Collapse</code>, <code>Compact</code>, and <code>Pack</code>.</p>
+<p><strong>Line mode writes every line of the display as <code>NAME: line</code>.</strong> <code>--prefix</code> and
+the key <code>display.run.prefix</code> (false by default), <code>command</code>'s
+<code>display.command.prefix</code>, reach the paths <code>--gather</code> reaches and are set and
+read as its keys are (no plan field). Without the gathered display the records
+stream as written, nothing held, an answer prefixed as it streams and never
+held whole: every line of a record begins with its device's name and <code>: </code>, the
+answer (stdout then stderr on the exec channel), the <code>--echo</code> line when one is
+asked for, the follow's notice in the answer's place, and the failure and
+not-attempted lines without the <code>target=</code> the name repeats, a not-attempted
+line keeping <code>command=i/n</code> (<code>router09: karvi: status=connection_error error=...</code>); an empty line is <code>NAME: </code>, and an empty answer prints nothing. No
+device header, no border, and no ICMP gate's line nor its <code>--debug</code> lines
+(<code>karvi: ping(N) error: ...</code>, <code>karvi: ICMP packet loss ...</code>), as in the
+gathered display: a skipped device shows by its failure line
+(<code>NAME: karvi: status=icmp_unreachable ...</code>), and its record keeps the ping
+report. Gathered, each line of a group begins with the group's folded names
+(<code>edge[1-2],router[01-04,10]: line</code>, clubak -bL's form), a group of one with
+its name as the fold writes it: no group header, no border, the block's marker
+unprefixed (none under <code>--quiet</code>), the progress line unchanged. One fixed form,
+no template: the name, <code>: </code>, then the line. karvi's own lines begin with <code>! </code>
+(the marker, and by the default templates the footer and a <code>crun</code>'s collection
+line after it), and the footer stays the last line. At a terminal the name is
+in the target colour, <code>: </code> in the label colour, a failure line in the error
+colour, and the device's output uncoloured; nothing is coloured into a file.
+The option is refused, <code>prefix_option_conflict</code> (exit 4), beside what line mode
+cannot take, in this order: <code>--format jsonl</code> or <code>json</code>, <code>--border</code>,
+<code>--noborder</code>, <code>--detach</code>, and <code>--follow=false</code>, as far as the word has each
+(<code>job follow</code> the first three); beside <code>--live</code> it is <code>live_option_conflict</code>.
+Line mode needs no file, so <code>--prefix</code> is taken beside <code>--nof</code> and a
+configuration that keeps no <code>commands.jsonl</code> (a gathered display falling back
+there shows line mode streamed), beside <code>--echo</code> (its line prefixed), and
+beside <code>--dry-run</code> and <code>--exercise</code>. The key set true is never refused: beside
+<code>--border</code> it draws none, and under <code>--format jsonl</code> or <code>json</code> and under
+<code>--live</code> it has no effect. A reader splits a line at its first <code>: </code>, not its
+first colon: a device's name holds no white space (the plan refuses it), and an
+IPv6 address holds colons. <em>Why:</em> <code>grep</code> and <code>sort</code> read a fleet's answers by
+device, in the one form pdsh and clush write; the ICMP gate's line left out
+with the header, one rule for it across the two displays, a skipped device
+shown by its failure line. <em>Not taken:</em> <code>--lines</code>, <code>--label</code>, <code>-L</code>; a template;
+the device header kept; the marker prefixed; a mark on standard error's lines;
+the ICMP gate's <code>! </code> line kept and its <code>--debug</code> lines prefixed (the round-trip
+times shown, but two rules for one line across the two displays).</p>
 <p><strong>The helper's help is karvi's layout, coloured without configuration.</strong>
 <code>internal/helplayout</code> holds the one help layout (the title tag in the label
 colour, headings in bold, option words in the accent colour, a Usage line's
@@ -3035,22 +3721,22 @@ A run is serial and follows each device in turn: <code>dispatch.default</code> i
 <code>serial</code> from <code>--live</code> in the lock-aware layer when the configuration says
 another mode, a site's lock on the key refusing it as it refuses <code>--ds</code>.
 Refused beside it (<code>live_option_conflict</code>): the display's own options
-(<code>--format jsonl|json</code>, <code>--echo</code>, <code>--border</code>, <code>--noborder</code>); on a run,
-<code>--dispatch parallel</code> or <code>wave</code>, the key set so by <code>--set</code>, and a run with no
-display in the client's process (no <code>--no-daemon</code>, <code>--dry-run</code>, <code>--exercise</code>,
-<code>--follow=false</code>). The transport hands the view each secret before writing it,
-and the view writes its exact value <code>&lt;removed&gt;</code>, found across a read's edge
-(<code>platform.SecretFilter</code>); escape sequences follow <code>output.ansi</code>; an exec
-command is shown at the prompt <code>--echo</code> shows. <em>Why:</em> the text display renders
-each record once its command completes, so a long command showed nothing until
-its end and the setup never; one device at a time keeps one session's bytes on
-the screen; display only keeps every record, file, and digest the same with or
-without it. <em>Not taken:</em> the device's bytes in <code>--debug</code>, which carries no
-device output; the echo line printed when a command is sent, which names the
-command and shows nothing more until it completes; the bytes beside the text
-display (each twice); the bytes through the daemon (an IPC frame of their own,
-in <a href="../ROADMAP.html#later"><code>ROADMAP.md</code></a>); <code>serial</code> set whatever the
-configuration says (a site's lock on <code>serial</code> would refuse it).</p>
+(<code>--format jsonl|json</code>, <code>--echo</code>, <code>--border</code>, <code>--noborder</code>, <code>--gather</code>,
+<code>--prefix</code>); on a run, <code>--dispatch parallel</code> or <code>wave</code>, the key set so by
+<code>--set</code>, and a run with no display in the client's process (no <code>--no-daemon</code>,
+<code>--dry-run</code>, <code>--exercise</code>, <code>--follow=false</code>). The transport hands the view each
+secret before writing it, and the view writes its exact value <code>&lt;removed&gt;</code>,
+found across a read's edge (<code>platform.SecretFilter</code>); escape sequences follow
+<code>output.ansi</code>; an exec command is shown at the prompt <code>--echo</code> shows. <em>Why:</em>
+the text display renders each record once its command completes, so a long
+command showed nothing until its end and the setup never; one device at a time
+keeps one session's bytes on the screen; display only keeps every record, file,
+and digest the same with or without it. <em>Not taken:</em> the device's bytes in
+<code>--debug</code>, which carries no device output; the echo line printed when a command
+is sent, which names the command and shows nothing more until it completes; the
+bytes beside the text display (each twice); the bytes through the daemon (an
+IPC frame of their own, in <a href="../ROADMAP.html#later"><code>ROADMAP.md</code></a>); <code>serial</code> set
+whatever the configuration says (a site's lock on <code>serial</code> would refuse it).</p>
 <h2 id="13-the-watch-screen">13. The watch screen <a class="anchor" href="#13-the-watch-screen" aria-label="Link to this section">#</a></h2>
 <p><strong>A diffed frame on the alternate screen, karvi's own.</strong> <code>karvi watch</code> renders
 a frame in memory, diffs it against what the terminal shows, and rewrites only
@@ -3213,25 +3899,27 @@ it; only the scoreboards and the ledger refused to make a missing parent.
 <em>Not taken:</em> guarding the scratch root alone (a writable <code>/opt</code> would repeat
 it); a fallback for such an explicit path (an explicit value replaces its
 chain).</p>
-<p><strong>One rule for <code>~</code> and a relative path.</strong> In every place key and every file
-key, <code>~</code> and <code>~/…</code> are the operator's home from the password database,
-<code>~user</code> is refused, and a relative path is taken from the invoking client's
-working directory and made absolute. <em>Why:</em> four rules had grown: the audit
-file took <code>$HOME</code>, a relative trust store the home, the scoreboards and the
-ledger ignored <code>~</code> without a word, and <code>daemon.socket</code> broke on any value but
-an absolute path. <em>Not taken:</em> refusing a relative path (<code>--cd ./out</code> uses
-one); a path relative to the file that sets it (a <code>--set</code> has no file).</p>
+<p><strong>One rule for <code>~</code> and a relative path.</strong> In every place key and every file key,
+<code>~</code> and <code>~/…</code> are the operator's home from the password database, <code>~user</code> is
+refused, and a relative path is taken from the invoking client's working
+directory and made absolute. <em>Why:</em> a path names one place whichever key holds
+it, and a rule per key reads one path several ways: <code>~</code> as <code>$HOME</code> in one and as
+the home in another, a relative path taken from the home, <code>~</code> kept as written
+without a word, a value that is not absolute failing. <em>Not taken:</em> refusing a
+relative path (<code>--cd ./out</code> uses one); a path relative to the file that sets it
+(a <code>--set</code> has no file).</p>
 <p><strong>The scoreboards are one place, read where they are written.</strong> <code>scoreboards</code>
 (<code>auto</code>: <code>/dev/shm/karvi/scoreboards</code> where the scratch root exists, else
 <code>&lt;basedir&gt;/state/scoreboards</code>) is where every activity writes its file;
 <code>sessions.shared-capacity-root</code> takes <code>auto</code> by the same shape. <code>karvi watch</code>
-makes nothing and reads every place of the chain that exists, the shared
-folder and the operator's private fallback, one row per job. <em>Why:</em> the key
-was <code>watch.directory</code>, a literal path, while the writers, the folders, and
-<code>karvi-prune --scoreboards</code> said scoreboards; <code>watch</code> made the private root
-and, with the shared folder closed, did not show the operator's own jobs
-written to the fallback. <em>Not taken:</em> <code>watch</code> reading the first usable place
-alone, or the fallback alone (it loses the team's view).</p>
+makes nothing and reads every place of the chain that exists, the shared folder
+and the operator's private fallback, one row per job. <em>Why:</em> the key is named by
+the word the writers, the folders, and <code>karvi-prune --scoreboards</code> use, and
+takes <code>auto</code>, a chain, where a literal path names one place; a <code>watch</code> that made
+the private root would create state by reading, and one that read one place
+would, with the shared folder closed, miss the operator's own jobs written to
+the fallback. <em>Not taken:</em> <code>watch</code> reading the first usable place alone, or the
+fallback alone (it loses the team's view).</p>
 <p><strong>Login transcripts record the device stream only.</strong> <code>--record</code> writes
 <code>&lt;device&gt;-&lt;HHMMSS&gt;.log</code> and its metadata side by side in a day folder of
 <code>transcript.root</code>, exclusively created and bumped together on collision, and
@@ -3415,11 +4103,11 @@ holds the generated reference and the development overlay. A section is active
 where its value is karvi's default or the example set needs it, and commented
 where it is a shape a site adds; what a guide holds stays in the guide. Every
 pointer, <code>reference.toml</code>'s, <code>config generate</code>'s, and the guides', names it.
-<em>Why:</em> <code>configs/example.toml</code> beside it had drifted (its transports under a
-stale comment, a policy without the csv backend), so that the set's own dry
-run could not plan under it (executed). <em>Not taken:</em> both kept, one pointing at
-the other; everything active (a copied example would change what every IOS XE
-device is sent); the CSV's rules repeated in the file.</p>
+<em>Why:</em> a second example beside it drifts from karvi (a stale comment, a policy
+missing a backend the set uses), and the set's own dry run can stop planning
+under it. <em>Not taken:</em> a second example pointing at the first; everything active
+(a copied example would change what every IOS XE device is sent); the CSV's
+rules repeated in the file.</p>
 <p><strong>Every documented range is enforced by one loop.</strong> A row carries <code>Min</code>,
 <code>Max</code>, and <code>ZeroDisables</code>; one loop applies them to every bounded row after
 the type check, refusing as <code>config_value_out_of_range</code> in the row's words.
@@ -3431,26 +4119,22 @@ option that stands for one configuration key is applied as an override of the
 key in the lock-aware options layer of the invocation's read, so the key's type,
 range, cross-key checks, and lock apply to it as to <code>--set</code>: <code>--order</code>,
 <code>--blind-wait</code>, <code>--ssh-host-key-policy</code>, <code>--ssh-known-hosts-file</code>, <code>--ping</code> and
-<code>--noping</code>, <code>--4</code> and <code>--6</code>, <code>--of</code> and <code>--nof</code>, and <code>--cd</code> as before, and
-<code>run</code>'s Dispatch options with them: <code>--dispatch</code> and <code>--dp</code>, <code>--dw</code>, <code>--ds</code>
-(<code>dispatch.default</code>), <code>--workers</code> (<code>dispatch.parallel-workers</code>), <code>--start-width</code>
-and <code>--max-width</code> (<code>dispatch.wave-start-width</code>, <code>dispatch.wave-max-width</code>), the
-two halts and the two wave gates (<code>dispatch.halt-on-error-*</code>,
-<code>dispatch.wave-gate-error-*</code>), and <code>--wave-delay</code>
-(<code>dispatch.wave-gate-timed-delay</code>). A locked key refuses its option
-(<code>config_lock_violation</code>), an out-of-range value is the key's own error, and the
-planner reads the keys alone; the plan's dispatch block is unchanged. The
-command line's own dispatch checks, <code>dispatch_value_negative</code> and
-<code>dispatch_percent_out_of_range</code>, are retired to <code>config_value_out_of_range</code>.
-<code>--address-authority</code> is not one: it names a device's authority, above the
-inventory row, and <code>name.default-address-authority</code> is the default beneath both.
-<em>Why:</em> the Dispatch options went to the planner beside the configuration, so a
-site's lock on any of the nine lock-eligible keys was passed by the option
-(<code>--max-width 64</code> planned under a lock of 8; <code>--wave-delay 5m</code> under a lock of
-<code>0s</code>), and values the keys refuse were clamped without a word or reached the
-plan's validation. <em>Not taken:</em> the command line checking each range itself (a
-second copy of the registry's ranges, the locks still passed); clamping with a
-notice; <code>--dispatch</code> outside the rule.</p>
+<code>--noping</code>, <code>--4</code> and <code>--6</code>, <code>--of</code> and <code>--nof</code>, <code>--cd</code>, and <code>run</code>'s Dispatch
+options with them: <code>--dispatch</code> and <code>--dp</code>, <code>--dw</code>, <code>--ds</code> (<code>dispatch.default</code>),
+<code>--workers</code> (<code>dispatch.parallel-workers</code>), <code>--start-width</code> and <code>--max-width</code>
+(<code>dispatch.wave-start-width</code>, <code>dispatch.wave-max-width</code>), the two halts and the
+two wave gates (<code>dispatch.halt-on-error-*</code>, <code>dispatch.wave-gate-error-*</code>), and
+<code>--wave-delay</code> (<code>dispatch.wave-gate-timed-delay</code>). A locked key refuses its
+option (<code>config_lock_violation</code>), an out-of-range value is the key's own error,
+and the planner reads the keys alone. <code>--address-authority</code> is not one: it names
+a device's authority, above the inventory row, and
+<code>name.default-address-authority</code> is the default beneath both. <em>Why:</em> an option
+handed to the planner beside the configuration would pass a site's lock on any
+of the nine lock-eligible keys (<code>--max-width 64</code> planned under a lock of 8;
+<code>--wave-delay 5m</code> under a lock of <code>0s</code>), and a value the key refuses would be
+clamped without a word or reach the plan's validation. <em>Not taken:</em> the command
+line checking each range itself (a second copy of the registry's ranges, the
+locks still passed); clamping with a notice; <code>--dispatch</code> outside the rule.</p>
 <p><strong>A locked key takes its macros from the global configuration.</strong> A locked
 key's value takes no macro whose winning definition comes from a layer below
 the global configuration (the user's file, <code>--config</code>, <code>--set</code>); such a value
@@ -3474,11 +4158,6 @@ they did; <code>--set</code> and the files already named themselves. <em>Not tak
 map of option names beside the values; each message in the option's own words
 (the range and the lock are the key's); both sides of a cross-key check; <code>--dp</code>
 naming itself.</p>
-<p><strong>A removed key is refused from every layer.</strong> One table of removed keys, one
-code (<code>config_key_removed</code>), the message naming the key, the release, and the
-replacement; the environment form is refused even when unknown variables are
-tolerated. <em>Why:</em> ignoring a removed key would drop a site's intent silently.
-<em>Not taken:</em> a code per removal; documented no-op keys.</p>
 <p><strong>Every invocation says its load's warnings, once.</strong> A load's warnings (an
 <code>@include?</code> file missing, a <code>KARVI__</code> variable ignored under
 <code>config.reject-unknown-env = false</code>) are said at the invocation's one read (a
@@ -3581,7 +4260,7 @@ it and once shipped the wrong executable.</p>
 <p><strong>Verification runs the battery once per bytes.</strong> The release verifier builds
 from source and runs the tests, the race detector, and every suite; the bundle
 verifier checks the shipped executables as bytes (checksums, counters,
-transports, help, removed keys) and then the same battery from the vendored
+transports, help, an unknown key) and then the same battery from the vendored
 tree; the suites are one list run in three lanes with separate work
 directories, sockets, and scoreboards, never touching the host's shared
 places. <em>Why:</em> the proof that two trees hold the same bytes is stronger than
@@ -3594,6 +4273,39 @@ is <code>karvi-vX.Y.Z</code> and <code>main</code> moves only to a tagged commit
 is installed as new from the bundle, and the archive's own verification is the
 claim a site repeats. <em>Not taken:</em> a cumulative patch beside the bundle (no
 site built from one, and the diff between two tags is one command).</p>
+<p><strong>A release's changes stand under three topics and its numbers in a table.</strong> A
+CHANGELOG block files each entry under New features, Bugs fixed, or Breaking
+changes, the three always there and &quot;None.&quot; under one with no entry, and under
+Other notes, when there is one, a change that reaches no site: the suites' and
+the tests' own, and the build's tooling. A fix to what ships or a site runs
+(karvi, its helpers, the package, the bundle and its verifiers, the man pages)
+is a bug fixed. No paragraph sums the block up, no entry is marked &quot;Breaking:&quot;,
+no block calls the release minor, and none repeats the daemon's drain after an
+upgrade, the same at every release: the headings sort the entries, the version
+number tells a patch from a minor or a major release, and a change to the drain
+is itself an entry. The numbers stand in a table, a row per value, the previous
+release's beside this one's: Go, each module <code>go.mod</code> requires, each schema
+counter, and the lines of Go and of the other programs outside <code>vendor/</code>. The
+CHANGELOG's table holds what moved and the two counts, then &quot;Every other value
+is X's.&quot;; the release notes and <code>release/BUILD-RESULT.md</code>, written fresh at
+each release, hold every row, a moved version or counter bold and the counts
+never, and the notes take the same three topics, Other notes when there is one,
+then the table and the assets. A module one release lacks is &quot;—&quot; there, in the
+release that adds or drops it alone. <code>tools/release-numbers</code> prints both
+tables, this release's values from the working tree and the previous release's
+from its tag, and <code>-check</code> compares the CHANGELOG's block, BUILD-RESULT's
+table, the manifest's numbers, and the notes draft's table with them before the
+release's second commit; a difference stops the release. <em>Why:</em> a lead that
+carried the numbers in its sentences buried what the release does among values
+a reader compares, each typed at the release and checked by nothing but the
+manifest's counters; a row reads a move across, and a table printed from the
+owners and checked cannot drift. <em>Not taken:</em> the moved values alone in every
+document (the full set then shown nowhere, <code>karvi version</code> reporting only some
+of the counters); the previous release's column read from its manifest (it
+lacks the metrics and inventory counters and the Other count); the tool writing
+the tables into the documents between markers (a tool editing prose, where the
+check makes a wrong paste loud); the past blocks rewritten (they stay as
+published).</p>
 <p><strong>Suites and tests keep off the host.</strong> Every suite sets its trust store,
 base directory, spool directory, scoreboard directory, and <code>sharedroot none</code>
 under its own work directory; every test binary that reaches the shared-tree
@@ -3643,15 +4355,16 @@ vendored dependency, left to the HTML documents); generating the whole page.</p>
 <code>flagspec.Spec</code> holds each flag's completion words, whether it takes a path,
 and, for a value that is neither, its name (<code>days</code> <code>N</code>, <code>minfree</code> <code>PERCENT</code>);
 the placeholder is the words joined with <code>|</code> and <code>|PATH</code>, or the name, none for
-a switch; and its <code>Order</code> is the synopsis's order. The synopsis (<code>Usage</code>, pinned
-to the former constant), <code>-h</code> (<code>Help</code>, double dash, the placeholder, the usage
-string, an unquoted default; replacing Go's <code>PrintDefaults</code>), the man page's
+a switch; and its <code>Order</code> is the synopsis's order. The synopsis (<code>Usage</code>, its
+line pinned by a test), <code>-h</code> (<code>Help</code>, double dash, the placeholder, the usage
+string, an unquoted default; in place of Go's <code>PrintDefaults</code>), the man page's
 OPTIONS, and Tab all read them, through <code>internal/flagspec</code>; tests hold the
-order and the table to the defined flags. <em>Why:</em> the synopsis said <code>auto|PATH</code>, <code>N</code>, and <code>PERCENT</code>
-where <code>-h</code> said <code>string</code>, <code>int</code>, and <code>float</code> with one dash, and a page
-generated from the flag set alone would have said the latter. <em>Not taken:</em> Go's
-backquoted value names in the usage strings; parsing the hand-written
-synopsis; alphabetical order.</p>
+order and the table to the defined flags. <em>Why:</em> a synopsis written by hand and
+Go's <code>-h</code> drawn from the flag set say different things (<code>auto|PATH</code>, <code>N</code>, and
+<code>PERCENT</code> against <code>string</code>, <code>int</code>, and <code>float</code> with one dash), and a page
+generated from the flag set alone would say the latter. <em>Not taken:</em> Go's
+backquoted value names in the usage strings; parsing the hand-written synopsis;
+alphabetical order.</p>
 <p><strong>The page is the terminal reference; the guide stays the guide.</strong>
 <code>karvi-prune.8</code> states in full what an operator needs at the shell: NAME,
 SYNOPSIS, DESCRIPTION (what goes and never goes, no configuration read, the
@@ -3865,8 +4578,8 @@ meets a dead link, and the tool's own rewriting is checked with the documents.
 the rest the text unchanged; README's License section links to it and
 <a href="../NOTICE.html"><code>NOTICE.md</code></a> names it. <em>Why:</em> the site carries the licence like
 any document, GitHub reads <code>LICENSE.md</code> as the repository's licence, and one
-copy cannot drift from another. <em>Not taken:</em> a <code>LICENSE.md</code> beside <code>LICENSE</code>; a
-converter exception for a file without a heading.</p>
+copy cannot drift from another. <em>Not taken:</em> a plain-text <code>LICENSE</code> beside it;
+a converter exception for a file without a heading.</p>
 <p><strong>One document indexes every place karvi uses.</strong> <a href="FILES.html"><code>docs/FILES.md</code></a>
 lists each directory and file karvi reads or writes, in shared and in
 individual mode, with its mode, owner, group, writer, and purpose, and states
@@ -3886,7 +4599,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

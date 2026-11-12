@@ -65,8 +65,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -133,8 +133,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -642,9 +642,11 @@ so that no device collects an error block every day.</p>
 <p><code>crun.after</code> names one executable the client runs once a <code>crun</code> has ended
 and its display is printed, on the in-process path and through the
 daemon alike, never for <code>--detach</code> (a detached run has no client at its
-end; a cron does not detach). The hook runs in the collection directory,
-reads the replaced files' names on standard input, one per line, sorted
-(empty when nothing was replaced), and finds the job in its environment:</p>
+end; a cron does not detach) nor after an interrupt (one before the hook
+starts runs none, with no warning and no audit event; one while it runs
+ends it, below). The hook runs in the collection directory, reads the
+replaced files' names on standard input, one per line, sorted (empty when
+nothing was replaced), and finds the job in its environment:</p>
 <table>
 <thead>
 <tr>
@@ -914,7 +916,7 @@ change to one changes both.</li>
 <code>/usr/share/karvi/cron/karvi-crun</code>: the schedule's two forms.</li>
 </ul>
 
-<footer>Generated from <code>docs/COLLECTION.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>docs/COLLECTION.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

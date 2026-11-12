@@ -50,6 +50,7 @@
 <ul class="sections">
 <li><a href="#next">Next</a></li>
 <li><a href="#later">Later</a></li>
+<li><a href="#competitive-features-to-consider-for-later">Competitive features to consider for later</a></li>
 <li><a href="#the-device-qualification-track">The device-qualification track</a></li>
 </ul></li>
 </ul>
@@ -60,8 +61,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -113,6 +114,7 @@
 <ul class="sections">
 <li><a href="#next">Next</a></li>
 <li><a href="#later">Later</a></li>
+<li><a href="#competitive-features-to-consider-for-later">Competitive features to consider for later</a></li>
 <li><a href="#the-device-qualification-track">The device-qualification track</a></li>
 </ul></li>
 </ul>
@@ -123,8 +125,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -142,7 +144,31 @@ the operator has set. A settled decision is an entry in
 <a href="docs/DESIGN.html"><code>docs/DESIGN.md</code></a>; a session that builds an item is a chapter
 of <a href="docs/EXAMPLES.html"><code>docs/EXAMPLES.md</code></a>. Nothing here is a promise of a date.</p>
 <h2 id="next">Next <a class="anchor" href="#next" aria-label="Link to this section">#</a></h2>
-<p>None chosen: the operator names the next item, from &quot;Later&quot; or anew.</p>
+<ul>
+<li><strong>An RSA key over <code>native</code> signs with SHA-2.</strong> Over <code>native</code> an RSA key of
+<code>ssh.identities</code> signs with <code>ssh-rsa</code> (SHA-1) alone. karvi hands x/crypto
+each key in a wrapper that notes which method authenticated (<code>noteSigner</code>,
+<code>internal/transport/native/dial.go</code>), and the wrapper offers no choice of
+algorithm, where the key's own signer takes <code>rsa-sha2-512</code> or
+<code>rsa-sha2-256</code> from the server's list. A server without <code>ssh-rsa</code> among its
+public-key algorithms, OpenSSH's default since 8.8, refuses the key
+(<code>unable to authenticate, attempted methods [none publickey]</code>); over
+<code>system</code> OpenSSH signs with SHA-2. Ed25519 and ECDSA keys have one
+algorithm each and are not affected. The item: the wrapper keeps the
+signer's algorithms, with a test against a server that refuses <code>ssh-rsa</code>.</li>
+<li><strong>Why a connection ended, in <code>command_session_lost</code>.</strong> Since x/crypto
+v0.59.0 a command started over <code>native</code> on a connection that has ended
+fails <code>command_session_lost: the connection ended: EOF</code>: x/crypto answers
+the channel's opening with <code>EOF</code> before any write, where its error named
+why the connection ended (a reset, the device's disconnect message). The
+item: karvi keeps the connection's own end (the client's <code>Wait</code>) and the
+message names it.</li>
+<li><strong>A reason of its own for a DSA key in <code>ssh.identities</code>.</strong> x/crypto v0.59.0
+reads no DSA key, so an unencrypted PEM DSA key is skipped
+(<code>operator_key_skipped</code>) as <code>not a private key karvi reads</code>, the reason a
+damaged file gets. The item: the notice says the key is DSA and no longer
+used, and the code's description lists the reason.</li>
+</ul>
 <h2 id="later">Later <a class="anchor" href="#later" aria-label="Link to this section">#</a></h2>
 <ul>
 <li><strong>Shorter output strings.</strong> A review of every error and warning message
@@ -271,11 +297,10 @@ sensitive (the address, the user name, the host key, never a password).</li>
 declare one as required for its consumption. The review lists each digest
 the program computes or records with who computes it, who reads it, and
 what breaks without it, and removes those nothing consumes in production;
-the development use, comparing two outputs, stays. The audit's are gone
-(chapter 63, its statements in their place), and so is the plan's
-<code>command_plan_digest</code>, read only by checks against the same message that
-<code>plan_digest</code> already binds (chapter 79); <code>plan_digest</code>, which the daemon's
-commit, the idempotency key, and the credential package read, stays.</li>
+the development use, comparing two outputs, stays. The audit records no
+digest (chapter 63), and the plan's command lists have none of their own
+(chapter 79); <code>plan_digest</code>, over the whole plan, which the daemon's commit,
+the idempotency key, and the credential package read, stays.</li>
 <li><strong><code>Sealed</code> credential packages.</strong> The envelope schema accepts the
 protection and the <code>Sealer</code> interface is fixed, but no channel carries it
 and no reviewed provider exists; it waits for the stage that brings a
@@ -299,8 +324,8 @@ Go binding, through <code>ebitengine/purego</code>, to <code>libscrapli</code>, 
 session, the channel, and the SSH (libssh2) and Telnet transports. It loads
 the library from <code>LIBSCRAPLI_PATH</code>, else from <code>~/.cache/scrapli</code>, downloading
 it there from GitHub at first use without checking the published <code>.sha256</code>.
-karvi carries no scrapligo since its native transport became its own
-(<a href="docs/EXAMPLES.html#82-the-native-transport-without-scrapligo-2026-10-27"><code>docs/EXAMPLES.md</code>, chapter
+karvi's native transport is its own <code>x/crypto/ssh</code> connection, with no
+scrapligo (<a href="docs/EXAMPLES.html#82-the-native-transport-without-scrapligo-2026-10-27"><code>docs/EXAMPLES.md</code>, chapter
 82</a>),
 and taking v2 waits on four questions: whether a release can ship the library
 beside the static executables and always names it, so no session reaches the
@@ -439,6 +464,83 @@ would lose the status over <code>system</code>, recorded <code>command_exit_miss
 The question: whether karvi guards against one, for instance by keeping the
 client's input open so that the master never closes first, and what that costs
 a device that waits for its input to end.</li>
+<li><strong>The <code>native</code> shell's write on a full channel window.</strong> A shell session
+writes each command to the device before it reads under the command's
+timeout, and with no context (<code>Session.write</code>,
+<code>internal/devsession/session.go</code>); over <code>native</code> the write is x/crypto's
+channel write (<code>connection.Write</code>, <code>internal/transport/native/dial.go</code>),
+which waits while the device's window for the channel is spent. A device
+that has stopped reading its input, the connection up, would hold the
+write, and the command's timeout, a cancel, and a stop with it: one that
+answers nothing until the keepalives close the connection (60 s at the
+defaults, never at <code>native-ssh.keepalive-interval = 0</code>), one that still
+answers them without end. By the code, not executed: it takes more unread
+input than the window holds. An exec command's opening, stop, and reads on
+such a device are bounded, its root password's write not
+(<a href="docs/EXAMPLES.html#109-two-bounds-exec-on-a-silent-device-a-starts-one-clock-2026-11-12"><code>docs/EXAMPLES.md</code>, chapter
+109</a>).
+The question: the shell's write under the command's timeout and the job's
+context as well, either closing the connection, the one release of a
+pending write.</li>
+<li><strong>A bound on the exec master's control commands.</strong> Over <code>system</code> the exec
+channel's OpenSSH master is asked <code>ssh -O check</code> as it starts and
+<code>ssh -O exit</code> as it closes (<code>execMaster.control</code>,
+<code>internal/transport/systemssh/exec.go</code>), each a client run to its end with
+no timeout. The local master answers them, so a silent device alone should
+not hold one (an inference, not executed); a master that does not answer
+its socket would hold the session's start or its close, and the close an
+exec command makes at <code>execution.device-timeout</code>
+(<a href="docs/EXAMPLES.html#109-two-bounds-exec-on-a-silent-device-a-starts-one-clock-2026-11-12"><code>docs/EXAMPLES.md</code>, chapter
+109</a>,
+Left open). A stopped or cancelled job's close asks nothing. The question:
+a bound on each, the master killed past it.</li>
+<li><strong>Jump hosts over the system transport.</strong> A <code>ProxyJump</code> in <code>~/.ssh/config</code>
+(<code>ssh.include-user-config</code>) makes the hop a child <code>ssh -W</code> that inherits the
+askpass environment, so the jump host's prompts reach the broker and are
+answered from the device's credential; the hop authenticates first, so it
+takes the fields it asks for, and the device's own ask of one of them then
+ends the connection as a second ask (<code>authentication_failed</code>; outside a login
+such a bastion works today only where the device then takes a key). To
+decide: whether a
+hop's prompts are answered at all (the broker could require the device's own
+HostKeyAlias in OpenSSH's <code>user@host</code>, refusing the jump host's, which would
+end a bastion that shares the device's credential today) or from a credential
+of the hop's own; and a change prompt or a second ask at the jump host ending
+the hop's process: the broker's hook ends the device's OpenSSH, and the hop's
+own process still sends the jump host OpenSSH's empty answer. In <code>karvi login</code>
+the operator answers a second ask, a change prompt, and a prompt no list
+matches at the terminal instead, the jump host's and the device's alike
+(reasoned, not executed). The fake device cannot yet be a jump host.</li>
+<li><strong>Authentication in stages.</strong> A server may require methods in turn
+(OpenSSH's <code>AuthenticationMethods</code>, each stage a partial success): a Linux
+server a key and then one or more username or password answers, to pursue
+(Rob), or a password and then a second factor. Executed against a scratch
+device, karvi logs in on no such chain over either transport, where plain
+<code>ssh</code> does: a credential with keys holds no password, so after the key
+neither transport has a method left; a later stage asking for the password
+or a code is a second ask (<code>device refused password</code>); and OpenSSH, at
+<code>NumberOfPasswordPrompts 1</code> and its count kept across a partial success,
+does not run keyboard-interactive a second time, so in <code>karvi login</code> the
+operator is not asked. The transports differ only there: native runs it
+again and answers a prompt no list matches empty, a failed attempt the
+device counts; system sends nothing, a command's error led by OpenSSH's
+<code>Authenticated using &quot;keyboard-interactive&quot; with partial success.</code> After a
+refusal neither runs keyboard-interactive again. Waits on the key and
+password credential agreed in <a href="docs/EXAMPLES.html#24-jobs-across-linux-servers-2026-10-04"><code>docs/EXAMPLES.md</code>, chapter
+24</a> (the key
+first, the password on partial success; the credential CSV's <code>keyfile</code>),
+not built; the tree's fake device answers no partial success.</li>
+<li><strong>One message for a refused authentication on both SSH transports.</strong> A
+refused key, or a password credential with both password methods off, fails
+<code>authentication_failed</code> (exit 108) on both transports, each in its own words:
+over <code>system</code> OpenSSH's
+<code>Permission denied (password,publickey,keyboard-interactive).</code>, over <code>native</code>
+x/crypto's <code>attempted methods [none publickey], no supported methods remain</code>
+for the key (the parity suite's S13c), <code>[none]</code> with both methods off
+(<a href="docs/EXAMPLES.html#107-prompt-answers-on-both-ssh-transports-2026-11-11"><code>docs/EXAMPLES.md</code>, chapter
+107</a>,
+case 1). A refused password already reads alike, <code>device refused password</code>.
+The question: one short message for both, OpenSSH the benchmark.</li>
 <li><strong>A suite's failure that names its call.</strong> A suite under <code>set -eu</code> that runs
 karvi with its output redirected into the work directory dies at a refused
 call with karvi's exit status and prints nothing, and its cleanup removes the
@@ -487,8 +589,8 @@ snapshot as written.</li>
 to journald whatever the configuration, so the Go tests and the suites
 write their events into the host's journal: <code>internal/audit</code>'s <code>test</code>
 events, a collection hook's test's <code>crun.after</code> events, and every suite's
-jobs, the 170,844 <code>command_completed</code> events of thirty days among them
-(<a href="docs/EXAMPLES.html#63-the-audit-trails-names-and-fields-2026-10-17"><code>docs/EXAMPLES.md</code>, chapter
+jobs (in thirty days the suites and the labs left 170,844 per-command
+events there: <a href="docs/EXAMPLES.html#63-the-audit-trails-names-and-fields-2026-10-17"><code>docs/EXAMPLES.md</code>, chapter
 63</a>). An
 audit review would show them as work done. The item: no test or suite
 writes to the host's journal. The questions: how a test's sink is kept
@@ -544,7 +646,7 @@ passed in testing for federal data protection, performs in its approved
 mode. An option for it waits until that set holds AES-256-GCM. Go 1.27's
 certified module (<code>v1.0.0-c2097c7c</code>) has an SSH form of AES-GCM
 (<code>NewGCMForSSH</code>, RFC 5647's nonce) inside the standard library alone;
-x/crypto's SSH package (v0.58.0) calls <code>crypto/cipher.NewGCM</code>, which the
+x/crypto's SSH package (v0.59.0) calls <code>crypto/cipher.NewGCM</code>, which the
 module counts as unapproved under <code>GODEBUG=fips140=on</code> and refuses under
 <code>fips140=only</code>. The approved cipher left is AES-CTR, which karvi does not
 lead with. The item opens when a <code>GOFIPS140=certified</code> build negotiates
@@ -568,6 +670,164 @@ adversarial reviewer given the diff alone, who breaks one expected value per
 suite and writes a case per hazard site; the suites run under three <code>flock</code>
 slots; the orchestrator checks every issue, merges, and runs the battery,
 the container suite, and the release path in a copy.</li>
+<li><strong>A placeholder set per template.</strong> Every display template is checked at
+load against one set of placeholders, and a placeholder its line has no
+value for renders empty, <code>0</code> for a count or an exit code, <code>0s</code> for
+<code>&lt;elapsed&gt;</code>, and the time now for <code>&lt;timestamp&gt;</code>: <code>&quot;! &lt;target&gt; (&lt;count&gt;)&quot;</code>
+as <code>display.gather.header</code> draws <code>!  (2)</code>, the name empty
+(<a href="docs/DISPLAY-CONFIGURATION.html#the-gathered-displays-header"><code>docs/DISPLAY-CONFIGURATION.md</code>, &quot;The gathered display's
+header&quot;</a>). The
+item: each template its own set, and a placeholder the template can never
+fill refused at load as an unknown one is, <code>display_placeholder_unsupported</code>,
+a hard stop. What it gains: a mistyped template refused, not drawn blank.
+It changes the rule of every template, the eleven
+<code>internal/configload/validate.go</code> checks, the released ones among them: a
+design of its own.</li>
+</ul>
+<h2 id="competitive-features-to-consider-for-later">Competitive features to consider for later <a class="anchor" href="#competitive-features-to-consider-for-later" aria-label="Link to this section">#</a></h2>
+<p>What other network tools do that karvi does not, set down at the operator's
+word for later consideration, in no order: none is chosen or designed. Two
+such capabilities are items under <a href="#later">Later</a> already: platforms beyond
+the built-ins (Netmiko and Oxidized each reach far more device types than
+karvi's seven) and NETCONF. An item that would reopen a settled decision of
+<a href="docs/DESIGN.html"><code>docs/DESIGN.md</code></a> says so.</p>
+<ul>
+<li><strong>Structured output.</strong> Netmiko and Nornir hand a command's text to a parser
+(TextFSM templates, TTP, Cisco's Genie) and return its fields; NAPALM's
+getters return a device's facts, interfaces, and neighbours as data. karvi
+records a command's text as the device sent it (<code>commands.jsonl</code>,
+<code>schema/command-record.schema.json</code>), and a tool outside karvi parses it.
+What it gains: a record a script or a report reads without a parser of its
+own. It would reopen the rule that the daemon never interprets output
+(<a href="docs/DESIGN.html#7-the-plan-the-daemon-and-the-credential-channel"><code>docs/DESIGN.md</code>, section
+7</a>); a
+parse in the client, after the records are durable, would leave the daemon
+as it is. The questions: the parser and its templates (NTC's TextFSM
+templates are the common set, written for Python's TextFSM); where the
+fields go, a field of the record or a file beside it; and a template that
+no longer matches a release's changed output.</li>
+<li><strong>Checks before and after a change.</strong> pyATS (Genie's <code>learn</code> and <code>diff</code>)
+takes a snapshot of a device's state and compares two; Ansible asserts on a
+result. karvi compares configurations as text (<code>crun</code>, its filters, and the
+<code>crun.after</code> hook's git diff), and nothing compares operational state
+(neighbours, routes, interface states) or fails a run on a check. What it
+gains: a change window's proof that the network came back as it was. The
+plainest form from what exists: two jobs of the same commands, before and
+after, compared per device and command from their records. The questions: a
+karvi command or a tool's (the records are already the input); the lines
+that change at every run (the collection's filters are the precedent); and
+whether a failed check holds the next wave.</li>
+<li><strong>Desired-state configuration.</strong> Ansible's <code>ios_config</code> reads the running
+configuration and sends only the lines it lacks, and its check mode shows
+that difference without a change; NAPALM's <code>compare_config</code> shows a
+candidate's difference before the commit. karvi sends the commands the plan
+lists, and <code>--dry-run</code> shows those commands, not what they would change on
+the device. What it gains: a change sent twice that does nothing the second
+time, and a review of the device's own difference. The questions: where the
+running configuration comes from (the session's own <code>show running-config</code>,
+or the device's collection file); IOS's sections and indentation, which
+tell a line missing under its parent; and how a plan that depends on the
+device's answer stays a complete statement of intent (section 7's rule,
+reopened).</li>
+<li><strong>Configuration rollback.</strong> NAPALM replaces a candidate configuration and
+rolls it back, Cisco NSO's transactions roll back, and Junos's <code>commit confirmed</code> reverts unless confirmed. IOS XE has <code>configure replace</code> and the
+archive's <code>configure terminal revert timer</code> with <code>configure confirm</code>; karvi
+sends them as any command and has no workflow around them. What it gains: a
+change that reverts itself when the device stops answering, the one undo a
+remote change has. The questions: the IOS XE form (the revert timer, or a
+replace file); the confirmation as the job's last command, after a check;
+what a device not reached in time records; and whether the archive's
+settings are the site's configuration or karvi's to set.</li>
+<li><strong>Templates and decisions within a run.</strong> Ansible and Nornir render Jinja2
+templates over a device's variables and branch on a result (<code>when</code>,
+<code>register</code>). karvi renders no template, and a decision from a device's
+answer is taken between jobs by a tool outside karvi (<a href="docs/DESIGN.html#7-the-plan-the-daemon-and-the-credential-channel"><code>docs/DESIGN.md</code>,
+section
+7</a>);
+macro files (<code>--mf</code>, under <a href="#later">Later</a>) are the planned middle ground,
+plain substitution from the inventory row. The item would reopen that
+decision. It waits on <code>--mf</code>, and on a change a second job cannot serve.</li>
+<li><strong>Inventory from a source of truth.</strong> Nornir's and Ansible's inventory
+plugins read NetBox or Nautobot. karvi's inventory sources are CSV files
+(<a href="docs/DESIGN.html#3-targets-inventory-and-platforms"><code>docs/DESIGN.md</code>, section
+3</a>). What it gains: one
+list of devices, kept where the site keeps it, with no export between. The
+plainest form needs nothing of karvi: the site's scheduled export to CSV;
+the item is a source type that reads the API. The questions: the API's
+token among the credentials, a run while the API is down, and the mapping
+of its fields onto karvi's columns. It waits on a site that runs one.</li>
+<li><strong>RESTCONF, gNMI, telemetry, and SNMP.</strong> IOS XE answers RESTCONF (YANG
+over HTTPS), gNMI, and SNMP, and streams model-driven telemetry. karvi
+speaks SSH and Telnet, NETCONF being an item under <a href="#later">Later</a>. What it
+gains: state read as data without a parser, and counters at an interval no
+CLI session gives. The questions: which first (RESTCONF needs an HTTPS
+client and the device's certificate trust, gNMI gRPC); whether telemetry is
+karvi's at all, or a collector's into a time-series store; and SNMP's
+place beside the CLI. It waits on NETCONF, the nearest.</li>
+<li><strong>File transfer and image upgrades.</strong> Netmiko's <code>file_transfer</code>, Ansible's
+<code>net_put</code>, and NAPALM copy files to a device over SCP; an IOS XE upgrade is
+a copy, a verify (<code>verify /md5</code>), an install (<code>install add file ... activate commit</code>), and a reload. karvi has no file transfer. What it gains:
+upgrades, a large share of a fleet's change windows, under karvi's waves,
+records, and audit. The questions: SCP from karvi, or the device's own
+<code>copy</code> from a server, sent as a command; the image's checksum as a gate;
+the reload, and the session that waits through it; and the free space on
+the device's flash.</li>
+<li><strong>A web interface, roles, approvals, and an API.</strong> AWX (Ansible's
+automation controller) and Cisco NSO give a browser view, roles per team,
+an approval before a job runs, and a REST API a ticketing system calls.
+karvi is the command line, the watch screen, and the audit trail; who may
+run what is the Unix groups of the shared trees and the service platform's
+account (<a href="docs/OPERATIONS.html"><code>docs/OPERATIONS.md</code></a>). What it gains: a
+change approved and run from its ticket, and staff who do not use a shell.
+The questions: an API over the daemon's IPC, local and per user today, or a
+service beside it; authentication and roles; and what a remote channel asks
+of the credential package (<code>Sealed</code> credential packages, under
+<a href="#later">Later</a>).</li>
+<li><strong>Configuration compliance.</strong> SolarWinds NCM checks configurations against
+a site's rules, and Batfish analyses them offline (reachability, ACLs).
+karvi collects configurations and its hook diffs them; no rule is checked.
+What it gains: a report of the devices that break a standard (the NTP
+servers, AAA, the banner) from files karvi already writes. The plainest
+form: a <code>crun.after</code> hook running the site's checks over the collection
+directory, which needs nothing of karvi but a shipped example. The
+questions: the rules' form, a karvi command or an example hook, and the
+report's place.</li>
+<li><strong>ClusterShell's node sets and gathered output, beyond karvi's.</strong>
+ClusterShell's <code>clush</code> runs a command over a node set and, under <code>-b</code>,
+gathers the nodes that answered alike under one header naming the folded
+node set and its count; <code>clubak</code> gathers <code>NAME: line</code> output read from
+another tool, <code>-bL</code> writing each line after its group's folded names. karvi
+takes that much, the gathered display and line mode
+(<a href="docs/OPERATIONS.html#gathered-output-and-line-mode"><code>docs/OPERATIONS.md</code>, &quot;Gathered output and line
+mode&quot;</a>), and leaves the
+rest: <code>--diff</code>, a unified diff between the gathered outputs, where karvi
+shows each group whole and a diff is post-processing or a wrapper reading
+line mode's <code>NAME: line</code>, split at the first <code>: </code>; the node-set operator
+<code>&amp;</code>, keeping the nodes two sets share, where karvi's selectors add up in
+command-line order and a <code>!</code> value removes, so no line keeps only the
+devices two selectors share (<a href="docs/DESIGN.html#3-targets-inventory-and-platforms"><code>docs/DESIGN.md</code>, section
+3</a>); node groups in the
+header (<code>-r</code>, <code>--regroup</code>, writes <code>@group</code> for a group's nodes), where
+karvi's header names devices; two digit runs folded at once (<code>nodeset -f</code>
+writes <code>pod[1-2]-sw[1-2]</code>), where karvi folds one,
+<code>pod1-sw[1-2],pod2-sw[1-2]</code>, a rule of the fold this would reopen
+(<a href="docs/DESIGN.html#12-display-and-help"><code>docs/DESIGN.md</code>, section
+12</a>); <code>--pick N</code>, N nodes of the set at
+random, where karvi orders a set at random (<code>--order random</code>) and runs
+every device of it; and the fold outside the display, where <code>job list</code>'s
+TARGET column names devices whole and counts the rest <code>+N</code> and the watch
+screen's names a target file, then the devices in flight, then the rest.
+What it gains: what differs between two groups, seen without reading both;
+a selection by two inventory fields in one line; shorter headers on a fleet
+named by group or on two axes; a sample of a fleet for a check; a job's
+whole scope in one column. The questions: a diff's reference (the largest
+group, or the first), and a karvi option or a shipped wrapper; the AND
+operator's spelling on karvi's line and its order beside <code>!</code>; the inventory
+field a group's name comes from, and whether a header naming a group still
+reads back as one <code>--tl</code> value; when two runs fold, and in which order; a
+pick recorded, so a rerun picks the same devices, as the recorded
+<code>dispatch.shuffle-key</code> reproduces a <code>random</code> order; and a fold that is
+never cut in a column that cuts at the terminal's width.</li>
 </ul>
 <h2 id="the-device-qualification-track">The device-qualification track <a class="anchor" href="#the-device-qualification-track" aria-label="Link to this section">#</a></h2>
 <p>Independent of the items above. The runbook
@@ -597,12 +857,21 @@ the session is a completed session, exit 0, with the notice
 read from OpenSSH's own log (<code>-E</code> at <code>VERBOSE</code>, the terminal unchanged);
 a device that dies mid-session then ends 0 too, accepted for an
 interactive session whose operator saw it end.</li>
+<li>Show a cancelled exec command's end against a real <code>sshd</code>: the runbook's
+row L4 with a cancel in place of the command's timeout, on both
+transports. Over <code>native</code> a cancel asks the server for <code>KILL</code>, closes the
+channel, and closes the connection 0.5 s on or as soon as the channel
+closes, which only the fake device has shown
+(<a href="docs/EXAMPLES.html#109-two-bounds-exec-on-a-silent-device-a-starts-one-clock-2026-11-12"><code>docs/EXAMPLES.md</code>, chapter
+109</a>,
+Left open). Observed: what is left running on the server, as L4 looks
+for it.</li>
 </ol>
 <p>Production activation of the daemon, the shared trees, the timers, and the
 2,500-device accounting gate waits on that run and on review by the network
 operations and security owners.</p>
 
-<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

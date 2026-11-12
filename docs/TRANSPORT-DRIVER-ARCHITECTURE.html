@@ -63,8 +63,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -129,8 +129,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -178,8 +178,7 @@ exec connection.</p>
 <p>Telnet's driver renders its output and prompts with the session's renderer
 (<code>internal/termtext</code>), so every shell's text is what the terminal showed. The
 executor, both SSH transports, telnet, and the session work on
-<code>platform</code>'s types; the earlier library-neutral contracts of a public
-<code>transport</code> package were imported by nothing and were removed.</p>
+<code>platform</code>'s types.</p>
 <h2 id="named-selection-layer">Named selection layer <a class="anchor" href="#named-selection-layer" aria-label="Link to this section">#</a></h2>
 <p><code>internal/transportselect</code> maps operator selectors through configuration:</p>
 <pre><code class="language-text">CLI/inventory override
@@ -261,7 +260,7 @@ with any difference by design pinned per transport; and</li>
 behaviour, and an exec command's settling, limit, and outcomes, are the
 session's and are tested once, in <code>internal/devsession</code>, not per library.</p>
 
-<footer>Generated from <code>docs/TRANSPORT-DRIVER-ARCHITECTURE.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>docs/TRANSPORT-DRIVER-ARCHITECTURE.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

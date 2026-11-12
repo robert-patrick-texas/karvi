@@ -63,8 +63,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -129,8 +129,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -340,9 +340,9 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <tr>
 <td><code>askpass_auth_failed</code></td>
 <td>authentication</td>
-<td style="text-align:right">—</td>
+<td style="text-align:right">108</td>
 <td style="text-align:center">no</td>
-<td>An askpass helper presents the wrong one-use token to the broker.</td>
+<td>A request to the askpass broker bears the wrong token: the broker answers nothing more and ends the SSH connection.</td>
 </tr>
 <tr>
 <td><code>askpass_material_missing</code></td>
@@ -363,21 +363,21 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>authentication</td>
 <td style="text-align:right">—</td>
 <td style="text-align:center">no</td>
-<td>OpenSSH shows the askpass helper a prompt karvi does not recognize.</td>
+<td>OpenSSH asks the askpass helper its own question (a key's passphrase, a security key's PIN, a password change, the host key), or a device's prompt that asks for neither the username nor the password.</td>
 </tr>
 <tr>
 <td><code>askpass_request_invalid</code></td>
 <td>authentication</td>
-<td style="text-align:right">—</td>
+<td style="text-align:right">108</td>
 <td style="text-align:center">no</td>
-<td>An askpass helper sends a request the broker cannot decode.</td>
+<td>A request to the askpass broker cannot be decoded, or none arrives within ten seconds: the broker answers nothing more and ends the SSH connection.</td>
 </tr>
 <tr>
 <td><code>askpass_start_failed</code></td>
 <td>internal</td>
 <td style="text-align:right">1</td>
 <td style="text-align:center">no</td>
-<td>The one-use askpass broker cannot be started.</td>
+<td>The askpass broker cannot be started.</td>
 </tr>
 <tr>
 <td><code>askpass_username_unset</code></td>
@@ -429,11 +429,18 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>An audit record cannot be written to a required journald or file sink.</td>
 </tr>
 <tr>
+<td><code>authentication_change_requested</code></td>
+<td>authentication</td>
+<td style="text-align:right">108</td>
+<td style="text-align:center">no</td>
+<td>The device asks to change a secret (a new, next, or confirmed PIN or password), which karvi does not answer outside a login.</td>
+</tr>
+<tr>
 <td><code>authentication_failed</code></td>
 <td>authentication</td>
 <td style="text-align:right">108</td>
 <td style="text-align:center">no</td>
-<td>The device rejects the supplied credentials.</td>
+<td>The device rejects the supplied credentials, or, outside a login, asks for one again.</td>
 </tr>
 <tr>
 <td><code>base_directory_unavailable</code></td>
@@ -996,20 +1003,6 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td><code>dispatch.admission-poll-min</code> exceeds <code>dispatch.admission-poll-max</code>.</td>
 </tr>
 <tr>
-<td><code>config_dispatch_order_inventory_removed</code></td>
-<td>config</td>
-<td style="text-align:right">2</td>
-<td style="text-align:center">no</td>
-<td><code>dispatch.order</code> is the removed value <code>inventory</code>; the message names <code>default</code>.</td>
-</tr>
-<tr>
-<td><code>config_dispatch_order_random_seeded_removed</code></td>
-<td>config</td>
-<td style="text-align:right">2</td>
-<td style="text-align:center">no</td>
-<td><code>dispatch.order</code> is the removed value <code>random-seeded</code>; the message names <code>shuffle</code>.</td>
-</tr>
-<tr>
 <td><code>config_dispatch_wave_max_below_start</code></td>
 <td>config</td>
 <td style="text-align:right">2</td>
@@ -1218,13 +1211,6 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">2</td>
 <td style="text-align:center">no</td>
 <td>A configuration key is blank.</td>
-</tr>
-<tr>
-<td><code>config_key_removed</code></td>
-<td>config</td>
-<td style="text-align:right">2</td>
-<td style="text-align:center">no</td>
-<td>A configuration key that karvi removed is set in a file, the environment, or <code>--set</code>; the message names the key and the release that removed it.</td>
 </tr>
 <tr>
 <td><code>config_key_unset</code></td>
@@ -1612,13 +1598,6 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>An <code>ssh.identities</code> entry is neither an absolute path nor one beginning with <code>~/</code>.</td>
 </tr>
 <tr>
-<td><code>config_ssh_legacy_hosts_removed</code></td>
-<td>config</td>
-<td style="text-align:right">2</td>
-<td style="text-align:center">no</td>
-<td><code>ssh.legacy-hosts</code> or <code>ssh.ancient-hosts</code> is set; both are removed in favour of <code>[[ssh-algorithms-map]]</code> profiles.</td>
-</tr>
-<tr>
 <td><code>config_toml_syntax</code></td>
 <td>config</td>
 <td style="text-align:right">2</td>
@@ -1980,14 +1959,14 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>credential</td>
 <td style="text-align:right">113</td>
 <td style="text-align:center">no</td>
-<td>The operator pressed Ctrl-C at a credential prompt, or a signal ended it; no job runs without the credential, so karvi exits.</td>
+<td>The operator pressed Ctrl-C at a credential prompt, or a signal ended it; no job runs without the credential, so karvi exits. In a login, Ctrl-C or a signal at a device's prompt (a new PIN, a prompt karvi does not answer itself) ends the login.</td>
 </tr>
 <tr>
 <td><code>credential_prompt_unavailable</code></td>
 <td>credential</td>
 <td style="text-align:right">6</td>
 <td style="text-align:center">no</td>
-<td>An interactive credential prompt is needed but no controlling terminal is available, or the operator ended the prompt with Ctrl-D on an empty line.</td>
+<td>An interactive credential prompt is needed but no controlling terminal is available, or the operator ended the prompt with Ctrl-D on an empty line. In a login, a device's prompt that cannot be read at the terminal ends the login.</td>
 </tr>
 <tr>
 <td><code>credential_resolution_failed</code></td>
@@ -2071,7 +2050,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>dependency</td>
 <td style="text-align:right">1</td>
 <td style="text-align:center">no</td>
-<td><code>daemon serve</code> finds a live daemon already listening on the socket.</td>
+<td><code>daemon serve</code> finds another daemon: one answering at the socket, refused at once (<code>daemon already running at SOCKET</code>), whether it holds the daemon's lock, <code>d.lock</code> beside the socket, or its lock file was removed under it; or one holding the lock whose socket does not answer, a daemon still stopping, refused after waiting <code>daemon.start-timeout</code> for it (<code>daemon still stopping: pid N</code>).</td>
 </tr>
 <tr>
 <td><code>daemon_drain_failed</code></td>
@@ -2162,7 +2141,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>dependency</td>
 <td style="text-align:right">112</td>
 <td style="text-align:center">no</td>
-<td>A daemon was launched but did not become ready.</td>
+<td>A launched daemon ended without answering, its cause in <code>daemon.log</code>, or neither answered nor ended within <code>daemon.start-timeout</code> plus 2 seconds and was killed: no daemon is left from the start. An interrupted start has the code too, and leaves its daemon to start by itself.</td>
 </tr>
 <tr>
 <td><code>daemon_status_schema_mismatch</code></td>
@@ -2211,7 +2190,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>shutdown</td>
 <td style="text-align:right">106</td>
 <td style="text-align:center">no</td>
-<td>The daemon socket remains after the stop timeout.</td>
+<td>The stopped daemon has not exited, its pid alive and its socket there, within the stop's bound: <code>daemon.start-timeout</code> plus the wait the daemon's answer names, its own accounting bound (its <code>daemon.forced-grace-seconds</code>, two seconds at least); with none named (a build from before that answer), or for a drained daemon no longer answering, plus this client's <code>daemon.forced-grace-seconds</code>. An interrupt of a forced stop's wait ends it so too.</td>
 </tr>
 <tr>
 <td><code>daemon_stop_wait_interrupted</code></td>
@@ -2611,6 +2590,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">6</td>
 <td style="text-align:center">no</td>
 <td>A formula backend's username template is empty.</td>
+</tr>
+<tr>
+<td><code>gather_option_conflict</code></td>
+<td>usage</td>
+<td style="text-align:right">4</td>
+<td style="text-align:center">no</td>
+<td><code>--gather</code> is given with what leaves the gathered display nowhere to show it or nothing to read back at the job's end: <code>--format jsonl</code> or <code>json</code>, <code>--echo</code>, <code>--detach</code>, <code>--follow=false</code>, <code>--nof</code>, or a configuration that keeps no <code>commands.jsonl</code> (<code>output.persist-command</code> or <code>output.files.commands-jsonl</code> false), the message naming which and, for a key, where it was set; or <code>job follow --gather</code> of a job that kept no <code>commands.jsonl</code> (run without a folder, <code>output.persist-command</code> false, or with <code>output.files.commands-jsonl</code> false), refused before anything is shown, the message naming the job and which, the job untouched. <code>--gather=false</code> and the key set true are never refused beside these.</td>
 </tr>
 <tr>
 <td><code>host_key_changed</code></td>
@@ -3072,7 +3058,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td><code>--live</code> is given with an option that shapes the text display it replaces (<code>--format jsonl</code> or <code>json</code>, <code>--echo</code>, <code>--border</code>, <code>--noborder</code>), or a run's with what leaves it no display in the client's process (no <code>--no-daemon</code>; <code>--dry-run</code>, <code>--exercise</code>, <code>--follow=false</code>) or runs its devices side by side (<code>--dispatch</code> <code>parallel</code> or <code>wave</code>, or <code>dispatch.default</code> set so by <code>--set</code>): the live view follows one device's session at a time.</td>
+<td><code>--live</code> is given with an option that shapes the text display it replaces (<code>--format jsonl</code> or <code>json</code>, <code>--echo</code>, <code>--border</code>, <code>--noborder</code>, <code>--gather</code>, <code>--prefix</code>), or a run's with what leaves it no display in the client's process (no <code>--no-daemon</code>; <code>--dry-run</code>, <code>--exercise</code>, <code>--follow=false</code>) or runs its devices side by side (<code>--dispatch</code> <code>parallel</code> or <code>wave</code>, or <code>dispatch.default</code> set so by <code>--set</code>): the live view follows one device's session at a time.</td>
 </tr>
 <tr>
 <td><code>login_driver_not_interactive</code></td>
@@ -3369,13 +3355,6 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>A dry-run or exercise report fails the plan-report contract; the message names the field first.</td>
 </tr>
 <tr>
-<td><code>platform_default_transport_invalid</code></td>
-<td>config</td>
-<td style="text-align:right">2</td>
-<td style="text-align:center">no</td>
-<td>A platform's default transport is not <code>default</code>, <code>native</code>, <code>telnet</code>, or a valid slot name.</td>
-</tr>
-<tr>
 <td><code>platform_definition_invalid</code></td>
 <td>config</td>
 <td style="text-align:right">2</td>
@@ -3430,6 +3409,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
 <td><code>--port</code> is outside 1..65535.</td>
+</tr>
+<tr>
+<td><code>prefix_option_conflict</code></td>
+<td>usage</td>
+<td style="text-align:right">4</td>
+<td style="text-align:center">no</td>
+<td><code>--prefix</code> is given with what line mode cannot take: <code>--format jsonl</code> or <code>json</code>, <code>--border</code>, <code>--noborder</code>, <code>--detach</code>, or <code>--follow=false</code>. <code>--prefix=false</code> and the key set true are never refused beside these.</td>
 </tr>
 <tr>
 <td><code>preparation_expired</code></td>
@@ -3663,6 +3649,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td><code>run</code> combines <code>--dry-run</code>, <code>--exercise</code>, or <code>--detach</code> with one another, <code>--exercise</code> or <code>--detach</code> with <code>--no-daemon</code>, <code>--detach</code> with <code>--follow</code>, or <code>--nof</code> with <code>--detach</code> or <code>--exercise</code>; or <code>--exercise</code> runs under <code>output.persist-command = false</code>, which keeps no job folder for its report.</td>
 </tr>
 <tr>
+<td><code>run_output_digest_mismatch</code></td>
+<td>output</td>
+<td style="text-align:right">111</td>
+<td style="text-align:center">no</td>
+<td>An answer the gathered display reads back from a job's <code>commands.jsonl</code>, its output or an exec record's standard error, does not match the record's digest: the file changed, or a bit flipped, since the job wrote it. It is checked before any of its group is shown, the groups written before it standing; a file changed after that check is the same code at the answer's end, its bytes written.</td>
+</tr>
+<tr>
 <td><code>run_output_format_unsupported</code></td>
 <td>usage</td>
 <td style="text-align:right">4</td>
@@ -3681,7 +3674,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>output</td>
 <td style="text-align:right">111</td>
 <td style="text-align:center">no</td>
-<td>A completed run's commands.jsonl cannot be opened or read.</td>
+<td>A job's records cannot be read back: its folder, a day folder <code>karvi job list</code> reads, its <code>summary.json</code>, or its <code>commands.jsonl</code> cannot be opened or read or is not a regular file; or <code>commands.jsonl</code> is not the job's own (another owner outside the shared tree's group, a mode wider than 0640), ends before a record's line, or holds a line that is not the record the job's stream carried.</td>
 </tr>
 <tr>
 <td><code>scoreboard_counts_inconsistent</code></td>
@@ -4967,9 +4960,21 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td><code>dispatch.halt-on-error-percent</code> is outside 0..100. Replaced at v0.14.0 by the one range rule over the registry rows.</td>
 </tr>
 <tr>
+<td><code>config_dispatch_order_inventory_removed</code></td>
+<td>v0.42.0</td>
+<td><code>config_enum_value_invalid</code></td>
+<td><code>dispatch.order</code> was the removed value <code>inventory</code>, refused by a message naming <code>default</code>; it is refused as any value the key does not take.</td>
+</tr>
+<tr>
+<td><code>config_dispatch_order_random_seeded_removed</code></td>
+<td>v0.42.0</td>
+<td><code>config_enum_value_invalid</code></td>
+<td><code>dispatch.order</code> was the removed value <code>random-seeded</code>, refused by a message naming <code>shuffle</code>; it is refused as any value the key does not take.</td>
+</tr>
+<tr>
 <td><code>config_dispatch_random_seed_missing</code></td>
 <td>v0.10.0</td>
-<td><code>config_dispatch_order_random_seeded_removed</code></td>
+<td><code>config_enum_value_invalid</code></td>
 <td><code>dispatch.order</code> was <code>random-seeded</code> without <code>dispatch.random-seed</code>; both are removed: an empty <code>dispatch.shuffle-key</code> is allowed.</td>
 </tr>
 <tr>
@@ -5003,6 +5008,12 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td><code>config.include-depth</code> is outside 0..32. Replaced at v0.14.0 by the one range rule over the registry rows.</td>
 </tr>
 <tr>
+<td><code>config_key_removed</code></td>
+<td>v0.42.0</td>
+<td><code>config_unknown_key</code>, <code>config_unknown_environment</code></td>
+<td>A configuration key that karvi had removed was set in a file, the environment, or <code>--set</code>, refused by a message naming the key, the release that removed it, and what replaces it; it is refused as any key karvi does not have, its environment variable as any unknown variable.</td>
+</tr>
+<tr>
 <td><code>config_lock_ambiguous</code></td>
 <td>v0.10.0</td>
 <td><code>config_lock_equal_specificity</code></td>
@@ -5017,7 +5028,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <tr>
 <td><code>config_output_max_command_below_spool_threshold</code></td>
 <td>v0.11.0 to v0.17.0</td>
-<td><code>config_key_removed</code></td>
+<td><code>config_unknown_key</code></td>
 <td><code>output.max-command-bytes</code> was smaller than <code>output.memory-spool-threshold-bytes</code>; the threshold, read by this rule alone, was removed at v0.14.0.</td>
 </tr>
 <tr>
@@ -5041,7 +5052,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <tr>
 <td><code>config_sessions_idle_timeout_exceeds_control_persist</code></td>
 <td>v0.11.0 to v0.17.0</td>
-<td><code>config_key_removed</code></td>
+<td><code>config_unknown_key</code></td>
 <td><code>sessions.idle-timeout</code> exceeded a nonzero <code>ssh.control-persist</code>; both keys were read by this rule alone and were removed at v0.14.0.</td>
 </tr>
 <tr>
@@ -5049,6 +5060,12 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>v0.27.0</td>
 <td><code>authentication_failed</code></td>
 <td>Public-key, password, and keyboard-interactive SSH authentication were all disabled; <code>ssh.pubkey-authentication</code> is removed, a credential with a key offering it, so turning both password methods off leaves the key credentials, and a password credential is then refused by the device.</td>
+</tr>
+<tr>
+<td><code>config_ssh_legacy_hosts_removed</code></td>
+<td>v0.42.0</td>
+<td><code>config_unknown_key</code>, <code>config_unknown_environment</code></td>
+<td><code>ssh.legacy-hosts</code> or <code>ssh.ancient-hosts</code> was set, refused by a message naming the <code>[[ssh-algorithms-map]]</code> profiles; each is refused as any key karvi does not have, its environment variable as any unknown variable.</td>
 </tr>
 <tr>
 <td><code>config_syntax</code></td>
@@ -5285,6 +5302,12 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>Output file system full.</td>
 </tr>
 <tr>
+<td><code>platform_default_transport_invalid</code></td>
+<td>v0.42.0</td>
+<td><code>config_unknown_key</code></td>
+<td><code>platform.&lt;name&gt;.default-transport</code> was not <code>default</code>, <code>native</code>, <code>telnet</code>, or a valid slot name; the field, read by no transport choice, is removed, and a table that sets it is refused as an unknown key.</td>
+</tr>
+<tr>
 <td><code>redis_address_missing</code></td>
 <td>v0.30.0</td>
 <td><code>config_credential_backend_address_invalid</code></td>
@@ -5311,13 +5334,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <tr>
 <td><code>sqlite_backend_unavailable</code></td>
 <td>v0.30.0</td>
-<td><code>config_credential_backend_type_unsupported</code>, <code>config_key_removed</code></td>
-<td>A SQLite credential backend was configured, and the build had no SQLite driver; the <code>sqlite</code> type, which nothing could read, is removed and refused at load as an unsupported type, its keys as removed.</td>
+<td><code>config_credential_backend_type_unsupported</code>, <code>config_unknown_key</code></td>
+<td>A SQLite credential backend was configured, and the build had no SQLite driver; the <code>sqlite</code> type, which nothing could read, is removed and refused at load as an unsupported type, its keys as unknown.</td>
 </tr>
 <tr>
 <td><code>ssh_legacy_host_pattern_all_hosts</code></td>
 <td>v0.11.0 to v0.17.0</td>
-<td><code>config_ssh_legacy_hosts_removed</code>, <code>config_ssh_algorithms_map_catch_all</code></td>
+<td><code>config_unknown_key</code>, <code>config_ssh_algorithms_map_catch_all</code></td>
 <td>A legacy or ancient SSH host pattern matched every host; the two keys are removed.</td>
 </tr>
 <tr>
@@ -5443,7 +5466,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 </tbody>
 </table>
 
-<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

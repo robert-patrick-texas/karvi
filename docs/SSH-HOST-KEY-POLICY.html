@@ -41,8 +41,6 @@
 <li><a href="#controlled-enrollment">Controlled enrollment</a></li>
 <li><a href="#changed-key-behavior-in-direct-modes">Changed-key behavior in direct modes</a></li>
 <li><a href="#changed-key-behavior-in-fleet-runs">Changed-key behavior in fleet runs</a></li>
-<li><a href="#breaking-changes-in-v0100">Breaking changes in v0.10.0</a></li>
-<li><a href="#breaking-changes-in-v050">Breaking changes in v0.5.0</a></li>
 <li><a href="#diagnostics">Diagnostics</a></li>
 </ul></li>
 <li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
@@ -69,8 +67,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -113,8 +111,6 @@
 <li><a href="#controlled-enrollment">Controlled enrollment</a></li>
 <li><a href="#changed-key-behavior-in-direct-modes">Changed-key behavior in direct modes</a></li>
 <li><a href="#changed-key-behavior-in-fleet-runs">Changed-key behavior in fleet runs</a></li>
-<li><a href="#breaking-changes-in-v0100">Breaking changes in v0.10.0</a></li>
-<li><a href="#breaking-changes-in-v050">Breaking changes in v0.5.0</a></li>
 <li><a href="#diagnostics">Diagnostics</a></li>
 </ul></li>
 <li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
@@ -141,8 +137,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -265,11 +261,6 @@ writes the address; <code>native</code> looks up only the identity. A line
 <code>accept-new</code> writes reads</p>
 <pre><code class="language-text">[router1]:2222 ssh-ed25519 AAAA... karvi-auto-enrolled
 </code></pre>
-<p>Entries enrolled before this rule for a port other than 22, under the bare
-name by system OpenSSH or as <code>[name]:port,[address]:port</code> by the earlier
-native adapter, no longer match: <code>accept-new</code> enrols the device again and
-<code>secure</code> refuses it until it is enrolled under the identity. Port 22
-entries are unchanged.</p>
 <h2 id="marked-lines">Marked lines <a class="anchor" href="#marked-lines" aria-label="Link to this section">#</a></h2>
 <p>A line marked <code>@revoked</code> names a key refused wherever a device presents it:
 <code>host_key_revoked</code> under every policy, <code>insecure</code> included, before
@@ -327,8 +318,7 @@ private root
 </tr>
 </tbody>
 </table>
-<p>There is no fallback location, and a store elsewhere, such as one an earlier
-release made in the home on a host with <code>users</code>, is not read.
+<p>There is no fallback location: a store elsewhere is not read.
 <code>karvi config show --explain ssh.known-hosts-file</code> names the file on its
 <code>resolved:</code> line, before anything exists.</p>
 <p>In <code>accept-new</code> policy, karvi creates the store. In <code>secure</code> policy, absence is
@@ -447,24 +437,6 @@ specific error-code halt before generic count/percentage evaluation.</p>
 <p><code>karvi-login(1)</code> (<code>man karvi login</code>), HOST KEYS, restates the policies,
 the trust store, the identity, and the controlled enrollment for the
 terminal; a change to one changes both.</p>
-<h2 id="breaking-changes-in-v0100">Breaking changes in v0.10.0 <a class="anchor" href="#breaking-changes-in-v0100" aria-label="Link to this section">#</a></h2>
-<p>Configuration schema 6 renames the default policy from <code>auto</code> to <code>accept-new</code>.
-The values <code>auto</code> and <code>default</code> are rejected with no alias; replace them with
-<code>accept-new</code>. Configuration files that declare <code>schema-version = 5</code> must be
-updated to <code>6</code>.</p>
-<h2 id="breaking-changes-in-v050">Breaking changes in v0.5.0 <a class="anchor" href="#breaking-changes-in-v050" aria-label="Link to this section">#</a></h2>
-<p>Configuration schema 2 carries no host-key migration aliases. These old keys
-are unknown and fail validation:</p>
-<pre><code class="language-text">ssh.strict-host-key-checking
-ssh.user-known-hosts-file
-native-ssh.strict-host-key-checking
-native-ssh.known-hosts-file
-</code></pre>
-<p>Use only:</p>
-<pre><code class="language-text">ssh.host-key-policy
-ssh.known-hosts-file
-ssh.halt-run-on-host-key-mismatch
-</code></pre>
 <h2 id="diagnostics">Diagnostics <a class="anchor" href="#diagnostics" aria-label="Link to this section">#</a></h2>
 <pre><code class="language-bash">karvi config validate /path/to/config.toml
 karvi config show ssh.host-key-policy ssh.known-hosts-file ssh.halt-run-on-host-key-mismatch
@@ -472,7 +444,7 @@ STORE=$(karvi config show --explain ssh.known-hosts-file | sed -n 's/^resolved: 
 stat -c '%U %a %n' &quot;$(dirname &quot;$STORE&quot;)&quot; &quot;$STORE&quot;
 </code></pre>
 
-<footer>Generated from <code>docs/SSH-HOST-KEY-POLICY.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>docs/SSH-HOST-KEY-POLICY.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

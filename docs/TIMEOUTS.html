@@ -62,8 +62,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -127,8 +127,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -355,6 +355,17 @@ separately bounded open.</li>
 <li><strong>Liveness and the command timeout:</strong> a silent peer is ended by the
 smaller of (count-max + 1) × interval and the command's deadline; with
 keepalives off, only by the command timeout, as <code>command_timeout</code>.</li>
+<li><strong>An exec command on a silent peer</strong> ends, as any command, at the first of
+the keepalives' end, the command's deadline, and the context's end (a
+cancel, a stop, <code>execution.device-timeout</code>); over <code>native</code> it waited for
+the keepalives alone. The deadline counts from before the channel's
+opening, and closes the connection to end an opening the peer has not
+answered: <code>command_timeout</code>, <code>… before it started; the connection was closed</code>. A command given up at its deadline or the output limit is
+stopped, and the peer has 2 s to close the channel: past them the
+connection is closed (<code>…; the device did not close the channel in 2s and the connection was closed</code>) and the rest of the device's list is not
+attempted. The context's end gives the peer 0.5 s, for an opening in
+flight to be answered and for the stopped command's channel to close, and
+closes the connection then, or as soon as the channel closes.</li>
 <li><strong>The blind wait is not a timeout.</strong> The operator declared the send blind,
 so the prompt's absence at the end of the wait is recorded as a success
 with the notice <code>prompt_not_observed_after_blind_send</code>, and the same when
@@ -461,7 +472,8 @@ shell, still in step, is closed with the platform's exit commands.</li>
 <li>A timed-out command's record holds what settled by the cut; on the shell
 the session is closed without a graceful exit, since a desynchronised shell
 cannot serve another command, and on an exec channel the command is stopped
-and its connection serves the next. After a blind command whose prompt did
+and its connection serves the next, or is closed when the device does not
+close the channel within 2 s. After a blind command whose prompt did
 not return the session is likewise closed without the exit commands, the
 shell being out of step.</li>
 <li>A command timeout's message names the bound that expired: <code>command timed out after 45m0s (--timeout)</code>, <code>(execution.command-timeout)</code>, a profile's
@@ -540,8 +552,8 @@ shell being out of step.</li>
 </tr>
 <tr>
 <td>Fixed waits, not configurable</td>
-<td><code>promptSettleDelay</code> (100ms, a prompt-shaped last line must stay unchanged); <code>shellEndGrace</code> (2s, the shell's end after the exit commands)</td>
-<td><code>internal/devsession/session.go</code>; <code>internal/transport/native/dial.go</code></td>
+<td><code>promptSettleDelay</code> (100ms, a prompt-shaped last line must stay unchanged); <code>shellEndGrace</code> (2s, the shell's end after the exit commands, none once the job is stopped or cancelled); <code>execEndGrace</code> (2s, the device's close of an exec channel whose command was given up at its timeout or the limit); <code>execCutGrace</code> (500ms, at the context's end: the answer to an exec channel's opening in flight, and the device's close of the stopped command's channel); <code>abortWait</code> (500ms, a killed OpenSSH's end, and a master's after SIGTERM once the job is stopped or cancelled)</td>
+<td><code>internal/devsession/session.go</code>, <code>exec.go</code>; <code>internal/transport/native/dial.go</code>; <code>internal/transport/systemssh/stream.go</code>, <code>exec.go</code></td>
 </tr>
 </tbody>
 </table>
@@ -589,7 +601,7 @@ shell being out of step.</li>
 </tbody>
 </table>
 
-<footer>Generated from <code>docs/TIMEOUTS.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>docs/TIMEOUTS.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

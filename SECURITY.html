@@ -55,8 +55,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -124,8 +124,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -223,10 +223,15 @@ wave gates still apply. This isolation prevents one replaced or compromised
 host from suppressing evidence for the rest of a fleet operation.</p>
 <h2 id="credential-boundary">Credential boundary <a class="anchor" href="#credential-boundary" aria-label="Link to this section">#</a></h2>
 <p>Passwords are resolved per operator and are not put in SSH arguments.
-System OpenSSH receives them through the authenticated, one-use
-<code>karvi-askpass</code> callback. The transport/driver adapter receives short-lived
-copies through karvi-owned secret wrappers. Audit records contain the operator,
-device-facing username, backend, and safe match metadata, never secret values.</p>
+System OpenSSH receives them through the authenticated <code>karvi-askpass</code>
+callback, which answers the username and the password each at most once per
+connection and ends the connection at a second ask, a change prompt, or a
+request without its token. In <code>karvi login</code> the operator answers a second ask,
+a change prompt, or a device's prompt no list matches at the terminal instead;
+the line typed goes to OpenSSH alone, never stored or logged.
+The transport/driver adapter receives short-lived copies through karvi-owned
+secret wrappers. Audit records contain the operator, device-facing username,
+backend, and safe match metadata, never secret values.</p>
 <p>A credential helper (<code>creds.helper</code>) runs as the operator in the client. Its
 file is checked as a credential file is (the owner, no write by group or
 others, no symlink unless allowed) and run through the descriptor checked; its
@@ -244,7 +249,7 @@ allowing a legacy algorithm does not bypass host identity verification.</p>
 <code>security.allow-telnet=true</code>. It is never an SSH fallback and provides no host
 identity or confidentiality.</p>
 
-<footer>Generated from <code>SECURITY.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>SECURITY.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>

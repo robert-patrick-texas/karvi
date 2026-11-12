@@ -26,7 +26,7 @@
 <li><a href="COMMAND-SESSION.html" aria-current="page">Command-session behavior</a>
 <ul class="sections">
 <li><a href="#grammar">Grammar</a></li>
-<li><a href="#history-one-shell-since-v070">History: one shell, since v0.7.0</a></li>
+<li><a href="#one-shell-per-device">One shell per device</a></li>
 <li><a href="#lifecycle">Lifecycle</a></li>
 <li><a href="#one-session-for-command-and-run">One session for command and run</a></li>
 <li><a href="#the-exec-channel">The exec channel</a></li>
@@ -71,8 +71,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -100,7 +100,7 @@
 <li><a href="COMMAND-SESSION.html" aria-current="page">Command-session behavior</a>
 <ul class="sections">
 <li><a href="#grammar">Grammar</a></li>
-<li><a href="#history-one-shell-since-v070">History: one shell, since v0.7.0</a></li>
+<li><a href="#one-shell-per-device">One shell per device</a></li>
 <li><a href="#lifecycle">Lifecycle</a></li>
 <li><a href="#one-session-for-command-and-run">One session for command and run</a></li>
 <li><a href="#the-exec-channel">The exec channel</a></li>
@@ -145,8 +145,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.41.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.41.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.42.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.42.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -204,18 +204,14 @@ remaining words are joined into one command. Use <code>--</code> to protect lite
 that contains a karvi option name:</p>
 <pre><code class="language-bash">karvi command router1 -- show running-config | include --echo
 </code></pre>
-<h2 id="history-one-shell-since-v070">History: one shell, since v0.7.0 <a class="anchor" href="#history-one-shell-since-v070" aria-label="Link to this section">#</a></h2>
-<p>The v0.6 command path prepared an OpenSSH ControlMaster and requested a new
-session channel per command. Cisco IOS XE accepts the authentication and refuses
-the extra channel (<code>Master refused session request: Permission denied</code>), which
-the text classifier then read as an authentication failure. Since v0.7.0 the
-command path opens one fresh interactive shell per device and sends every
-command through it; that diagnostic, should it appear, is
-<code>ssh_session_channel_refused</code> in the <code>connection</code> category, never
-<code>authentication_failed</code>.
+<h2 id="one-shell-per-device">One shell per device <a class="anchor" href="#one-shell-per-device" aria-label="Link to this section">#</a></h2>
+<p>The command path opens one fresh interactive shell per device and sends every
+command through it, with no OpenSSH ControlMaster: Cisco IOS XE refuses a
+master's further session channel (<code>Master refused session request: Permission denied</code>). That line, should it appear, is <code>ssh_session_channel_refused</code> in the
+<code>connection</code> category, never <code>authentication_failed</code>.
 <a href="TRANSPORT-DRIVER-ARCHITECTURE.html"><code>docs/TRANSPORT-DRIVER-ARCHITECTURE.md</code></a>
 states the ControlMaster rule. A platform whose <code>channel</code> is <code>exec</code> (built-in
-<code>linux</code>) takes a channel per command again, on a device that accepts it,
+<code>linux</code>) takes a channel per command, on a device that accepts it,
 under its own rules (<a href="#the-exec-channel">The exec channel</a>); the shell stays
 the path for every other platform.</p>
 <h2 id="lifecycle">Lifecycle <a class="anchor" href="#lifecycle" aria-label="Link to this section">#</a></h2>
@@ -224,7 +220,7 @@ only the connection beneath it differs. Each bound is one configuration
 key, listed with its relations in <a href="TIMEOUTS.html"><code>docs/TIMEOUTS.md</code></a>.</p>
 <pre><code class="language-text">resolve target/address/credential/transport/platform definition
   -&gt; open the connection, the host-key policy in the handshake
-       system: private OpenSSH config, one-use askpass, one fresh ssh -tt process
+       system: private OpenSSH config, askpass for the login, one fresh ssh -tt process
        native: one x/crypto connection, no subprocess
   -&gt; wait for the first prompt            (execution.prompt-timeout; system adds ssh.connect-timeout)
   -&gt; escalate once when below the level    (execution.enable-timeout, the whole step)
@@ -238,7 +234,8 @@ key, listed with its relations in <a href="TIMEOUTS.html"><code>docs/TIMEOUTS.md
        emit one command record
        stop or continue according to the device-error policy
   -&gt; the definition's exit-commands, then close
-       (native waits up to 2 s for the shell's end)
+       (native waits up to 2 s for the shell's end, system up to 2 s for
+        OpenSSH's; neither once the job is stopped or cancelled)
   -&gt; remove temporary config and askpass material (system)
 </code></pre>
 <p>Keepalives prove the peer alive throughout (<code>ssh.server-alive-*</code> on
@@ -308,8 +305,8 @@ standard input at its end (<a href="DESIGN.html#5-transports-and-the-device-sess
        wait for the exit status or signal   (its command timeout, from the channel's opening)
        emit one command record
        stop or continue according to the device-error policy
-  -&gt; close: system ssh -O exit, the master killed on an abort;
-            native closes its connection
+  -&gt; close: system ssh -O exit (none for a job stopped or cancelled),
+            the master killed on an abort; native closes its connection
 </code></pre>
 <p>There is no first prompt, no privilege step but a root command's own <code>sudo</code>
 (<a href="#root-commands-on-an-exec-channel">below</a>), no paging command, and no exit
@@ -328,11 +325,14 @@ names none), a channel closed without a status, or the master gone, the
 session's failure. A device that refuses the channel or the exec request is
 <code>ssh_session_channel_refused</code>; the command did not run and the session ends.</p>
 <p>A command timeout, a cancel, and the output limit (stdout and stderr counted
-together) stop the command and close its channel, and the connection serves
-the next command: <code>native</code> asks the device for <code>KILL</code> first; <code>system</code>,
-whose client cannot send a signal, kills the client and records the notice
-<code>remote_command_not_stopped</code>, the command possibly still running on the
-device.</p>
+together) stop the command and close its channel: <code>native</code> asks the device
+for <code>KILL</code> first; <code>system</code>, whose client cannot send a signal, kills the
+client and records the notice <code>remote_command_not_stopped</code>, the command
+possibly still running on the device. After a command timeout or the output
+limit the connection serves the next command, unless over <code>native</code> the
+device does not close the channel within 2 s, when the connection is closed.
+A cancel, a stop, and the device timeout close the connection, once the
+device has closed the channel or 0.5 s on.</p>
 <h2 id="blind-sends-and-expectations">Blind sends and expectations <a class="anchor" href="#blind-sends-and-expectations" aria-label="Link to this section">#</a></h2>
 <p>A command that ends in <code>\r</code> sequences, or is given <code>--blind-return N</code>, is
 sent with that many carriage returns in one write and awaited for
@@ -354,7 +354,8 @@ its output limit in place of <code>output.max-command-bytes</code>, smaller or l
 on the shell and on an exec channel alike. The rest of the device's list keeps
 the job's values. A limit reached ends the command as the job's limit does,
 the first BYTES kept: the shell's session is closed, an exec channel's command
-stopped with the connection serving the next. The messages name the source,
+stopped with the connection serving the next (closed too when over <code>native</code>
+the device does not close the channel within 2 s). The messages name the source,
 <code>(--timeout)</code> or <code>(--maxbytes)</code> beside the keys' names. A blind command takes
 no <code>--timeout</code> (its wait is <code>execution.blind-wait</code>); a timeout above a set
 <code>execution.device-timeout</code>, or a limit above <code>output.max-job-bytes</code>, is refused
@@ -438,8 +439,10 @@ password: the input is closed, the command did not run, and the record is
 login user is at <code>srv1$</code>: in the text display, <code>--echo</code>, <code>output.TARGET.txt</code>,
 and <code>--live</code>, and one not sent is <code>! not sent: --sudo TEXT</code>. Its record keeps
 the command as written and adds <code>privilege: &quot;sudo&quot;</code>, as the audit's action
-does, and <code>karvi-audit</code>'s row shows <code>--sudo TEXT</code>; a collection's marker is <code>! --sudo TEXT</code>; a job's rerun files write it back as <code>--sudo TEXT</code>. The dry run names the root
-commands and each device's password source:</p>
+does, and <code>karvi-audit</code>'s row shows <code>--sudo TEXT</code>; a collection's marker, and a
+gathered display's block marker, is <code>! --sudo TEXT</code>; a job's rerun files write
+it back as <code>--sudo TEXT</code>. The dry run names the root commands and each device's
+password source:</p>
 <pre><code class="language-text">commands: 3
 sudo: commands 2, 3
 - name:srv1: planned
@@ -487,8 +490,11 @@ patterns (<code>% Invalid input detected</code> and its siblings for <code>cisco
 echo = true
 </code></pre>
 <p>prints the prompt the statement was sent at plus the command before each
-result, including a device-reported command error, as the job's text file
-shows it (<code>router1#configure terminal</code>, then <code>router1(config)#end</code>):</p>
+result, including a device-reported command error, as the job's text file shows
+it (<code>router1#configure terminal</code>, then <code>router1(config)#end</code>), in line mode
+after the device's <code>NAME: </code> (a gathered display shows none: <code>--echo</code> is refused
+beside <code>--gather</code>, and an echo asked for otherwise, the key or <code>--echo</code> beside
+<code>display.command.gather</code>, is not applied):</p>
 <pre><code class="language-text">router1#show clock
 01:20:19.849 EDT Thu Sep 10 2026
 </code></pre>
@@ -555,8 +561,8 @@ each command is shown at the prompt <code>--echo</code> shows it at (<code>srv1$
 root command's <code>srv1#</code>), its stdout and stderr as they arrive. <code>--quiet</code>
 drops the header and the footer. Beside <code>--live</code>, the options that shape the
 display it replaces are refused (<code>live_option_conflict</code>): <code>--format jsonl</code> or
-<code>json</code>, <code>--echo</code>, <code>--border</code>, and <code>--noborder</code>; a configured echo or border is
-set aside.</p>
+<code>json</code>, <code>--echo</code>, <code>--border</code>, <code>--noborder</code>, <code>--gather</code>, and <code>--prefix</code>; a
+configured echo, border, gathered display, or line mode is set aside.</p>
 <h2 id="debugging">Debugging <a class="anchor" href="#debugging" aria-label="Link to this section">#</a></h2>
 <pre><code class="language-bash">karvi command --debug --host router1 --cmd 'show clock' \
   &gt;command.out 2&gt;command.debug
@@ -600,10 +606,11 @@ are not-attempted records. There is no hidden reconnect.</p>
 <code>command_exit_signal</code>, <code>command_exit_missing</code>) are device errors under the same
 policy, and a command timeout and the output limit leave the session usable,
 the connection serving the next command, so the policy applies to them too. A
-refused channel or exec request, a lost connection, the device timeout, and a
-keepalive expiry end the session.</p>
+refused channel or exec request, a lost connection, the device timeout, a
+keepalive expiry, a command timeout before the channel opened, and a channel
+the device does not close within 2 s of a command given up end the session.</p>
 
-<footer>Generated from <code>docs/COMMAND-SESSION.md</code> at <code>karvi-v0.41.0</code>.</footer>
+<footer>Generated from <code>docs/COMMAND-SESSION.md</code> at <code>karvi-v0.42.0</code>.</footer>
 </main>
 </body>
 </html>
