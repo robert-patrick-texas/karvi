@@ -24711,3 +24711,520 @@ and the full battery (278 s). The evidence is kept beside the tree
 (`release-design-evidence/auth-methods-2026-11/`: `PLAN.md`, the prototypes,
 the probes, `s3-parity/`, `S3/`, `S4/`, a battery folder per section, and
 `S5/ch107/`).
+
+## 108. A stopping daemon: the lock, the stop's wait, and the close (2026-11-12)
+
+Found by reading on 2026-11-11: `daemon stop` waited `daemon.start-timeout`
+plus its own `daemon.forced-grace-seconds` for the daemon's socket to go,
+while the daemon waits for its forced jobs' records up to its start's
+forced-grace, two seconds at least, so at `1s` and `0` the client might give
+up first. On a lab build of dev `f9a86a3`, both transports, twice, it did, and
+two more faults came with it. The daemon was still writing a job's record
+more than a second after the stop only when the job was forced as its device
+session closed: over `system` a `ProxyCommand`'s background child holding
+OpenSSH's stderr kept OpenSSH's end from being seen, and the close waited 2 s,
+killed OpenSSH, and waited 0.5 s; over `native` a device that did not end the
+shell after the exit commands (the fake device leaving configuration mode at
+`exit`) kept the close its 2 s `shellEndGrace`. Neither wait ended at the
+cancel. The faults:
+
+1. **The client gave up early.** `daemon_stop_timeout` (exit 106) at 1.0 s,
+   the daemon gone at 1.9 to 2.5 s; so too with the daemon started at
+   forced-grace 10 and the stop at 0, the daemon having read its value at
+   its start.
+2. **A daemon started while another stopped lost its socket.** A stopping
+   daemon closes its listeners at once but removes its socket, credential
+   socket, and state file when it ends. A start found the socket refusing,
+   removed it as stale, and bound its own, and the old daemon's end removed
+   the new one's files: the new daemon ran unreachable, ended only by its
+   pid. `daemon start` did it here; by the code `daemon restart` and a run
+   launching its daemon reach the same launch (`ensureDaemon`).
+3. **A job's record was lost.** Over `system` the close ended about 2.4 s
+   after the cancel, its waits 2.5 s from its start, past the daemon's
+   two-second floor at forced-grace 2 or less: no final status, no `run.end`,
+   `shutdown_incomplete` in `daemon.log`.
+4. **A comment** above `handleSignals`, `awaitAccounting`'s, named a
+   one-second floor; the code's is two.
+
+Not a fault: the lab HOME's `~/.ssh/config` was not read, since the managed
+configuration's `Include` names the passwd home's, by design (the holder came
+by `ssh.transports.system` instead). The operator agreed the four fixes and a
+plan of four sections: S1 a lock for the daemon's life (faults 2 and 4), S2
+the client waiting as long as the daemon may (1), S3 a stopped or cancelled
+job's close not waiting (3), and S4 this chapter. S1's review found the
+plan's reasoning that a new daemon's start sweeps reached a stopping daemon's
+files wrong: the spool and scratch sweeps keep a live karvi pid's, the
+control-socket sweep one that answers.
+
+**What it gains.** `daemon stop --force` answers `daemon stopped` once the
+daemon has ended, whatever the client's `daemon.start-timeout` and
+`daemon.forced-grace-seconds` and the daemon's start's: it waits as long as
+the daemon says it may. A start landing while a daemon stops waits for it and
+keeps its socket, so `daemon start`, `daemon restart`, and a run launching its
+daemon no longer leave one running unreachable while its `d.lock` stays. A
+job forced as its session closes keeps its record, and the stop is quicker:
+over `system` the close ends at most 0.5 s after the cancel, not about 2.4 s;
+over `native` at once, not up to 2 s. The costs: a start beside a daemon
+still stopping waits up to `daemon.start-timeout` and fails past it
+(`daemon_start_failed`, exit 112, `daemon_already_running: daemon still
+stopping: pid N` in `daemon.log`); a stopped or cancelled job's close drops
+the connection without waiting for the device's logout, and the exec
+channel's ControlMaster, once the job has ended, gets no `ssh -O exit`,
+though the exit commands are still written; and one more file, `d.lock`,
+stays beside the socket.
+
+**The rules, as agreed** ([`docs/DESIGN.md`, section
+8](DESIGN.md#8-rehearsal-follow-cancel-and-the-daemons-lifecycle), the entries
+"A daemon holds a lock for its life", "A stop waits as long as the daemon
+may", and "A stopped or cancelled job's close does not wait").
+
+- **The lifetime lock** (S1; its four points, the third reversed and one
+  added on the review, the operator agreeing). `daemon serve` first takes an
+  exclusive `flock` on `d.lock` beside `d.sock`, before its start's sweeps
+  and before it judges a socket file stale, writes its pid into it, and holds
+  it until its sockets and state file are removed; its exit releases it, a
+  kill included, and the file stays (removing it would race its next taker).
+  A start finding the lock held: when the socket answers, a running daemon,
+  it is refused at once, `daemon_already_running: daemon already running at
+  SOCKET`; when not, a daemon still stopping, it tries again every 25 ms up
+  to `daemon.start-timeout`, then is refused, `daemon_already_running: daemon
+  still stopping: pid N`, the pid the file names (exit 1). A signal ends the
+  wait, `daemon_stopped` logged, and so does the daemon's own context;
+  nothing is started. With the lock taken, a socket file present is stale and
+  removed, but one that answers, a running daemon whose `d.lock` was removed
+  under it, is refused, not taken: the dial check stays as a backstop. A
+  launching client waits `daemon.start-timeout` for the socket, so past the
+  bound it fails first, `daemon_start_failed` (exit 112), and the refusal
+  follows in `daemon.log`. `daemon stop` and `daemon restart` wait until the
+  stopped daemon's pid has ended or its socket file is gone (`waitStopped`),
+  not for the socket file alone, which a waiting start now takes at once. The
+  misplaced comment went to `awaitAccounting`, now `awaitStop`, which defers
+  to `accountingBound`'s comment and its two-second floor.
+- **The stop's wait** (S2; its three points; the review). The daemon's answer
+  to a stop it takes names its wait, `wait` in milliseconds beside
+  `stopping`: its accounting bound, its start's `daemon.forced-grace-seconds`
+  with the two-second floor (`accountingBound`). The daemon sets one deadline
+  as it answers (`stopDeadline`), at which a follower's wait for its job's
+  terminal, the wait for the connections, and the wait for the jobs' records
+  all end, so it removes its socket within the wait it named. The client
+  waits `daemon.start-timeout` plus that wait for the stopped daemon to end,
+  its socket gone or its pid ended; an answer naming none, a build's from
+  before the field, keeps `daemon.start-timeout` plus the client's own
+  forced-grace. The IPC schema stays 12. The `--grace` and `--after` waits
+  for a drained daemon (`waitGone`) are unchanged: a drained daemon has no
+  accounting left, and `--after`'s force goes through the stop's answer.
+- **The close at the job's end** (S3; its point; the review). Each close's
+  wait also ends with the job's context, the one the session was prepared
+  under (Prepare's; dispatch hands it down unchanged, so a stop or a cancel
+  ends it and a normal finish does not). Over `system` the shell's OpenSSH is
+  then killed and waited for 0.5 s at most (`abortWait`); over `native` the
+  connection is shut at once. The `system` exec channel's master gets no
+  `ssh -O exit` (or, the job ending during the close, its wait after one
+  ends), then SIGTERM, then SIGKILL 0.5 s on; before, it waited up to 2 s
+  after `ssh -O exit`, 2 s after SIGTERM, and 0.5 s after SIGKILL, 4.5 s in
+  all. `native` exec already shut at once. A normal close is unchanged, and
+  the exit commands are still written. The executor, the `platform`
+  interface, and the session engine (`devsession`) are unchanged.
+
+**The executed examples.** Lab builds of `f9a86a3`, the tree the reproduction
+ran on, and of `de83e50`, the built tree (`ex108.sh`, from the reproduction's
+`stopwait.sh`), each run twice. The blocks are the first runs
+(`ex108-before.out`, `ex108-after.out`), cut by `trim108.sh` to cases 2, 3,
+and 5. The second runs differ in the times, and so in which socket changes
+the poller caught and in their order; in case 5's count of tries; and in the
+job IDs, the pids, and the device's port: each stop's time and each pid's end
+is within 80 ms of the first run's. The device, router01, is
+`karvi-fake-device` with `-slow 60s`. `$L` is the lab folder and `$BASE` its
+`basedir`, `$L/base`; every `$ karvi` line also names the lab's `--config`
+files (the places under `$L`, the trust store, `ssh.control-path-root`, the
+inventory), with `HOME` in the lab, `TMPDIR=/var/tmp`, the credentials in the
+environment, and standard input `/dev/null`. `$L/bin/sshw` is the holder:
+OpenSSH with a `ProxyCommand` that leaves a background child holding
+OpenSSH's stderr (to the case's end, 60 s at most) and relays by `nc`. Each
+case starts its daemon with the sets its title names (`daemon start`, exit 0,
+left out here) and submits a detached `run` (its job lines left out; `$JOB` is
+its folder); "as the device takes exit" is the stop sent as the fake reports
+the session's `exit`. `(exit N, T ms)` is the stop client's exit and time;
+`(exit N, at T ms)` is when that line's client ended, in ms from the stop
+client's start (`begun at`, when it began); `try N` counts the `daemon
+status` tries. A `# T ms:` line is the poller's, in ms from the stop client's
+start: the socket file gone or a new one (by its inode and change time), or
+the stopped daemon's pid's end. It checks about every 25 ms, so two changes in
+one check may print in either order or as one, and its lines, printed after
+the stop's answer, span the `daemon status` and `daemon start` below them.
+Other `#` lines are the script's notes. Right after the stop's answer the
+script runs `daemon status` and `daemon start`; a second after the stopped
+daemon's pid is gone, `daemon status`, `pgrep` for a lab daemon, and the
+socket and state folders. `$ daemon-log` prints `daemon.log`'s lines since
+the case's start but its request and credential-frame lines; `$ job-end` the
+job's summary (`final_status`, `primary_exit_code`, `terminal_causes`) and its
+audit `run.end` (outcome and reason); `jsonl_records` is
+`scripts/lib/json.sh`'s. At its end each case stops any daemon left: by
+`daemon stop --force`, or by its pid when no socket answers for it (the
+`kill -TERM` lines). Case 5 sends the stop in the background and a
+`daemon start` as soon as `daemon status` finds the socket refusing, the
+stopping daemon's listeners closed.
+
+The reproduction, on `f9a86a3`:
+
+```text
+== 2. the daemon started and stopped at start-timeout 1s, forced-grace 0: system, OpenSSH's stderr held, show clock, the stop as the device takes the session's exit
+$ karvi --set 'ssh.transports.system="$L/bin/sshw"' run --detach --target router01 --transport system --cmd 'show clock'
+(exit 0)
+$ karvi --set daemon.start-timeout=1s --set daemon.forced-grace-seconds=0 daemon stop --force     # as the device takes exit
+daemon_stop_timeout: daemon stop timed out
+(exit 106, 1019 ms)
+# 1041 ms: the socket gone
+# 1066 ms: a new socket
+# 2122 ms: the socket gone
+# 2122 ms: the stopped daemon's pid gone
+$ karvi daemon status
+daemon_unreachable: daemon not running or unreadable: dial unix $L/base/socket/d.sock: connect: connection refused
+(exit 110)
+$ karvi --set daemon.start-timeout=1s --set daemon.forced-grace-seconds=0 daemon start
+daemon running
+daemon started socket=$L/base/socket/d.sock
+(exit 0, at 1095 ms)
+# once the stopped daemon's pid is gone, 3159 ms:
+$ karvi daemon status | grep -E '^(status|pid):'
+daemon_unreachable: daemon not running or unreadable: dial unix $L/base/socket/d.sock: connect: no such file or directory
+(exit 110)
+$ pgrep -f 'karvi .*daemon serve'
+2248897
+$ ls "$BASE/socket" "$BASE/state"
+socket: 
+state: 
+$ daemon-log
+time=2026-11-12T02:40:34.130-05:00 level=WARN msg=shutdown code=shutdown_incomplete active_jobs=1 waited=2s
+(end)
+# no final_status in summary.json after 5 s
+$ jsonl_records "$JOB/commands.jsonl" command status
+show clock	success
+$ job-end
+summary: (no final_status) (no primary_exit_code) (no terminal_causes)
+run.end: (none)
+# a lab daemon still runs, no socket answering for it: kill -TERM 2248897
+# it ended
+
+== 3. the daemon started and stopped at start-timeout 1s, forced-grace 0: native, configure terminal, the stop as the device takes the session's exit (it leaves configuration mode, the shell stays)
+$ karvi run --detach --target router01 --transport native --cmd 'configure terminal'
+(exit 0)
+$ karvi --set daemon.start-timeout=1s --set daemon.forced-grace-seconds=0 daemon stop --force     # as the device takes exit
+daemon_stop_timeout: daemon stop timed out
+(exit 106, 1016 ms)
+# 1054 ms: a new socket
+# 1984 ms: the socket gone
+# 1984 ms: the stopped daemon's pid gone
+$ karvi daemon status
+daemon_unreachable: daemon not running or unreadable: dial unix $L/base/socket/d.sock: connect: connection refused
+(exit 110)
+$ karvi --set daemon.start-timeout=1s --set daemon.forced-grace-seconds=0 daemon start
+daemon running
+daemon started socket=$L/base/socket/d.sock
+(exit 0, at 1103 ms)
+# once the stopped daemon's pid is gone, 3041 ms:
+$ karvi daemon status | grep -E '^(status|pid):'
+daemon_unreachable: daemon not running or unreadable: dial unix $L/base/socket/d.sock: connect: no such file or directory
+(exit 110)
+$ pgrep -f 'karvi .*daemon serve'
+2250900
+$ ls "$BASE/socket" "$BASE/state"
+socket: 
+state: 
+$ daemon-log
+(end)
+$ jsonl_records "$JOB/commands.jsonl" command status
+configure terminal	success
+$ job-end
+summary: incomplete 106 ["shutdown:shutdown_forced"]
+run.end: incomplete shutdown_forced
+# a lab daemon still runs, no socket answering for it: kill -TERM 2250900
+# it ended
+
+== 5. a start while the daemon still stops: case 2's daemon, job, and stop, the stop in the background, a daemon start as soon as the socket refuses
+$ karvi --set 'ssh.transports.system="$L/bin/sshw"' run --detach --target router01 --transport system --cmd 'show clock'
+(exit 0)
+$ karvi --set daemon.start-timeout=1s --set daemon.forced-grace-seconds=0 daemon stop --force  &     # as the device takes exit
+$ karvi daemon status     # until it fails
+daemon_unreachable: daemon not running or unreadable: dial unix $L/base/socket/d.sock: connect: connection refused
+(exit 110, at 57 ms, try 4)
+$ karvi --set daemon.start-timeout=1s --set daemon.forced-grace-seconds=0 daemon start
+daemon running
+daemon started socket=$L/base/socket/d.sock
+(exit 0, at 138 ms; begun at 57 ms)
+# the stop in the background:
+daemon_stop_timeout: daemon stop timed out
+(exit 106, 1021 ms)
+# 94 ms: a new socket
+# 2059 ms: the socket gone
+# 2059 ms: the stopped daemon's pid gone
+# once the stopped daemon's pid is gone, 3103 ms:
+$ karvi daemon status | grep -E '^(status|pid):'
+daemon_unreachable: daemon not running or unreadable: dial unix $L/base/socket/d.sock: connect: no such file or directory
+(exit 110)
+$ pgrep -f 'karvi .*daemon serve'
+2254675
+$ ls "$BASE/socket" "$BASE/state"
+socket: 
+state: 
+$ daemon-log
+time=2026-11-12T02:41:01.358-05:00 level=WARN msg=shutdown code=shutdown_incomplete active_jobs=1 waited=2s
+(end)
+# no final_status in summary.json after 5 s
+$ jsonl_records "$JOB/commands.jsonl" command status
+show clock	success
+$ job-end
+summary: (no final_status) (no primary_exit_code) (no terminal_causes)
+run.end: (none)
+# a lab daemon still runs, no socket answering for it: kill -TERM 2254675
+# it ended
+```
+
+The built tree, `de83e50`, the same three cases:
+
+```text
+== 2. the daemon started and stopped at start-timeout 1s, forced-grace 0: system, OpenSSH's stderr held, show clock, the stop as the device takes the session's exit
+$ karvi --set 'ssh.transports.system="$L/bin/sshw"' run --detach --target router01 --transport system --cmd 'show clock'
+(exit 0)
+$ karvi --set daemon.start-timeout=1s --set daemon.forced-grace-seconds=0 daemon stop --force     # as the device takes exit
+daemon stopped
+(exit 0, 583 ms)
+# 546 ms: the stopped daemon's pid gone
+# 572 ms: the socket gone
+# 621 ms: a new socket
+$ karvi daemon status
+daemon_unreachable: daemon not running or unreadable: dial unix $L/base/socket/d.sock: connect: no such file or directory
+(exit 110)
+$ karvi --set daemon.start-timeout=1s --set daemon.forced-grace-seconds=0 daemon start
+daemon running
+daemon started socket=$L/base/socket/d.sock
+(exit 0, at 665 ms)
+# once the stopped daemon's pid is gone, 1582 ms:
+$ karvi daemon status | grep -E '^(status|pid):'
+status: running
+pid: 2258225
+(exit 0)
+$ pgrep -f 'karvi .*daemon serve'
+2258225
+$ ls "$BASE/socket" "$BASE/state"
+socket: c.sock d.lock d.sock
+state: daemon.json
+$ daemon-log
+(end)
+$ jsonl_records "$JOB/commands.jsonl" command status
+show clock	success
+$ job-end
+summary: incomplete 106 ["shutdown:shutdown_forced"]
+run.end: incomplete shutdown_forced
+
+== 3. the daemon started and stopped at start-timeout 1s, forced-grace 0: native, configure terminal, the stop as the device takes the session's exit (it leaves configuration mode, the shell stays)
+$ karvi run --detach --target router01 --transport native --cmd 'configure terminal'
+(exit 0)
+$ karvi --set daemon.start-timeout=1s --set daemon.forced-grace-seconds=0 daemon stop --force     # as the device takes exit
+daemon stopped
+(exit 0, 74 ms)
+# 62 ms: the socket gone
+# 62 ms: the stopped daemon's pid gone
+# 118 ms: a new socket
+$ karvi daemon status
+daemon_unreachable: daemon not running or unreadable: dial unix $L/base/socket/d.sock: connect: no such file or directory
+(exit 110)
+$ karvi --set daemon.start-timeout=1s --set daemon.forced-grace-seconds=0 daemon start
+daemon running
+daemon started socket=$L/base/socket/d.sock
+(exit 0, at 159 ms)
+# once the stopped daemon's pid is gone, 1115 ms:
+$ karvi daemon status | grep -E '^(status|pid):'
+status: running
+pid: 2259464
+(exit 0)
+$ pgrep -f 'karvi .*daemon serve'
+2259464
+$ ls "$BASE/socket" "$BASE/state"
+socket: c.sock d.lock d.sock
+state: daemon.json
+$ daemon-log
+(end)
+$ jsonl_records "$JOB/commands.jsonl" command status
+configure terminal	success
+$ job-end
+summary: incomplete 106 ["shutdown:shutdown_forced"]
+run.end: incomplete shutdown_forced
+
+== 5. a start while the daemon still stops: case 2's daemon, job, and stop, the stop in the background, a daemon start as soon as the socket refuses
+$ karvi --set 'ssh.transports.system="$L/bin/sshw"' run --detach --target router01 --transport system --cmd 'show clock'
+(exit 0)
+$ karvi --set daemon.start-timeout=1s --set daemon.forced-grace-seconds=0 daemon stop --force  &     # as the device takes exit
+$ karvi daemon status     # until it fails
+daemon_unreachable: daemon not running or unreadable: dial unix $L/base/socket/d.sock: connect: connection refused
+(exit 110, at 56 ms, try 4)
+$ karvi --set daemon.start-timeout=1s --set daemon.forced-grace-seconds=0 daemon start
+daemon running
+daemon started socket=$L/base/socket/d.sock
+(exit 0, at 630 ms; begun at 56 ms)
+# the stop in the background:
+daemon stopped
+(exit 0, 610 ms)
+# 586 ms: a new socket
+# 586 ms: the stopped daemon's pid gone
+# once the stopped daemon's pid is gone, 1628 ms:
+$ karvi daemon status | grep -E '^(status|pid):'
+status: running
+pid: 2261571
+(exit 0)
+$ pgrep -f 'karvi .*daemon serve'
+2261571
+$ ls "$BASE/socket" "$BASE/state"
+socket: c.sock d.lock d.sock
+state: daemon.json
+$ daemon-log
+(end)
+$ jsonl_records "$JOB/commands.jsonl" command status
+show clock	success
+$ job-end
+summary: incomplete 106 ["shutdown:shutdown_forced"]
+run.end: incomplete shutdown_forced
+```
+
+On `f9a86a3` the stops of cases 2 and 3 gave up at 1.0 s while the daemon
+wrote on (its pid gone at 2.12 s and 1.98 s), and the start right after took
+the socket (in case 2 the poller's `1041 ms: the socket gone` is that start
+removing it as stale, `1066 ms` its own), which the old daemon then removed
+with the new one's credential socket and state file: the new daemon ran with
+no file, ended by its pid. Case 2's record was lost; case 3's close took 2 s,
+and its record came within the floor. In case 5 the start, at 57 ms, bound
+the path at once and lost it at 2.06 s, and the stop still gave up at 1.0 s,
+the old daemon running to 2.06 s. On `de83e50` each stop answered `daemon stopped` once the
+daemon had ended, at 583, 74, and 610 ms; case 5's start waited for the lock
+until the old daemon ended (586 ms) and bound the path at once; every job was
+accounted, `incomplete` 106 `shutdown:shutdown_forced` with its `run.end`, and
+no `shutdown_incomplete` was logged.
+
+The other cases, on `f9a86a3` and then `de83e50`:
+
+- 1, the control at the defaults, the stop in `show slow` over `system`:
+  exit 0 at 125 and 109 ms.
+- 2a and 3a, the stop inside a command, the abort path S3 left as it was:
+  over `system` with the holder exit 0 at 608 and 576 ms (the kill's 0.5 s
+  wait), over `native` at 74 and 70 ms.
+- 4 and 4n, the daemon started at forced-grace 10 and the stop at `1s` and
+  `0`: on `f9a86a3` exit 106 at 1.0 s, the daemon gone at 2.38 and 1.95 s,
+  the records kept (the daemon's bound being 10 s), the start's daemon left
+  without its files; on `de83e50` exit 0 at 586 and 71 ms.
+- At the end, after every later daemon's start and stop: on `f9a86a3` the
+  jobs of cases 2 and 5 still had no final status and no `run.end`; on
+  `de83e50` all eight were `incomplete`, each with its `run.end`.
+
+S2's wait, `start-timeout` plus the wait the daemon names (2 s; 10 s in cases
+4 and 4n), is not needed here: with S3 each forced job accounts within 0.7 s,
+inside the stop's `start-timeout` of 1 s. On S2's tree, before S3 (`dad134d`,
+`stopwait-s2b.out`), the stops of cases 2, 3, 4, and 4n answered
+`daemon stopped` at 2083, 1894, 2477, and 1948 ms with the daemon gone, where
+`f9a86a3`'s gave up at 1.0 s; case 2's record was still lost. On S1's tree
+(`7c958c4`: `ex108-s1.out`, cases 2, 3, 4, and 4n, and `ex108-s1-repeat.out`,
+case 2 six times more), its client still giving up at 1 s, case 2's start
+landed in the window, and its client failed at its 1 s, at 2.04 to 2.05 s,
+`daemon_start_failed: daemon failed to start; inspect …/daemon.log: context
+deadline exceeded` (exit 112). The daemon it launched was refused in 4 of the
+7 runs, `daemon.log` holding `daemon_already_running: daemon still stopping:
+pid N`, and in 3 took the lock as the old daemon ended and ran, reachable
+(Left open, below). Cases 3, 4, and 4n's starts waited for the old daemon's
+end and reached their own. No daemon was left running unreachable.
+
+**What changed.** Three commits on dev, each with its texts and its CHANGELOG
+entry (Bugs fixed); no schema counter moved:
+
+- `7c958c4` (S1): `internal/daemon/lock.go` (`takeLifetimeLock`,
+  `LockPath`), taken first in Serve, `removeStaleSocket` under it; the
+  client's `waitStopped`; `daemon_already_running`'s text; the `d.lock` row in
+  FILES.md; OPERATIONS. Tests: `lock_test.go`'s seven (a start waiting for a
+  stopping daemon, refused at the bound, refused at once beside a running
+  one, the holder beginning to answer, a running daemon whose lock file was
+  removed, a signal, a killed daemon's lock), and the client's
+  `TestTheStopWaitEndsAtThePidsExit`.
+- `dad134d` (S2): `StopReply.Wait`; `stopDeadline`; `awaitStop`, which waits
+  for the connection handlers, a follower among them, and the jobs' records up
+  to that deadline, where Serve waited for the handlers without a bound and
+  then `awaitAccounting` for the records; the client's bound from the answer;
+  `daemon_stop_timeout`'s text; the follower's wait in `jobs.go`; OPERATIONS.
+  Tests: `TestTheStopAnswerNamesTheDaemonsWait`,
+  `TestAFollowerDoesNotLengthenTheStop`,
+  `TestDaemonStopWaitsAsLongAsTheDaemonSays`.
+- `de83e50` (S3): `internal/transport/systemssh` (`stream.go`'s close,
+  `command_session.go`'s job end, `exec.go`'s master, `systemssh.go`) and
+  `internal/transport/native/dial.go`'s close. Tests:
+  `TestCloseEndsAtTheJobsEnd` (native and systemssh) and
+  `TestMasterCloseEndsAtTheJobsEnd`, each with the cancel during the close and
+  before it. COMMAND-SESSION.md's two diagrams, DESIGN's exec master line,
+  TIMEOUTS.md's fixed waits.
+
+S4 is this chapter.
+
+**Not taken.**
+
+- S1: removing `d.lock` at exit (it races its next taker); a pid file (a kill
+  leaves it, and a reused pid passes it); the dial alone (a stopping daemon's
+  closed socket refuses as a dead one's does); the dial check dropped under
+  the lock, as first agreed (a `d.lock` removed under a running daemon would
+  let a start take its socket; kept on the review, the operator agreeing); a
+  code of its own for the refusal; the stop client's wait for the socket file
+  alone (a waiting start binds the path again in 2 to 27 ms, which the 25 ms
+  poll missed).
+- S2: the client applying the floor itself (the daemon's forced-grace still
+  unknown to it); moving the IPC schema for an answer's field; a wait per
+  stage (a followed job's stop took twice the wait, 4.0 s against 2 s named).
+- S3: an abort the executor sends on a cancel during the close (a new
+  platform interface, each driver and the session engine passing it down, the
+  streams' once guards reworked so that an abort cuts a close already
+  running): the same result in five packages.
+
+**Left open.**
+
+- Native exec's `Start` (`client.NewSession`, `session.Start`, in
+  `internal/transport/native/exec.go`) waits on the device with no deadline,
+  and the session engine calls it before its context select
+  (`internal/devsession/exec.go`): a path gone dead as a channel opens holds a
+  forced job until the keepalive ends it (`native-ssh.keepalive-interval` 15 s
+  and `native-ssh.keepalive-count-max` 3: 60 s by default; never at interval
+  0), its record lost past the floor. S3's reviewer found it, outside S3 (a
+  cancel inside a command, not a close); less likely, also found: `native`
+  shell writes on an exhausted channel window, and the master's control
+  commands with no timeout. The operator agreed it as the next piece of work,
+  after S4: its benefit, a reproduction, and a plan first.
+- Ctrl-C during a forced stop's wait reports `daemon_stop_timeout` (exit
+  106), as before S2; recommended later: `daemon_stop_wait_interrupted` (exit
+  113), as `--grace` and `--after` report.
+- A start's client and the daemon it launches each wait
+  `daemon.start-timeout` from their own start, so the daemon can take the lock
+  just after its client gave up: on S1's tree case 2's `daemon start` reported
+  `daemon_start_failed` (exit 112) in 7 of 7 runs, while in 3 of them its
+  daemon took the lock within 25 ms and ran, reachable. Found by S4's rerun;
+  on the built tree it needs a daemon still stopping as a concurrent start's
+  bound ends (not executed). For the operator to settle.
+- The refusal at the bound is executed on S1's tree only (above) and by
+  `TestAStartRefusesAStoppingDaemonAtTheBound`: on the built tree a forced job
+  here accounts within 0.7 s, less than the bound.
+
+**Checks.** Each code section ran `go test ./...` (76 packages), `stopwait.sh`
+on a lab build of its tree, and one independent review, every finding
+checked. S1: the review found a regression the lock made, the client's 25 ms
+poll missing the old socket's going, fixed by waiting for the pid. Also
+fixed: a signal or Serve's context ends the lock's wait, and the lock's error
+names its file. Three tests were added, and one test now Pings the second
+daemon before checking its files, since its state file is written before it
+answers (a flake on /var/tmp, 9 of 40). S2: the review found a followed job's
+stop taking twice the wait, fixed with one deadline; the tests widened;
+`-race` on the stop tests. S3: mutants without the fix failed all six of its
+tests (1.7 to 4.0 s after the cancel); the review found no defect; a mutant
+without the kill passed the master's test, which was made to assert the
+master's end and now fails it; comments and stale texts in three documents
+fixed; the full battery (285 s). S4 is this chapter: the runs above, twice on
+each tree, and S1's commit rerun, each lab removed with no daemon, socket, or
+holder left; two independent reviews of the chapter, one against the code and
+one against the evidence (11 and 22 findings, every one checked and
+applied); grep checks of every key, code, function, and test named;
+`make generated-clean`; the links through `tools/md-to-html`; and the full
+battery (277 s). The evidence is kept beside the tree
+(`release-design-evidence/stop-wait-2026-11/`: `brief.md`, `README.md`,
+`PLAN.md`, `stopwait.sh` and its outputs, `date-3N-check.sh` and its output,
+`battery.sh`, `battery-s3/`, `battery-s4/`, and `S4/`).

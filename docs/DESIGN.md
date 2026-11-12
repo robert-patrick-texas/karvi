@@ -2428,8 +2428,9 @@ file; a signal ends the wait. With the lock taken, a socket file present is
 stale and is removed; one that still answers, a running daemon whose lock
 file was removed under it, is refused, `daemon_already_running`, not taken.
 The file stays at exit. `daemon stop`
-and `daemon restart` wait for the stopped pid's end, since a daemon waiting
-for the lock binds the path at once. *Why:* a stopping daemon keeps its
+and `daemon restart` wait for the stopped pid's end or its socket's removal,
+not the socket alone, since a daemon waiting for the lock binds the path at
+once. *Why:* a stopping daemon keeps its
 files until its jobs' records are written, and a start in that window
 removed its socket as stale and bound its own, which the stopping daemon's
 exit then removed with the new daemon's credential socket and state file,

@@ -301,8 +301,9 @@ they were published in.
   launching client waits as long for the socket, so it fails first,
   `daemon_start_failed` (exit 112), the refusal following in `daemon.log`.
   One beside a running daemon is refused at once, as before. `daemon stop`
-  and `daemon restart` wait for the stopped daemon's pid to end, not for its
-  socket file to go, which a daemon started meanwhile now takes at once.
+  and `daemon restart` wait for the stopped daemon's pid to end or its socket
+  file to go, not for the socket file alone, which a daemon started meanwhile
+  now takes at once.
 - **`daemon stop` waits as long as the daemon may.** The client waited
   `daemon.start-timeout` plus its own `daemon.forced-grace-seconds` for the
   daemon to exit, while the daemon waits for its jobs' records up to its
