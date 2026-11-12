@@ -16,16 +16,6 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   why the connection ended (a reset, the device's disconnect message). The
   item: karvi keeps the connection's own end (the client's `Wait`) and the
   message names it.
-- **An RSA key over `system` for a device that takes `ssh-rsa` alone.** Over
-  `system` an RSA key of `ssh.identities` does not log in to a device whose
-  public-key algorithms hold `ssh-rsa` (SHA-1) alone, an older device
-  (`authentication_failed`: `Permission denied (publickey)`): OpenSSH's
-  client leaves `ssh-rsa` out of its `PubkeyAcceptedAlgorithms` and offers
-  the device no key, and karvi's managed configuration writes none. Over `native` the key signs with
-  `ssh-rsa` for such a device and logs in. The questions: whether karvi
-  writes `PubkeyAcceptedAlgorithms` (the SHA-2 names, then `ssh-rsa` last, as
-  `native` signs) or leaves OpenSSH's choice and says so, and whether a site
-  shapes the list on both transports.
 - **A PKCS#8 key under a passphrase named as one.** A PKCS#8 key file under
   a passphrase (`BEGIN ENCRYPTED PRIVATE KEY`) in `ssh.identities` is skipped
   (`operator_key_skipped`) as `not a private key karvi reads`, where a PEM

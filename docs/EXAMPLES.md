@@ -26400,7 +26400,9 @@ added to its Next: `noteSigner` and
   `PubkeyAcceptedAlgorithms` and offers the device no key, and karvi's
   managed configuration writes none. `native` reaches such a device. As
   before this chapter; shown by the last block above. To the ROADMAP's
-  Next, the operator's word.
+  Next, the operator's word; dropped from it the same day, his word:
+  legacy cryptography is not an objective ([chapter
+  112](#112-a-dsa-keys-own-reason-2026-11-12)).
 - A server that sends no `server-sig-algs` at all is not executed: x/crypto's
   server and OpenSSH's both send one. By x/crypto's code the key signs with
   its format, `ssh-rsa`, as `legacy` shows for a list without the SHA-2
@@ -26510,11 +26512,11 @@ warning: operator_key_skipped: operator key $LAB/dsa_pkcs8_locked skipped: not a
 warning: operator_key_skipped: operator key $LAB/dsa_params_first skipped: a DSA key, no longer used
 ```
 
-`TestInspect` holds the six forms `sshkeytest.DSA` makes, the five that
-name the type and PKCS#8 under a passphrase (the unencrypted three from a
-key `crypto/dsa` generates), and a parameters-first file; and four files that are no DSA
-key: two with the type's name outside a key file's own places, an OpenSSH
-header that ends before its key, and an X25519 PKCS#8 key. The
+`TestInspect` holds the six forms `sshkeytest.DSA` makes, the five that name
+the type and PKCS#8 under a passphrase (the unencrypted three from a key
+`crypto/dsa` generates), and a parameters-first file; and four files that
+are no DSA key: two with the type's name outside a key file's own places, an
+OpenSSH header that ends before its key, and an X25519 PKCS#8 key. The
 operator-keys test has a DSA file among its ten.
 
 **What changed.** One commit on dev, `0a7f2ba`, with its texts (the
