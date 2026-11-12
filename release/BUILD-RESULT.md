@@ -1,44 +1,46 @@
-# karvi v0.41.0 build and qualification result
+# karvi v0.42.0 build and qualification result
 
 ## Result
 
 The build, with the native transport compiled in beside the external `system`
-transport, is **qualified as an engineering candidate**. v0.41.0 (2026-11-08) is
-a minor release on 0.40.0 for numeric ranges in every selector
-(`router[10-12]`), targets that create the names a range spells, runs limited
-to the inventory's devices (`targets.inventory-only`, and `--inventory`,
-`--inv`, or `--i`), the removal of `security.require-fips` and of `karvi
-version`'s `fips_mode`, a `karvi-sysutil` that never acts as root on what the
-service account owns, the release's number written once in `VERSION`, and the
-shell-script review's fixes to the suites and scripts; four of the changes are
-Breaking. The configuration registry moves to 34 and the audit to 4, every
-other counter is 0.40.0's; Go and every module are 0.40.0's; and the first
-submission after the upgrade drains a 0.40.0 daemon. The changes are in
-[`CHANGELOG.md`](../CHANGELOG.md). It is not a production claim and not a
-real-device qualification: the native transport is proven against the fake
-device built from the tree, its IOS XE and Linux personas.
+transport, is **qualified as an engineering candidate**. What v0.42.0
+(2026-11-12) adds, fixes, and breaks is in [`CHANGELOG.md`](../CHANGELOG.md),
+under New features, Bugs fixed, and Breaking changes. It is not a production
+claim and not a real-device qualification: the native transport is proven
+against the fake device built from the tree, its IOS XE and Linux personas.
 
 ## Build identity
 
 ```text
-version:                  0.41.0
-commit:                   source-release-v0.41.0
-build:                    Wss_lakRGoLdwTmeEfnl
-Go toolchain:             go1.27.3
+version:                  0.42.0
+commit:                   source-release-v0.42.0
+build:                    x5hKubdZrt7zz0uU5WFB
 dependencies:             vendored (go.mod, go.sum, vendor/); no network
 native:                   compiled-in
-configuration schema:    6
-configuration registry:  34
-command record schema:   5
-daemon IPC schema:       12
-job manifest/summary:    5
-execution plan:          17
-scoreboard:              5
-credential package:      2
-plan report:             4
-audit:                   4
 CGO:                      disabled
 ```
+
+|                            | 0.41.0  | 0.42.0      |
+| -------------------------- | ------- | ----------- |
+| Go                         | 1.27.3  | **1.27.4**  |
+| `github.com/yuin/goldmark` | v1.8.7  | v1.8.7      |
+| `golang.org/x/crypto`      | v0.58.0 | **v0.59.0** |
+| `golang.org/x/sys`         | v0.49.0 | **v0.50.0** |
+| `golang.org/x/term`        | v0.47.0 | **v0.48.0** |
+| configuration schema       | 6       | 6           |
+| configuration registry     | 34      | **35**      |
+| execution plan             | 17      | 17          |
+| command record             | 5       | 5           |
+| plan report                | 4       | 4           |
+| scoreboard                 | 5       | 5           |
+| audit                      | 4       | 4           |
+| job manifest and summary   | 5       | 5           |
+| metrics                    | 1       | 1           |
+| daemon IPC                 | 12      | 12          |
+| credential package         | 2       | 2           |
+| inventory                  | 1       | 1           |
+| Lines of Code: Go          | 128,401 | 144,528     |
+| Lines of Code: Other       | 9,694   | 9,995       |
 
 The authoritative `go.mod` names the Go 1.27 floor and requires goldmark,
 `x/crypto`, `x/sys`, and `x/term`; `evidence/go-version-m.txt` shows the
@@ -47,9 +49,9 @@ transports.
 
 ## Qualification performed
 
-The release source passed, with Go 1.27.3:
+The release source passed, with Go 1.27.4:
 
-- 1,340 top-level named Go tests across 94 packages in vendor mode, 0
+- 1,560 top-level named Go tests across 98 packages in vendor mode, 0
   failures (`evidence/core-qualification.log`);
 - `go vet` across all packages, and the Go race detector across all
   packages in the release verifier's run
@@ -60,7 +62,7 @@ The release source passed, with Go 1.27.3:
 - deterministic regeneration of `schema/config-schema.json`,
   `configs/reference.toml`, [`docs/ERROR-CODES.md`](../docs/ERROR-CODES.md),
   and the manual pages under `packaging/man`;
-- example configuration validation and removed-key rejection;
+- example configuration validation and an unknown key's rejection;
 - all nineteen executable suites against the native executable, in three lanes
   (`scripts/lib/suites.sh`): the parity suite (`command` and `run` over `system`
   and `native` against the fake device's IOS XE and Linux personas, the
@@ -78,7 +80,7 @@ The release source passed, with Go 1.27.3:
 - `scripts/verify-shipped.sh` on the executables as shipped: the version
   against `VERSION`, the checksums, the ELF format, the links, every schema counter the executable
   reports against `release-manifest.json`, both transports, the helps, the
-  configuration examples, the removed keys refused
+  configuration examples, an unknown key refused
   (`evidence/bundle-qualification.log`);
 - `scripts/verify-release.sh` end to end, rebuilding with the release
   identity to unchanged checksums, so that its battery ran against the
@@ -90,7 +92,7 @@ The release source passed, with Go 1.27.3:
   and listens on `daemon.sock`, which this client never reaches; the drain is
   the daemon-upgrade suite's, against a fixture daemon of an older schema and of
   another build. The compatibility example ran before the number was committed,
-  beside the released v0.40.0 daemon, started from the released executable of
+  beside the released v0.41.0 daemon, started from the released executable of
   the tree's `bin/` before the rebuild, at this client's IPC schema and of
   another build: the client's `daemon status` stacked the two builds
   (`compatible: false`); its run's exercise drained the idle daemon and started
@@ -124,7 +126,7 @@ The release source passed, with Go 1.27.3:
   `scripts/check-deb.sh` against it.
 
 The release verifier had first passed on a clean clone of `dev` at
-`7dfcf45` before the number was assigned (the maintainer's release tools
+`623fe17` before the number was assigned (the maintainer's release tools
 run it there, since a clone has no shipped bytes to check; the logs are kept
 with the maintainer's release evidence). The must-not-appear checks of the
 suites ran enforced throughout.
@@ -135,10 +137,10 @@ Evidence for this release is in `evidence/`.
 
 | Executable | Bytes | SHA-256 |
 |---|---:|---|
-| `bin/karvi-linux-amd64` | 13,025,440 | `c450be378cd8a999129aa46148d2275145528b96f201027f0cf72930830a4d7c` |
-| `bin/karvi-askpass-linux-amd64` | 3,924,128 | `374729cd705955c752d5c783361bc324c43c7dc115cc5e4c61f6984b6fe409cf` |
-| `bin/karvi-prune-linux-amd64` | 3,817,632 | `20eb5a5891fa334f3ed7771dd97b0cd01a87339f09cd77b6b5ccd35267ab215a` |
-| `bin/karvi-audit-linux-amd64` | 3,973,280 | `9cfdb01e8434537ccc17d024558abfa6d7104c672d4810d08e491c7261d8c53e` |
+| `bin/karvi-linux-amd64` | 13,263,008 | `d69ff0398676fb9b4fa28749141ff0f4fb2dc881b05fcc9cf9ffafac1d55dfcc` |
+| `bin/karvi-askpass-linux-amd64` | 3,932,320 | `1f22f2938e6b251052acfc36f115d72f0f3db0d7a9d29a8da366cff08f9c58e2` |
+| `bin/karvi-prune-linux-amd64` | 3,821,728 | `748f7dacdc72c0051f730ddade7c8795a693ff21d50dd9e00534c0b6fb1c3af5` |
+| `bin/karvi-audit-linux-amd64` | 3,981,472 | `dc1a7347ea53683b3a2f682949c7cda89dffb1127cc16d4a8937daacd1e02273` |
 
 ## Operational upgrade sequence
 
