@@ -25910,3 +25910,357 @@ scratch test and its overlay, `unit.out`, `S1/`, `battery-s2/`,
 `battery-s3/`, and `S3/`; `release-design-evidence/start-bound-2026-11/`:
 `PLAN.md`, `README.md`, `reading.md`, `brief.md`, `lab.sh`, `unit.sh`, and
 their outputs, the scratch test and its overlay, and `S2/`).
+
+## 110. The release 0.42.0 (2026-11-12)
+
+The twenty-third public release, 0.42.0, on the operator's word and number,
+carrying the release's numbers in a table ([chapter
+105](#105-the-releases-numbers-in-a-table-2026-11-08)), gathered output and
+line mode ([chapter
+106](#106-gathered-output-folded-names-and-line-mode-2026-11-08)), prompt
+answers on both SSH transports ([chapter
+107](#107-prompt-answers-on-both-ssh-transports-2026-11-11)), the stopping
+daemon's lock, wait, and close ([chapter
+108](#108-a-stopping-daemon-the-lock-the-stops-wait-and-the-close-2026-11-12)),
+and the two bounds ([chapter
+109](#109-two-bounds-exec-on-a-silent-device-a-starts-one-clock-2026-11-12)).
+It is the first release whose CHANGELOG block, build result, and notes take
+chapter 105's form. The sequence stopped once, at its pre-checks: the host's
+Go was one release behind go.dev's, which the operator moved. Three modules
+were behind too, and an independent reader of their move found two changes a
+site can see, and a third fault that is older than the move; the operator
+placed all three on the ROADMAP while the baseline ran. From the baseline to
+the published check no step failed.
+
+**What it gains.** A site has the gathered display, line mode, a login that
+hands the operator the prompts karvi does not answer, a daemon that stops
+and starts without losing its socket or a job's record, and exec commands
+that end at their bounds, from a published, checksummed bundle and package,
+with the documents on GitHub Pages at the release. The executables carry Go
+1.27.4's fixes and the newest x/crypto, x/sys, and x/term. The cost is six
+Breaking entries, one of them the module move's: a DSA key among the
+operator's identities is no longer used.
+
+**The operator's decisions**, in simple terms:
+
+- The number 0.42.0, and build and publish.
+- The host's Go is the operator's to move: `bump-go.sh` run, Go 1.27.4.
+- The three points from the reading of the module move go to the ROADMAP's
+  Next, none fixed in this release; the modules' and Go's entries stand
+  under Bugs fixed.
+- Publish without stopping if no step fails.
+
+**Before the number.** `dev` at `645588c`, pushed, the tree clean; `/tmp`
+4.5 GB free, `/` 22 GB, `/dev/shm` 4.9 GB; 192.0.2.1 routed into `dummy0`;
+no karvi process, no lab folder, and no `/etc/karvi`, `/opt/karvi`,
+`~/.config/karvi`, or `~/.local/share/karvi`; the bridge probe reached every
+address. Another project's tests held the host's load at 2.4 to 4 at the
+pre-checks; it was 0.9 to 2.7 from the baseline on. The archive's mirror was
+fetched before the first change to the tree, before the baseline, at the
+tag, and after publishing.
+
+**The stop: Go and three modules behind.** `latest.sh`, run as a pre-check
+(the baseline runs it first and would have stopped there), named four
+behind: the host's Go 1.27.3 under go.dev's 1.27.4 (released 2026-11-10),
+x/crypto v0.58.0 under v0.59.0, x/sys v0.49.0 under v0.50.0, and x/term
+v0.47.0 under v0.48.0; goldmark was the newest. The modules moved while the
+release waited for the operator, by `go get`, `go mod tidy`, and `go mod
+vendor`, with no change to karvi's code: vet, `go test ./...` (76 packages
+with tests), and the battery on a lab copy passed (the nineteen suites, 278
+s). x/term's sources did not change. Once the operator had run `bump-go.sh`,
+the CHANGELOG took Go 1.27.4's entry (`623fe17`). `govulncheck` on the tree,
+at the old modules and Go 1.27.3, then at the new modules and Go 1.27.4:
+
+```text
+# the old modules, Go 1.27.3
+Vulnerability #1: GO-2026-6859
+    HTTP/1 server crash due to MaxBytesReader header race in net/http
+  More info: https://pkg.go.dev/vuln/GO-2026-6859
+  Standard library
+    Found in: net/http@go1.27.3
+    Fixed in: net/http@go1.27.4
+[...]
+Your code is affected by 1 vulnerability from the Go standard library.
+This scan also found 0 vulnerabilities in packages you import and 1
+vulnerability in modules you require, but your code doesn't appear to call these
+vulnerabilities.
+[...]
+# the new modules, Go 1.27.4
+No vulnerabilities found.
+```
+
+The module advisory is GO-2026-5932, against `x/crypto/openpgp`, which karvi
+does not vendor (a verbose run on the old modules, made again afterwards,
+names it). `karvi` alone links `net/http`, for the Vault credential
+backend's client.
+
+**What the module move changes.** The move was first committed (`8297949`)
+with an entry that named three upstream fixes reaching the `native`
+transport and said DSA's removal touched nothing, karvi refusing `ssh-dss`
+already. A second reader, independent of the first and given the commit,
+the vendored diff, and karvi's code, then read the entry against them. The
+project's rule is such a reading before a section's commit; this one came
+after it. The commit was not pushed, and was amended (`ed2a523`). The
+reading found two changes the move makes, one fault older than the move,
+and two errors of wording, each checked in the code:
+
+- **A DSA key in `ssh.identities`** (the move's). x/crypto is not the
+  `native` transport's alone: it reads the operator's keys for both
+  transports (`internal/adapters/sshkey`). At v0.59.0 it reads no DSA key,
+  so an unencrypted PEM DSA key a site listed is skipped
+  (`operator_key_skipped`, `not a private key karvi reads`), where it was
+  read and offered over `native`. Recorded as a Breaking entry.
+- **Why a connection ended** (the move's). x/crypto now answers a channel
+  opened on an ended connection with `EOF` before any write, where the write
+  returned the connection's own end. An exec command started over `native`
+  on such a connection reads `command_session_lost: the connection ended:
+  EOF`, where the message named why: a reset, in the probe below. Recorded
+  in the modules' entry.
+- **An RSA key over `native`** (older than the move). karvi hands x/crypto
+  each key in a wrapper that notes which method authenticated
+  (`noteSigner`), and the wrapper offers no choice of algorithm, so an RSA
+  key signs with `ssh-rsa` (SHA-1) alone; a server without it among its
+  public-key algorithms refuses the key. The wrapper is every release's
+  since 0.27.0, and x/crypto's choice of algorithm is unchanged by the move.
+- **Wording.** The refusal of `ssh-dss` is of host-key lists, where the
+  entry said every list; a banner message with trailing bytes ended the
+  handshake (`native_session_open_failed`), where the entry said the
+  authentication.
+
+The reading's probes, kept and run again, each in a module of its own with
+that version's vendor tree (the RSA probe at v0.59.0 alone):
+
+```text
+# x/crypto v0.58.0
+DSA PEM identity: parsed, type=ssh-dss fingerprint=SHA256:yq+LzUi8wkRtskTwgHAW4dPYaM9BYL/flBS7Pb9O8Mc
+device resets the TCP connection: connection ended with "read tcp 127.0.0.1:47210->127.0.0.1:36337: read: connection reset by peer"; NewSession after it: "read tcp 127.0.0.1:47210->127.0.0.1:36337: read: connection reset by peer"
+device closes the TCP connection: connection ended with "EOF"; NewSession after it: "EOF"
+# x/crypto v0.59.0
+DSA PEM identity: ParsePrivateKey error: ssh: unsupported key type "DSA PRIVATE KEY" (contains "unhandled key type": false)
+device resets the TCP connection: connection ended with "read tcp 127.0.0.1:44530->127.0.0.1:38301: read: connection reset by peer"; NewSession after it: "EOF"
+device closes the TCP connection: connection ended with "EOF"; NewSession after it: "EOF"
+# x/crypto v0.59.0, the RSA key
+RSA key, x/crypto's signer, server without ssh-rsa (SHA-1): authenticated
+RSA key, wrapped as noteSigner, server without ssh-rsa (SHA-1): ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+```
+
+The reset's line shows where the reason still is: the client's `Wait`
+returns it at v0.59.0 as before. The three points are the
+[ROADMAP](../ROADMAP.md#next)'s Next (`eb36e02`): an RSA key over `native`
+signs with SHA-2, why a connection ended, and a reason of its own for a DSA
+key.
+
+The DSA entry was the one Breaking entry the notes' check did not run (the
+check was written before the entry). It was executed after publishing, on
+the two releases' executables: a dry run on the `linux` platform, whose
+fallback reaches the operator's keys, with a PEM DSA key (1024-bit P,
+160-bit Q) and an Ed25519 key in `ssh.identities`:
+
+```text
+== karvi 0.41.0
+$ karvi run --no-daemon --dry-run --pl --tl router01 -c uptime
+(exit 0)
+[...]
+- name:router01: planned
+  key: $LAB/id_dsa SHA256:(the run's own)
+  key: $LAB/id_ed SHA256:(the run's own)
+[...]
+== karvi 0.42.0
+$ karvi run --no-daemon --dry-run --pl --tl router01 -c uptime
+(exit 0)
+warning: operator_key_skipped: operator key $LAB/id_dsa skipped: not a private key karvi reads
+[...]
+- name:router01: planned
+  key: $LAB/id_ed SHA256:(the run's own)
+```
+
+A first try, with OpenSSL's default DSA key of a 224-bit Q, was skipped by
+both releases: 0.41.0 read a DSA key of the one size alone.
+
+**Not taken.** To adapt karvi before the release, so that it keeps the
+connection's end or the RSA key's algorithms: each is a change to the
+`native` transport with its own tests and review, and the RSA key's signing
+is no change of this release. To file the modules' and Go's entries under
+Other notes: that heading is for what reaches no site, and both change the
+shipped bytes. To run the baseline again after `eb36e02`: the commit changes
+the ROADMAP alone, and the release verifier ran once more on the release's
+own tree, in the evidence.
+
+**The number.** `VERSION`; the `## Unreleased` block became `## 0.42.0 -
+2026-11-12`, the UTC day of 1/3, with no lead paragraph: 3 entries under New
+features, 22 under Bugs fixed, 6 under Breaking changes, 1 under Other notes,
+and at its end the table of what moved, pasted from `go run
+./tools/release-numbers -changelog`: Go, the three modules, the
+configuration registry, and the two counts. `CHECKSUMS.sha256` has its four
+lines from the release-identity build, `x5hKubdZrt7zz0uU5WFB`. 1/3's message
+gives the number, the count under each heading, and the checksums.
+
+**The documents.** 2/3 writes `release/BUILD-RESULT.md` and the manifest in
+chapter 105's form for the first time. The build result's Result paragraph
+points to the CHANGELOG, and its Build identity keeps six lines and then the
+full table, where it listed Go and ten counters. The manifest loses
+`behavior_change_from_previous` and `previous_release.notes`, and
+`configuration_migration.notes` its registry clause. The build result says
+an unknown key is refused where it said the removed keys were, as
+`verify-shipped.sh` now checks. `go run ./tools/release-numbers -check`
+passed on the draft, beside `verify-shipped.sh`, again at the head of the
+remaining evidence, and, with the notes named, in the notes' check. Its line
+for the three documents, from a run made again at the tag (the release's own
+runs printed it to the terminal):
+
+```text
+release-numbers: CHANGELOG.md's 0.42.0 block, release/BUILD-RESULT.md, and release/release-manifest.json agree with the tree and karvi-v0.41.0
+```
+
+**The release notes, executed.** The notes take chapter 105's form: the
+three topics, Other notes, the full table, one pointer, the assets. Before
+publishing, `v0420-notes-check.sh` ran on the release's executables: the
+notes' table against the tree and the tag before; the version output;
+chapter 106's example whole, the release's `karvi`, `karvi-askpass`, and
+`karvi-audit` in place of its lab build; and thirteen cases for five of the
+six Breaking entries, two of the fixes, and the two new options' refusals.
+The example ended 0, its 29 titles and 52 exits the chapter's, and each case
+held. Four of them:
+
+```text
+== Breaking: a [platform.NAME] table takes no default-transport
+$ karvi --config $LAB/dt.toml run --no-daemon --dry-run --tl router01 -c show clock
+(exit 2)
+config_unknown_key: unknown configuration key for platform.cisco_ios.default-transport at $LAB/dt.toml:2
+
+== Breaking: dispatch.order = inventory
+$ karvi --set dispatch.order=inventory run --no-daemon --dry-run --tl router01 -c show clock
+(exit 2)
+config_enum_value_invalid: must be one of default, sorted, name, shuffle, random for dispatch.order at --set[1]
+
+== Breaking: --order sorted, a run of digits by value
+$ karvi run --dry-run --order sorted --format json --tl router10,router2,router1 -c "show clock"
+(exit 0)
+router1 router2 router10
+
+== fixed: job follow refuses --border beside --noborder
+$ karvi job follow --border --noborder 20261112-000000-0001
+(exit 4)
+border_options_conflict: --border and --noborder are mutually exclusive
+```
+
+**The sequence, as run**, from the pre-checks at 12:44 to the published
+check at 14:12 on 2026-11-12 (UTC; 07:44 to 09:12, EST):
+
+- 12:44, the pre-checks; `latest.sh` four behind, the stop; the mirror
+  fetched to `645588c`.
+- To 12:58:24, the modules: the move, vet, the tests, `govulncheck`, the
+  battery (12:51:19 to 12:58:14), and the commit, `8297949`.
+- 13:01 to 13:11:45, the second reading and its findings, checked; the
+  commit amended, `ed2a523`.
+- 13:24:40, after the operator's `bump-go.sh`, `govulncheck` clean; 13:25:03,
+  `623fe17`.
+- 13:25:21 to 13:39:23, the baseline on a clean clone of `623fe17`:
+  `latest.sh`, gofmt, make, and the release verifier with its nineteen
+  suites, the package, and its container test, exit 0 each; no daemon left.
+  1/3 and the notes drafted meanwhile; at 13:33, on the operator's word,
+  `eb36e02`.
+- 13:39:37 to 13:40:10, the release-identity build, the compatibility
+  example, and 1/3: the 0.41.0 daemon drained idle, refusing busy;
+  `e80a202`.
+- 13:40:16 to 13:45:29, the core evidence: 1,560 named tests across 98
+  packages, vet 0, both socket lengths exit 0.
+- 13:46:45, the documents: `c3fb922` (2/3).
+- 13:46:51 to 13:59:44, the remaining evidence: the numbers' check, the
+  shipped checks exit 0, the release verifier exit 0 with the nineteen
+  suites, the package, and its container test, the checksums unchanged by
+  its rebuild; the replay skipped.
+- 14:00, 3/3, the tag, `main`: `a966092`, `karvi-v0.42.0`, `main`
+  fast-forwarded from `4822964`.
+- 14:00:14 to 14:08:07, the artifacts: the bundle reproducible byte for byte
+  and verified from its own archive; the package reproducible and checked
+  against the extraction; 40,572,959 and 6,871,102 bytes.
+- 14:08 to 14:10, the package installed in a throwaway `ubuntu:26.04`: `apt
+  install` exit 0; the four installed executables `CHECKSUMS.sha256`'s;
+  `karvi-audit --help` exit 0; 22 files under `/usr/share/karvi`. The notes'
+  check on the release's build; the mirror fetched to the tag.
+- 14:10:57 to 14:12, the push, the site, the GitHub release: `dev`, `main`,
+  and the tag pushed; `pages.sh` pushed the release's site (`7f65859`);
+  release `karvi-v0.42.0` with the five assets, marked latest, its body the
+  notes file; the assets downloaded back match the local bytes, and
+  `releases/latest` redirects to the tag. At the check Pages was still
+  building and the site's footer the old one; the build ended at 14:11:40,
+  and the footer then read `karvi-v0.42.0`.
+
+**Executed.** The compatibility example's turning points
+(`release/evidence/ipc-schema-compat.log`) and the published state:
+
+```text
+[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.41.0 build=Wss_lakRGoLdwTmeEfnl
+daemon started socket=/dev/shm/r420/c/base/socket/d.sock
+pid 3096355 gone
+[...]
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build Wss_lakRGoLdwTmeEfnl 0.41.0
+  client build x5hKubdZrt7zz0uU5WFB 0.42.0
+[...]
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+[...]
+pid 3096466 gone
+[...]
+== releases/latest
+karvi-v0.42.0 assets=5 draft=false prerelease=false
+== the assets downloaded back
+[...]
+karvi-v0.42.0-source-linux-amd64.tar.gz: OK
+karvi_0.42.0_amd64.deb: OK
+[...]
+== the latest redirect
+location: https://github.com/robert-patrick-texas/karvi/releases/tag/karvi-v0.42.0
+```
+
+**Found on the way.**
+
+- `karvi` is 237,568 bytes larger, `karvi-askpass` 8,192, `karvi-prune`
+  4,096, and `karvi-audit` 8,192. The bundle is 365,709 bytes larger and the
+  package 159,526.
+- The module metadata of the four executables names Go 1.27.4, `karvi`'s the
+  three modules and `karvi-audit`'s x/sys, so `go-version-m.txt` changed and
+  3/3 carries ten evidence files, where 0.41.0's carried nine. The default
+  configuration gains the display's gather, prefix, and gather-header keys
+  and the new descriptions of the two password methods, `dispatch.order`,
+  and `crun.after`, and loses `default-transport` from the platform's
+  fields.
+- 1,560 named tests, 220 more than 0.41.0's; 98 packages, 76 of them with
+  tests, the four new ones `internal/natural`, `internal/testprompts`,
+  `internal/testpty`, and `tools/release-numbers`; 609 Go files and 144,528
+  lines; 73 commits since the tag before.
+- The release verifier's Go tests, in the remaining evidence, left one empty
+  `/tmp/karvi-test-scratch-` folder, the scratch `osutiltest.Isolate` makes
+  and its caller removes; the baseline's run of the same tests left none.
+  The folder was removed before the push. Which test binary skipped the
+  removal is not found.
+- The option `--order` refuses `random-seeded` itself,
+  `cli_option_value_invalid` (exit 4); the CHANGELOG's entry is of the key
+  `dispatch.order`, `config_enum_value_invalid` (exit 2). The notes' check
+  shows both.
+- The baseline took 14 minutes 2 seconds, where 0.41.0's took 10 minutes 24
+  seconds.
+- `docs/DESIGN.md`'s "Not taken" line naming `ssh-dss` among x/crypto's
+  names is left as written: true when decided, not at v0.59.0.
+- In the throwaway container `man karvi-audit` has no page, as in the
+  releases before: the minimal image leaves out `/usr/share/man`.
+
+**Left open.** The ROADMAP's three Next items, above; and the test binary
+that leaves its scratch folder.
+
+The evidence is kept beside the tree (`release-design-evidence/v0420-*`: the
+timeline, the baseline, the modules' test log, battery, and `govulncheck`
+runs, `v0420-review-deps/` the second reading's probes and their outputs,
+`v0420-dsa-key-check.sh` and its output, the build, the compatibility
+example, the 1/3 draft, the shipped-bytes check on the 2/3 draft,
+`v0420-release-numbers-check.out`, the artifacts, the container install, the
+release notes and their check with chapter 106's example's output, the push,
+the site, the GitHub release, and the published check).
