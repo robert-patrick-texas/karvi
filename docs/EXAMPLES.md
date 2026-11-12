@@ -26572,3 +26572,387 @@ The evidence is kept beside the tree
 (`release-design-evidence/dsa-reason-2026-11/`: the reading and its scratch
 test and key files, `dsa.sh` and `dsa.out`, the review, the battery, and
 this chapter as applied).
+
+## 113. Why a connection ended, in `command_session_lost` (2026-11-12)
+
+The last taken up of the three Next items from [chapter
+110](#110-the-release-0420-2026-11-12), the second as listed. Since
+x/crypto v0.59.0 a command started over `native` on a connection that has
+ended fails `command_session_lost: the connection ended: EOF`: x/crypto
+answers the channel's opening with `EOF` before any write (`openChannel`,
+its `mux.go`), where its error named a reset or the device's disconnect
+message. The item was the exec path. The reading ended a connection three
+ways, a TCP reset, a disconnect message, and a close, against
+`karvi-fake-device`'s server by `go test -overlay`, and found the fault
+wider than the item:
+
+- Over the shell no message ever named why: `the device session ended` for
+  a command under way; for the next command `write command to the device
+  session: EOF`, with `retry_eligible` true where the registry's value for
+  the code is false.
+- With keepalives on, a command that came more than
+  `native-ssh.keepalive-count-max` + 1 intervals after the end failed as a
+  keepalive timeout, `the device answered none of …`: under the code
+  `session_keepalive_timeout` over exec, inside the write failure's text
+  over the shell. The device had not gone silent: the requests that failed
+  on the ended connection were counted as unanswered.
+- The fake could not end a connection, so no test of the native transport
+  ended one.
+
+x/crypto still holds why. Its client's `Wait` returned the connection's own
+end in every case: the socket's error, the disconnect message, or `EOF` for
+a close. Nothing in karvi asked it.
+
+**What it gains.** A failed record over `native` says whether the connection
+was reset, was closed, or was ended by the device with a reason of its own
+(`idle timeout`), on a shell device and an exec device alike. An ended
+connection is no longer reported as a silent device, and a command the shell
+could not send carries the registry's `retry_eligible`. It waits on nothing.
+
+**The operator's decisions**, in simple terms:
+
+- Exec and shell together, through one helper.
+- The keepalive's relabelling is fixed: an ended connection is
+  `command_session_lost` whatever the keepalive counted, and only a silent
+  device is `session_keepalive_timeout`.
+- A shell's end waits for the connection's end, at most 500 ms; a miss
+  gives the text as it was.
+- The short forms: `closed by the device`, not `EOF`; the kernel's words
+  alone, without `read tcp A->B: read:`.
+- A close that reads as a reset, and a reset that reads as a close, are
+  reported as the socket gives them and documented; the two are not folded
+  into one text.
+- The disconnect's text is x/crypto's as it is, its first 2048 bytes.
+- The shell's write failure reports as a read failure does, and it and the
+  refusal after it take the registry's `retry_eligible`: true to false at
+  both.
+- The fake ends connections by one method and two shell words. No file in
+  `vendor/`: the disconnect's text is tested with a stand-in error, and a
+  real disconnect is run once by overlay and recorded here.
+
+**The rule, as built** ([`docs/DESIGN.md`, section
+5](DESIGN.md#5-transports-and-the-device-session)):
+
+- karvi keeps the connection's own end. One goroutine per connection waits
+  on x/crypto's client and keeps its error, or nothing when karvi's own shut
+  ended the connection (`connection.left` and `cause`,
+  `internal/transport/native/dial.go`).
+- One helper, `endedError`, serves the exec path (`ExecConnection.lost`)
+  and the shell's `Read` and `Write`. It answers the keepalive's code where
+  the keepalive ended the connection, else `command_session_lost: the
+  connection ended:` and why, else nothing: the connection is up, or karvi
+  shut it.
+- Why (`endText`):
+  - a close with no message: `closed by the device`;
+  - a socket's error: the kernel's words, `connection reset by peer`;
+  - anything else as x/crypto gives it. A disconnect reads `ssh: disconnect,
+    reason 11: "idle timeout"`; x/crypto quotes the device's message, so no
+    raw control byte reaches the record;
+  - past 2048 bytes the start is kept, cut at a character's boundary and
+    ended `...`.
+- x/crypto ends the channels before its `Wait` returns, so the first
+  failure waits for the connection's end up to 500 ms (`endWait`), once per
+  connection, and returns as soon as it ends. After a miss the shell reads
+  `the device session ended` and exec reads `the connection ended:` with
+  x/crypto's error, as before.
+- `Read` marks the shell's end before it asks, so `Close` does not wait.
+- The keepalive stops when the connection ends and looks for the end before
+  it declares a timeout. `session_keepalive_timeout` is a device silent with
+  the connection up, and nothing else.
+- Which of a reset and a close the message names is the socket's account. A
+  close that met karvi's bytes in flight reads as a reset. A reset whose
+  error a write took before the read did reads as a close.
+- In `internal/devsession`, for every transport: a command the session
+  cannot write reports through `codedFailure`, as a command whose read
+  failed. The stream's code and message pass through, an end without a code
+  reads `the device session ended`, and the category and `retry_eligible`
+  are the registry's. The command after it keeps its text, `the device
+  session ended before the next command; no replacement login was
+  attempted`, and takes the registry's values too.
+- The system transport's connection is OpenSSH's, and its own account of
+  an end is unchanged.
+- The fake: `fakedevice.Server.End` resets (`EndReset`) or closes
+  (`EndClose`) every open connection, and the IOS XE persona's `show reset`
+  and `show close` end their own.
+
+**The executed examples.** The reading's scratch test
+(`zz_scratch_test.go`) ends the fake's connection each of the three ways,
+between two commands, during one, and between two with a keepalive of
+100 ms and count 2 and the next command 700 ms later, over the shell
+(`cisco_ios`) and over exec (`linux`). Its fake is the tree's with one
+line and two scratch files laid over it by `go test -overlay`, one of the
+files in the vendored x/crypto, so that it can send SSH_MSG_DISCONNECT,
+reason 11, `idle timeout`. The tree has no test of a real disconnect: this
+is that test, run once on the tree as built (`disconnect-run/output.txt`)
+beside its run on `c39c761` (`before`, `rerun-c39c761/now.txt`). Each line
+is the result's `retryable` and its error; one `before` line where the
+three ends read alike, one `after` line likewise:
+
+```text
+== shell, between two commands: the next command
+before      retryable=true  write command to the device session: EOF
+reset       retryable=false command_session_lost: the connection ended: connection reset by peer
+disconnect  retryable=false command_session_lost: the connection ended: ssh: disconnect, reason 11: "idle timeout"
+close       retryable=false command_session_lost: the connection ended: closed by the device
+== shell, between two commands: the command after it
+before      retryable=true  the device session ended before the next command; no replacement login was attempted
+after       retryable=false command_session_lost: the device session ended before the next command; no replacement login was attempted
+== shell, during a command
+before      retryable=false command_session_lost: the device session ended
+reset       retryable=false command_session_lost: the connection ended: connection reset by peer
+disconnect  retryable=false command_session_lost: the connection ended: ssh: disconnect, reason 11: "idle timeout"
+close       retryable=false command_session_lost: the connection ended: closed by the device
+== shell, between two commands, keepalive 100ms x2, next command 700ms later: the next command
+before      retryable=true  write command to the device session: session_keepalive_timeout: the device answered none of 2 keepalives sent every 100ms; the session is closed
+reset       retryable=false command_session_lost: the connection ended: connection reset by peer
+disconnect  retryable=false command_session_lost: the connection ended: ssh: disconnect, reason 11: "idle timeout"
+close       retryable=false command_session_lost: the connection ended: closed by the device
+== exec, between two commands: the next command
+before      retryable=false command_session_lost: the connection ended: EOF
+reset       retryable=false command_session_lost: the connection ended: connection reset by peer
+disconnect  retryable=false command_session_lost: the connection ended: ssh: disconnect, reason 11: "idle timeout"
+close       retryable=false command_session_lost: the connection ended: connection reset by peer
+== exec, between two commands: the command after it
+before      retryable=false the device session is not usable
+after       retryable=false the device session is not usable
+== exec, during a command
+before      retryable=false command_session_lost: the connection ended: wait: remote command exited without exit status or exit signal
+reset       retryable=false command_session_lost: the connection ended: connection reset by peer
+disconnect  retryable=false command_session_lost: the connection ended: ssh: disconnect, reason 11: "idle timeout"
+close       retryable=false command_session_lost: the connection ended: closed by the device
+== exec, between two commands, keepalive 100ms x2, next command 700ms later: the next command
+before      retryable=true  session_keepalive_timeout: the device answered none of 2 keepalives sent every 100ms; the session is closed
+reset       retryable=false command_session_lost: the connection ended: connection reset by peer
+disconnect  retryable=false command_session_lost: the connection ended: ssh: disconnect, reason 11: "idle timeout"
+close       retryable=false command_session_lost: the connection ended: connection reset by peer
+```
+
+Read in order. Over the shell the next command names the end, where it
+read `write command to the device session: EOF`, and is not retry-eligible;
+the command after it keeps its text, now under its code in the error, with
+the registry's value. A command under way names the end where it read `the
+device session ended`. With the keepalive past its count the end is the end,
+not a keepalive timeout: nested in the shell's write failure before, the
+code itself over exec. All six disconnect cases read
+`command_session_lost: the connection ended: ssh: disconnect, reason 11:
+"idle timeout"`. Over exec the fake's close between two commands read as a
+reset both times in this run; the client's `Wait` gave the reset (below).
+The record's `error.message` is the text without the code.
+
+Through the CLI, `native-smoke-test.sh` step S38: `show clock`, `show
+reset` or `show close`, and `show version` under
+`--continue-device-on-error`, by `command` and by `run` over `native`. The
+records are a success, `command_session_lost`, and a command not attempted;
+`command` exits 110 and `run` 101; the device received nothing after the
+second command; and the record's `error.message` must be, whole:
+
+```text
+the connection ended: connection reset by peer
+the connection ended: closed by the device
+```
+
+```text
+native smoke: S38a a connection the device resets during a command: parity: 3 records equal in 2 streams
+native smoke: S38b a connection the device closes during a command: parity: 3 records equal in 2 streams
+native smoke: pass
+```
+
+S38 is `native` alone. Over the system transport's shell the same two ends
+are `ssh_process_failed`, in OpenSSH's words: the step run once on a lab
+copy, turned to `system` there (`build/s38-system.log`), each message's
+first line:
+
+```text
+reset  ssh_process_failed: Read from remote host 127.0.0.1: Connection reset by peer
+close  ssh_process_failed: Connection to 127.0.0.1 closed by remote host.
+```
+
+Not run: the system transport's exec path, which has a
+`command_session_lost: the connection ended:` of its own
+(`internal/transport/systemssh/exec.go`).
+
+The tests (`internal/transport/native/ended_test.go`) hold six cases over
+the shell and six over exec with `Server.End`: a reset and a close, each
+between two commands, during one, and between two with the keepalive past
+its count. On the code before, the twelve as first written all failed with
+the `before` texts, at the tests' keepalive of 50 ms
+(`build/failing-first.txt`; the exec table did not yet accept either text in
+every case). `TestEndText` holds each text to its cause and
+the cut at 2048 bytes; `TestOwnShutIsNoEndedConnection`, karvi's own shut;
+`TestShellEndedOnALiveConnectionKeepsItsText`, the fake's `exit`;
+`TestShellEndWaitsOnceAndNeverInClose`, the one wait.
+`TestWriteFailureReportsAsTheStreamDoes` (`internal/devsession`) holds the
+write failure and the refusal after it, and
+`TestEndEndsConnectionsAsADevice` (`internal/fakedevice`) the fake's two
+ways.
+
+The wait. The fake's `exit` ends the shell and leaves the connection up, so
+a command that is `exit` waits the whole bound and then reads as before.
+Three runs on `c39c761` and three under the reading's prototype (overlay
+copies of `dial.go` and `exec.go`), whose wait is the same 500 ms
+(`rerun-c39c761/live-*.txt`):
+
+```text
+c39c761    took 0s to 1ms   command_session_lost: the device session ended
+prototype  took 501ms       command_session_lost: the device session ended
+```
+
+The session's `Close` after it took 0s in all six. The command's wait was
+not timed again on the tree as built, whose bound is the same `endWait`. The
+suites ran twice each way, alternated: 286 and 291 s on `c39c761`, 282 and
+281 s under the prototype (`measure-2026-11-12/`).
+
+The wait is one per connection. The session reads its stream throughout, so
+a shell the device ends while the session is idle meets the wait then, and
+what fails later does not wait again. The review's probe of that case, on
+`c39c761`'s `dial.go` and `exec.go` laid over the work and on the work as it
+was at the review (`review/closing/`), and the same probe on the tree as
+built (`disconnect-run/output-closing.txt`):
+
+| The shell ended 1 s before | `c39c761` | at the review | as built |
+|---|---|---|---|
+| the next command | 0s | 501ms | 0s |
+| a `Close` in its place | 0s | 501ms | 0s |
+
+A normal `Close` took 0s in all three.
+
+Without a wait the end is often missed: in the reading's measurement
+x/crypto's `Wait` returned after the shell's `EOF` in 48 to 77 of 150 ends
+per way, at most 4.6 ms later on an idle host (`scout/output-gap.txt`).
+
+A close that reads as a reset. Ten runs of the scratch test under the
+prototype, the fake closing (`rerun-c39c761/close-x10.txt`):
+
+| The fake closes | reads reset | reads closed |
+|---|---|---|
+| exec, between two commands | 8 | 2 |
+| exec, the same, keepalive counting | 7 | 3 |
+| exec, during a command | 0 | 10 |
+| shell, the three cases | 0 | 30 |
+
+A reset that reads as a close, found while building and measured by the
+review on the code as built then:
+
+- Over the shell with the keepalive counting, 2 of 60
+  (`review/probe/shell-reset-race.txt`). In both the keepalive's request
+  took the socket's error, `write: connection reset by peer`, and the
+  client's `Wait` then returned `EOF`.
+- Over exec, the fake resetting the instant it had the command, 72 of 300
+  (`review/xprobe/tight.txt`). The write that took the error is x/crypto's
+  own: a line laid over x/crypto shows 72 writes of the channel's end of
+  input (packet type 96) failing `connection reset by peer`, 30 more failing
+  `broken pipe`, and 72 of the client's reads ending `EOF`.
+
+So the shell's tests hold a case without a keepalive to its own text and
+accept either text with one. The exec tests accept either text in all six
+cases, for the 72 of 300: wider than the decision's words, which named the
+keepalive's reset cases. `TestEndText` holds each text to its cause.
+
+A disconnect's message is the device's text, up to a packet of it. Under the
+prototype, before the cut, a message of 5025 bytes holding two escape
+sequences and a newline came through x/crypto's quoting with no raw ESC byte
+and no raw newline, as `\x1b[31mbye\x1b[0m\nsecond line …`
+(`rerun-c39c761/msg-proto.txt`). On the tree as built the same message,
+by the same overlay, gives an error of 2095 bytes: the 44 of
+`command_session_lost: the connection ended: `, 2048 of x/crypto's text,
+and `...` (`disconnect-run/output-msg.txt`).
+
+A device's own `exit`, read from the code and not run: on a device that
+closes the connection with the shell, a command that is `exit` read `the
+device session ended`; it now reads `the connection ended: closed by the
+device`, or the device's disconnect message where it sends one.
+
+**What changed.** One commit on dev, `0cadf99`, with its texts: the
+CHANGELOG's three entries under Bugs fixed and one under Other notes,
+`docs/COMMAND-SESSION.md`, the code's description and the generated
+`docs/ERROR-CODES.md`, `docs/TIMEOUTS.md`'s row for the fake, and the
+ROADMAP's item removed. DESIGN section 5's entry, and `endWait` among
+`docs/TIMEOUTS.md`'s fixed waits, come with this chapter. The code: `left`,
+`cause`, `endedError`, `endText`, and the keepalive's two checks in
+`internal/transport/native/dial.go`; `ExecConnection.lost` in `exec.go`; two
+lines of `Execute` in `internal/devsession/session.go`; `Server.End` and the
+two words in `internal/fakedevice/server.go`, named in
+`karvi-fake-device`'s description; the tests; S38.
+
+**Not taken.**
+
+- The exec path alone, as the item read: the shell never named why, and by
+  the reading a shell's end during a command is the common case in the
+  field.
+- `EOF`, and x/crypto's `read tcp A->B: read: connection reset by peer`: the
+  record already names the target.
+- Reset and close folded into one text: which it was is the socket's own
+  account, documented and not hidden.
+- The disconnect's text through the system transport's `safeDiagnostic`,
+  which keeps the tail: x/crypto's text opens with the reason, and the start
+  is kept.
+- No wait: a third to a half of ends would read as before.
+- A hook in `vendor/` so the fake sends a disconnect: no file of karvi's in
+  `vendor/`.
+
+**Left open.**
+
+- The session set-up's write failures nest the stream's code in their text,
+  as they already did for the keepalive's
+  (`internal/devsession/session.go`, the enable and paging sends). Run by
+  the review (`review/setup/out.txt`):
+
+  ```text
+  privilege_failed: send "enable": command_session_lost: the connection ended: connection reset by peer
+  paging_disable_failed: send "terminal length 0": command_session_lost: the connection ended: connection reset by peer
+  ```
+
+  Not changed.
+- A write's socket error preferred where the client's `Wait` gave `EOF`,
+  the review's suggestion, was not put to the operator: the rule already
+  decided for the case, the socket's account, was applied. The keepalive's
+  write is karvi's own call; over exec the write is also x/crypto's own,
+  whose error karvi does not see.
+- The tree has no test of a real disconnect message; the run above is not
+  repeated by any suite.
+- No real device was run. The device's own `exit` is read from the code.
+- Over `system` the exec path was not run; S38 does not run there.
+- No test holds the bound from below: on `dial.go` as committed a wait of
+  20 ms passes the package's tests. One of 5 s fails
+  `TestShellEndWaitsOnceAndNeverInClose`, by that test's own limit
+  (`build/mutants-after-review/`).
+
+**Checks.** The twelve cases as first written, failing on the code before
+(`build/failing-first.txt`); S38 alone, before the review
+(`build/s38-only.log`); one independent review of the code, with the probes
+above and 27 overlay mutants, of which 20 failed a test and seven passed
+(`review/mutants-all.txt`: either of the keepalive's two checks alone, the
+two bounds above, `Read` asking before it marks the shell's end, and either
+of `endedError`'s two reads of the keepalive's code alone). Its five
+findings (`review-report.md`):
+
+- an exec reset that reads as a close: the tests widened, under the rule
+  already decided;
+- a second wait of 500 ms on a write after the shell's end
+  (`review/closing/`): fixed, the wait one per connection (`endWaitOnce`);
+- the set-up's nested code: left (above);
+- nothing held `Read` to marking the shell's end before it asks:
+  `TestShellEndWaitsOnceAndNeverInClose` written;
+- two comments: corrected.
+
+Two mutants made after the review, each one change to `dial.go` as
+committed (`build/mutants-after-review/`): `Read` asking before it marks
+the shell's end, and the wait not made once. The new test fails under each
+(`Close` 500.9 ms; a later write 500.6 ms). The full battery on a copy of
+the tree with the change and those fixes (build, vet, `make
+generated-clean`, `go test` 76 packages, the suites 283 s, S38 among them),
+the host clean after. The disconnect run, the long message, and the probe's
+rerun, each by overlay after the battery, on the working tree `0cadf99` was
+then committed from. Then one independent reading of this chapter against
+the code and the evidence, 23 findings, each applied; it ran the commit's
+tests on `0cadf99`, laid the block out again with `compare.sh`, and compared
+the two later mutants and the disconnect run's fake with the tree's files.
+The points it left open were then run: the two ends over `system`, and the
+two bounds.
+
+The evidence is kept beside the tree
+(`release-design-evidence/session-lost-2026-11/`: the reading and its
+scratch files, the decisions, the reruns on `c39c761`, the suites' times,
+the build's runs, the review's report and outputs, the battery, the
+disconnect run with the script that lays out its block, the reading of this
+chapter, and this chapter as applied).

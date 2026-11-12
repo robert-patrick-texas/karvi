@@ -1605,6 +1605,35 @@ into the same code. *Why:* a slow authentication must not be charged to the
 prompt timeout on one transport only; a server must refuse an unknown global
 request that asks for a reply, so the refusal is proof of life.
 
+**An ended connection names why, and is not a silent device.** The native
+transport keeps its connection's own end, x/crypto's client `Wait`, and a
+command on a connection the device or the network ended fails
+`command_session_lost: the connection ended:` and why: the socket's error in
+the kernel's words (`connection reset by peer`), the device's disconnect
+message as x/crypto quotes it (`ssh: disconnect, reason 11: "idle
+timeout"`), or `closed by the device` for a close with no message; the
+first 2048 bytes of it. One helper serves the exec channel and the shell's
+read and write. A channel shows its end before the connection does, so the
+first failure waits for the connection's end up to 500 ms, once per
+connection; a shell the device ends with the connection up reads `the
+device session ended` after that wait, and `Close` does not wait on it. The
+keepalive stops at the connection's end, so `session_keepalive_timeout` is a
+device silent with the connection up and nothing else. Which of a reset and
+a close the message names is the socket's account: a close that met karvi's
+bytes in flight reads as a reset, and a reset whose error a write took
+before the read did reads as a close. In the device session, on every
+transport, a command that cannot be written fails as one whose read failed:
+the stream's code and message, with the registry's `retry_eligible`. The
+system transport names an end in OpenSSH's words, unchanged. *Why:* since
+x/crypto v0.59.0 a channel opened on an ended connection answers `EOF`
+alone, and the shell never named why; a request that fails on an ended
+connection is not a request unanswered, and the keepalive's message stated
+what was not so. *Not taken:* reset and close folded into one text;
+x/crypto's `read tcp A->B:` form and `EOF`; the disconnect's tail kept; no
+wait; a hook in `vendor/` for the fake's disconnect
+([`docs/EXAMPLES.md`, chapter
+113](EXAMPLES.md#113-why-a-connection-ended-in-command_session_lost-2026-11-12)).
+
 **Blind sends and expect-and-send.** A command with trailing `\r` escapes, or
 `--blind` / `--blind-return N`, is written with its returns in one write and
 awaited for `execution.blind-wait`; if no prompt returns the record succeeds
