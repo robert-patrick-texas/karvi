@@ -82,6 +82,19 @@ client's load has checked every key's range.
 - **Liveness and the command timeout:** a silent peer is ended by the
   smaller of (count-max + 1) × interval and the command's deadline; with
   keepalives off, only by the command timeout, as `command_timeout`.
+- **An exec command on a silent peer** ends, as any command, at the first of
+  the keepalives' end, the command's deadline, and the context's end (a
+  cancel, a stop, `execution.device-timeout`); over `native` it waited for
+  the keepalives alone. The deadline counts from before the channel's
+  opening, and closes the connection to end an opening the peer has not
+  answered: `command_timeout`, `… before it started; the connection was
+  closed`. A command given up at its deadline or the output limit is
+  stopped, and the peer has 2 s to close the channel: past them the
+  connection is closed (`…; the device did not close the channel in 2s and
+  the connection was closed`) and the rest of the device's list is not
+  attempted. The context's end gives the peer 0.5 s, for an opening in
+  flight to be answered and for the stopped command's channel to close, and
+  closes the connection then, or as soon as the channel closes.
 - **The blind wait is not a timeout.** The operator declared the send blind,
   so the prompt's absence at the end of the wait is recorded as a success
   with the notice `prompt_not_observed_after_blind_send`, and the same when
@@ -121,7 +134,8 @@ client's load has checked every key's range.
 - A timed-out command's record holds what settled by the cut; on the shell
   the session is closed without a graceful exit, since a desynchronised shell
   cannot serve another command, and on an exec channel the command is stopped
-  and its connection serves the next. After a blind command whose prompt did
+  and its connection serves the next, or is closed when the device does not
+  close the channel within 2 s. After a blind command whose prompt did
   not return the session is likewise closed without the exit commands, the
   shell being out of step.
 - A command timeout's message names the bound that expired: `command timed
@@ -145,7 +159,7 @@ client's load has checked every key's range.
 | `native` keepalive | `DialRequest.KeepaliveInterval`, `DialRequest.KeepaliveCountMax`; `connection.keepalive`, `connection.lastRead`, `connection.lost`; the constant `keepaliveRequest` | `internal/transport/native/dial.go` |
 | `system` keepalive | `processStream.aliveInterval`, `processStream.aliveCountMax`; `classify`'s "not responding" case | `internal/transport/systemssh/stream.go`, `systemssh.go` |
 | The keepalive timeout's wording | `devsession.KeepaliveTimeout(count, interval, detail)` | `internal/devsession/session.go` |
-| Fixed waits, not configurable | `promptSettleDelay` (100ms, a prompt-shaped last line must stay unchanged); `shellEndGrace` (2s, the shell's end after the exit commands, none once the job is stopped or cancelled); `abortWait` (500ms, a killed OpenSSH's end, and a master's after SIGTERM once the job is stopped or cancelled) | `internal/devsession/session.go`; `internal/transport/native/dial.go`; `internal/transport/systemssh/stream.go`, `exec.go` |
+| Fixed waits, not configurable | `promptSettleDelay` (100ms, a prompt-shaped last line must stay unchanged); `shellEndGrace` (2s, the shell's end after the exit commands, none once the job is stopped or cancelled); `execEndGrace` (2s, the device's close of an exec channel whose command was given up at its timeout or the limit); `execCutGrace` (500ms, at the context's end: the answer to an exec channel's opening in flight, and the device's close of the stopped command's channel); `abortWait` (500ms, a killed OpenSSH's end, and a master's after SIGTERM once the job is stopped or cancelled) | `internal/devsession/session.go`, `exec.go`; `internal/transport/native/dial.go`; `internal/transport/systemssh/stream.go`, `exec.go` |
 
 ## 5. Test and fixture labels
 

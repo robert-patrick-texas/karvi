@@ -776,8 +776,10 @@ password](#root-commands-and-their-password)).
 The system transport's OpenSSH client cannot ask, so the record carries the
 notice `remote_command_not_stopped` and the command may still be running on
 the server, its parent pid 1; a later command finds it (`ps -eo
-pid,etime,args`) if it matters. In both cases the connection serves the next
-command.
+pid,etime,args`) if it matters. After a command timeout or the output limit
+the connection serves the next command on both. Over `native` a server that
+does not close the channel within 2 seconds has its connection closed, and
+its later commands are not attempted. A cancel closes the connection.
 
 **The control sockets.** Over `system` each `linux` server's connection is an
 OpenSSH ControlMaster, the client's child for `command` and the daemon's for

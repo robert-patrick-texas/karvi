@@ -132,10 +132,17 @@ func (s *Server) exec(ch ssh.Channel, line string, signals <-chan string, gone <
 		case name := <-signals:
 			r = linuxResult{signal: name}
 		case <-gone:
-			s.mu.Lock()
-			s.leftRunning = append(s.leftRunning, line)
-			s.mu.Unlock()
-			return
+			// A signal that came before the close ended the command: the
+			// requests are taken in order, so it is waiting here.
+			select {
+			case name := <-signals:
+				r = linuxResult{signal: name}
+			default:
+				s.mu.Lock()
+				s.leftRunning = append(s.leftRunning, line)
+				s.mu.Unlock()
+				return
+			}
 		}
 	}
 	if _, err := io.WriteString(ch, r.stdout); err != nil {

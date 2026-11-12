@@ -329,6 +329,28 @@ they were published in.
   at once: OpenSSH killed and waited for 0.5 s at most, the native
   connection shut, the master sent SIGTERM without `ssh -O exit` and SIGKILL
   0.5 s on.
+- **An exec command over `native` ends at its bounds on a device that stops
+  answering.** A device whose connection stayed up while it answered nothing
+  held the next command's channel opening, and a command given up, until the
+  keepalives ended the connection: 60 s at the defaults, and without end at
+  `native-ssh.keepalive-interval = 0`. A `daemon stop --force` in that wait
+  lost the job's record (no final status, no `run.end`); a cancel ended 57 s
+  on; a `--timeout 5s` command was `session_keepalive_timeout` at 57 s; with
+  keepalives off the device, answering again, ran the cancelled job's next
+  command. The command's timeout now counts from before the channel's
+  opening, and it and the context's end (a cancel, a stop,
+  `execution.device-timeout`) each end an opening the device has not
+  answered by closing the connection: a timeout there is `command_timeout`,
+  `command timed out after 5s (--timeout) before it started; the connection
+  was closed`, its record without exec fields. A command given up is stopped
+  as before; then the command's timeout and the output limit give the device
+  2 s to close the channel: the connection serves the next command when it
+  does, and is closed when it does not (`…; the device did not close the
+  channel in 2s and the connection was closed`), the device's later commands
+  not attempted. A cancel, a stop, and the device's timeout give it 0.5 s,
+  for an opening in flight to be answered and for the stopped command's
+  channel to close, and close the connection then, or as soon as the channel
+  closes. Over `system` a command given up ended at once, and still does.
 
 ### Breaking changes
 

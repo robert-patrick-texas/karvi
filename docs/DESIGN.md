@@ -1427,7 +1427,8 @@ signal, kills the client and records the notice `remote_command_not_stopped`. A
 command timeout falls under the device-error policy, the connection being
 usable: the rest stop unless `--continue-device-on-error`.
 `execution.device-timeout`, the keepalives, and a cancel are as for the shell
-(`native` asking for `KILL` on the channel in flight);
+(`native` asking for `KILL` on the channel in flight), each closing the
+connection (the next decision);
 `execution.blind-wait` is not used. The output limit counts stdout and stderr
 together, and each stream is spooled past the threshold on its own; at the limit
 the command is stopped as at a timeout, the record is `output_limit_exceeded`
@@ -1447,6 +1448,39 @@ server's command running unless a signal is asked for (`sleep 31` stayed, `sleep
 timeout ending the device under every setting; a pty so that closing it hangs up
 the command; a remote watchdog (`timeout N …`) wrapped around each command on
 `system`.
+
+**A device that stops answering does not hold an exec command.** The command's
+timeout counts from before its channel's opening, and it and the context's end
+(a cancel, a stop, `execution.device-timeout`) each end an opening the device
+has not answered by closing the connection: a timeout there is
+`command_timeout`, its message saying the command had not started and the
+connection was closed, its record without exec fields, as a refused channel's.
+A command given up is stopped first, as above. Then the command's timeout and
+the output limit give the device 2 seconds to close the channel (fixed, as the
+2 seconds `native` gives a shell to end), the connection serving the next
+command when it does, and closed when it does not, the message saying so and
+the device's later commands not attempted. The context's end gives the device
+0.5 seconds (fixed): for an opening in flight to be answered, since a device
+that answers has taken the command, or is about to, and the stop needs its
+channel; and for the stopped command's channel to close, which shows the stop
+was taken. The connection is closed then, or as soon as the channel closes.
+Each wait covers the sending of the stop. The rule is the exec session's, one
+for both transports: on `system` the killed client ends the reads at once, so
+there only the close at the context's end is new, where the session was
+ending. *Why:* on `native` a channel's opening, its close, and its
+reads end at the device's answer or the connection's close, so a device with
+its connection up and nothing answered (executed: the fake stopped by
+`SIGSTOP`) held the command until the keepalives, 57 to 60 s at the defaults
+and without end with them off: a forced stop lost the job's record, a cancel
+and a `--timeout 5s` each ended 57 s on, and the device, answering again, ran
+the cancelled job's next command. Closing the connection is the one release of
+an opening x/crypto gives, and after the context's end no command follows on
+it. *Not taken:* a context handed to the transport's `Start` (both transports
+changed, and the release still the connection's close); a key for the 2
+seconds; the connection closed at the context's end with no wait (executed
+against the fake with a cancel in the opening: 22 and 32 of 300 commands left
+running with no `KILL`, none before); 2 seconds at the context's end (a
+stopping daemon gives its jobs' records 2 seconds at the least).
 
 **The platform definition is the authority for privilege and paging.** Every
 built-in carries its privilege levels, prompt pattern, failure patterns, paging

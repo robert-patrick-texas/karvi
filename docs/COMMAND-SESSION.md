@@ -204,11 +204,14 @@ session's failure. A device that refuses the channel or the exec request is
 `ssh_session_channel_refused`; the command did not run and the session ends.
 
 A command timeout, a cancel, and the output limit (stdout and stderr counted
-together) stop the command and close its channel, and the connection serves
-the next command: `native` asks the device for `KILL` first; `system`,
-whose client cannot send a signal, kills the client and records the notice
-`remote_command_not_stopped`, the command possibly still running on the
-device.
+together) stop the command and close its channel: `native` asks the device
+for `KILL` first; `system`, whose client cannot send a signal, kills the
+client and records the notice `remote_command_not_stopped`, the command
+possibly still running on the device. After a command timeout or the output
+limit the connection serves the next command, unless over `native` the
+device does not close the channel within 2 s, when the connection is closed.
+A cancel, a stop, and the device timeout close the connection, once the
+device has closed the channel or 0.5 s on.
 
 ## Blind sends and expectations
 
@@ -234,7 +237,8 @@ its output limit in place of `output.max-command-bytes`, smaller or larger,
 on the shell and on an exec channel alike. The rest of the device's list keeps
 the job's values. A limit reached ends the command as the job's limit does,
 the first BYTES kept: the shell's session is closed, an exec channel's command
-stopped with the connection serving the next. The messages name the source,
+stopped with the connection serving the next (closed too when over `native`
+the device does not close the channel within 2 s). The messages name the source,
 `(--timeout)` or `(--maxbytes)` beside the keys' names. A blind command takes
 no `--timeout` (its wait is `execution.blind-wait`); a timeout above a set
 `execution.device-timeout`, or a limit above `output.max-job-bytes`, is refused
@@ -543,5 +547,6 @@ On an exec target the exit outcomes (`command_exit_nonzero`,
 `command_exit_signal`, `command_exit_missing`) are device errors under the same
 policy, and a command timeout and the output limit leave the session usable,
 the connection serving the next command, so the policy applies to them too. A
-refused channel or exec request, a lost connection, the device timeout, and a
-keepalive expiry end the session.
+refused channel or exec request, a lost connection, the device timeout, a
+keepalive expiry, a command timeout before the channel opened, and a channel
+the device does not close within 2 s of a command given up end the session.

@@ -24,10 +24,17 @@ import (
 // Each stream settles as a shell's response does (settle.go): to memory up
 // to the spool threshold and then to a spool of its own, the limit counting
 // the two together; the platform's failure patterns are searched in both,
-// and asked only when the command exited 0. A command timeout, a cancel,
-// and the limit stop the command (ExecChannel.Stop) and close its channel,
-// leaving the connection serving the next; a connection lost ends the
-// session. The transport supplies the connection (ExecConn).
+// and asked only when the command exited 0. A command timeout and the
+// limit stop the command (ExecChannel.Stop) and close its channel, leaving
+// the connection serving the next when the device closes the channel within
+// execEndGrace, and closing the connection when it does not; the context's
+// end (a cancel, a stop, the device's timeout) stops the command and closes
+// the connection, as soon as the device closes the channel and after
+// execCutGrace when it does not. A command's timeout and the context bound
+// its start as well, a start in flight at the context's end having
+// execCutGrace to be answered, so that a command the device has taken is
+// stopped. A connection lost ends the session. The transport supplies the
+// connection (ExecConn).
 
 // ExecConn is one connection that runs commands on exec channels.
 type ExecConn interface {
@@ -35,8 +42,11 @@ type ExecConn interface {
 	// standard input at its end, or with input left open for the channel's
 	// Input. Its error carries the transport's code:
 	// ssh_session_channel_refused for a device that refuses the channel, the
-	// connection's own when it is gone.
+	// connection's own when it is gone. A device that does not answer
+	// holds it until Close, which ends it.
 	Start(command string, input bool) (ExecChannel, error)
+	// Close closes the connection, more than once without harm, and ends
+	// a Start, a Stop, a Wait, and every read still waiting on the device.
 	Close() error
 }
 
@@ -118,10 +128,72 @@ func (s *ExecSession) fail() {
 	_ = s.conn.Close()
 }
 
+// execEndGrace is how long a device has to close the channel of a command
+// given up at its timeout or the limit, as native's shellEndGrace for a
+// shell.
+const execEndGrace = 2 * time.Second
+
+// execCutGrace is how long the context's end waits on a device: for a
+// start in flight to be answered, since a device that answers has the
+// command, or will have it, and the stop needs its channel; and for the
+// stop to be taken, which the channel's close shows. It is well inside the
+// two seconds a stopping daemon gives its jobs' records.
+const execCutGrace = 500 * time.Millisecond
+
+// end stops a command given up and waits for its channel's end (ended),
+// which is the device's to give. At a timeout or the limit the device has
+// execEndGrace to close the channel, and the connection is then kept. At
+// the context's end (cut) it has execCutGrace, and the connection is
+// closed at the channel's end or the grace's, whichever is first. A grace
+// covers the stop itself; past it the connection is closed, which ends
+// what still waits on the device. It reports whether it closed it.
+func (s *ExecSession) end(ch ExecChannel, ended <-chan struct{}, cut bool) ([]platform.Notice, bool) {
+	stopped := make(chan []platform.Notice, 1)
+	go func() { stopped <- ch.Stop() }()
+	wait := execEndGrace
+	if cut {
+		wait = execCutGrace
+	}
+	grace := time.NewTimer(wait)
+	defer grace.Stop()
+	var notices []platform.Notice
+	select {
+	case notices = <-stopped:
+		select {
+		case <-ended:
+			if !cut {
+				return notices, false
+			}
+		case <-grace.C:
+		}
+		s.fail()
+	case <-grace.C:
+		s.fail()
+		notices = <-stopped
+	}
+	<-ended
+	return notices, true
+}
+
+// gaveUp is the end of a give-up's message: what was done with the command
+// (kept), or that the connection was closed.
+func gaveUp(closed bool, kept string) string {
+	if closed {
+		return fmt.Sprintf("; the device did not close the channel in %s and the connection was closed", execEndGrace)
+	}
+	return kept
+}
+
 func (s *ExecSession) debugf(format string, args ...any) {
 	if s.opts.Debug != nil {
 		s.opts.Debug(fmt.Sprintf(format, args...))
 	}
+}
+
+// opened is what Start returned.
+type opened struct {
+	ch  ExecChannel
+	err error
 }
 
 // execChunk is one read from a stream, or its end.
@@ -155,7 +227,50 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 		}
 		wire = sudoWire(command.Text, prompt)
 	}
-	ch, err := s.conn.Start(wire, prompt != "")
+	// The command's time and the context bound the start too: a device
+	// that does not answer the channel's open holds Start until the
+	// connection is closed. A start answered as the time ran out, or
+	// within execCutGrace of the context's end, goes on to the give-up
+	// below, which stops the command.
+	deadline := time.NewTimer(timeout)
+	defer deadline.Stop()
+	opening := make(chan opened, 1)
+	go func() {
+		ch, err := s.conn.Start(wire, prompt != "")
+		opening <- opened{ch, err}
+	}()
+	var ch ExecChannel
+	var err error
+	select {
+	case o := <-opening:
+		ch, err = o.ch, o.err
+	case <-deadline.C:
+		select {
+		case o := <-opening:
+			ch, err = o.ch, o.err
+			deadline.Reset(0)
+		default:
+		}
+		if ch != nil || err != nil {
+			break
+		}
+		s.unstarted(opening)
+		result := failed(started, "command_timeout", "timeout", true, true, fmt.Errorf("command timed out after %s%s before it started; the connection was closed", timeout, platform.Named(command.TimeoutSource)))
+		result.ConnectionReused = &reused
+		s.debugf("device session exec given up before its start sha256=%s code=%s", tag, result.ErrorCode)
+		return result
+	case <-ctx.Done():
+		grace := time.NewTimer(execCutGrace)
+		defer grace.Stop()
+		select {
+		case o := <-opening:
+			ch, err = o.ch, o.err
+		case <-grace.C:
+			s.unstarted(opening)
+			s.debugf("device session exec given up before its start sha256=%s code=%q", tag, "")
+			return platform.Result{ConnectionReused: &reused, StartedAt: started, EndedAt: time.Now(), Err: ctx.Err()}
+		}
+	}
 	if err != nil {
 		s.fail()
 		result := codedFailure(started, err)
@@ -216,13 +331,16 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 			}
 		}(i, r)
 	}
-	deadline := time.NewTimer(timeout)
-	defer deadline.Stop()
-	stop := func() []platform.Notice {
+	// stop gives the command up while its streams are read: the channel's
+	// end is the readers'.
+	stop := func(cut bool) ([]platform.Notice, bool) {
 		close(quit)
-		notices := ch.Stop()
-		readers.Wait()
-		return notices
+		ended := make(chan struct{})
+		go func() {
+			readers.Wait()
+			close(ended)
+		}()
+		return s.end(ch, ended, cut)
 	}
 	result := platform.Result{ConnectionReused: &reused, StartedAt: started, Exec: &platform.ExecResult{}}
 	// A root command's sudo: its prompt taken out of stderr before the
@@ -297,13 +415,14 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 		return sinks[stream].write(data)
 	}
 	refusedWrite := func(werr error) platform.Result {
-		result.Notices = stop()
+		var closed bool
+		result.Notices, closed = stop(false)
 		result.EndedAt = time.Now()
 		var passed *limitError
 		if errors.As(werr, &passed) {
 			handOver()
 			result.ErrorCode, result.ErrorCategory, result.External = "output_limit_exceeded", "output", true
-			result.Err = fmt.Errorf("command output exceeded %d bytes%s across stdout and stderr, %d observed; the command was stopped", limit, platform.Named(limitSource), passed.observed)
+			result.Err = fmt.Errorf("command output exceeded %d bytes%s across stdout and stderr, %d observed%s", limit, platform.Named(limitSource), passed.observed, gaveUp(closed, "; the command was stopped"))
 		} else {
 			sinks[0].discard()
 			sinks[1].discard()
@@ -345,11 +464,13 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 				return refusedWrite(werr)
 			}
 		case <-deadline.C:
-			result.ErrorCode, result.Err = "command_timeout", fmt.Errorf("command timed out after %s%s; the command was stopped and its channel closed", timeout, platform.Named(command.TimeoutSource))
-			return s.givenUp(&result, stop, handOver, tag, &shared)
+			notices, closed := stop(false)
+			result.ErrorCode, result.Err = "command_timeout", fmt.Errorf("command timed out after %s%s%s", timeout, platform.Named(command.TimeoutSource), gaveUp(closed, "; the command was stopped and its channel closed"))
+			return s.givenUp(&result, notices, closed, handOver, tag, &shared)
 		case <-ctx.Done():
+			notices, closed := stop(true)
 			result.Err = ctx.Err()
-			return s.givenUp(&result, stop, handOver, tag, &shared)
+			return s.givenUp(&result, notices, closed, handOver, tag, &shared)
 		}
 	}
 	readers.Wait()
@@ -361,19 +482,23 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 		err    error
 	}
 	waited := make(chan exit, 1)
+	ended := make(chan struct{}) // the channel's end here: Wait's return
 	go func() {
 		status, signal, err := ch.Wait()
 		waited <- exit{status, signal, err}
+		close(ended)
 	}()
 	var x exit
 	select {
 	case x = <-waited:
 	case <-deadline.C:
-		result.ErrorCode, result.Err = "command_timeout", fmt.Errorf("command timed out after %s%s waiting for its exit status; the command was stopped and its channel closed", timeout, platform.Named(command.TimeoutSource))
-		return s.givenUp(&result, ch.Stop, handOver, tag, &shared)
+		notices, closed := s.end(ch, ended, false)
+		result.ErrorCode, result.Err = "command_timeout", fmt.Errorf("command timed out after %s%s waiting for its exit status%s", timeout, platform.Named(command.TimeoutSource), gaveUp(closed, "; the command was stopped and its channel closed"))
+		return s.givenUp(&result, notices, closed, handOver, tag, &shared)
 	case <-ctx.Done():
+		notices, closed := s.end(ch, ended, true)
 		result.Err = ctx.Err()
-		return s.givenUp(&result, ch.Stop, handOver, tag, &shared)
+		return s.givenUp(&result, notices, closed, handOver, tag, &shared)
 	}
 	result.EndedAt = time.Now()
 	handOver()
@@ -422,19 +547,34 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 	return result
 }
 
-// givenUp ends a command a timeout or a cancel gave up: the command is
-// stopped and its channel closed, what settled is handed back, and the
-// connection serves the next command. The caller has set the result's
-// error: a timeout's with its code, or a cancel's, the context's, with
+// unstarted ends a command given up before its channel opened: the
+// connection is closed, the one release of an open the device has not
+// answered. The start's return is not waited for (x/crypto can hold an
+// open that raced the connection's end); a channel it returns has its
+// Stop, which ends what is local to it (system's client), no signal
+// reaching the device on a closed connection.
+func (s *ExecSession) unstarted(opening <-chan opened) {
+	s.fail()
+	go func() {
+		if o := <-opening; o.err == nil {
+			o.ch.Stop()
+		}
+	}()
+}
+
+// givenUp is the result of a command a timeout or the context's end gave
+// up, once end has stopped it: what settled is handed back, and the
+// connection serves the next command unless end closed it. The caller has
+// set the result's error: a timeout's with its code, or the context's with
 // none, which the executor classifies.
-func (s *ExecSession) givenUp(result *platform.Result, stop func() []platform.Notice, handOver func(), tag string, shared *int64) platform.Result {
-	result.Notices = append(result.Notices, stop()...)
+func (s *ExecSession) givenUp(result *platform.Result, notices []platform.Notice, closed bool, handOver func(), tag string, shared *int64) platform.Result {
+	result.Notices = append(result.Notices, notices...)
 	result.EndedAt = time.Now()
 	handOver()
 	if result.ErrorCode != "" {
 		result.ErrorCategory, result.External, result.Retryable = "timeout", true, true
 	}
-	s.debugf("device session exec given up sha256=%s code=%q output_bytes=%d", tag, result.ErrorCode, *shared)
+	s.debugf("device session exec given up sha256=%s code=%q output_bytes=%d connection_closed=%t", tag, result.ErrorCode, *shared, closed)
 	return *result
 }
 
