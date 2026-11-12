@@ -24280,3 +24280,434 @@ the tree (`release-design-evidence/gather-2026-11/`: `DECISIONS.md`, `PLAN.md`,
 the session's 0.41.0 runs in `today/`, the prototypes in `point3/`, `point5/`,
 and `point6/`, `since/`, `bytes/`, and a folder per section with its README and
 runs).
+
+## 107. Prompt answers on both SSH transports (2026-11-11)
+
+On the released 0.41.0 the SSH transports answered a device's
+keyboard-interactive prompts each its own way. The native transport, the
+default for `command` and `run`, offered keyboard-interactive and password
+whatever `ssh.keyboard-interactive-authentication` and
+`ssh.password-authentication` said, answered every prompt with the password,
+`Username:` among them, and sent a refused password again by the password
+method; the system transport's askpass broker gave the password to any prompt
+naming a password or passcode, `New password:` among them, and judged only the
+first prompt OpenSSH asked, OpenSSH answering every later one empty. A refused
+password ended `Permission denied (password,publickey,keyboard-interactive).`
+over `system` and `attempted methods [none keyboard-interactive password]` over
+`native` (`s3-parity/messages-0.41.0.txt`). `4622da5` made native read the two
+keys. A first rule, over the prompt's runs of letters, was reviewed and set
+aside: `Login for pin-gw1:`, a PKCS#11 PIN prompt, and `Re-enter PIN:` drew the
+password. The operator settled one function, `askpass.Field`, for both
+transports: any prompt naming `user` gets the username; `PIN:` asks for the
+PIN, the credential's password, and `pin-gw1` is a device; a change prompt
+(new, next, confirm) ends the connection with an error, except in a login,
+where the operator answers it. On S1's tree (`82896cc`) the broker was still
+one-use: `Password:` then `New password:` logged in with an empty new password,
+and `Username:` then `Password:` failed. On S3's (`b84a306`) a login's
+`Enter new PIN:` ended it `authentication_change_requested`. The scope, settled
+with the operator: parity between the transports, OpenSSH the benchmark;
+non-interactive activities fail on odd prompts, a second ask is a refusal and
+karvi never retries, and a login lets the operator answer. S2, the lists as
+configuration, was dropped, not built.
+
+**What it gains.** The password goes only to a prompt asking for it, the
+username only to one asking for that; a change prompt never gets the stored
+one, and outside a login ends the connection before any answer in its round, so
+no empty attempt counts against the account. The transports answer alike:
+`Username:` then `Password:` logs in on both, a refused password is sent once.
+In `karvi login` the operator types what plain `ssh` would ask: a new PIN, its
+confirmation, the next passcode, an expired password's change. The costs: an
+unrelated yes/no question, or `Try again. Password:`, is
+`authentication_change_requested` outside a login; `Password for user jsmith:`
+gets the username (the login fails; nothing leaks); a stray request to a
+login's broker ends the login.
+
+**The rule, as agreed** ([`docs/DESIGN.md`, section
+4](DESIGN.md#4-credentials), the entries "A prompt gets the username or the
+password by what it asks for" and "In a login the operator answers").
+
+- **The methods** (`4622da5`): the keys, keyboard-interactive, and password, in
+  that order, on both transports; `ssh.keyboard-interactive-authentication` or
+  `ssh.password-authentication` set false leaves its method out on both, and
+  with both false a password credential without keys is `authentication_failed`
+  (exit 108).
+- **The lists** (the settled rule; S1 point 2; gap B; the re-review).
+  `askpass.Field` matches a prompt case-insensitively against three lists of
+  RE2 patterns in this order, the first with a match deciding: `change` (`new`,
+  `next`, `re-?enter(ed)?`, `re-?typed?`, `(re)?confirm(ed)?`, `verify`,
+  `repeat(ed)?`, `again`, `once more`, `chang(e|ed|es|ing)`, `renew(ed)?`,
+  `generat(e|es|ed|ing)`, `creat(e|ed)`, `\(y/n\)`, `\[y/n\]`, `yes/no`),
+  `username` (`[\w-]*user[\w-]*`, `log ?[io]n`, `name\s*:`), and `password`
+  (`passw\w*`, `passcode`, `passphrase`, `pass\s*:`, `pin`, `token(code)?`,
+  `code`, `otp`); no list, an empty answer. Each pattern is a word of its own:
+  where a match's first or last character is an ASCII letter, digit, or
+  underscore, the character beside it is none of those and no hyphen, so
+  `pin-gw1` and `repeater1` name devices and `Accept PIN(y/n)?` still matches
+  `\(y/n\)`. `confirmation` and `verifying` are no change
+  (`Enter confirmation code:` is a code); the yes/no questions and `again` are,
+  since SecurID's `Do you want to enter your own pin (y/n)` names a PIN and a
+  lone `Password again:` would get the password (S1 point 2). Accepted:
+  `New-PIN:` matches no list, `Password for change.example.net:` is a change,
+  `Password for user-gw1:` gets the username.
+- **OpenSSH's own questions.** The broker answers only a prompt beginning with
+  OpenSSH's `user@host` (`user@host's password: `, `(user@host) `) and judges
+  the words after it; any other, a key's passphrase, a FIDO or PKCS#11 PIN,
+  user presence, the host key, a password change, is refused,
+  `askpass_prompt_unrecognized`.
+- **A change ends the connection** (S1 point 1): outside a login, before any
+  answer in its round, `authentication_change_requested` (exit 108), the same
+  on both transports, `the device asks to change a secret: "Enter new PIN: "`.
+  Native ends the handshake from `ClientConfig.AuthCallback` (x/crypto would
+  try the next method); the broker's hook ends OpenSSH (SIGTERM) before the
+  refusal goes back, so the device gets neither an empty PIN nor an empty
+  password.
+- **Each field once** (S3 point 1; the wording; the scope): the username and
+  the password each at most once per connection. A second ask, the password
+  method after keyboard-interactive sent the password among them, ends the
+  connection at that prompt, `authentication_failed: device refused password`
+  (or `username`, exit 108), the device getting nothing in that round: OpenSSH
+  reads a round's every prompt before answering, and native judges a round
+  whole. A change prompt in a later round ends it too.
+- **The broker's bounds** (S3 points 2 to 4): it serves the session's requests
+  until its login is over (a command session's first prompt or exec master
+  ready, a `karvi login`'s end), five minutes at most, ten seconds an exchange,
+  neither a setting. A request without its token, or one it cannot decode, ends
+  the broker and OpenSSH, `askpass_auth_failed` or `askpass_request_invalid`
+  (exit 108): only the operator's account or root reaches the 0600 socket.
+- **The operator in a login** (S4's settle point and points 1 to 5; the
+  review's fixes). In `karvi login` (system only; native has no login) a change
+  prompt, a prompt no list matches, and a second ask go to the operator at the
+  controlling terminal through `termline.Prompt`, echo off, as OpenSSH gives
+  them (the server's instruction not shown, as at plain `ssh`), any number; the
+  typed line goes to OpenSSH alone, never stored or logged. karvi sends its
+  stored username and password each at most once, so a refused password is
+  asked at the terminal, as at plain `ssh`. The answer has no askpass bound
+  (`KARVI_ASKPASS_LOGIN=1`), the device's own limit (IOS XE `ip ssh time-out`)
+  bounding it. Ctrl-C or a signal ends the login
+  `credential_prompt_interrupted` (exit 113), another failure
+  `credential_prompt_unavailable` (exit 6); Ctrl-D on an empty line sends an
+  empty answer. With no controlling terminal nothing is asked, and the login
+  answers as `command` does; `command`, `run`, `crun`, and `stream` keep the
+  errors above.
+
+**The executed examples.** The lab build of the tree at `a9b6e7e` (`ex107.sh`;
+its second run, `ex107-2.out`, differs from `ex107.out` only in its start time,
+the device's port, the job IDs, and the elapsed times). The device, router01,
+is `karvi-fake-device`, started afresh for each karvi line with the prompts its
+case's `$ fake` line sets (each `PROMPT=FIELD`, the answer the device takes;
+`|` between prompts, `||` before a new round), its host key and port kept.
+`$ device-received` prints the device's record of each answer: `password` (its
+`-password`, `pw` unless set), `username` (`netops`), `empty`, or `other`;
+`password-method FIELD` for that method; `(nothing)` for none. The script adds
+the lab's `--config` files and the credentials `NETUSER=netops`, `NETPASS=pw`,
+`NETENABLE=en`; `$JOB` is the run's job folder, `jsonl_records`
+`scripts/lib/json.sh`'s. A login runs under expect on a pseudo-terminal of its
+own, 200 columns, against the device's Linux persona (its `exit` sends an exit
+status, [chapter 18](#18-how-a-login-ends-2026-10-03)), the bytes shown with
+`\r` removed, the comment saying what was typed. The login cases take PLAN.md's
+shapes, worded from RSA, IBM, and Fortra pages: A RSA's user-chosen PIN, B a
+new PIN then a plain `Enter PASSCODE:`, G an expired password. Case 8 lays a
+scratch test, `ex107_field_test.go`, over the clone by `go test -overlay`: the
+built `Field`, and before it, for OpenSSH's form, the broker's `openSSHWords`.
+A line `[...]` stands for lines left out (`trim107.sh`): cases 2 and 7, a token
+prompt and a prompt no list matches, each logging in on both transports, and
+case 3's two-round form, the same lines; also left out are each run's device
+header, host-key line, footer, and closing line, go test's progress lines, and
+a prompt's trailing space.
+
+```text
+== 1. ssh.keyboard-interactive-authentication=false: the password method; both keys false: no method, exit 108
+$ fake -kbd-prompts 'Password: =password'
+$ karvi --set ssh.keyboard-interactive-authentication=false command router01 --transport native -c 'show clock'
+*10:00:00.000 UTC Tue Sep 15 2026
+(exit 0)
+$ jsonl_records "$JOB/commands.jsonl" command credential.auth
+show clock	password
+$ device-received
+password-method password
+$ karvi --set ssh.keyboard-interactive-authentication=false command router01 --transport system -c 'show clock'
+*10:00:00.000 UTC Tue Sep 15 2026
+(exit 0)
+$ jsonl_records "$JOB/commands.jsonl" command credential.auth
+show clock	password
+$ device-received
+password-method password
+$ karvi --set ssh.keyboard-interactive-authentication=false --set ssh.password-authentication=false command router01 --transport native -c 'show clock'
+karvi: target=router01 status=authentication_error error=authentication_failed: SSH authentication failed for netops at 127.0.0.1:44423: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none], no supported methods remain
+(exit 108)
+$ device-received
+(nothing)
+$ karvi --set ssh.keyboard-interactive-authentication=false --set ssh.password-authentication=false command router01 --transport system -c 'show clock'
+karvi: target=router01 status=authentication_error error=authentication_failed: netops@127.0.0.1: Permission denied (password,publickey,keyboard-interactive).
+(exit 108)
+$ device-received
+(nothing)
+[...]
+== 3. Username: then Password:, in one round and in two: each field once
+$ fake -kbd-prompts 'Username: =username|Password: =password'
+$ karvi command router01 --transport native -c 'show clock'
+*10:00:00.000 UTC Tue Sep 15 2026
+(exit 0)
+$ device-received
+"Username: " username
+"Password: " password
+$ karvi command router01 --transport system -c 'show clock'
+*10:00:00.000 UTC Tue Sep 15 2026
+(exit 0)
+$ device-received
+"Username: " username
+"Password: " password
+[...]
+== 4. a refused password: the device's is pw2, so the credential's pw is "other" to it; sent once
+$ fake -kbd-prompts 'Password: =password' -password pw2
+$ karvi command router01 --transport native -c 'show clock'
+karvi: target=router01 status=authentication_error error=authentication_failed: device refused password
+(exit 108)
+$ device-received
+"Password: " other
+$ karvi command router01 --transport system -c 'show clock'
+karvi: target=router01 status=authentication_error error=authentication_failed: device refused password
+(exit 108)
+$ device-received
+"Password: " other
+== 5. Password: twice in one round: the second ask ends it, nothing sent
+$ fake -kbd-prompts 'Password: =password|Password: =password'
+$ karvi command router01 --transport native -c 'show clock'
+karvi: target=router01 status=authentication_error error=authentication_failed: device refused password
+(exit 108)
+$ device-received
+(nothing)
+$ karvi command router01 --transport system -c 'show clock'
+karvi: target=router01 status=authentication_error error=authentication_failed: device refused password
+(exit 108)
+$ device-received
+(nothing)
+== 6. a change prompt, SecurID's two rounds: Enter PASSCODE:, then Enter new PIN: (an empty answer would pass)
+$ fake -kbd-prompts 'Enter PASSCODE: =password||Enter new PIN: =empty'
+$ karvi command router01 --transport native -c 'show clock'
+karvi: target=router01 status=authentication_error error=authentication_change_requested: the device asks to change a secret: "Enter new PIN: "
+(exit 108)
+$ device-received
+"Enter PASSCODE: " password
+$ karvi command router01 --transport system -c 'show clock'
+karvi: target=router01 status=authentication_error error=authentication_change_requested: the device asks to change a secret: "Enter new PIN: "
+(exit 108)
+$ device-received
+"Enter PASSCODE: " password
+[...]
+== 8. the rule's words: the built askpass.Field, and the broker's reading of OpenSSH's prompts
+$ go test -overlay overlay.json -count=1 -v -run '^TestEx107Field$' ./internal/askpass
+Field(prompt):
+  password  "Password: "
+  password  "Enter PASSCODE: "
+  password  "PIN: "
+  password  "Token code: "
+  password  "Enter your PIN."
+  password  "OTP: "
+  username  "Username: "
+  username  "login: "
+  username  "Login password: "
+  username  "Password for user jsmith: "
+  username  "Password for user-gw1: "
+  change    "Enter new PIN: "
+  change    "Please re-enter new PIN: "
+  change    "Re-entered PIN: "
+  change    "Password again: "
+  change    "Do you want to enter your own pin (y/n) "
+  change    "Accept PIN(y/n)? "
+  change    "Password for change.example.net: "
+  password  "Password for pin-gw1: "
+  password  "Password for repeater1: "
+  none      "New-PIN: "
+  password  "Enter confirmation code: "
+  password  "Verifying PIN: "
+  none      "Favourite colour: "
+  none      "Response: "
+the broker, a prompt as OpenSSH asks it:
+  password  "netops@router01's password: ", its words "password: "
+  password  "(netops@router01) Enter PASSCODE: ", its words "Enter PASSCODE: "
+  change    "(netops@[router01]:2222) Enter new PIN: ", its words "Enter new PIN: "
+  none      "(netops@router01) Favourite colour: ", its words "Favourite colour: "
+  refused   "Password: "
+  refused   "Enter passphrase for key '/home/jsmith/.ssh/id_ed25519': "
+  refused   "Enter PIN for ED25519-SK key /home/jsmith/.ssh/id_ed25519_sk: "
+  refused   "Confirm user presence for key ED25519-SK SHA256:abc"
+  refused   "Enter jsmith@router1's old password: "
+(exit 0)
+== 9. a login, shape A (RSA's user-chosen PIN): the passcode karvi's, the new PIN, its re-entry, and the new passcode the operator's
+$ fake -kbd-prompts 'Enter PASSCODE: =password||Enter your new PIN, containing 4 to 8 digits, or <Ctrl-D> to cancel the New PIN procedure: =other||Please re-enter new PIN: =other||PIN Accepted. Wait for the token code to change, then enter the new passcode: =other' -persona linux
+$ karvi login router01     # typed: 731904 at the new PIN, 731904 at its re-entry, 73190455 at the new passcode; exit at the shell
+(netops@[router01]:44423) Enter your new PIN, containing 4 to 8 digits, or <Ctrl-D> to cancel the New PIN procedure:
+(netops@[router01]:44423) Please re-enter new PIN:
+(netops@[router01]:44423) PIN Accepted. Wait for the token code to change, then enter the new passcode:
+netops@router01:~$ exit
+logout
+(exit 0)
+$ device-received
+"Enter PASSCODE: " password
+"Enter your new PIN, containing 4 to 8 digits, or <Ctrl-D> to cancel the New PIN procedure: " other
+"Please re-enter new PIN: " other
+"PIN Accepted. Wait for the token code to change, then enter the new passcode: " other
+$ grep -c 731904 pty-9.raw
+0
+== 10. a login, shape G (an expired password): Password: karvi's; Current password:, a second ask, and the change the operator's
+$ fake -kbd-prompts 'Password: =password||Current password: =password||New password: =other||Retype new password: =other' -persona linux
+$ karvi login router01     # typed: pw (the current password) at Current password:, New-Secret-42 at New password: and at Retype new password:; exit at the shell
+(netops@[router01]:44423) Current password:
+(netops@[router01]:44423) New password:
+(netops@[router01]:44423) Retype new password:
+netops@router01:~$ exit
+logout
+(exit 0)
+$ device-received
+"Password: " password
+"Current password: " password
+"New password: " other
+"Retype new password: " other
+$ grep -c New-Secret-42 pty-10.raw
+0
+== 11. a login, shape B: the new PIN, then a second Enter PASSCODE:, which goes to the operator
+$ fake -kbd-prompts 'Enter PASSCODE: =password||Enter new PIN: =other||Re-enter new PIN: =other||Enter PASSCODE: =other' -persona linux
+$ karvi login router01     # typed: 731904 at Enter new PIN:, 731904 at Re-enter new PIN:, 73190455 at the second Enter PASSCODE:; exit at the shell
+(netops@[router01]:44423) Enter new PIN:
+(netops@[router01]:44423) Re-enter new PIN:
+(netops@[router01]:44423) Enter PASSCODE:
+netops@router01:~$ exit
+logout
+(exit 0)
+$ device-received
+"Enter PASSCODE: " password
+"Enter new PIN: " other
+"Re-enter new PIN: " other
+"Enter PASSCODE: " other
+$ grep -c 731904 pty-11.raw
+0
+== 12. Ctrl-C at the operator's prompt ends the login
+$ fake -kbd-prompts 'Enter PASSCODE: =password||Enter new PIN: =other' -persona linux
+$ karvi login router01     # typed: Ctrl-C at Enter new PIN:
+(netops@[router01]:44423) Enter new PIN:
+credential_prompt_interrupted: interrupted at the device's prompt
+(exit 113)
+$ device-received
+"Enter PASSCODE: " password
+== 13. Ctrl-D on an empty line at the operator's prompt: an empty answer, and the login goes on
+$ fake -kbd-prompts 'Enter PASSCODE: =password||Enter new PIN: =empty||Re-enter PIN: =other' -persona linux
+$ karvi login router01     # typed: Ctrl-D at Enter new PIN:, 583920 at Re-enter PIN:; exit at the shell
+(netops@[router01]:44423) Enter new PIN:
+(netops@[router01]:44423) Re-enter PIN:
+netops@router01:~$ exit
+logout
+(exit 0)
+$ device-received
+"Enter PASSCODE: " password
+"Enter new PIN: " empty
+"Re-enter PIN: " other
+$ grep -c 583920 pty-13.raw
+0
+== 14. a login with no controlling terminal (its own session, standard input /dev/null), shape A: as command
+$ fake -kbd-prompts 'Enter PASSCODE: =password||Enter your new PIN, containing 4 to 8 digits, or <Ctrl-D> to cancel the New PIN procedure: =other||Please re-enter new PIN: =other||PIN Accepted. Wait for the token code to change, then enter the new passcode: =other' -persona linux
+$ setsid -w karvi login router01 </dev/null
+authentication_change_requested: the device asks to change a secret: "Enter your new PIN, containing 4 to 8 digits, or <Ctrl-D> to cancel the New PIN procedure: "
+(exit 108)
+$ device-received
+"Enter PASSCODE: " password
+```
+
+Case 4's password is not sent again by the password method. In case 10 the
+operator typed the current password, `pw`, at `Current password:`, a second
+ask; karvi had sent it once, at `Password:`.
+
+**What changed.** Four commits on dev, each with its texts and CHANGELOG
+entries, then the ROADMAP's; no schema counter moved:
+
+- `4622da5`: native reads the two keys (`DialRequest`'s `NoKeyboardInteractive`
+  and `NoPassword`); parity S13e and S13f.
+- `82896cc` (S1): `askpass.Field`; the broker's `user@host`; native answering
+  by it; `authentication_change_requested`; the fake device's `-kbd-prompts`;
+  `TestField`'s 107 rows; parity S13g and S13h.
+- `b84a306` (S3): the broker serving every request until the login is over;
+  each field once; the End hook (was Change) ending OpenSSH by SIGTERM, since
+  SIGKILL left a login's echo off; the fake's rounds (`KbdPrompt.NewRound`);
+  `internal/testprompts`, the rows both transports' tests run; parity S13i to
+  S13k.
+- `e970e28` (S4): `TerminalOperator` and the broker's `Operator` hook; the
+  fake's `other`; two fixes reaching the credential prompts (Bugs fixed):
+  osutil's terminal calls through `SyscallConn`, not `Fd()`, so a signal ends a
+  prompt at once, and the line editor afresh after a read without a line, so a
+  Ctrl-D is not kept; the login end to end over a pseudo-terminal
+  (`internal/transport/systemssh/login_operator_test.go`).
+- `a9b6e7e`: the ROADMAP's "Next", the two gaps below. S5: this chapter.
+
+**Not taken.**
+
+- S1: the password to every keyboard-interactive prompt; the prompt's runs of
+  letters as its words; patterns bounded at their start alone
+  (`Password for repeater1:` a change), then edges blind to where a match ends
+  (`PIN(y/n)?` got the password); `confirmation` in `change`; `.` as a joiner
+  (`Enter your PIN.` would match nothing); the yes/no questions only where they
+  name a secret; a change prompt answered empty, which OpenSSH sends before
+  trying the password method, two failed attempts a SecurID or RADIUS server
+  counts.
+- S3: a second ask refused, the broker serving on, OpenSSH then answering
+  empty; a code of its own for it, or the prompt quoted; SIGKILL; a request
+  without the token refused, the broker serving on; a login's broker closed by
+  a timer at the login's bound, at the first output byte, or by OpenSSH's
+  `LocalCommand`.
+- S4: the helper reading the terminal itself (Ctrl-C would only blank the
+  answer); a second ask refused in a login; a setting for the exchange's bound,
+  the operator's first proposal, since the exchange is karvi's helper and
+  broker on one host and a slow device is bounded by `ssh.connect-timeout` and
+  `execution.prompt-timeout` (system) and `native-ssh.handshake-timeout`
+  (native); the operator's prompt bounded at the broker's five minutes.
+- S2: the lists as configuration, found in the design, not asked for.
+
+**Left open.**
+
+- The [ROADMAP](../ROADMAP.md#next)'s "Next", each to be executed first, the
+  first found by reading, the second reasoned: a field the credential cannot
+  supply, which the broker refuses (`askpass_password_unset`) and OpenSSH
+  answers empty before trying the password method, while native's round fails
+  with nothing sent; and keyboard-interactive after a partial success, which
+  x/crypto may try again where OpenSSH (`NumberOfPasswordPrompts 1`) likely
+  does not.
+- Outside a login, jump hosts over the system transport
+  ([ROADMAP](../ROADMAP.md#later), S1's gap C): a hop's `ssh -W` reaches the
+  same broker and takes the fields it asks for, so the device's own ask of one
+  ends the connection as a second ask; the hook ends the device's OpenSSH, not
+  the hop's, which still answers a change prompt or a second ask at the jump
+  host empty (not executed: the fake cannot be a jump host).
+- S4's accepted limits (DESIGN): OpenSSH killed alone during the operator's
+  prompt ends the login at the next Enter; copies of the typed line stay in
+  memory until reused; a request after the broker's five minutes finds no
+  broker, OpenSSH answering empty.
+- A refused key, and a password credential with both methods off, fail with
+  each transport's own message, the code and status the same (case 1; a refused
+  key, the parity suite's S13c).
+- Reasoned, not executed: keys typed ahead of the operator's last answer being
+  read (a fast paste of the PIN and a command) are taken by the line editor and
+  lost to OpenSSH, as at the credential prompts.
+
+**Checks.** Each code section ran `go test ./...` (76 packages) and the full
+battery. `4622da5`: three of `TestProviderPasswordMethods`'s cases failing on
+the old native code, S13e and S13f failing against the 0.41.0 executable; one
+review (three wording findings); the suites in 261 s. S1: `TestField`, the
+broker's rows, native, and the system transport over the host's OpenSSH and the
+real helper; S13g and S13h failing against 0.41.0; mutants (no kill, no change
+check, no `AuthCallback`, native answering, no prefix, no edges and four
+variants of them) each failing a test; two reviews and a re-review of the
+delta, every finding checked; the battery twice (269 s, 268 s). S3: `-race`
+clean on askpass, the transports, the executor, and errorcodes; 23 mutants all
+killed, the control clean; the parity suite's 11 S13 cases on the lab build,
+S13i to S13k failing on 0.41.0 over `system`; three reviews; the battery
+(277 s). S4: `-race` clean on askpass, termline, osutil, systemssh, and app; 23
+mutants all killed, the first run finding a dead deadline lift, removed, and an
+untested mapping, split into `operatorAnswer` with its test; a code review
+(three fixes agreed) and three code-anchored reviews of the texts; the battery
+(279 s). S5 is this chapter: the runs above, twice, the lab removed after each
+with no process or socket left; this chapter's independent review, 13 findings,
+every one fixed; grep checks of every key, code, option, and function named
+against the tree; `make generated-clean`; the links through `tools/md-to-html`;
+and the full battery (278 s). The evidence is kept beside the tree
+(`release-design-evidence/auth-methods-2026-11/`: `PLAN.md`, the prototypes,
+the probes, `s3-parity/`, `S3/`, `S4/`, a battery folder per section, and
+`S5/ch107/`).
