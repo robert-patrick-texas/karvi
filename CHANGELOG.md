@@ -15,7 +15,7 @@ block headed Unreleased takes its table, and "None." under an empty heading,
 when the release is made. The blocks before the first table keep the form
 they were published in.
 
-## Unreleased
+## 0.42.0 - 2026-11-12
 
 ### New features
 
@@ -484,6 +484,18 @@ they were published in.
   run everywhere, check the counter list against the constants karvi
   imports and that the tree holds no `SchemaVersion` constant the list
   lacks.
+
+|                        | 0.41.0  | 0.42.0  |
+| ---------------------- | ------- | ------- |
+| Go                     | 1.27.3  | 1.27.4  |
+| `golang.org/x/crypto`  | v0.58.0 | v0.59.0 |
+| `golang.org/x/sys`     | v0.49.0 | v0.50.0 |
+| `golang.org/x/term`    | v0.47.0 | v0.48.0 |
+| configuration registry | 34      | 35      |
+| Lines of Code: Go      | 128,401 | 144,528 |
+| Lines of Code: Other   | 9,694   | 9,995   |
+
+Every other value is 0.41.0's.
 
 ## 0.41.0 - 2026-11-08
 
