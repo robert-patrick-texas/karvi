@@ -540,7 +540,9 @@ None chosen: the operator names the next item, from "Later" or anew.
   type. The item: the judge and `native` hand x/crypto the file's first key
   block, through one function. What it gains: a key both transports sign
   with is used, not skipped. Until then the operator removes the block
-  ahead of the key.
+  ahead of the key ([`docs/EXAMPLES.md`, chapter
+  114](docs/EXAMPLES.md#114-a-pkcs8-key-under-a-passphrase-named-as-one-2026-11-13),
+  Left open).
 
 ## Competitive features to consider for later
 

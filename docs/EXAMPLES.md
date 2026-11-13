@@ -26956,3 +26956,240 @@ scratch files, the decisions, the reruns on `c39c761`, the suites' times,
 the build's runs, the review's report and outputs, the battery, the
 disconnect run with the script that lays out its block, the reading of this
 chapter, and this chapter as applied).
+
+## 114. A PKCS#8 key under a passphrase named as one (2026-11-13)
+
+The ROADMAP's one Next item, raised by [chapter
+112](#112-a-dsa-keys-own-reason-2026-11-12)'s Left open and put there on the
+operator's word. A key of `ssh.identities` under a passphrase is skipped at
+planning with the notice `operator_key_skipped`, and for a PEM file and for
+OpenSSH's format the reason says so: `protected by a passphrase`. A PKCS#8
+file under a passphrase (`-----BEGIN ENCRYPTED PRIVATE KEY-----`) read `not
+a private key karvi reads`, the reason a damaged file gets. The reading of
+the judge (`sshkey.Inspect`, `internal/adapters/sshkey`) and of x/crypto's
+`ParseRawPrivateKey` found why. x/crypto decodes the file's first PEM block
+alone. It answers that a passphrase is missing for a block with a
+`Proc-Type` header that says `ENCRYPTED` (PEM) and for an OpenSSH block
+whose cipher or KDF is not `none`. A PKCS#8 block under a passphrase (RFC
+5958) has no header and is no type of x/crypto's switch: `ssh: unsupported
+key type "ENCRYPTED PRIVATE KEY"`, which the judge mapped to the damaged
+file's reason.
+
+The reason before, by the key's file:
+
+- PEM under a passphrase: `protected by a passphrase`.
+- OpenSSH's format under a passphrase: `protected by a passphrase`.
+- PKCS#8 under a passphrase, as `openssl genpkey` with a cipher writes any
+  key and `ssh-keygen -m PKCS8` with a passphrase an RSA or ECDSA key: `not
+  a private key karvi reads`.
+- A PKCS#12 file's key written out alone (`openssl pkcs12 -nocerts`: text,
+  then the key under the passphrase): `not a private key karvi reads`.
+
+The last two give a damaged file's reason to files OpenSSH reads with the
+passphrase.
+
+**What it gains.** An operator whose `ssh.identities` names a PKCS#8 key
+under a passphrase reads that the passphrase is why the key is skipped, in
+the warning line, the dry run's finding, and each device's first record, as
+for a PEM or OpenSSH-format key under one. It waits on nothing.
+
+**The operator's decisions**, in simple terms:
+
+- The block's type alone gives the reason; its contents are not read. Put
+  with its consequence, a damaged file under the type reading `protected by
+  a passphrase` where OpenSSH says `invalid format`: agreed as recommended.
+- The first block only. A key under a passphrase behind a certificate stays
+  `not a private key karvi reads`.
+- A key file with another block ahead of the key, found by the reading and
+  not this item (Left open), goes to the ROADMAP's Later, not its Next.
+
+**The rule, as built** ([`docs/DESIGN.md`, section
+4](DESIGN.md#4-credentials)):
+
+- A key file x/crypto refuses for another cause than a missing passphrase,
+  and which names no DSA key, is asked whether its first PEM block is of
+  the type `ENCRYPTED PRIVATE KEY` (`isLockedPKCS8`). The block is found
+  by the call x/crypto makes, `pem.Decode` on the file, so it is the block
+  x/crypto reads.
+- The reason is then `protected by a passphrase`, as x/crypto's
+  missing-passphrase error gives it to a PEM or OpenSSH-format key.
+- The type alone decides, and the type whole: a longer type, a type that
+  ends as it, the type in small letters, and its words in a header are not
+  it. The block's contents are not read: an empty block of the type gets
+  the reason.
+- Text ahead of the block (a PKCS#12 file's key written out alone opens
+  with `Bag Attributes`) and a block after it (a certificate) leave the
+  reason.
+- A block that is no key ahead of it (parameters, a certificate) leaves
+  `not a private key karvi reads`: with the passphrase removed x/crypto
+  still refuses the file.
+- DSA's reason stays ahead of the passphrase's, and `isDSA` asks every
+  block: a DSA block after the first gives DSA's. A PKCS#8 file under a
+  passphrase names no key type.
+- A file x/crypto reads is never asked, and every other reason is as it
+  was.
+
+**The executed example.** `pkcs8.sh`: a dry run on the built-in `linux`,
+whose fallback reaches the operator's keys, with `ssh.identities` thirteen
+throwaway key files and a new Ed25519 key, by the released 0.42.0 and by
+the tree's build. The files are OpenSSL 3.5.5's and OpenSSH 10.2's
+(`scout/keys-made.txt` has ten files' commands and says what the review's
+three are); one was put together by hand (`params_then_locked`, which no
+tool on this host writes) and one damaged by hand (`damaged_line_removed`,
+a base64 line cut from an `openssl genpkey` RSA file). Nothing is
+contacted. The warning lines (`$LAB` the lab's folder; the dry run's
+findings repeat them):
+
+```text
+== karvi 0.42.0
+warning: operator_key_skipped: operator key $LAB/ossl_rsa_locked skipped: not a private key karvi reads
+warning: operator_key_skipped: operator key $LAB/ossl_ecdsa_locked skipped: not a private key karvi reads
+warning: operator_key_skipped: operator key $LAB/ossl_ed25519_locked skipped: not a private key karvi reads
+warning: operator_key_skipped: operator key $LAB/keygen_rsa_locked skipped: not a private key karvi reads
+warning: operator_key_skipped: operator key $LAB/keygen_ecdsa_locked skipped: not a private key karvi reads
+warning: operator_key_skipped: operator key $LAB/keygen_ed25519_locked skipped: protected by a passphrase
+warning: operator_key_skipped: operator key $LAB/ossl_rsa_legacy_locked skipped: protected by a passphrase
+warning: operator_key_skipped: operator key $LAB/p12_dump_key_only skipped: not a private key karvi reads
+warning: operator_key_skipped: operator key $LAB/p12_dump_cert_and_key skipped: not a private key karvi reads
+warning: operator_key_skipped: operator key $LAB/params_then_locked skipped: not a private key karvi reads
+warning: operator_key_skipped: operator key $LAB/damaged_line_removed skipped: not a private key karvi reads
+warning: operator_key_skipped: operator key $LAB/ossl_ec_params_first skipped: not a private key karvi reads
+== karvi 0.42.0, the tree's build (a939b8f)
+warning: operator_key_skipped: operator key $LAB/ossl_rsa_locked skipped: protected by a passphrase
+warning: operator_key_skipped: operator key $LAB/ossl_ecdsa_locked skipped: protected by a passphrase
+warning: operator_key_skipped: operator key $LAB/ossl_ed25519_locked skipped: protected by a passphrase
+warning: operator_key_skipped: operator key $LAB/keygen_rsa_locked skipped: protected by a passphrase
+warning: operator_key_skipped: operator key $LAB/keygen_ecdsa_locked skipped: protected by a passphrase
+warning: operator_key_skipped: operator key $LAB/keygen_ed25519_locked skipped: protected by a passphrase
+warning: operator_key_skipped: operator key $LAB/ossl_rsa_legacy_locked skipped: protected by a passphrase
+warning: operator_key_skipped: operator key $LAB/p12_dump_key_only skipped: protected by a passphrase
+warning: operator_key_skipped: operator key $LAB/p12_dump_cert_and_key skipped: not a private key karvi reads
+warning: operator_key_skipped: operator key $LAB/params_then_locked skipped: not a private key karvi reads
+warning: operator_key_skipped: operator key $LAB/damaged_line_removed skipped: protected by a passphrase
+warning: operator_key_skipped: operator key $LAB/ossl_ec_params_first skipped: not a private key karvi reads
+```
+
+Seven lines change. Six are keys under a passphrase whose first block is
+of the type: OpenSSL's RSA, ECDSA, and Ed25519, ssh-keygen's RSA and ECDSA,
+and the PKCS#12 file's key written out alone. OpenSSH refuses each without
+the passphrase (`incorrect passphrase supplied to decrypt private key`) and
+reads each with it. The seventh is the damaged file, which OpenSSH calls
+`invalid format` with the passphrase and without (Left open). Two read the
+passphrase's reason in both runs: the PEM file (`ossl_rsa_legacy_locked`),
+and `keygen_ed25519_locked`, since this host's `ssh-keygen -m PKCS8 -t
+ed25519` writes OpenSSH's own format. Three stay `not a private key karvi
+reads`, each with a block ahead of the key (Left open): OpenSSH reads
+`p12_dump_cert_and_key` and `params_then_locked` with the passphrase and
+`ossl_ec_params_first` without one. The file left of the thirteen, an
+unencrypted Ed25519 PKCS#8 key, and the new key are used in both runs,
+and both exit 0.
+
+`TestInspect` holds the rule on the helper's file, random bytes under the
+type (`sshkeytest.DSA`'s `pkcs8-locked`). It wants the passphrase's reason
+for the file as it is, with text ahead of it, and with a certificate after
+it, and for an empty block of the type and one with a header line. It wants
+`not a private key karvi reads` with a block ahead of it, for a longer
+type, a type that ends as it, and the type in small letters, and for a
+block of another type with the words in a header. With a DSA key after it,
+it wants DSA's.
+
+**What changed.** One commit on dev, `a939b8f`, with its texts (the
+CHANGELOG's entry under Bugs fixed and the last sentence of the DSA entry
+ahead of it, DESIGN section 4), the ROADMAP's item removed, its Next left
+with none chosen, and the item for a block ahead of the key added last in
+its Later: `isLockedPKCS8` and one case of `Inspect` in
+`internal/adapters/sshkey/sshkey.go`; the tests. No description changed:
+by the review's reading `operator_key_skipped`'s, `ssh.identities`'s, and
+`docs/OPERATIONS.md` name the passphrase without a form.
+
+**Not taken.**
+
+- Every block asked, as `isDSA` does: a key under a passphrase behind a
+  certificate would read `protected by a passphrase`, and the operator
+  would remove the passphrase and meet `not a private key karvi reads` at
+  the next run. A DSA block anywhere is never used; the passphrase's reason
+  is advice to act, true only of the block x/crypto reads.
+- The block's outer structure parsed (`EncryptedPrivateKeyInfo`), the
+  review's alternative, about eight lines (`review/candidate/sshkey.go`):
+  it kept the passphrase's reason for the thirteen real files of the type
+  and gave four damaged or mislabelled files `not a private key karvi
+  reads`. Left for the item's words, the type gives the reason, and for
+  x/crypto's own depth: it judges a PEM file by its header, the body
+  unread.
+- A real outer structure for the test helper's file, which the parsed
+  structure would have needed: the helper's is 448 random bytes under the
+  type, as its PEM file under a passphrase is random bytes under the
+  header. The real files are `pkcs8.sh`'s and the review's.
+
+**Left open.**
+
+- A key file with another block ahead of the key is skipped as `not a
+  private key karvi reads`, where OpenSSH reads the key: an ECDSA key as
+  `openssl ecparam -genkey` writes it (`EC PARAMETERS`, then `EC PRIVATE
+  KEY`), and a PKCS#12 file's certificate and key written out. x/crypto
+  reads the first block alone and refuses its type. Found by the reading
+  (the ECDSA file) and the review (the PKCS#12 file), the released 0.42.0
+  and the tree's build alike. To the ROADMAP's Later, the operator's word;
+  until then the operator removes the block ahead of the key.
+- A damaged or mislabelled block under the type reads `protected by a
+  passphrase`, a passphrase nothing can remove: the agreed consequence of
+  the type alone. The review's four files: one base64 line cut and a block
+  that holds no key (OpenSSH: `invalid format`), an empty block (`error in
+  libcrypto`), and an unencrypted Ed25519 PKCS#8 key under the type, which
+  OpenSSH reads without a passphrase.
+- A DSA key in PKCS#8 under a passphrase reads `protected by a passphrase`
+  first and, with it removed, `a DSA key, no longer used`: the file names
+  no type until then.
+- `operator_key_skipped`'s description lists neither `not a private key
+  karvi reads` nor `unreadable`. As before; left.
+- The hardware-backed reason is still read from x/crypto's error text, not
+  from the key file's header. The review's case: a block whose type is the
+  words `unhandled key type` reads as a hardware-backed key. As before;
+  left.
+
+**Checks.** The reading's run of `pkcs8.sh` on five real files with the
+released 0.42.0, and `TestInspect` with the cases added failing on the
+judge as it was, on the two that want the passphrase's reason; the tests;
+one independent review of the uncommitted change, with 30 overlay mutants
+and a control and 400,052 inputs, 52 seed files and 400,000 mutated from
+them (no panic; each of the 21,296 files x/crypto reads gave its
+fingerprint; the 67,311 judged otherwise than by `d5de0f1` each went from
+`not a private key karvi reads` to `protected by a passphrase`, the first
+block `ENCRYPTED PRIVATE KEY`). It found no defect in `Inspect`. Its seven
+findings (`review.md`):
+
+- the type alone gives a damaged or mislabelled block the passphrase's
+  reason: put to the operator, left as built (above);
+- DESIGN section 4's "whatever its file's form": the sentence split, the
+  first-block rule stated;
+- the first block alone: sound, no change;
+- four surviving mutants (the type by its ending, the type without regard
+  to case, nothing may follow the block, the PKCS#8 test ahead of
+  `isDSA`): four test cases;
+- the CHANGELOG's wording on the two tools: applied;
+- gaps in the evidence: `scout/keys-made.txt` written, and four files
+  added to `pkcs8.sh` (`keygen_ed25519_locked`, the PKCS#12 file written
+  out with and without its certificate, the damaged file);
+- two small points: `isDSA`'s comment restored to its words before; the
+  error-text reading left (above).
+
+Of the 30 mutants 23 failed a test at the review, 27 after its four test
+cases (`review/mutants-after-fixes.out`), and 29 after the two cases
+written on the first decision, an empty block of the type and a header
+line in the block (`review/mutants-after-decision.out`). The one left asks
+the block's type ahead of x/crypto's parse and is equivalent: x/crypto
+reads no block of this type. The control passed each time. The full
+battery on a copy of the tree with the change and the review's fixes
+(build, vet, `make generated-clean`, `go test` 76 packages, the suites
+280 s), the host clean after. The two cases and the ROADMAP's Later item
+were written after its copy; with them `go test` on the whole tree and
+`make generated-clean` ran again before the commit, their output not
+kept. `pkcs8.sh` on `a939b8f`, its last line the host after. One
+independent reading of this chapter against the code and the evidence,
+nine findings, each applied.
+
+The evidence is kept beside the tree
+(`release-design-evidence/pkcs8-passphrase-2026-11/`: the reading, the
+decisions, `pkcs8.sh` with `pkcs8.out` and `pkcs8-a939b8f.out`, the key
+files and how each was made, the review with its report, mutants, and
+outputs, the battery, and this chapter as applied).
