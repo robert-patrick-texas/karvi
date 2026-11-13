@@ -1242,8 +1242,11 @@ at planning: the operator's own regular file with no group or other access
 without a passphrase, of a type both transports sign with (no hardware-backed
 `_sk` key, no DSA key). A key that fails is skipped with the notice
 `operator_key_skipped`, naming the file and the reason and never the contents,
-on the device's first record and in the dry run, a DSA key whose file names
-its type by a reason of its own, ahead of a passphrase's; with no key left the
+on the device's first record and in the dry run. A DSA key whose file names
+its type is skipped by a reason of its own, ahead of a passphrase's. A key
+under a passphrase is skipped by the passphrase's in each form (PEM,
+OpenSSH's format, PKCS#8), judged by the file's first block, the one read; a
+PKCS#8 file under a passphrase names no key type. With no key left the
 device fails with
 `credential_operator_keys_missing` (exit 6), listing the files examined. The
 credential is the operator's login name and the keys' paths, its backend

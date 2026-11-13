@@ -38,7 +38,7 @@ func Inspect(data []byte) (fingerprint, reason string) {
 	case isDSA(data):
 		// Ahead of the passphrase: without it the key is still not used.
 		return "", ReasonDSA
-	case errors.As(err, &missing):
+	case errors.As(err, &missing), isLockedPKCS8(data):
 		return "", ReasonPassphrase
 	case strings.Contains(err.Error(), "unhandled key type"):
 		// An OpenSSH key of a type x/crypto has no signer for: the
@@ -46,6 +46,15 @@ func Inspect(data []byte) (fingerprint, reason string) {
 		return "", ReasonUnsupported
 	}
 	return "", ReasonUnreadable
+}
+
+// isLockedPKCS8 reports whether a key file's first PEM block, the one
+// x/crypto reads, is a PKCS#8 key under a passphrase (RFC 5958): its type
+// says so, where x/crypto looks for a PEM file's passphrase header and
+// refuses the type.
+func isLockedPKCS8(data []byte) bool {
+	block, _ := pem.Decode(data)
+	return block != nil && block.Type == "ENCRYPTED PRIVATE KEY"
 }
 
 // oidDSA is the DSA algorithm's identifier in a PKCS#8 file (RFC 3279).

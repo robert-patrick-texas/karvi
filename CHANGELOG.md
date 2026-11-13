@@ -37,8 +37,17 @@ they were published in.
   under one), or `a key type neither transport signs with (a
   hardware-backed key)` (OpenSSH's format). Each now reads `a DSA key, no
   longer used`, as does a PEM file with the key's parameters in a block
-  ahead of it. A PKCS#8 file under a passphrase names no key type and stays
-  `not a private key karvi reads`.
+  ahead of it. A PKCS#8 file under a passphrase names no key type and reads
+  `protected by a passphrase`, the next entry.
+- **A PKCS#8 key under a passphrase is skipped as one.** A PKCS#8 key file
+  under a passphrase (`BEGIN ENCRYPTED PRIVATE KEY`, as `openssl genpkey`
+  with a cipher writes any key and `ssh-keygen -m PKCS8` with a passphrase
+  an RSA or ECDSA key) in `ssh.identities` was skipped
+  (`operator_key_skipped`) as `not a private key karvi reads`, a damaged
+  file's reason. It now reads `protected by a passphrase`, as a PEM or
+  OpenSSH-format key under one does. The reason follows the type of the
+  file's first block, the one read; the key's type is not known until the
+  passphrase is removed.
 - **`command_session_lost` over `native` names why the connection ended.**
   A command on a connection the device or the network had ended failed
   `the connection ended: EOF` over exec and `the device session ended` over

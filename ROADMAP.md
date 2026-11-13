@@ -9,13 +9,7 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-- **A PKCS#8 key under a passphrase named as one.** A PKCS#8 key file under
-  a passphrase (`BEGIN ENCRYPTED PRIVATE KEY`) in `ssh.identities` is skipped
-  (`operator_key_skipped`) as `not a private key karvi reads`, where a PEM
-  or OpenSSH-format key under a passphrase reads `protected by a
-  passphrase`: x/crypto looks for a PEM file's passphrase header, which
-  PKCS#8 has none of, then refuses the block's type. The item: the block's
-  type gives the passphrase's reason.
+None chosen: the operator names the next item, from "Later" or anew.
 
 ## Later
 
@@ -537,6 +531,16 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   It changes the rule of every template, the eleven
   `internal/configload/validate.go` checks, the released ones among them: a
   design of its own.
+- **A key file with another block ahead of the key.** A file of
+  `ssh.identities` whose key follows another PEM block, an ECDSA key as
+  `openssl ecparam -genkey` writes it (`EC PARAMETERS`, then `EC PRIVATE
+  KEY`) or a PKCS#12 file's certificate and key written out, is skipped
+  (`operator_key_skipped`) as `not a private key karvi reads`, where OpenSSH
+  reads the key: x/crypto reads a file's first block alone and refuses its
+  type. The item: the judge and `native` hand x/crypto the file's first key
+  block, through one function. What it gains: a key both transports sign
+  with is used, not skipped. Until then the operator removes the block
+  ahead of the key.
 
 ## Competitive features to consider for later
 
